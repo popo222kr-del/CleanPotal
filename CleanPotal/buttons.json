@@ -1,0 +1,132 @@
+﻿[
+  {
+    "group": "A급 QTZ",
+    "items": [
+      {
+        "title": "금강쿼츠 (A급)",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\09. 금강\\A급 금강 세정코드 LIST.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "금강쿼츠 (B급)",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\09. 금강\\금강쿼츠 B급 전산 등록 SHEET.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "영신쿼츠(A급)",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\13. 영신\\영신 A급 세정 단가 리스트.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "영신쿼츠(B급)",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\13. 영신\\영신 B급 전산 등록 SHEET.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "영신쿼츠(수출)",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\13. 영신\\영신쿼츠(수출, 유진).xlsx",
+        "type": "file"
+      }
+    ]
+  },
+  {
+    "group": "세메스",
+    "items": [
+      {
+        "title": "우암",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\003. WOOAM 2026 입·출고 관리 SHEET.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "세메스 현황 입·출고 관리",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\001. 세메스_2026년.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "SEMES 분석 DATA",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\002. SEMES 제품 분석 데이터 & SPC,MUS 청소 관리.xlsx",
+        "type": "file"
+      }
+    ]
+  },
+  {
+    "group": "기타",
+    "items": [
+      {
+        "title": "눈관리, 폐기품 LIST",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\000. 눈관리 요청, 폐기품 LIST.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "MES 등록 요청",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\004. MES 등록용 제품 세정 코드.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "삼성 및 기타 담당자 연락처",
+        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\004. 업체 담당자 LIST\\기타업체 및 삼성 라인 담당자.xlsx",
+        "type": "file"
+      }
+    ]
+  },
+  {
+    "group": "폴더",
+    "items": [
+      {
+        "title": "기타세정 폴더",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정",
+        "type": "folder"
+      },
+      {
+        "title": "외주세정 폴더",
+        "path": "\\\\10.10.40.98\\Diff 세정팀\\부서 공유 폴더\\03. 기타세정\\30. 외주세정",
+        "type": "folder"
+      },
+      {
+        "title": "25. 생산 Inform 자료",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료",
+        "type": "folder"
+      },
+      {
+        "title": "표준 및 오디트자료",
+        "path": "\\\\10.10.40.98\\천안공장\\40. 세정 컨설팅",
+        "type": "folder"
+      }
+    ]
+  },
+  {
+    "group": "DOME",
+    "items": [
+      {
+        "title": "DOME 현황",
+        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. QTZ DOME 입, 출고 현황 LIST.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "QTZ DOME 외주 입고 분석",
+        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. QTZ DOME 외주 입고 분석.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "ALBATROSS 외주 입고 분석",
+        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. ALBATROSS 외주 입고 분석.xlsx",
+        "type": "file"
+      }
+    ]
+  },
+  {
+    "group": "Daily",
+    "items": [
+      {
+        "title": "인수인계",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\001. 인수인계\\2. 인수인계서.xlsx",
+        "type": "file"
+      },
+      {
+        "title": "배차 LIST",
+        "path": "\\\\10.10.40.98\\천안공장\\25. 생산 Inform 자료\\006. Daily 배차 LIST.xlsx",
+        "type": "file"
+      }
+    ]
+  }
+]
