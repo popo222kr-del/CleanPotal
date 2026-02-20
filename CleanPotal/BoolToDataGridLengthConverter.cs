@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Globalization;
+using System.Windows.Controls;
 using System.Windows.Data;
 
 namespace CleanPotal
 {
-    // 그룹의 Items를 그대로 꺼내주기(바인딩용)
-    public class GroupItemsConverter : IValueConverter
+    public class BoolToDataGridLengthConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-            => value;
+        {
+            bool on = value is bool b && b;
+            return on ? new DataGridLength(153) : new DataGridLength(0);
+        }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotSupportedException();
+            => Binding.DoNothing;
     }
 }
