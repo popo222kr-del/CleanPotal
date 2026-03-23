@@ -1,0 +1,704 @@
+<UserControl x:Class="CleanPotal.HandoverView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CleanPotal"
+             Background="#F3F4F6"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             RenderOptions.BitmapScalingMode="HighQuality"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:PercentToBrushConverter x:Key="PercentToBrushConverter"/>
+        <local:StatusToBrushConverter x:Key="StatusToBrushConverter"/>
+
+        <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#4B5563"/>
+        <SolidColorBrush x:Key="BorderLight" Color="#E5E7EB"/>
+        <SolidColorBrush x:Key="BorderDark" Color="#D1D5DB"/>
+        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF"/>
+
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="24"/>
+        </Style>
+
+        <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="2,0,0,6"/>
+        </Style>
+
+        <Style x:Key="CleanTextBoxStyle" TargetType="TextBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style x:Key="InputWrapperStyle" TargetType="Border">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDark}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+
+        <Style x:Key="MultiLineInputWrapperStyle" TargetType="Border" BasedOn="{StaticResource InputWrapperStyle}">
+            <Setter Property="Height" Value="130"/>
+        </Style>
+
+        <Style x:Key="MultiLineTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource CleanTextBoxStyle}">
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Padding" Value="12,12"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+        </Style>
+
+        <Style x:Key="ModalPrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#F3F4F6"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#9CA3AF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#E5E7EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModalDangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ModalPrimaryButtonStyle}">
+            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="BorderBrush" Value="#FECACA"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FEF2F2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CenterCellStyle" TargetType="DataGridCell">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#F3F4F6"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CenterTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+
+        <Style x:Key="StatusTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource CenterTextBlockStyle}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{Binding Status, Converter={StaticResource StatusToBrushConverter}}"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Background" Value="#F9FAFB"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="12,14"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#F5F7FB">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}" Margin="20,0,20,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16"/>
+
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding NoticeItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,12,0" VerticalAlignment="Top"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="14" LineHeight="22" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Margin="20,0,20,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="진행 목록" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                        <TextBlock Text="행을 더블클릭하면 상세 내용을 수정할 수 있습니다." Margin="0,6,0,0" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="📅 과거 배차 이력" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#F8FAFC" Foreground="#1E293B" BorderBrush="#E2E8F0" Width="140" Height="36" Margin="0,0,12,0" Click="BtnViewHistory_Click"/>
+                        <Button Content="배차표 작성" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#2563EB" Foreground="White" Width="120" Height="36" Click="BtnCreateDispatch_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <DataGrid x:Name="ActiveGrid" Grid.Row="1"
+                          ItemsSource="{Binding ActiveItems}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}"
+                          Background="White" RowHeight="60" CellStyle="{StaticResource CenterCellStyle}" MouseDoubleClick="ActiveGrid_MouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="선택" Width="62">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <CheckBox IsChecked="{Binding ManageChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <CheckBox.LayoutTransform>
+                                                <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                            </CheckBox.LayoutTransform>
+                                        </CheckBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn x:Name="VendorColumn" Header="업체" Binding="{Binding Vendor}" Width="1*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="ContentColumn" Header="내용" Binding="{Binding Content}" Width="1.7*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="InDateColumn" Header="입고일" Binding="{Binding InDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="OutDateColumn" Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="StatusColumn" Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
+
+                        <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="1.9*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0">
+                                        <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
+                                                Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
+                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Border.Background>
+                                                <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" MaxWidth="280" FontSize="15"
+                                                   Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn x:Name="OwnerColumn" Header="담당자" Binding="{Binding Owner}" Width="0.9*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTemplateColumn x:Name="ProgressColumn" Header="진행률" Width="1.5*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="10,0" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Height="8" Background="#E5E7EB" CornerRadius="4" ClipToBounds="True">
+                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent, Mode=OneWay}" Foreground="{Binding ProgressPercent, Mode=OneWay, Converter={StaticResource PercentToBrushConverter}}" Background="Transparent" BorderThickness="0"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding ProgressText}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextSecondary}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="ManageColumn" Header="관리" Width="90" Visibility="Collapsed">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="삭제" Width="60" Height="32" Style="{StaticResource ModalDangerButtonStyle}" Click="HandoverDelete_Click" Visibility="{Binding ManageChecked, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Background="#80111827" Visibility="{Binding IsRegisterModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="20">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="900" MaxHeight="800" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="30,24,30,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="새 업무 등록" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="항목의 세부 정보를 입력해주세요." Margin="0,4,0,0" FontSize="14" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseRegisterModal_Click" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource BorderLight}"/>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,24,30,24">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="업체명" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <TextBox Style="{StaticResource CleanTextBoxStyle}" Text="{Binding EditVendor, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="담당자" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <TextBox Style="{StaticResource CleanTextBoxStyle}" Text="{Binding EditOwner, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="진행 상태" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding EditStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="입고일" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <DatePicker Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" SelectedDate="{Binding EditInDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="출고일" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <DatePicker Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" SelectedDate="{Binding EditOutDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="작업 내용" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource MultiLineInputWrapperStyle}" Height="200">
+                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Text="{Binding EditContent, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="메모 및 첨부파일" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource MultiLineInputWrapperStyle}" BorderBrush="#9CA3AF" BorderThickness="1" SnapsToDevicePixels="True">
+                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" 
+                                                 Text="{Binding EditMemo, UpdateSourceTrigger=PropertyChanged}" 
+                                                 PreviewDragOver="RegisterModalMemo_PreviewDragOver" Drop="RegisterModalMemo_Drop" PreviewKeyDown="RegisterModalMemo_PreviewKeyDown" AllowDrop="True"
+                                                 ToolTip="텍스트를 입력하거나 이미지를 드래그 앤 드롭 하세요."/>
+                                    </Border>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0" Height="62">
+                                        <ItemsControl ItemsSource="{Binding RegisterModalAttachmentPaths}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,8,0" Width="56" Height="56">
+                                                        <Border CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="ModalThumbnail_Click">
+                                                            <Border.Background>
+                                                                <ImageBrush ImageSource="{Binding}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <Button Content="✕" Width="20" Height="20" Background="#EF4444" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0" BorderThickness="0" Cursor="Hand"
+                                                                Click="RegisterDeleteAttachment_Click">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Rectangle Grid.Row="3" Height="1" Fill="{StaticResource BorderLight}"/>
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="30,20,30,24">
+                        <Button Content="초기화" Style="{StaticResource ModalPrimaryButtonStyle}" Width="100" Margin="0,0,12,0" Click="HandoverReset_Click"/>
+                        <Button Content="업무 등록하기" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#111827" Foreground="White" Width="180" Click="HandoverSave_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Border>
+
+        <Border Background="#80111827" Visibility="{Binding IsEditModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="21">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="900" MaxHeight="800" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="30,24,30,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="업무 상세 수정" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="선택한 항목의 세부 정보를 수정합니다." Margin="0,4,0,0" FontSize="14" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseEditModal_Click" VerticalAlignment="Top"/>
+                    </Grid>
+
+                    <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource BorderLight}"/>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,24,30,24">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="업체명" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <TextBox Style="{StaticResource CleanTextBoxStyle}" Text="{Binding EditVendor, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="담당자" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <TextBox Style="{StaticResource CleanTextBoxStyle}" Text="{Binding EditOwner, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="진행 상태" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding EditStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="입고일" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <DatePicker Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" SelectedDate="{Binding EditInDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="출고일" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource InputWrapperStyle}">
+                                        <DatePicker Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" SelectedDate="{Binding EditOutDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="작업 내용" Style="{StaticResource FormLabelStyle}"/>
+                                    <Border Style="{StaticResource MultiLineInputWrapperStyle}" Height="200">
+                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Text="{Binding EditContent, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="메모 및 첨부파일" Style="{StaticResource FormLabelStyle}"/>
+
+                                    <Border Style="{StaticResource MultiLineInputWrapperStyle}" BorderBrush="#9CA3AF" BorderThickness="1" SnapsToDevicePixels="True">
+                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" 
+                                                 Text="{Binding EditMemo, UpdateSourceTrigger=PropertyChanged}" 
+                                                 PreviewDragOver="EditModalMemo_PreviewDragOver" Drop="EditModalMemo_Drop" PreviewKeyDown="EditModalMemo_PreviewKeyDown" AllowDrop="True"/>
+                                    </Border>
+
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0" Height="62">
+                                        <ItemsControl ItemsSource="{Binding EditModalAttachmentPaths}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,8,0" Width="56" Height="56">
+                                                        <Border CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="ModalThumbnail_Click">
+                                                            <Border.Background>
+                                                                <ImageBrush ImageSource="{Binding}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <Button Content="✕" Width="20" Height="20" Background="#EF4444" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0" BorderThickness="0" Cursor="Hand"
+                                                                Click="EditDeleteAttachment_Click">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Rectangle Grid.Row="3" Height="1" Fill="{StaticResource BorderLight}"/>
+
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="30,20,30,24">
+                        <Button Content="취소" Style="{StaticResource ModalPrimaryButtonStyle}" Width="100" Margin="0,0,12,0" Click="CloseEditModal_Click"/>
+                        <Button Content="수정 내용 저장" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#111827" Foreground="White" Width="180" Click="EditModalSave_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Border>
+
+        <Border Background="#80111827" Visibility="{Binding IsDoneModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="22">
+            <Border Style="{StaticResource CardBorderStyle}" CornerRadius="20" MaxWidth="1600" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="완료 목록 보관함" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="닫기" Width="100" Height="42" Style="{StaticResource ModalPrimaryButtonStyle}" Click="CloseDoneModal_Click" VerticalAlignment="Top"/>
+                    </Grid>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
+                        <CheckBox Content="전체 선택" IsChecked="{Binding DoneSelectAll, Mode=TwoWay}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        <Button Content="선택 삭제" Style="{StaticResource ModalDangerButtonStyle}" Width="100" Click="DoneDeleteSelected_Click"/>
+                    </StackPanel>
+
+                    <DataGrid x:Name="DoneGrid" Grid.Row="2" ItemsSource="{Binding DoneItems}" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" RowHeight="60" CellStyle="{StaticResource CenterCellStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="선택" Width="62">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <CheckBox IsChecked="{Binding ManageChecked, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <CheckBox.LayoutTransform>
+                                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                                </CheckBox.LayoutTransform>
+                                            </CheckBox>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="업체" Binding="{Binding Vendor}" Width="1*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                            <DataGridTextColumn Header="내용" Binding="{Binding Content}" Width="1.5*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                            <DataGridTextColumn Header="입고일" Binding="{Binding InDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                            <DataGridTextColumn Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                            <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
+
+                            <DataGridTemplateColumn Header="메모" Width="1.8*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0">
+                                            <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
+                                                    Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
+                                                    Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Border.Background>
+                                            </Border>
+                                            <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" MaxWidth="280" FontSize="15"
+                                                       Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="담당자" Binding="{Binding Owner}" Width="0.9*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                            <DataGridTemplateColumn Header="관리" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="삭제" Width="60" Height="32" Style="{StaticResource ModalDangerButtonStyle}" Click="DoneDelete_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Border>
+
+        <Border Background="#80111827" Visibility="{Binding IsNoticeModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="23">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="800" MaxHeight="700" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="30,24,30,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="공지사항 관리" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseNoticeModal_Click" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource BorderLight}"/>
+                    <Grid Grid.Row="2" Margin="30,24,30,24">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource InputWrapperStyle}" Height="Auto" MinHeight="42">
+                                <TextBox x:Name="NoticeInputBox" Style="{StaticResource CleanTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="120" Padding="12,10" KeyDown="NoticeInputBox_KeyDown" ToolTip="공지사항을 입력하세요..."/>
+                            </Border>
+                            <Button Grid.Column="2" Content="공지 추가" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#111827" Foreground="White" Width="100" Click="AddNotice_Click" VerticalAlignment="Bottom"/>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding NoticeItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,12,0" VerticalAlignment="Top"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="14" LineHeight="22" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="2" Content="✕" Width="28" Height="28" Background="Transparent" Foreground="{StaticResource TextSecondary}" BorderThickness="0" FontSize="14" FontWeight="Bold" Cursor="Hand" Click="DeleteNotice_Click" Margin="12,0,0,0" VerticalAlignment="Top"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

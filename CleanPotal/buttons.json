@@ -98,18 +98,13 @@
     "group": "DOME",
     "items": [
       {
-        "title": "DOME 현황",
+        "title": "QTZ DOME 현황",
         "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. QTZ DOME 입, 출고 현황 LIST.xlsx",
         "type": "file"
       },
       {
         "title": "QTZ DOME 외주 입고 분석",
-        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. QTZ DOME 외주 입고 분석.xlsx",
-        "type": "file"
-      },
-      {
-        "title": "ALBATROSS 외주 입고 분석",
-        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. ALBATROSS 외주 입고 분석.xlsx",
+        "path": "\\\\10.10.40.98\\Diff 세정팀_Office\\000. QTZ DOME ICP-MS 분석.xlsx",
         "type": "file"
       }
     ]

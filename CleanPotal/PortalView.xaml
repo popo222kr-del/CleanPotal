@@ -1,0 +1,53 @@
+﻿<UserControl x:Class="CleanPotal.PortalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F5F7FB" SnapsToDevicePixels="True" UseLayoutRounding="True">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+        <ItemsControl x:Name="GroupsItemsControl">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="4" VerticalAlignment="Top"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource ModernCardStyle}" Margin="12" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="{Binding group}" FontWeight="ExtraBold" FontSize="18" Foreground="#111827" Margin="4,0,0,16"/>
+                            <ItemsControl ItemsSource="{Binding items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Tag="{Binding path}" Click="PortalButton_Click" Margin="0,0,0,8" Cursor="Hand" Background="Transparent" BorderThickness="0">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="border" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+                                                        <Grid Margin="12,10">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock x:Name="mainText" Text="{Binding title}" Foreground="#334155" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock x:Name="arrow" Grid.Column="1" Text="→" Foreground="#94A3B8" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#EFF6FF"/>
+                                                            <Setter TargetName="border" Property="BorderBrush" Value="#BFDBFE"/>
+                                                            <Setter TargetName="mainText" Property="Foreground" Value="#2563EB"/>
+                                                            <Setter TargetName="arrow" Property="Foreground" Value="#2563EB"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

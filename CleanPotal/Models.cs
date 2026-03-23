@@ -1,13 +1,10 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 
 namespace CleanPotal
 {
-    public enum PortalTargetType
-    {
-        Folder = 0,
-        File = 1,
-        Url = 2
-    }
+    // --- [포털 메뉴 관리 모델] ---
+    public enum PortalTargetType { Folder = 0, File = 1, Url = 2 }
 
     public sealed class PortalButtonItem
     {
@@ -16,13 +13,24 @@ namespace CleanPotal
         public PortalTargetType TargetType { get; set; } = PortalTargetType.Folder;
     }
 
-    public sealed class HandoverItem
+    // --- [업체 및 배차 관리 공용 모델] ---
+    public class VendorModel
     {
-        public DateTime Date { get; set; } = DateTime.Today;
-        public string Title { get; set; } = "";
-        public string Writer { get; set; } = "";
-        public string Status { get; set; } = "진행";
+        public string VendorName { get; set; } = "";
+        public ObservableCollection<AddressModel> Addresses { get; set; } = new ObservableCollection<AddressModel>();
+        public ObservableCollection<ManagerModel> Managers { get; set; } = new ObservableCollection<ManagerModel>();
+    }
 
-        public string DateText => $"{Date:yyyy-MM-dd}";
+    public class AddressModel
+    {
+        public bool IsMain { get; set; } // HandoverView 등에서 사용
+        public string LocationName { get; set; } = "";
+        public string FullAddress { get; set; } = "";
+    }
+
+    public class ManagerModel
+    {
+        public string ManagerName { get; set; } = "";
+        public string ContactNumber { get; set; } = "";
     }
 }

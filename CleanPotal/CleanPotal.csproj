@@ -6,14 +6,23 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>bono.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Images\bono.ico" />
+    <None Remove="Images\bono.png" />
     <None Remove="Images\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="bono.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Images\bono.ico" />
+    <Resource Include="Images\bono.png" />
     <Resource Include="Images\logo.png" />
   </ItemGroup>
 
