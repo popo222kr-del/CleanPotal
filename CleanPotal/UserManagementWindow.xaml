@@ -1,0 +1,181 @@
+﻿<Window x:Class="CleanPotal.UserManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="사용자 계정 관리" Width="1050" Height="700"
+        WindowStartupLocation="CenterOwner" Background="#F8FAFC"
+        SnapsToDevicePixels="True" UseLayoutRounding="True">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="사용자 계정 관리" FontSize="22" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,16"/>
+
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="20,16">
+            <StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="사번(아이디)" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewId" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="비밀번호" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewPw" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="이름" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewName" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="6">
+                        <TextBlock Text="직위" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewTitle" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="소속팀" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewTeam" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="메일주소" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewEmail" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="전화번호" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtNewPhone" Height="32" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Background="#E2E8F0" Margin="0,0,0,12"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="메뉴 접근 권한 부여 :" FontSize="13" FontWeight="Bold" Foreground="#334155" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="ChkManageFiles" Content="파일 관리자" FontSize="13" Foreground="#475569" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="ChkManageNotices" Content="공지사항 관리" FontSize="13" Foreground="#475569" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="ChkManageVendors" Content="업체 관리" FontSize="13" Foreground="#475569" Margin="0,0,15,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="ChkManageSchedule" Content="일정/교육 관리" FontSize="13" Foreground="#475569" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="입력 지우기" Width="90" Height="34" Background="White" BorderBrush="#CBD5E1" Foreground="#475569" FontWeight="SemiBold" Margin="0,0,8,0" Click="BtnClear_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Content="신규 추가" Width="90" Height="34" Background="#2563EB" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,8,0" Click="BtnAddUser_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Content="정보 수정" Width="90" Height="34" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Click="BtnEditUser_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,8">
+            <Button Content="선택 삭제" Width="90" Height="32" Background="White" BorderBrush="#FECACA" Foreground="#EF4444" FontWeight="Bold" Click="BtnDeleteUser_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+
+        <DataGrid x:Name="UsersGrid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" 
+                  SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column" 
+                  Background="White" BorderBrush="#E2E8F0" BorderThickness="1" RowHeight="32" 
+                  SelectionChanged="UsersGrid_SelectionChanged">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="Foreground" Value="#475569"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="사번" Binding="{Binding Username}" Width="100"/>
+                <DataGridTextColumn Header="이름" Binding="{Binding RealName}" Width="100"/>
+                <DataGridTextColumn Header="소속팀" Binding="{Binding TeamName}" Width="120"/>
+                <DataGridCheckBoxColumn Header="파일 권한" Binding="{Binding CanManageFiles}" Width="80">
+                    <DataGridCheckBoxColumn.ElementStyle>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridCheckBoxColumn.ElementStyle>
+                </DataGridCheckBoxColumn>
+                <DataGridCheckBoxColumn Header="공지 권한" Binding="{Binding CanManageNotices}" Width="80">
+                    <DataGridCheckBoxColumn.ElementStyle>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridCheckBoxColumn.ElementStyle>
+                </DataGridCheckBoxColumn>
+                <DataGridCheckBoxColumn Header="업체 권한" Binding="{Binding CanManageVendors}" Width="80">
+                    <DataGridCheckBoxColumn.ElementStyle>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridCheckBoxColumn.ElementStyle>
+                </DataGridCheckBoxColumn>
+                <DataGridCheckBoxColumn Header="일정 권한" Binding="{Binding CanManageSchedule}" Width="80">
+                    <DataGridCheckBoxColumn.ElementStyle>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridCheckBoxColumn.ElementStyle>
+                </DataGridCheckBoxColumn>
+                <DataGridTextColumn Header="전화번호" Binding="{Binding PhoneNumber}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

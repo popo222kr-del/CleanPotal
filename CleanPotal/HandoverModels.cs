@@ -11,6 +11,10 @@ namespace CleanPotal
         private string _vendor = "";
         public string Vendor { get => _vendor; set { _vendor = value; OnPropertyChanged(); } }
 
+        // 🔥 누락되었던 탭 분류용 속성 (SEMES, QTZ)
+        private string _category = "QTZ";
+        public string Category { get => _category; set { _category = value; OnPropertyChanged(); } }
+
         private string _owner = "";
         public string Owner { get => _owner; set { _owner = value; OnPropertyChanged(); } }
 
@@ -41,7 +45,6 @@ namespace CleanPotal
             }
         }
 
-        // 🔥 이미지 썸네일과 텍스트를 자동 분리하는 스마트 속성
         public string DisplayMemoText
         {
             get
@@ -69,7 +72,8 @@ namespace CleanPotal
                     string trimmed = line.Trim();
                     if (!string.IsNullOrWhiteSpace(trimmed))
                     {
-                        string root = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "handover_images");
+                        // 공용 네트워크 폴더 참조
+                        string root = System.IO.Path.Combine(AppPaths.DataRoot, "handover_images");
                         return System.IO.Path.GetFullPath(System.IO.Path.Combine(root, trimmed));
                     }
                 }
@@ -107,5 +111,50 @@ namespace CleanPotal
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        private string _creatorName = "";
+        public string CreatorName { get => _creatorName; set { _creatorName = value; OnPropertyChanged(); OnPropertyChanged(nameof(CreatorText)); OnPropertyChanged(nameof(IsNewUpdate)); } }
+
+        private DateTime _createDate = DateTime.Now;
+        public DateTime CreateDate { get => _createDate; set { _createDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(CreatorText)); OnPropertyChanged(nameof(IsNewUpdate)); } }
+
+        private string _modifierName = "";
+        public string ModifierName { get => _modifierName; set { _modifierName = value; OnPropertyChanged(); OnPropertyChanged(nameof(ModifierText)); OnPropertyChanged(nameof(HasModifier)); OnPropertyChanged(nameof(IsNewUpdate)); } }
+
+        private DateTime _modifyDate = DateTime.Now;
+        public DateTime ModifyDate { get => _modifyDate; set { _modifyDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(ModifierText)); OnPropertyChanged(nameof(IsNewUpdate)); } }
+
+        // 🔥 누락되었던 개별 사용자 읽음 처리 기록 속성
+        private string _readBy = "";
+        public string ReadBy { get => _readBy; set { _readBy = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNewUpdate)); } }
+
+        public string CreatorText => string.IsNullOrEmpty(CreatorName) || CreatorName == "알수없음" ? "" : $"✍️ 등록: {CreatorName} ({CreateDate:yy.MM.dd HH:mm})";
+        public string ModifierText => string.IsNullOrEmpty(ModifierName) ? "" : $"🔄 수정: {ModifierName} ({ModifyDate:yy.MM.dd HH:mm})";
+        public bool HasModifier => !string.IsNullOrEmpty(ModifierName);
+
+        // 🔥 누락되었던 알림/레드닷 표시 계산 로직 (새 글 + 수정 글 모두 포함)
+        public bool IsNewUpdate
+        {
+            get
+            {
+                if (!SessionManager.IsLoggedIn) return false;
+                string currentUser = SessionManager.CurrentRealName;
+
+                // 1. 내가 이미 클릭해서 읽은 항목이라면 빨간 점 즉시 소멸
+                if (!string.IsNullOrEmpty(ReadBy) && ReadBy.Contains(currentUser)) return false;
+
+                // 2. 다른 사람이 24시간 이내에 새로 등록한 경우
+                bool isNewlyCreated = !string.IsNullOrEmpty(CreatorName) &&
+                                      CreatorName != currentUser &&
+                                      (DateTime.Now - CreateDate).TotalHours <= 24;
+
+                // 3. 다른 사람이 24시간 이내에 수정한 경우
+                bool isRecentlyModified = !string.IsNullOrEmpty(ModifierName) &&
+                                          ModifierName != currentUser &&
+                                          (DateTime.Now - ModifyDate).TotalHours <= 24;
+
+                return isNewlyCreated || isRecentlyModified;
+            }
+        }
     }
 }

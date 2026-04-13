@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CleanPotal"
-             Background="#F3F4F6"
+             Background="Transparent"
              TextOptions.TextFormattingMode="Display"
              TextOptions.TextRenderingMode="ClearType"
              RenderOptions.BitmapScalingMode="HighQuality"
@@ -20,12 +20,68 @@
         <SolidColorBrush x:Key="BorderDark" Color="#D1D5DB"/>
         <SolidColorBrush x:Key="CardBg" Color="#FFFFFF"/>
 
+        <Style x:Key="SegmentedTabStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DueTodayToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="#FEF2F2"/>
+            <Setter Property="Foreground" Value="#EF4444"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bg" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}" BorderBrush="#FECACA" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#FEE2E2"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#EF4444"/>
+                                <Setter TargetName="bg" Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource CardBg}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Padding" Value="24"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
         </Style>
 
         <Style x:Key="FormLabelStyle" TargetType="TextBlock">
@@ -134,7 +190,7 @@
             <Setter Property="Background" Value="#F9FAFB"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="12,14"/>
+            <Setter Property="Padding" Value="12,10"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="FontSize" Value="15"/>
         </Style>
@@ -146,67 +202,169 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F5F7FB">
+    <Grid Background="Transparent">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}" Margin="20,0,20,16">
+        <Grid x:Name="TopDashboardArea" Grid.Row="0" Margin="8,8,8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="6*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="5*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                        <ItemsControl ItemsSource="{Binding NoticeItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,8,0" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="15" FontWeight="Medium" LineHeight="22" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Background="#F8FAFC" BorderBrush="#E2E8F0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="오늘의 세정팀 현황" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                        <ItemsControl x:Name="TodayStatusList" ItemsSource="{Binding TeamStatusGroups}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="4">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TeamName}" FontSize="14" FontWeight="ExtraBold" Foreground="#1E293B" Margin="0,0,0,8"/>
+                                            <ItemsControl ItemsSource="{Binding StatusList}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,0,6">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Background="{Binding BackgroundBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                                                <TextBlock Text="{Binding BadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding TextBrush}"/>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="1" Text="{Binding MembersText}" FontSize="12" Foreground="#475569" VerticalAlignment="Center" TextWrapping="Wrap" LineHeight="16"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="8,12,8,12">
+            <Rectangle Height="1" Fill="{StaticResource BorderLight}" VerticalAlignment="Center"/>
+            <Button x:Name="BtnToggleDashboard" Content="대시보드 접기 ▲" HorizontalAlignment="Center" Padding="24,6" Background="#FFFFFF" Foreground="#64748B" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" FontSize="13" FontWeight="Bold" Cursor="Hand" Click="BtnToggleDashboard_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="16"/>
+                    </Style>
+                </Button.Resources>
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Margin="8,0,8,8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16"/>
-
-                <ItemsControl Grid.Row="1" ItemsSource="{Binding NoticeItems}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,12,0" VerticalAlignment="Top"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="14" LineHeight="22" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Margin="20,0,20,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid Grid.Row="0" Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="진행 목록" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
-                        <TextBlock Text="행을 더블클릭하면 상세 내용을 수정할 수 있습니다." Margin="0,6,0,0" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="진행 목록" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+
+                            <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+
+                            <Border Width="1" Background="{StaticResource BorderLight}" Margin="8,4,12,4"/>
+
+                            <ToggleButton x:Name="ToggleDueToday" Content="🔥 오늘 출고 (마감)" Style="{StaticResource DueTodayToggleStyle}" Checked="FilterTab_Checked" Unchecked="FilterTab_Checked" ToolTip="오늘 출고이거나 이미 기한이 지연된 건만 모아봅니다."/>
+                        </StackPanel>
+                        <TextBlock Text="항목을 클릭하면 확인(읽음) 처리되며, 행을 더블클릭하면 수정할 수 있습니다." Margin="0,4,0,0" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Content="+ 새 항목 등록" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#10B981" Foreground="White" BorderThickness="0" Width="120" Height="36" Margin="0,0,12,0" Click="BtnOpenRegister_Click"/>
                         <Button Content="📅 과거 배차 이력" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#F8FAFC" Foreground="#1E293B" BorderBrush="#E2E8F0" Width="140" Height="36" Margin="0,0,12,0" Click="BtnViewHistory_Click"/>
-                        <Button Content="배차표 작성" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#2563EB" Foreground="White" Width="120" Height="36" Click="BtnCreateDispatch_Click"/>
+                        <Button Content="배차표 작성" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Width="120" Height="36" Click="BtnCreateDispatch_Click"/>
                     </StackPanel>
                 </Grid>
 
-                <DataGrid x:Name="ActiveGrid" Grid.Row="1"
-                          ItemsSource="{Binding ActiveItems}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                <DataGrid x:Name="ActiveGrid" Grid.Row="1" VerticalAlignment="Top"
+                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                           HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}"
-                          Background="White" RowHeight="60" CellStyle="{StaticResource CenterCellStyle}" MouseDoubleClick="ActiveGrid_MouseDoubleClick">
+                          Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}" 
+                          MouseDoubleClick="ActiveGrid_MouseDoubleClick" SelectionChanged="ActiveGrid_SelectionChanged">
+
+                    <DataGrid.Resources>
+                        <Style TargetType="ScrollBar">
+                            <Setter Property="Margin" Value="0,0,4,0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
+                    </DataGrid.Resources>
+
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="선택" Width="62">
                             <DataGridTemplateColumn.CellTemplate>
@@ -221,8 +379,34 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn x:Name="VendorColumn" Header="업체" Binding="{Binding Vendor}" Width="1*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
-                        <DataGridTextColumn x:Name="ContentColumn" Header="내용" Binding="{Binding Content}" Width="1.7*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+
+                        <DataGridTemplateColumn x:Name="VendorColumn" Header="업체" Width="1*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid VerticalAlignment="Stretch">
+                                        <Ellipse Width="8" Height="8" Fill="#EF4444" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0"
+                                                 Visibility="{Binding IsNewUpdate, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Ellipse.Effect>
+                                                <DropShadowEffect Color="#EF4444" BlurRadius="4" ShadowDepth="0" Opacity="0.4"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <TextBlock Text="{Binding Vendor}" Style="{StaticResource CenterTextBlockStyle}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn x:Name="ContentColumn" Header="내용" Width="2*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="16,6">
+                                        <TextBlock Text="{Binding Content}" FontSize="15" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" HorizontalAlignment="Left"/>
+                                        <TextBlock Text="{Binding CreatorText}" FontSize="11" Foreground="#9CA3AF" Margin="0,4,0,0" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <DataGridTextColumn x:Name="InDateColumn" Header="입고일" Binding="{Binding InDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                         <DataGridTextColumn x:Name="OutDateColumn" Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                         <DataGridTextColumn x:Name="StatusColumn" Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
@@ -230,16 +414,19 @@
                         <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="1.9*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0">
-                                        <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
-                                                Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
-                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <Border.Background>
-                                                <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            </Border.Background>
-                                        </Border>
-                                        <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" MaxWidth="280" FontSize="15"
-                                                   Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
+                                                    Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
+                                                    Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                </Border.Background>
+                                            </Border>
+                                            <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" FontSize="15"
+                                                       Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding ModifierText}" FontSize="11" Foreground="#9CA3AF" Margin="0,4,0,0" Visibility="{Binding HasModifier, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -293,7 +480,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="새 업무 등록" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="새 항목 등록" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
                             <TextBlock Text="항목의 세부 정보를 입력해주세요." Margin="0,4,0,0" FontSize="14" Foreground="{StaticResource TextSecondary}"/>
                         </StackPanel>
                         <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseRegisterModal_Click" VerticalAlignment="Top"/>
@@ -509,13 +696,11 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="메모 및 첨부파일" Style="{StaticResource FormLabelStyle}"/>
-
                                     <Border Style="{StaticResource MultiLineInputWrapperStyle}" BorderBrush="#9CA3AF" BorderThickness="1" SnapsToDevicePixels="True">
                                         <TextBox Style="{StaticResource MultiLineTextBoxStyle}" 
                                                  Text="{Binding EditMemo, UpdateSourceTrigger=PropertyChanged}" 
                                                  PreviewDragOver="EditModalMemo_PreviewDragOver" Drop="EditModalMemo_Drop" PreviewKeyDown="EditModalMemo_PreviewKeyDown" AllowDrop="True"/>
                                     </Border>
-
                                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0" Height="62">
                                         <ItemsControl ItemsSource="{Binding EditModalAttachmentPaths}">
                                             <ItemsControl.ItemsPanel>
@@ -576,7 +761,12 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="완료 목록 보관함" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="완료 목록 보관함" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
+                                <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                                <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                            </StackPanel>
                         </StackPanel>
                         <Button Grid.Column="1" Content="닫기" Width="100" Height="42" Style="{StaticResource ModalPrimaryButtonStyle}" Click="CloseDoneModal_Click" VerticalAlignment="Top"/>
                     </Grid>
@@ -585,7 +775,15 @@
                         <Button Content="선택 삭제" Style="{StaticResource ModalDangerButtonStyle}" Width="100" Click="DoneDeleteSelected_Click"/>
                     </StackPanel>
 
-                    <DataGrid x:Name="DoneGrid" Grid.Row="2" ItemsSource="{Binding DoneItems}" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" RowHeight="60" CellStyle="{StaticResource CenterCellStyle}">
+                    <DataGrid x:Name="DoneGrid" Grid.Row="2" VerticalAlignment="Top"
+                              AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
+                              SelectionChanged="DoneGrid_SelectionChanged">
+                        <DataGrid.Resources>
+                            <Style TargetType="ScrollBar">
+                                <Setter Property="Margin" Value="0,0,4,0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                        </DataGrid.Resources>
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="선택" Width="62">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -600,8 +798,34 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="업체" Binding="{Binding Vendor}" Width="1*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
-                            <DataGridTextColumn Header="내용" Binding="{Binding Content}" Width="1.5*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+
+                            <DataGridTemplateColumn Header="업체" Width="1*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid VerticalAlignment="Stretch">
+                                            <Ellipse Width="8" Height="8" Fill="#EF4444" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0"
+                                                     Visibility="{Binding IsNewUpdate, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <Ellipse.Effect>
+                                                    <DropShadowEffect Color="#EF4444" BlurRadius="4" ShadowDepth="0" Opacity="0.4"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding Vendor}" Style="{StaticResource CenterTextBlockStyle}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="내용" Width="1.5*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,6">
+                                            <TextBlock Text="{Binding Content}" FontSize="15" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" HorizontalAlignment="Left"/>
+                                            <TextBlock Text="{Binding CreatorText}" FontSize="11" Foreground="#9CA3AF" Margin="0,4,0,0" HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTextColumn Header="입고일" Binding="{Binding InDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                             <DataGridTextColumn Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                             <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
@@ -609,16 +833,19 @@
                             <DataGridTemplateColumn Header="메모" Width="1.8*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0">
-                                            <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
-                                                    Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
-                                                    Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <Border.Background>
-                                                    <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                </Border.Background>
-                                            </Border>
-                                            <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" MaxWidth="280" FontSize="15"
-                                                       Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="38" Height="38" Margin="0,0,12,0" CornerRadius="8" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
+                                                        Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
+                                                        Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="{Binding FirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    </Border.Background>
+                                                </Border>
+                                                <TextBlock Text="{Binding DisplayMemoText}" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" MaxWidth="280" FontSize="15"
+                                                           Visibility="{Binding HasText, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding ModifierText}" FontSize="11" Foreground="#9CA3AF" Margin="0,4,0,0" Visibility="{Binding HasModifier, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

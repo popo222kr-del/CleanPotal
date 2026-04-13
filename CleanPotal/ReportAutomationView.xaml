@@ -1,0 +1,133 @@
+﻿<UserControl x:Class="CleanPotal.ReportAutomationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F1F5F9" SnapsToDevicePixels="True" UseLayoutRounding="True"
+             Focusable="True" Loaded="UserControl_Loaded" PreviewKeyDown="UserControl_PreviewKeyDown">
+
+    <UserControl.Resources>
+        <Style x:Key="BaseRoundedButton" TargetType="Button">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RedButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseRoundedButton}">
+            <Setter Property="Background" Value="#FEE2E2"/>
+            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="BorderBrush" Value="#FCA5A5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="BlueButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseRoundedButton}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="성적서 복사 및 PDF 자동 생성" FontSize="26" FontWeight="ExtraBold" Foreground="#0F172A"/>
+            <TextBlock Text="엑셀에서 LOT와 S/N을 복사한 후 화면에 [ Ctrl + V ] 를 눌러 붙여넣기 하세요." FontSize="14" Foreground="#64748B" Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Button Content="목록 지우기" Width="90" Height="40" Style="{StaticResource RedButtonStyle}" Click="BtnClear_Click"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox x:Name="ChkCreatePdf" Content="PDF 변환 동시 진행" IsChecked="True" FontSize="15" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                <Button x:Name="BtnRun" Content="자동 변환 실행" Width="180" Height="44" Style="{StaticResource BlueButtonStyle}" Click="BtnRun_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="0">
+            <DataGrid x:Name="DataGridList" AutoGenerateColumns="False" HeadersVisibility="Column" CanUserAddRows="False" Background="White" RowBackground="White" AlternatingRowBackground="#F8FAFC" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E2E8F0" BorderThickness="0" RowHeight="40">
+
+                <DataGrid.Resources>
+                    <Style x:Key="CenterAlign" TargetType="TextBlock">
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="FontSize" Value="14"/>
+                    </Style>
+                </DataGrid.Resources>
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F1F5F9"/>
+                        <Setter Property="Foreground" Value="#334155"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="Height" Value="45"/>
+                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="LOT 번호 (원본 찾기)" Binding="{Binding LotNumber}" Width="*" ElementStyle="{StaticResource CenterAlign}"/>
+                    <DataGridTextColumn Header="S/N (새 파일명)" Binding="{Binding SerialNumber}" Width="*" ElementStyle="{StaticResource CenterAlign}"/>
+                    <DataGridTextColumn Header="진행 상태" Binding="{Binding Status}" Width="200">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="대기중">
+                                        <Setter Property="Foreground" Value="#94A3B8"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="성공 (PDF 완료)">
+                                        <Setter Property="Foreground" Value="#10B981"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="성공 (엑셀만)">
+                                        <Setter Property="Foreground" Value="#3B82F6"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="원본 없음">
+                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="오류 발생">
+                                        <Setter Property="Foreground" Value="#DC2626"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

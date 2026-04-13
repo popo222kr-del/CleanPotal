@@ -11,12 +11,19 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace CleanPotal
 {
+    public class TeamStatusGroup
+    {
+        public string TeamName { get; set; } = "";
+        public ObservableCollection<TodayStatusItem> StatusList { get; set; } = new();
+    }
+
     public partial class HandoverView : UserControl, INotifyPropertyChanged
     {
         private const string ImageBlockStart = "[[HANDOVER_IMAGES]]";
@@ -35,7 +42,13 @@ namespace CleanPotal
             public event PropertyChangedEventHandler? PropertyChanged;
         }
 
-        private AutoSyncManager _syncManager;
+        private AutoSyncManager _noticeSyncManager;
+        private AutoSyncManager _dbSyncManager;
+        private AutoSyncManager _vendorSyncManager;
+
+        private ICollectionView _activeView;
+        private ICollectionView _doneView;
+        private string _currentFilter = "전체";
 
         public HandoverView()
         {
@@ -53,21 +66,25 @@ namespace CleanPotal
 
             LoadNotices();
             LoadHandoverAll();
+            LoadTodayStatus();
+
+            _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
+            _activeView.Filter = FilterHandoverItem;
+            ActiveGrid.ItemsSource = _activeView;
+
+            _doneView = CollectionViewSource.GetDefaultView(DoneItems);
+            _doneView.Filter = FilterHandoverItem;
+            DoneGrid.ItemsSource = _doneView;
 
             UpdateManageColumnVisibility();
             RefreshTopProgressPreview();
 
-            _syncManager = new AutoSyncManager(() =>
-            {
-                Dispatcher.Invoke(() => {
-                    LoadNotices();
-                    LoadHandoverAll();
-                });
-            },
-            Path.Combine(AppPaths.DataRoot, "office_notice.json"));
+            _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "office_notice.json"));
+            _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
+            _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); }); }, AppPaths.VendorsFilePath);
 
-            this.Loaded += (s, e) => _syncManager.Start();
-            this.Unloaded += (s, e) => _syncManager.Stop();
+            this.Loaded += (s, e) => { _noticeSyncManager.Start(); _dbSyncManager.Start(); _vendorSyncManager.Start(); };
+            this.Unloaded += (s, e) => { _noticeSyncManager.Stop(); _dbSyncManager.Stop(); _vendorSyncManager.Stop(); };
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -78,6 +95,8 @@ namespace CleanPotal
         public ObservableCollection<HandoverItem> DoneItems { get; } = new();
         public ObservableCollection<string> StatusOptions { get; }
         public ObservableCollection<NoticeItem> NoticeItems { get; } = new();
+
+        public ObservableCollection<TeamStatusGroup> TeamStatusGroups { get; } = new();
 
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> EditModalAttachmentPaths { get; } = new();
@@ -139,6 +158,159 @@ namespace CleanPotal
         private string _editProgressText = "0%";
         public string EditProgressText { get => _editProgressText; set { _editProgressText = value; OnPropertyChanged(); } }
 
+        // 🔥 신규: 대시보드 접기/펴기 로직
+        private void BtnToggleDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            if (TopDashboardArea.Visibility == Visibility.Visible)
+            {
+                TopDashboardArea.Visibility = Visibility.Collapsed;
+                BtnToggleDashboard.Content = "대시보드 펴기 ▼";
+            }
+            else
+            {
+                TopDashboardArea.Visibility = Visibility.Visible;
+                BtnToggleDashboard.Content = "대시보드 접기 ▲";
+            }
+        }
+
+        private void LoadTodayStatus()
+        {
+            TeamStatusGroups.Clear();
+            try
+            {
+                DateTime today = DateTime.Today;
+                var shifts = DatabaseHelper.GetShiftSchedulesByDate(today);
+                var edus = DatabaseHelper.GetEducationPlansByDate(today);
+                var allUsers = AuthDatabaseHelper.GetAllUsers();
+
+                string GetNameOnly(string name)
+                {
+                    return name;
+                }
+
+                string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
+
+                foreach (var tName in targetTeams)
+                {
+                    var group = new TeamStatusGroup { TeamName = tName };
+                    var teamUsers = allUsers.Where(u => u.TeamName == tName).Select(u => u.RealName).ToList();
+
+                    var tShifts = shifts.Where(s => teamUsers.Contains(s.MemberName) || s.TeamGroup == tName).ToList();
+                    var tEdus = edus.Where(e => teamUsers.Contains(e.MemberName)).ToList();
+
+                    var dayShifts = tShifts.Where(s => s.ShiftType == "주간" || s.ShiftType == "예상:주간").Select(s => s.MemberName).Distinct().ToList();
+                    if (dayShifts.Count > 0)
+                    {
+                        var formattedNames = dayShifts.Select(GetNameOnly).ToList();
+                        group.StatusList.Add(new TodayStatusItem
+                        {
+                            BadgeText = $"주간 ({dayShifts.Count})",
+                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(254, 243, 199)),
+                            TextBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)),
+                            MembersText = FormatMembersText(formattedNames)
+                        });
+                    }
+
+                    var nightShifts = tShifts.Where(s => s.ShiftType == "야간" || s.ShiftType == "예상:야간").Select(s => s.MemberName).Distinct().ToList();
+                    if (nightShifts.Count > 0)
+                    {
+                        var formattedNames = nightShifts.Select(GetNameOnly).ToList();
+                        group.StatusList.Add(new TodayStatusItem
+                        {
+                            BadgeText = $"야간 ({nightShifts.Count})",
+                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(224, 231, 255)),
+                            TextBrush = new SolidColorBrush(Color.FromRgb(67, 56, 202)),
+                            MembersText = FormatMembersText(formattedNames)
+                        });
+                    }
+
+                    var offShifts = tShifts.Where(s => s.ShiftType.Contains("휴무") || s.ShiftType.Contains("연차") || s.ShiftType.Contains("반차")).ToList();
+                    if (offShifts.Count > 0)
+                    {
+                        var offNames = offShifts.Select(s => s.ShiftType == "연차" || s.ShiftType == "휴무"
+                            ? GetNameOnly(s.MemberName)
+                            : $"{GetNameOnly(s.MemberName)} ({s.ShiftType})").ToList();
+
+                        group.StatusList.Add(new TodayStatusItem
+                        {
+                            BadgeText = $"휴무 ({offShifts.Count})",
+                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(243, 232, 255)),
+                            TextBrush = new SolidColorBrush(Color.FromRgb(126, 34, 206)),
+                            MembersText = FormatMembersText(offNames)
+                        });
+                    }
+
+                    if (tEdus.Count > 0)
+                    {
+                        var eduNames = tEdus.Select(e => $"{GetNameOnly(e.MemberName)} ({e.CourseName})").ToList();
+                        group.StatusList.Add(new TodayStatusItem
+                        {
+                            BadgeText = $"교육 ({tEdus.Count})",
+                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(236, 252, 203)),
+                            TextBrush = new SolidColorBrush(Color.FromRgb(101, 163, 13)),
+                            MembersText = FormatMembersText(eduNames)
+                        });
+                    }
+
+                    if (group.StatusList.Count == 0)
+                    {
+                        group.StatusList.Add(new TodayStatusItem
+                        {
+                            BadgeText = "상태",
+                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(241, 245, 249)),
+                            TextBrush = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
+                            MembersText = "일정 없음"
+                        });
+                    }
+
+                    TeamStatusGroups.Add(group);
+                }
+
+                if (TodayStatusList != null)
+                {
+                    TodayStatusList.ItemsSource = TeamStatusGroups;
+                }
+            }
+            catch { }
+        }
+
+        private string FormatMembersText(List<string> members)
+        {
+            if (members.Count == 0) return "";
+            if (members.Count <= 4) return string.Join(", ", members);
+            return $"{string.Join(", ", members.Take(3))} 외 {members.Count - 3}명";
+        }
+
+        // 🔥 변경: 라디오 버튼 및 퀵 필터(토글 버튼) 이벤트 병합
+        private void FilterTab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton rb && rb.Content != null)
+            {
+                _currentFilter = rb.Content.ToString() ?? "전체";
+            }
+            _activeView?.Refresh();
+            _doneView?.Refresh();
+        }
+
+        // 🔥 변경: 오늘 마감 퀵 필터 로직 추가
+        private bool FilterHandoverItem(object obj)
+        {
+            if (obj is HandoverItem item)
+            {
+                bool categoryMatch = _currentFilter == "전체" || string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase);
+
+                bool dueTodayMatch = true;
+                if (ToggleDueToday?.IsChecked == true)
+                {
+                    // 오늘 출고 예정이거나 이미 지난(지연된) 건 모두 표출
+                    dueTodayMatch = item.OutDate.HasValue && item.OutDate.Value.Date <= DateTime.Today;
+                }
+
+                return categoryMatch && dueTodayMatch;
+            }
+            return false;
+        }
+
         private void LoadNotices()
         {
             NoticeItems.Clear();
@@ -172,20 +344,12 @@ namespace CleanPotal
             catch { }
         }
 
-        private bool CheckNoticeAdminAuth()
-        {
-            var dialog = new PasswordDialog { Owner = Window.GetWindow(this) };
-            if (dialog.ShowDialog() == true)
-            {
-                if (dialog.InputPassword == "notice1234") return true;
-                MessageBox.Show("비밀번호가 일치하지 않습니다.", "권한 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            return false;
-        }
-
         public void OpenNoticeModal()
         {
-            if (CheckNoticeAdminAuth()) IsNoticeModalOpen = true;
+            if (AuthManager.CheckAuth(PermissionType.Notices))
+            {
+                IsNoticeModalOpen = true;
+            }
         }
 
         private void CloseNoticeModal_Click(object sender, RoutedEventArgs e) => IsNoticeModalOpen = false;
@@ -293,15 +457,23 @@ namespace CleanPotal
 
             try
             {
+                var vendors = VendorStore.Load();
                 var dbItems = DatabaseHelper.GetAllHandovers();
+
                 foreach (var item in dbItems)
                 {
+                    var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase));
+                    item.Category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
+
                     item.ManageChecked = false;
                     item.NotifyProgress();
                     if (item.IsDone) DoneItems.Add(item);
                     else ActiveItems.Add(item);
                 }
                 ReorderDone();
+
+                _activeView?.Refresh();
+                _doneView?.Refresh();
             }
             catch (Exception ex) { MessageBox.Show($"DB 데이터 로드 실패: {ex.Message}", "오류"); }
         }
@@ -311,6 +483,38 @@ namespace CleanPotal
             var ordered = DoneItems.OrderByDescending(x => x.OutDate ?? DateTime.MinValue).ToList();
             DoneItems.Clear();
             foreach (var item in ordered) DoneItems.Add(item);
+        }
+
+        private void ActiveGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ActiveGrid.SelectedItem is HandoverItem item)
+            {
+                MarkAsRead(item);
+            }
+        }
+
+        private void DoneGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DoneGrid.SelectedItem is HandoverItem item)
+            {
+                MarkAsRead(item);
+            }
+        }
+
+        private void MarkAsRead(HandoverItem item)
+        {
+            if (!SessionManager.IsLoggedIn) return;
+            string currentUser = SessionManager.CurrentRealName;
+
+            if (item.IsNewUpdate)
+            {
+                string currentReadBy = item.ReadBy ?? "";
+                if (!currentReadBy.Contains(currentUser))
+                {
+                    item.ReadBy = currentReadBy + currentUser + ",";
+                    DatabaseHelper.UpdateHandoverReadBy(item.Id, item.ReadBy);
+                }
+            }
         }
 
         private void AppendDoneDeletedToExcel(HandoverItem item)
@@ -335,6 +539,14 @@ namespace CleanPotal
             wb.SaveAs(path);
         }
 
+        private void BtnOpenRegister_Click(object sender, RoutedEventArgs e)
+        {
+            OpenRegisterModal();
+        }
+
+        public void OpenRegisterModal() { HandoverReset_Click(this, new RoutedEventArgs()); IsRegisterModalOpen = true; }
+        public void OpenDoneModal() { UpdateDoneSelectAllState(); IsDoneModalOpen = true; }
+
         private void HandoverSave_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -343,6 +555,10 @@ namespace CleanPotal
                 {
                     MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return;
                 }
+
+                var vendors = VendorStore.Load();
+                var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
+                string category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
 
                 var item = new HandoverItem
                 {
@@ -354,7 +570,12 @@ namespace CleanPotal
                     OutDate = EditOutDate,
                     Status = EditStatus ?? "진행",
                     Memo = BuildMemo(EditMemo ?? "", RegisterModalAttachmentPaths),
-                    ManageChecked = false
+                    ManageChecked = false,
+                    CreatorName = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음",
+                    CreateDate = DateTime.Now,
+                    Category = category,
+
+                    ReadBy = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName + "," : ""
                 };
 
                 item.NotifyProgress();
@@ -362,6 +583,9 @@ namespace CleanPotal
                 else ActiveItems.Insert(0, item);
 
                 DatabaseHelper.InsertHandover(item);
+
+                _activeView?.Refresh();
+                _doneView?.Refresh();
 
                 HandoverReset_Click(sender, e);
                 IsRegisterModalOpen = false;
@@ -374,9 +598,6 @@ namespace CleanPotal
             EditVendor = ""; EditOwner = ""; EditContent = ""; EditInDate = DateTime.Today; EditOutDate = DateTime.Today; EditStatus = "진행"; EditMemo = "";
             RegisterModalAttachmentPaths.Clear(); EditModalAttachmentPaths.Clear(); RefreshTopProgressPreview();
         }
-
-        public void OpenRegisterModal() { HandoverReset_Click(this, new RoutedEventArgs()); IsRegisterModalOpen = true; }
-        public void OpenDoneModal() { UpdateDoneSelectAllState(); IsDoneModalOpen = true; }
 
         private void OpenEditModal(HandoverItem item)
         {
@@ -419,7 +640,8 @@ namespace CleanPotal
 
         private static bool HasImageFiles(IDataObject data) { if (!data.GetDataPresent(DataFormats.FileDrop)) return false; var files = data.GetData(DataFormats.FileDrop) as string[]; return files != null && files.Any(IsImageFile); }
         private static bool IsImageFile(string path) { string ext = Path.GetExtension(path) ?? ""; return AllowedImageExtensions.Any(x => string.Equals(x, ext, StringComparison.OrdinalIgnoreCase)); }
-        private static string GetImageRootDirectory() { string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "handover_images"); Directory.CreateDirectory(dir); return dir; }
+
+        private static string GetImageRootDirectory() { string dir = Path.Combine(AppPaths.DataRoot, "handover_images"); Directory.CreateDirectory(dir); return dir; }
 
         private static List<string> ExtractAttachmentPaths(string? memo)
         {
@@ -477,13 +699,31 @@ namespace CleanPotal
             try
             {
                 if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent)) { MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return; }
+
+                var vendors = VendorStore.Load();
+                var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
+                _currentEditItem.Category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
+
                 _currentEditItem.Vendor = EditVendor?.Trim() ?? ""; _currentEditItem.Owner = EditOwner?.Trim() ?? ""; _currentEditItem.Content = EditContent ?? "";
                 _currentEditItem.InDate = EditInDate; _currentEditItem.OutDate = EditOutDate; _currentEditItem.Status = EditStatus ?? "진행";
                 _currentEditItem.Memo = BuildMemo(EditMemo ?? "", EditModalAttachmentPaths); _currentEditItem.NotifyProgress();
+
+                _currentEditItem.ModifierName = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
+                _currentEditItem.ModifyDate = DateTime.Now;
+
+                _currentEditItem.ReadBy = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName + "," : "";
+
                 DatabaseHelper.UpdateHandover(_currentEditItem);
+
                 if (_currentEditItem.IsDone) { if (ActiveItems.Contains(_currentEditItem)) ActiveItems.Remove(_currentEditItem); _currentEditItem.ManageChecked = false; if (!DoneItems.Contains(_currentEditItem)) DoneItems.Insert(0, _currentEditItem); ReorderDone(); }
                 else { if (DoneItems.Contains(_currentEditItem)) DoneItems.Remove(_currentEditItem); if (!ActiveItems.Contains(_currentEditItem)) ActiveItems.Insert(0, _currentEditItem); }
-                UpdateManageColumnVisibility(); IsEditModalOpen = false;
+
+                UpdateManageColumnVisibility();
+
+                _activeView?.Refresh();
+                _doneView?.Refresh();
+
+                IsEditModalOpen = false;
             }
             catch (Exception ex) { MessageBox.Show($"수정 실패: {ex.Message}", "오류"); }
         }
@@ -493,18 +733,17 @@ namespace CleanPotal
         private void EditModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control) return; if (_currentEditItem == null || !ClipboardHasSupportedImage()) return; var saved = SaveClipboardImages(_currentEditItem); foreach (var s in saved) EditModalAttachmentPaths.Add(s); e.Handled = true; }
         private void EditDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) EditModalAttachmentPaths.Remove(path); }
         private void DoneDelete_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is HandoverItem item) { if (MessageBox.Show("완료 항목을 삭제하면 Excel에 기록 후 제거됩니다. 삭제할까요?", "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes) { try { AppendDoneDeletedToExcel(item); DoneItems.Remove(item); DatabaseHelper.DeleteHandover(item.Id); } catch (Exception ex) { MessageBox.Show($"엑셀 저장 실패: {ex.Message}", "오류"); } } } }
-        private void ModalThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) { string root = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "handover_images"); ShowImagePopup(System.IO.Path.GetFullPath(System.IO.Path.Combine(root, path))); e.Handled = true; } }
+
+        private void ModalThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) { string root = System.IO.Path.Combine(AppPaths.DataRoot, "handover_images"); ShowImagePopup(System.IO.Path.GetFullPath(System.IO.Path.Combine(root, path))); e.Handled = true; } }
         private void GridThumbnail_Click(object sender, MouseButtonEventArgs e) { if (sender is FrameworkElement element && element.DataContext is HandoverItem item && item.HasImage) { ShowImagePopup(item.FirstImagePath); e.Handled = true; } }
         private void ShowImagePopup(string imagePath) { try { var window = new Window { Title = "이미지 뷰어", Width = 1000, Height = 800, WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = Window.GetWindow(this), Background = new SolidColorBrush(Color.FromRgb(24, 24, 27)) }; var img = new Image { Source = new BitmapImage(new Uri(imagePath)), Stretch = Stretch.Uniform, Margin = new Thickness(20) }; window.Content = img; window.ShowDialog(); } catch (Exception ex) { MessageBox.Show($"이미지를 불러올 수 없습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error); } }
 
-        // 🔥 과거 배차 이력 보기
         private void BtnViewHistory_Click(object sender, RoutedEventArgs e)
         {
             var historyWin = new DispatchHistoryWindow { Owner = Window.GetWindow(this) };
             historyWin.ShowDialog();
         }
 
-        // 🔥 새 배차 만들기 (위험했던 팝업 제거, 달력 로직으로 위임)
         private void BtnCreateDispatch_Click(object sender, RoutedEventArgs e)
         {
             var selectedHandoverItems = ActiveItems.Where(i => i.ManageChecked).ToList();
@@ -514,23 +753,29 @@ namespace CleanPotal
                 return;
             }
 
-            // 체크한 '새 항목'들만 포장해서 넘깁니다. (덮어쓰기 여부는 달력이 알아서 관리함)
             var newDispatchItems = new ObservableCollection<DispatchItemModel>();
             foreach (var handoverItem in selectedHandoverItems)
             {
                 var dispatchItem = new DispatchItemModel
                 {
                     VendorName = handoverItem.Vendor,
-                    IncomingDetails = handoverItem.Content, // 내용 -> 납품 자동 이동
+                    IncomingDetails = handoverItem.Content,
                     OutgoingDetails = "-",
                     Note = ""
                 };
-                dispatchItem.LoadComboboxData(); // 콤보박스 세팅
+                dispatchItem.LoadComboboxData();
                 newDispatchItems.Add(dispatchItem);
             }
 
             var dispatchWin = new DispatchWindow(newDispatchItems) { Owner = Window.GetWindow(this) };
             dispatchWin.ShowDialog();
+
+            foreach (var item in selectedHandoverItems)
+            {
+                item.ManageChecked = false;
+            }
+
+            UpdateManageColumnVisibility();
         }
     }
 }

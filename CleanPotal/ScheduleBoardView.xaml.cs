@@ -30,10 +30,9 @@ namespace CleanPotal
 
         private AutoSyncManager _syncManager;
 
-        // 🔥 모던 UI 컬러 및 설비 그룹(MDC, NDC)별 옅은 파스텔 배경색 정의
         private readonly SolidColorBrush _colorBgWhite = Brushes.White;
-        private readonly SolidColorBrush _colorBgMDC = new SolidColorBrush(Color.FromRgb(240, 249, 255)); // 옅은 하늘색 (MDC)
-        private readonly SolidColorBrush _colorBgNDC = new SolidColorBrush(Color.FromRgb(255, 241, 242)); // 옅은 핑크색 (NDC)
+        private readonly SolidColorBrush _colorBgMDC = new SolidColorBrush(Color.FromRgb(240, 249, 255));
+        private readonly SolidColorBrush _colorBgNDC = new SolidColorBrush(Color.FromRgb(255, 241, 242));
 
         private readonly SolidColorBrush _colorLineSoft = new SolidColorBrush(Color.FromRgb(241, 245, 249));
         private readonly SolidColorBrush _colorLineDash = new SolidColorBrush(Color.FromRgb(226, 232, 240));
@@ -63,9 +62,13 @@ namespace CleanPotal
             _syncManager = new AutoSyncManager(() =>
             {
                 if (_isDrawing || _isInitializing) return;
-                _vm.ReloadFromDatabase();
-                RefreshRecipeList();
-                DrawBoard();
+
+                Dispatcher.Invoke(() =>
+                {
+                    _vm.ReloadFromDatabase();
+                    RefreshRecipeList();
+                    DrawBoard();
+                });
             }, dbPath);
 
             this.Loaded += (s, e) => _syncManager.Start();
@@ -105,6 +108,8 @@ namespace CleanPotal
             UpdateZoomText();
             RefreshRecipeList();
             DrawBoard();
+
+            // 초기 렌더링 이후에 확실히 스크롤 포지션을 잡아주기 위해 한번 더 호출
             ScrollToRangeStartByCheck();
             UpdateStatusText();
 
@@ -146,7 +151,6 @@ namespace CleanPotal
             if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) HideHoverCell();
         }
 
-        #region 공통 안전 처리
         private void SafeInitCheckStates()
         {
             if (DayCheckBox == null || NightCheckBox == null) return;
@@ -190,19 +194,22 @@ namespace CleanPotal
         private void ScrollToRangeStart(bool night)
         {
             if (BoardScrollViewer == null || HeaderScrollViewer == null || !IsLoaded) return;
-            int startHour = night ? 19 : 7;
-            int startAbs = HourToAbsMinutes(startHour);
-            int offsetMinutes = Math.Max(0, startAbs - (BoardStartHour * 60));
-            double x = (offsetMinutes / (double)MinutesPerCell) * GetCellWidth();
 
-            _isSyncingScroll = true;
-            BoardScrollViewer.ScrollToHorizontalOffset(x);
-            HeaderScrollViewer.ScrollToHorizontalOffset(x);
-            _isSyncingScroll = false;
+            // ★ 23:00 버그 픽스: Render 우선순위를 주어 WPF가 물리적 넓이 계산을 완료한 후 오프셋을 먹이도록 강제 동기화
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                int startHour = night ? 19 : 7;
+                int startAbs = HourToAbsMinutes(startHour);
+                int offsetMinutes = Math.Max(0, startAbs - (BoardStartHour * 60));
+                double x = (offsetMinutes / (double)MinutesPerCell) * GetCellWidth();
+
+                _isSyncingScroll = true;
+                BoardScrollViewer.ScrollToHorizontalOffset(x);
+                HeaderScrollViewer.ScrollToHorizontalOffset(x);
+                _isSyncingScroll = false;
+            }), DispatcherPriority.Render);
         }
-        #endregion
 
-        #region 렌더링 
         private void DrawBoard()
         {
             if (_isDrawing || !IsLoaded) return;
@@ -219,7 +226,6 @@ namespace CleanPotal
 
                 double cellW = GetCellWidth(); double rowH = GetRowHeight(); int totalCells = _vm.TotalCells;
 
-                // 🔥 시간/분 텍스트가 겹치지 않도록 헤더 높이를 넉넉하게 60으로 넓혔습니다!
                 double equipmentWidth = _vm.EquipmentColumnWidth; double headerHeight = 60.0;
                 double bodyHeight = AlignPx(_vm.Equipments.Count * rowH); double boardWidth = AlignPx(totalCells * cellW);
 
@@ -272,7 +278,6 @@ namespace CleanPotal
                 double y = RowTop(i, rowH);
                 string eqName = _vm.Equipments[i].DisplayName;
 
-                // 🔥 설비 이름에 따라 MDC는 하늘색, NDC는 핑크색, 나머지는 흰색 부여
                 Brush bg = _colorBgWhite;
                 if (eqName.StartsWith("MDC")) bg = _colorBgMDC;
                 else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
@@ -288,7 +293,6 @@ namespace CleanPotal
             }
         }
 
-        // 🔥 시간/분 간격 최적화 & 분 텍스트 중앙 정렬
         private void DrawTimelineHeader(double boardWidth, double headerHeight, double cellW, int totalCells)
         {
             var headerBg = new Rectangle { Width = boardWidth, Height = headerHeight, Fill = _colorBgWhite };
@@ -303,25 +307,14 @@ namespace CleanPotal
 
                 if (minute == 0)
                 {
-                    // 정각 텍스트 (위쪽: Y=10)
                     var hourText = new TextBlock { Text = $"{hour:00}:00", FontSize = Math.Max(12, 14 * _vm.Zoom), FontWeight = FontWeights.Bold, Foreground = _colorTextPrimary };
-                    Canvas.SetLeft(hourText, x + 4);
-                    Canvas.SetTop(hourText, 10);
+                    Canvas.SetLeft(hourText, x + 4); Canvas.SetTop(hourText, 10);
                     TimelineHeaderCanvas.Children.Add(hourText);
                 }
                 else if (cell < totalCells)
                 {
-                    // 10분 단위 텍스트 (아래쪽: Y=40, 중앙 정렬 적용)
-                    var minuteText = new TextBlock
-                    {
-                        Text = minute.ToString("00"),
-                        FontSize = Math.Max(9, 10 * _vm.Zoom),
-                        Foreground = _colorTextMuted,
-                        Width = cellW, // 해당 칸(cellW) 너비만큼 차지하게 한 뒤
-                        TextAlignment = TextAlignment.Center // 중앙 정렬하여 좁아도 예쁘게 배치
-                    };
-                    Canvas.SetLeft(minuteText, x);
-                    Canvas.SetTop(minuteText, 40);
+                    var minuteText = new TextBlock { Text = minute.ToString("00"), FontSize = Math.Max(9, 10 * _vm.Zoom), Foreground = _colorTextMuted, Width = cellW, TextAlignment = TextAlignment.Center };
+                    Canvas.SetLeft(minuteText, x); Canvas.SetTop(minuteText, 40);
                     TimelineHeaderCanvas.Children.Add(minuteText);
                 }
             }
@@ -329,11 +322,9 @@ namespace CleanPotal
 
         private void DrawBoardGrid(double boardWidth, double bodyHeight, double cellW, double rowH, int totalCells)
         {
-            // 전체를 일단 하얀색으로 덮음
             var boardBg = new Rectangle { Width = boardWidth, Height = bodyHeight, Fill = _colorBgWhite };
             BoardGridCanvas.Children.Add(boardBg);
 
-            // 🔥 설비별 그룹 배경색 채우기
             for (int i = 0; i < _vm.Equipments.Count; i++)
             {
                 string eqName = _vm.Equipments[i].DisplayName;
@@ -341,17 +332,15 @@ namespace CleanPotal
                 if (eqName.StartsWith("MDC")) bg = _colorBgMDC;
                 else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
 
-                if (bg != _colorBgWhite) // 색상이 있을 때만 칠하기
+                if (bg != _colorBgWhite)
                 {
                     double y = RowTop(i, rowH);
                     var rowBg = new Rectangle { Width = boardWidth, Height = rowH, Fill = bg, IsHitTestVisible = false };
-                    Canvas.SetLeft(rowBg, 0);
-                    Canvas.SetTop(rowBg, y);
+                    Canvas.SetLeft(rowBg, 0); Canvas.SetTop(rowBg, y);
                     BoardGridCanvas.Children.Add(rowBg);
                 }
             }
 
-            // 가로 구분선 (아주 옅게)
             for (int i = 0; i <= _vm.Equipments.Count; i++)
             {
                 double y = RowTop(i, rowH);
@@ -359,7 +348,6 @@ namespace CleanPotal
                 BoardGridCanvas.Children.Add(hLine);
             }
 
-            // 세로 구분선 (1시간 단위 옅은 점선)
             int cellsPerHour = 60 / MinutesPerCell;
             for (int cell = 0; cell <= totalCells; cell += cellsPerHour)
             {
@@ -392,10 +380,21 @@ namespace CleanPotal
             foreach (var block in _vm.PlacedBlocks)
             {
                 if (block.EquipmentIndex < 0 || block.EquipmentIndex >= _vm.Equipments.Count) continue;
-                double rowTop = RowTop(block.EquipmentIndex, rowH); double y = Math.Round(rowTop + 3); double h = Math.Round(Math.Max(2, rowH - 6)); double x = Math.Round(CellLeft(block.StartCellIndex, cellW) + 1);
 
-                var ui1 = CreateBlockUI(block, cellW, h); Canvas.SetLeft(ui1, x); Canvas.SetTop(ui1, y); BoardBlocksCanvas.Children.Add(ui1);
-                if (block.StartCellIndex + block.TotalCells > _vm.TotalCells) { var ui2 = CreateBlockUI(block, cellW, h); Canvas.SetLeft(ui2, x - boardWidth); Canvas.SetTop(ui2, y); BoardBlocksCanvas.Children.Add(ui2); }
+                double rowTop = RowTop(block.EquipmentIndex, rowH);
+                double y = Math.Round(rowTop + 3);
+                double h = Math.Round(Math.Max(2, rowH - 6));
+
+                double x = Math.Round((block.StartMinute / 10.0) * cellW + 1);
+
+                var ui1 = CreateBlockUI(block, cellW, h);
+                Canvas.SetLeft(ui1, x); Canvas.SetTop(ui1, y); BoardBlocksCanvas.Children.Add(ui1);
+
+                if (block.StartMinute + block.TotalMinutes > _vm.TotalMinutes)
+                {
+                    var ui2 = CreateBlockUI(block, cellW, h);
+                    Canvas.SetLeft(ui2, x - boardWidth); Canvas.SetTop(ui2, y); BoardBlocksCanvas.Children.Add(ui2);
+                }
             }
         }
 
@@ -403,13 +402,11 @@ namespace CleanPotal
         {
             if (!EnableHoverCellHighlight) return;
             _hoverRowRect = new Rectangle { Width = Math.Max(0, boardW), Height = rowH, Fill = new SolidColorBrush(Color.FromArgb(12, 0, 0, 0)), Visibility = Visibility.Collapsed, IsHitTestVisible = false }; BoardBlocksCanvas.Children.Add(_hoverRowRect);
-            _hoverColumnRect = new Rectangle { Width = cellW, Height = Math.Max(0, bodyH), Fill = new SolidColorBrush(Color.FromArgb(12, 0, 0, 0)), Visibility = Visibility.Collapsed, IsHitTestVisible = false }; BoardBlocksCanvas.Children.Add(_hoverColumnRect);
+            _hoverColumnRect = new Rectangle { Width = cellW / 10.0, Height = Math.Max(0, bodyH), Fill = new SolidColorBrush(Color.FromArgb(30, 0, 0, 0)), Visibility = Visibility.Collapsed, IsHitTestVisible = false }; BoardBlocksCanvas.Children.Add(_hoverColumnRect);
             _hoverCellRect = new Border { Width = cellW, Height = rowH - 4, CornerRadius = new CornerRadius(4), Background = new SolidColorBrush(Color.FromArgb(50, 56, 189, 248)), BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248)), BorderThickness = new Thickness(1.5), Visibility = Visibility.Collapsed, IsHitTestVisible = false }; BoardBlocksCanvas.Children.Add(_hoverCellRect);
             if (EquipmentCanvas != null) { _hoverEquipmentRect = new Border { Width = _vm.EquipmentColumnWidth, Height = rowH, Background = new SolidColorBrush(Color.FromArgb(12, 0, 0, 0)), Visibility = Visibility.Collapsed, IsHitTestVisible = false }; EquipmentCanvas.Children.Add(_hoverEquipmentRect); }
         }
-        #endregion
 
-        #region 레시피 리스트 (선택 전용) + 🔥 별(즐겨찾기) 기능 유지
         private void RefreshRecipeList()
         {
             if (RecipeListPanel == null) return;
@@ -425,15 +422,7 @@ namespace CleanPotal
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition());
 
-                // 즐겨찾기 (별) 유지
-                var fav = new CheckBox
-                {
-                    IsChecked = recipe.IsFavorite,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(4, 0, 6, 0),
-                    ToolTip = "즐겨찾기",
-                    Tag = recipe
-                };
+                var fav = new CheckBox { IsChecked = recipe.IsFavorite, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 6, 0), ToolTip = "즐겨찾기", Tag = recipe };
                 if (starStyle != null) fav.Style = starStyle;
                 fav.Checked += RecipeFavoriteCheckBox_Checked;
                 fav.Unchecked += RecipeFavoriteCheckBox_Unchecked;
@@ -453,35 +442,46 @@ namespace CleanPotal
                 btn.Click += RecipeSelectButton_Click;
                 Grid.SetColumn(btn, 1);
 
-                row.Children.Add(fav);
-                row.Children.Add(btn);
-                RecipeListPanel.Children.Add(row);
+                row.Children.Add(fav); row.Children.Add(btn); RecipeListPanel.Children.Add(row);
             }
             UpdateStatusText();
         }
 
         private void RecipeSelectButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button btn) return;
-            if (btn.Tag is not RecipeDefinition recipe) return;
-
+            if (sender is not Button btn || btn.Tag is not RecipeDefinition recipe) return;
             if (ReferenceEquals(_vm.SelectedRecipe, recipe)) { _vm.SelectedRecipe = null; _vm.StatusText = "레시피 선택 해제: 셀 선택 모드"; }
             else { _vm.SelectedRecipe = recipe; _vm.StatusText = $"적용 모드: {_vm.LastClickedEquipmentName ?? "-"} / {recipe.Text}"; }
             RefreshRecipeList();
         }
 
-        private void RecipeFavoriteCheckBox_Checked(object sender, RoutedEventArgs e) { if (sender is CheckBox cb && cb.Tag is RecipeDefinition recipe) { recipe.IsFavorite = true; _vm.ReorderRecipesByFavorite(); RefreshRecipeList(); } }
-        private void RecipeFavoriteCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (sender is CheckBox cb && cb.Tag is RecipeDefinition recipe) { recipe.IsFavorite = false; _vm.ReorderRecipesByFavorite(); RefreshRecipeList(); } }
-        #endregion
+        private void RecipeFavoriteCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cb && cb.Tag is RecipeDefinition recipe)
+            {
+                recipe.IsFavorite = true;
+                _vm.ReorderRecipesByFavorite();
+                _vm.SaveRecipes();
+                RefreshRecipeList();
+            }
+        }
 
-        #region 공개된 기능 버튼 이벤트
+        private void RecipeFavoriteCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cb && cb.Tag is RecipeDefinition recipe)
+            {
+                recipe.IsFavorite = false;
+                _vm.ReorderRecipesByFavorite();
+                _vm.SaveRecipes();
+                RefreshRecipeList();
+            }
+        }
+
         public void UndoAction() { if (_vm.TryUndoLastBoardAction(out string msg)) { HideHoverCell(); _vm.StatusText = msg; DrawBoard(); return; } _vm.StatusText = msg; UpdateStatusText(); }
         public void ResetAll() { _vm.ClearPlacedBlocks(); HideHoverCell(); _vm.StatusText = "전체 초기화 완료 (배치된 레시피 전체 삭제)"; DrawBoard(); }
         public void PartialReset() { if (!_vm.HasSelectedCell) { MessageBox.Show("부분 초기화를 하려면 먼저 보드에서 셀을 선택하세요.", "부분 초기화", MessageBoxButton.OK, MessageBoxImage.Information); return; } if (_vm.TryPartialResetFromSelectedCell(out string msg)) { HideHoverCell(); _vm.StatusText = msg; DrawBoard(); return; } _vm.StatusText = msg; UpdateStatusText(); }
         public void CaptureBoard() { try { CaptureCurrentRangeToClipboard(); } catch (Exception ex) { _vm.StatusText = $"캡처 실패: {ex.Message}"; UpdateStatusText(); } }
-        #endregion
 
-        #region 캡처 로직 (캡처 시에도 그룹 컬러, 정렬된 시간 100% 적용)
         private void DayCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: false); }
         private void DayCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { DayCheckBox.IsChecked = true; return; } if (NightCheckBox?.IsChecked == true) ScrollToRangeStart(night: true); }
         private void NightCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: true); }
@@ -501,30 +501,23 @@ namespace CleanPotal
 
             var final = BuildCaptureBitmapFromModel(startAbs, endAbs);
             Clipboard.SetImage(final);
-            _vm.StatusText = $"캡처 완료: {label} / 마지막 설비 행까지 클립보드 복사됨 (Ctrl+V)";
-            UpdateStatusText();
+            _vm.StatusText = $"캡처 완료: {label} / 마지막 설비 행까지 클립보드 복사됨 (Ctrl+V)"; UpdateStatusText();
         }
 
         private RenderTargetBitmap BuildCaptureBitmapFromModel(int startAbsMinutes, int endAbsMinutes)
         {
-            double cellW = Math.Max(1, Math.Round(GetCellWidth()));
-            double rowH = Math.Max(1, Math.Round(GetRowHeight()));
-            double headerH = 60.0; // 캡처에서도 동일하게 늘림
-            double equipmentW = Math.Max(1, Math.Round(_vm.EquipmentColumnWidth));
+            double cellW = Math.Max(1, Math.Round(GetCellWidth())); double rowH = Math.Max(1, Math.Round(GetRowHeight()));
+            double headerH = 60.0; double equipmentW = Math.Max(1, Math.Round(_vm.EquipmentColumnWidth));
             double bodyH = Math.Max(1, _vm.Equipments.Count) * rowH;
 
-            int totalCells = Math.Max(1, _vm.TotalCells);
-            int boardStartAbs = BoardStartHour * 60;
+            int totalCells = Math.Max(1, _vm.TotalCells); int boardStartAbs = BoardStartHour * 60;
 
             int startCell = (int)Math.Floor((startAbsMinutes - boardStartAbs) / (double)MinutesPerCell);
             int endCell = (int)Math.Ceiling((endAbsMinutes - boardStartAbs) / (double)MinutesPerCell);
 
-            startCell = Math.Max(0, Math.Min(totalCells, startCell));
-            endCell = Math.Max(startCell, Math.Min(totalCells, endCell));
-
+            startCell = Math.Max(0, Math.Min(totalCells, startCell)); endCell = Math.Max(startCell, Math.Min(totalCells, endCell));
             double boardW = Math.Max(cellW, (endCell - startCell) * cellW);
-            int outW = Math.Max(1, (int)Math.Ceiling(equipmentW + boardW));
-            int outH = Math.Max(1, (int)Math.Ceiling(headerH + bodyH));
+            int outW = Math.Max(1, (int)Math.Ceiling(equipmentW + boardW)); int outH = Math.Max(1, (int)Math.Ceiling(headerH + bodyH));
 
             var dv = new DrawingVisual();
             using (var dc = dv.RenderOpen())
@@ -538,57 +531,36 @@ namespace CleanPotal
                 dc.DrawRectangle(null, framePen, new Rect(0, 0, equipmentW + boardW, headerH + bodyH));
             }
 
-            var final = new RenderTargetBitmap(outW, outH, 96, 96, PixelFormats.Pbgra32);
-            final.Render(dv); final.Freeze(); return final;
+            var final = new RenderTargetBitmap(outW, outH, 96, 96, PixelFormats.Pbgra32); final.Render(dv); final.Freeze(); return final;
         }
 
         private void DrawCaptureHeaders(DrawingContext dc, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
         {
-            var whiteBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-            var textPrimary = new SolidColorBrush(Color.FromRgb(15, 23, 42));
-            var textMuted = new SolidColorBrush(Color.FromRgb(148, 163, 184));
-
+            var whiteBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255)); var textPrimary = new SolidColorBrush(Color.FromRgb(15, 23, 42)); var textMuted = new SolidColorBrush(Color.FromRgb(148, 163, 184));
             dc.DrawRectangle(whiteBrush, null, new Rect(0, 0, equipmentW, headerH));
             var now = DateTime.Now; string[] krDow = { "일", "월", "화", "수", "목", "금", "토" };
             string captureDateText = $"{now:yyyy-MM-dd} ({krDow[(int)now.DayOfWeek]})";
 
-            double dateFont = Math.Max(16, 18 * _vm.Zoom);
-            double dateY = Math.Max(2, (headerH - dateFont) / 2.0 - 2);
+            double dateFont = Math.Max(16, 18 * _vm.Zoom); double dateY = Math.Max(2, (headerH - dateFont) / 2.0 - 2);
             DrawTextCentered(dc, captureDateText, 0, equipmentW, dateY, dateFont, FontWeights.Bold, textPrimary);
 
             for (int i = 0; i < _vm.Equipments.Count; i++)
             {
-                double y = headerH + RowTop(i, rowH);
-                string eqName = _vm.Equipments[i].DisplayName;
-                Brush bg = _colorBgWhite;
-                if (eqName.StartsWith("MDC")) bg = _colorBgMDC;
-                else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
-
+                double y = headerH + RowTop(i, rowH); string eqName = _vm.Equipments[i].DisplayName;
+                Brush bg = _colorBgWhite; if (eqName.StartsWith("MDC")) bg = _colorBgMDC; else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
                 dc.DrawRectangle(bg, null, new Rect(0, y, equipmentW, rowH));
                 double ty = y + Math.Max(0, (rowH - Math.Max(10, 10 * _vm.Zoom)) / 2.0) - 2;
                 DrawText(dc, _vm.Equipments[i].DisplayName, 16, ty, Math.Max(11, 12 * _vm.Zoom), FontWeights.SemiBold, textPrimary);
             }
 
-            double boardW = (endCell - startCell) * cellW;
-            dc.DrawRectangle(whiteBrush, null, new Rect(equipmentW, 0, boardW, headerH));
-
+            double boardW = (endCell - startCell) * cellW; dc.DrawRectangle(whiteBrush, null, new Rect(equipmentW, 0, boardW, headerH));
             for (int cell = startCell; cell < endCell; cell++)
             {
-                int absMinutes = BoardStartHour * 60 + cell * MinutesPerCell;
-                int hour = (absMinutes / 60) % 24;
-                int minute = absMinutes % 60;
+                int absMinutes = BoardStartHour * 60 + cell * MinutesPerCell; int hour = (absMinutes / 60) % 24; int minute = absMinutes % 60;
                 double x = equipmentW + (cell - startCell) * cellW;
-
                 if (x >= equipmentW + boardW) continue;
-
-                if (minute == 0)
-                {
-                    DrawText(dc, $"{hour:00}:00", Math.Max(equipmentW, x) + 4, 10, Math.Max(12, 14 * _vm.Zoom), FontWeights.Bold, textPrimary);
-                }
-                else
-                {
-                    DrawTextCentered(dc, $"{minute:00}", x, x + cellW, 40, Math.Max(9, 10 * _vm.Zoom), FontWeights.Normal, textMuted);
-                }
+                if (minute == 0) DrawText(dc, $"{hour:00}:00", Math.Max(equipmentW, x) + 4, 10, Math.Max(12, 14 * _vm.Zoom), FontWeights.Bold, textPrimary);
+                else DrawTextCentered(dc, $"{minute:00}", x, x + cellW, 40, Math.Max(9, 10 * _vm.Zoom), FontWeights.Normal, textMuted);
             }
         }
 
@@ -599,51 +571,41 @@ namespace CleanPotal
 
             for (int r = 0; r < _vm.Equipments.Count; r++)
             {
-                string eqName = _vm.Equipments[r].DisplayName;
-                Brush bg = _colorBgWhite;
-                if (eqName.StartsWith("MDC")) bg = _colorBgMDC;
-                else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
-
-                if (bg != _colorBgWhite)
-                {
-                    double y = headerH + RowTop(r, rowH);
-                    dc.DrawRectangle(bg, null, new Rect(equipmentW, y, boardW, rowH));
-                }
+                string eqName = _vm.Equipments[r].DisplayName; Brush bg = _colorBgWhite; if (eqName.StartsWith("MDC")) bg = _colorBgMDC; else if (eqName.StartsWith("NDC")) bg = _colorBgNDC;
+                if (bg != _colorBgWhite) { double y = headerH + RowTop(r, rowH); dc.DrawRectangle(bg, null, new Rect(equipmentW, y, boardW, rowH)); }
             }
 
-            var linePen = new Pen(new SolidColorBrush(Color.FromRgb(241, 245, 249)), 1);
-            var dashPen = new Pen(new SolidColorBrush(Color.FromRgb(241, 245, 249)), 1) { DashStyle = new DashStyle(new double[] { 4, 4 }, 0) };
-
+            var linePen = new Pen(new SolidColorBrush(Color.FromRgb(241, 245, 249)), 1); var dashPen = new Pen(new SolidColorBrush(Color.FromRgb(241, 245, 249)), 1) { DashStyle = new DashStyle(new double[] { 4, 4 }, 0) };
             for (int r = 0; r <= _vm.Equipments.Count; r++) { double y = headerH + RowTop(r, rowH); dc.DrawLine(linePen, new Point(equipmentW, y), new Point(equipmentW + boardW, y)); }
-
             for (int rel = 0; rel <= endCell - startCell; rel++) { int cell = startCell + rel; double x = equipmentW + rel * cellW; if (((BoardStartHour * 60 + cell * MinutesPerCell) % 60) == 0) { dc.DrawLine(dashPen, new Point(x, headerH), new Point(x, headerH + bodyH)); } }
         }
 
-        private static System.Collections.Generic.IEnumerable<(int start, int length)> EnumerateWrappedSegments(int startCell, int length, int ring)
+        private static System.Collections.Generic.IEnumerable<(int start, int length)> EnumerateWrappedSegments(int startMin, int length, int ringMinutes)
         {
-            if (length <= 0 || ring <= 0) yield break;
-            if (length >= ring) { yield return (0, ring); yield break; }
-            int start = ((startCell % ring) + ring) % ring;
-            int firstLen = Math.Min(length, ring - start);
+            if (length <= 0 || ringMinutes <= 0) yield break;
+            if (length >= ringMinutes) { yield return (0, ringMinutes); yield break; }
+            int start = ((startMin % ringMinutes) + ringMinutes) % ringMinutes;
+            int firstLen = Math.Min(length, ringMinutes - start);
             if (firstLen > 0) yield return (start, firstLen);
             int remain = length - firstLen;
             if (remain > 0) yield return (0, remain);
         }
 
-        private void DrawCapturePhaseWrapped(DrawingContext dc, int phaseStartCell, int phaseLen, Brush fill, int visibleStartCell, int visibleEndCell, int captureStartCell, double cellW, double equipmentW, double y, double h, int ring)
+        private void DrawCapturePhaseWrapped(DrawingContext dc, int phaseStart, int phaseLen, Brush fill, int visibleStartMin, int visibleEndMin, int captureStartMin, double cellW, double equipmentW, double y, double h, int ringMinutes)
         {
-            if (phaseLen <= 0 || visibleEndCell <= visibleStartCell) return;
-            foreach (var seg in EnumerateWrappedSegments(phaseStartCell, phaseLen, ring))
+            if (phaseLen <= 0 || visibleEndMin <= visibleStartMin) return;
+            foreach (var seg in EnumerateWrappedSegments(phaseStart, phaseLen, ringMinutes))
             {
-                int s = Math.Max(seg.start, visibleStartCell); int e = Math.Min(seg.start + seg.length, visibleEndCell); if (e <= s) continue;
-                double leftBase = equipmentW + (s - captureStartCell) * cellW; double rightBase = equipmentW + (e - captureStartCell) * cellW;
+                int s = Math.Max(seg.start, visibleStartMin); int e = Math.Min(seg.start + seg.length, visibleEndMin); if (e <= s) continue;
+                double leftBase = equipmentW + ((s - captureStartMin) / 10.0) * cellW; double rightBase = equipmentW + ((e - captureStartMin) / 10.0) * cellW;
                 dc.DrawRectangle(fill, null, new Rect(leftBase, y, Math.Max(0, rightBase - leftBase), h));
             }
         }
 
         private void DrawCaptureBlocks(DrawingContext dc, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
         {
-            int ring = Math.Max(1, _vm.TotalCells);
+            int ringMinutes = Math.Max(1, _vm.TotalMinutes);
+            int startMin = startCell * 10; int endMin = endCell * 10;
             var s2Brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); var hfBrush = new SolidColorBrush(Color.FromRgb(250, 191, 36)); var diBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
 
             foreach (var block in _vm.PlacedBlocks)
@@ -651,16 +613,16 @@ namespace CleanPotal
                 if (block.EquipmentIndex < 0 || block.EquipmentIndex >= _vm.Equipments.Count) continue;
                 double y = headerH + RowTop(block.EquipmentIndex, rowH) + 3; double h = Math.Max(2, rowH - 6);
 
-                foreach (var blockSeg in EnumerateWrappedSegments(block.StartCellIndex, block.TotalCells, ring))
+                foreach (var blockSeg in EnumerateWrappedSegments(block.StartMinute, block.TotalMinutes, ringMinutes))
                 {
-                    int visibleStart = Math.Max(blockSeg.start, startCell); int visibleEnd = Math.Min(blockSeg.start + blockSeg.length, endCell); if (visibleEnd <= visibleStart) continue;
-                    double left = equipmentW + (visibleStart - startCell) * cellW; double right = equipmentW + (visibleEnd - startCell) * cellW;
+                    int visibleStart = Math.Max(blockSeg.start, startMin); int visibleEnd = Math.Min(blockSeg.start + blockSeg.length, endMin); if (visibleEnd <= visibleStart) continue;
+                    double left = equipmentW + ((visibleStart - startMin) / 10.0) * cellW; double right = equipmentW + ((visibleEnd - startMin) / 10.0) * cellW;
                     var rect = new Rect(left, y, Math.Max(2, right - left), h);
 
                     dc.PushClip(new RectangleGeometry(rect, 6, 6));
-                    DrawCapturePhaseWrapped(dc, block.StartCellIndex, block.S2Cells, s2Brush, visibleStart, visibleEnd, startCell, cellW, equipmentW, y, h, ring);
-                    DrawCapturePhaseWrapped(dc, block.StartCellIndex + block.S2Cells, block.HFCells, hfBrush, visibleStart, visibleEnd, startCell, cellW, equipmentW, y, h, ring);
-                    DrawCapturePhaseWrapped(dc, block.StartCellIndex + block.S2Cells + block.HFCells, block.DICells, diBrush, visibleStart, visibleEnd, startCell, cellW, equipmentW, y, h, ring);
+                    DrawCapturePhaseWrapped(dc, block.StartMinute, block.S2Minutes, s2Brush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
+                    DrawCapturePhaseWrapped(dc, block.StartMinute + block.S2Minutes, block.HFMinutes, hfBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
+                    DrawCapturePhaseWrapped(dc, block.StartMinute + block.S2Minutes + block.HFMinutes, block.DIMinutes, diBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
                     dc.Pop();
 
                     if (rect.Width > 14)
@@ -685,9 +647,7 @@ namespace CleanPotal
             var ft = new FormattedText(text ?? string.Empty, System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, weight, FontStretches.Normal), fontSize, brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
             double x = left + Math.Max(0, ((right - left) - ft.Width) / 2.0); dc.DrawText(ft, new Point(x, y));
         }
-        #endregion
 
-        #region 스크롤 / 줌 / 이벤트
         private void BoardScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) { if (_isSyncingScroll) return; if (HeaderScrollViewer == null || EquipmentScrollViewer == null) return; _isSyncingScroll = true; HeaderScrollViewer.ScrollToHorizontalOffset(e.HorizontalOffset); EquipmentScrollViewer.ScrollToVerticalOffset(e.VerticalOffset); _isSyncingScroll = false; }
         private void EquipmentScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) { if (_isSyncingScroll) return; if (BoardScrollViewer == null) return; _isSyncingScroll = true; BoardScrollViewer.ScrollToVerticalOffset(e.VerticalOffset); _isSyncingScroll = false; }
         private void HeaderScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) { if (_isSyncingScroll) return; if (BoardScrollViewer == null) return; _isSyncingScroll = true; BoardScrollViewer.ScrollToHorizontalOffset(e.HorizontalOffset); _isSyncingScroll = false; }
@@ -696,22 +656,31 @@ namespace CleanPotal
 
         private void BoardInputLayer_MouseMove(object sender, MouseEventArgs e)
         {
-            if (BoardGridCanvas == null) return; Point p = e.GetPosition(BoardGridCanvas); double cellW = GetCellWidth(); double rowH = GetRowHeight();
+            if (BoardGridCanvas == null) return;
+            Point p = e.GetPosition(BoardGridCanvas);
+            double cellW = GetCellWidth(); double rowH = GetRowHeight();
             if (cellW <= 0 || rowH <= 0) { HideHoverCell(); return; }
-            int cell = (int)(p.X / cellW); int row = (int)(p.Y / rowH);
 
-            if (cell < 0 || cell >= _vm.TotalCells || row < 0 || row >= _vm.Equipments.Count) { HideHoverCell(); _vm.HoverText = string.Empty; return; }
+            int row = (int)(p.Y / rowH);
+            int minuteOffset = (int)Math.Round((p.X / cellW) * 10.0);
+
+            if (minuteOffset < 0 || minuteOffset >= _vm.TotalMinutes || row < 0 || row >= _vm.Equipments.Count) { HideHoverCell(); _vm.HoverText = string.Empty; return; }
 
             if (EnableHoverCellHighlight)
             {
-                double boardW = BoardBlocksCanvas?.Width ?? 0; double boardH = BoardBlocksCanvas?.Height ?? 0; double x = CellLeft(cell, cellW); double y = RowTop(row, rowH);
-                if (_hoverColumnRect != null) { _hoverColumnRect.Width = cellW; _hoverColumnRect.Height = boardH; Canvas.SetLeft(_hoverColumnRect, x); Canvas.SetTop(_hoverColumnRect, 0); _hoverColumnRect.Visibility = Visibility.Visible; }
+                double boardW = BoardBlocksCanvas?.Width ?? 0; double boardH = BoardBlocksCanvas?.Height ?? 0;
+                double y = RowTop(row, rowH);
+                double xExact = (minuteOffset / 10.0) * cellW;
+
+                if (_hoverColumnRect != null) { _hoverColumnRect.Width = cellW / 10.0; _hoverColumnRect.Height = boardH; Canvas.SetLeft(_hoverColumnRect, xExact); Canvas.SetTop(_hoverColumnRect, 0); _hoverColumnRect.Visibility = Visibility.Visible; }
                 if (_hoverRowRect != null) { _hoverRowRect.Width = boardW; _hoverRowRect.Height = rowH; Canvas.SetLeft(_hoverRowRect, 0); Canvas.SetTop(_hoverRowRect, y); _hoverRowRect.Visibility = Visibility.Visible; }
-                if (_hoverCellRect != null) { _hoverCellRect.Width = cellW; _hoverCellRect.Height = rowH - 4; Canvas.SetLeft(_hoverCellRect, x); Canvas.SetTop(_hoverCellRect, y + 2); _hoverCellRect.Visibility = Visibility.Visible; }
+                if (_hoverCellRect != null) { _hoverCellRect.Width = cellW; _hoverCellRect.Height = rowH - 4; Canvas.SetLeft(_hoverCellRect, (minuteOffset / 10) * cellW); Canvas.SetTop(_hoverCellRect, y + 2); _hoverCellRect.Visibility = Visibility.Visible; }
                 if (_hoverEquipmentRect != null) { _hoverEquipmentRect.Width = _vm.EquipmentColumnWidth; _hoverEquipmentRect.Height = rowH; Canvas.SetLeft(_hoverEquipmentRect, 0); Canvas.SetTop(_hoverEquipmentRect, y); _hoverEquipmentRect.Visibility = Visibility.Visible; }
             }
 
-            int absoluteMinutes = BoardStartHour * 60 + cell * MinutesPerCell; int hour = (absoluteMinutes / 60) % 24; int minute = absoluteMinutes % 60;
+            int absoluteMinutes = BoardStartHour * 60 + minuteOffset;
+            int hour = (absoluteMinutes / 60) % 24;
+            int minute = absoluteMinutes % 60;
             _vm.HoverText = $"{_vm.Equipments[row].DisplayName} | {hour:00}:{minute:00}";
         }
 
@@ -721,52 +690,47 @@ namespace CleanPotal
         {
             if (BoardGridCanvas == null) return;
             Point p = e.GetPosition(BoardGridCanvas);
-            double cellW = GetCellWidth();
-            double rowH = GetRowHeight();
+            double cellW = GetCellWidth(); double rowH = GetRowHeight();
             if (cellW <= 0 || rowH <= 0) return;
-            int cell = (int)(p.X / cellW);
+
             int row = (int)(p.Y / rowH);
-            if (cell < 0 || cell >= _vm.TotalCells || row < 0 || row >= _vm.Equipments.Count) return;
+            int startMinute = (int)Math.Round((p.X / cellW) * 10.0);
+
+            if (startMinute < 0 || startMinute >= _vm.TotalMinutes || row < 0 || row >= _vm.Equipments.Count) return;
 
             _vm.LastClickedEquipmentName = _vm.Equipments[row].DisplayName;
-            _vm.SetSelectedCell(row, cell);
+            _vm.SetSelectedCell(row, startMinute);
 
             if (_vm.SelectedRecipe == null)
             {
-                _vm.StatusText = $"셀 선택: {_vm.LastClickedEquipmentName} / {_vm.GetCellTimeText(cell)}";
-                UpdateStatusText();
-                e.Handled = true;
-                return;
+                _vm.StatusText = $"시간 선택: {_vm.LastClickedEquipmentName} / {_vm.GetCellTimeText(startMinute)}";
+                UpdateStatusText(); e.Handled = true; return;
             }
 
-            bool placed = _vm.TryPlaceRecipe(row, cell, out string msg);
+            bool placed = _vm.TryPlaceRecipe(row, startMinute, out string msg);
             if (placed) { HideHoverCell(); DrawBoard(); }
             else if (msg.Contains("DI 동시 배치", StringComparison.Ordinal)) MessageBox.Show(msg, "DI 배치 제한", MessageBoxButton.OK, MessageBoxImage.Warning);
 
-            _vm.StatusText = msg;
-            UpdateStatusText();
-            e.Handled = true;
+            _vm.StatusText = msg; UpdateStatusText(); e.Handled = true;
         }
 
         private void BoardInputLayer_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (BoardGridCanvas == null) return;
             Point p = e.GetPosition(BoardGridCanvas);
-            double cellW = GetCellWidth();
-            double rowH = GetRowHeight();
+            double cellW = GetCellWidth(); double rowH = GetRowHeight();
             if (cellW <= 0 || rowH <= 0) return;
-            int cell = (int)(p.X / cellW);
+
             int row = (int)(p.Y / rowH);
-            if (cell < 0 || cell >= _vm.TotalCells || row < 0 || row >= _vm.Equipments.Count) return;
+            int clickMinute = (int)Math.Round((p.X / cellW) * 10.0);
+
+            if (clickMinute < 0 || clickMinute >= _vm.TotalMinutes || row < 0 || row >= _vm.Equipments.Count) return;
 
             _vm.LastClickedEquipmentName = _vm.Equipments[row].DisplayName;
-            _vm.SetSelectedCell(row, cell);
+            _vm.SetSelectedCell(row, clickMinute);
 
-            if (_vm.TryRemoveBlockAt(row, cell, out string msg)) { HideHoverCell(); DrawBoard(); }
-            _vm.StatusText = msg;
-            UpdateStatusText();
-            e.Handled = true;
+            if (_vm.TryRemoveBlockAt(row, clickMinute, out string msg)) { HideHoverCell(); DrawBoard(); }
+            _vm.StatusText = msg; UpdateStatusText(); e.Handled = true;
         }
-        #endregion
     }
 }

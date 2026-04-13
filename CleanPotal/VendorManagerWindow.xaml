@@ -1,13 +1,41 @@
 <Window x:Class="CleanPotal.VendorManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="업체 기준 정보 관리" Width="1100" Height="820"
+        Title="업체 기준 정보 관리" Width="1200" Height="860"
         WindowStartupLocation="CenterOwner" Background="#F9FAFB"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         SnapsToDevicePixels="True" UseLayoutRounding="True">
 
     <Window.Resources>
+        <Style x:Key="SegmentedTabStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ModernListBoxStyle" TargetType="ListBox">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -52,17 +80,35 @@
             </Setter>
         </Style>
 
+        <Style x:Key="CenterGridTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CenterGridTextBoxStyle" TargetType="TextBox">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+
+        <Style x:Key="CenterGridCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="#E5E5E5"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="RowBackground" Value="White"/>
             <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#F3F4F6"/>
             <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
-            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="RowHeight" Value="42"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
             <Setter Property="ColumnHeaderStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridColumnHeader">
@@ -72,27 +118,22 @@
                         <Setter Property="Padding" Value="12,10"/>
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                         <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
                     </Style>
                 </Setter.Value>
             </Setter>
             <Setter Property="CellStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="12,0"/>
                         <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="DataGridCell">
-                                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
+                        <Setter Property="Padding" Value="12,0"/>
+                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="#EFF6FF"/>
-                                <Setter Property="Foreground" Value="#1E3A8A"/>
+                                <Setter Property="Foreground" Value="#111827"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -107,11 +148,25 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="업체 기준 정보 관리" FontSize="26" FontWeight="ExtraBold" Foreground="#111827" Margin="0,0,0,24"/>
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="업체 기준 정보 관리" FontSize="26" FontWeight="ExtraBold" Foreground="#111827"/>
+                <TextBlock x:Name="TxtSummary" Margin="0,8,0,0" Foreground="#64748B" FontSize="13"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Excel 일괄 등록" Width="160" Style="{StaticResource MacPrimaryButtonStyle}" Margin="0,0,12,0" Cursor="Hand" Click="ImportExcel_Click"/>
+                <Button Content="저장" Width="120" Style="{StaticResource MacPrimaryButtonStyle}" Click="SaveVendor_Click"/>
+            </StackPanel>
+        </Grid>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="320"/>
                 <ColumnDefinition Width="24"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
@@ -119,59 +174,105 @@
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="등록된 업체" FontSize="16" FontWeight="Bold" Margin="0,0,0,12" Foreground="#1F2937"/>
-                <Border Grid.Row="1" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="12" Background="White">
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                    <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
+                    <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                    <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                </StackPanel>
+
+                <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="12" Background="White">
                     <ListBox x:Name="VendorListBox" Style="{StaticResource ModernListBoxStyle}" DisplayMemberPath="VendorName" SelectionChanged="VendorListBox_SelectionChanged"/>
                 </Border>
-                <Button Grid.Row="2" Content="+ 새 업체 추가" Style="{StaticResource MacSecondaryButtonStyle}" Margin="0,12,0,0" Click="AddVendor_Click"/>
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Content="+ 새 업체" Width="120" Style="{StaticResource MacSecondaryButtonStyle}" Click="AddVendor_Click"/>
+                    <Button Content="업체 삭제" Width="120" Margin="12,0,0,0" Style="{StaticResource MacDangerButtonStyle}" Click="DeleteVendor_Click"/>
+                </StackPanel>
             </Grid>
 
             <Border Grid.Column="2" Style="{StaticResource ModernCardStyle}">
-                <Grid Cursor="">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="업체 상세 정보" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,24"/>
+                    <TextBlock Grid.Row="0" Text="업체 상세 정보" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,20"/>
 
-                    <StackPanel Grid.Row="1" Margin="0,0,0,24">
-                        <TextBlock Text="업체명" FontWeight="Bold" Margin="0,0,0,8" Foreground="#4B5563"/>
-                        <TextBox x:Name="TxtVendorName" Height="38" Style="{StaticResource MacInputTextBoxStyle}"/>
+                    <StackPanel Grid.Row="1" Margin="0,0,0,24" Orientation="Horizontal">
+                        <StackPanel Width="280" Margin="0,0,24,0">
+                            <TextBlock Text="업체명" FontWeight="Bold" Margin="0,0,0,8" Foreground="#4B5563"/>
+                            <TextBox x:Name="TxtVendorName" Height="38" Style="{StaticResource MacInputTextBoxStyle}" TextChanged="TxtVendorName_TextChanged"/>
+                        </StackPanel>
+
+                        <StackPanel Width="160">
+                            <TextBlock Text="대분류 지정" FontWeight="Bold" Margin="0,0,0,8" Foreground="#4B5563"/>
+                            <ComboBox x:Name="CmbCategory" Height="38" Padding="12,0" VerticalContentAlignment="Center" SelectionChanged="CmbCategory_SelectionChanged">
+                                <ComboBoxItem Content="SEMES"/>
+                                <ComboBoxItem Content="QTZ"/>
+                            </ComboBox>
+                        </StackPanel>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="2" Text="사업장 및 공장 주소" FontWeight="Bold" Margin="0,0,0,8" Foreground="#4B5563"/>
+                    <Grid Grid.Row="2" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="사업장 및 공장 주소" FontWeight="Bold" Foreground="#4B5563" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="+ 주소 추가" Width="110" Style="{StaticResource MacSecondaryButtonStyle}" Click="AddAddress_Click"/>
+                            <Button Content="주소 삭제" Width="110" Margin="8,0,0,0" Style="{StaticResource MacDangerButtonStyle}" Click="DeleteAddress_Click"/>
+                        </StackPanel>
+                    </Grid>
 
                     <DataGrid x:Name="DetailGrid" Grid.Row="3" Margin="0,0,0,24" Style="{StaticResource ModernDataGridStyle}">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="기본" Binding="{Binding IsMain}" Width="50"/>
-                            <DataGridTextColumn Header="구분" Binding="{Binding LocationName}" Width="150"/>
-                            <DataGridTextColumn Header="주소" Binding="{Binding FullAddress}" Width="*"/>
+                            <DataGridCheckBoxColumn Header="기본" Binding="{Binding IsMain, Mode=TwoWay}" Width="60"
+                                                    ElementStyle="{StaticResource CenterGridCheckBoxStyle}"
+                                                    EditingElementStyle="{StaticResource CenterGridCheckBoxStyle}"/>
+                            <DataGridTextColumn Header="구분" Binding="{Binding LocationName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"
+                                                ElementStyle="{StaticResource CenterGridTextBlockStyle}"
+                                                EditingElementStyle="{StaticResource CenterGridTextBoxStyle}"/>
+                            <DataGridTextColumn Header="주소" Binding="{Binding FullAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"
+                                                ElementStyle="{StaticResource CenterGridTextBlockStyle}"
+                                                EditingElementStyle="{StaticResource CenterGridTextBoxStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Row="4" Text="담당자 목록" FontWeight="Bold" Margin="0,0,0,8" Foreground="#4B5563"/>
-
-                    <DataGrid x:Name="ManagersDataGrid" Grid.Row="5" Margin="0,0,0,24" Style="{StaticResource ModernDataGridStyle}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="담당자 이름" Binding="{Binding ManagerName}" Width="150"/>
-                            <DataGridTextColumn Header="연락처" Binding="{Binding ContactNumber}" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-                    <Grid Grid.Row="6">
-                        <Button Content="업체 삭제" HorizontalAlignment="Left" Style="{StaticResource MacDangerButtonStyle}" Width="100" Click="DeleteVendor_Click"/>
-                        <Button Content="저장하기" HorizontalAlignment="Right" Style="{StaticResource MacPrimaryButtonStyle}" Width="120" Click="SaveVendor_Click"/>
+                    <Grid Grid.Row="4" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="담당자 목록" FontWeight="Bold" Foreground="#4B5563" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="+ 담당자 추가" Width="120" Style="{StaticResource MacSecondaryButtonStyle}" Click="AddManager_Click"/>
+                            <Button Content="담당자 삭제" Width="120" Margin="8,0,0,0" Style="{StaticResource MacDangerButtonStyle}" Click="DeleteManager_Click"/>
+                        </StackPanel>
                     </Grid>
+
+                    <DataGrid x:Name="ManagersDataGrid" Grid.Row="6" Style="{StaticResource ModernDataGridStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="담당자 이름" Binding="{Binding ManagerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"
+                                                ElementStyle="{StaticResource CenterGridTextBlockStyle}"
+                                                EditingElementStyle="{StaticResource CenterGridTextBoxStyle}"/>
+                            <DataGridTextColumn Header="연락처" Binding="{Binding ContactNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"
+                                                ElementStyle="{StaticResource CenterGridTextBlockStyle}"
+                                                EditingElementStyle="{StaticResource CenterGridTextBoxStyle}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </Grid>
             </Border>
         </Grid>

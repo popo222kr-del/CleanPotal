@@ -13,6 +13,48 @@
              Background="#F5F7FB">
 
     <UserControl.Resources>
+        <Style x:Key="MacScrollThumbStyle" TargetType="{x:Type Thumb}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border x:Name="ThumbBorder" Margin="2,2,4,2" CornerRadius="4" Background="{TemplateBinding Background}"/>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType={x:Type ScrollBar}}}" Value="Horizontal">
+                                <Setter TargetName="ThumbBorder" Property="Margin" Value="2,2,2,4"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true" Focusable="false">
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource MacScrollThumbStyle}" Background="{TemplateBinding Foreground}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="StarCheckBoxStyle" TargetType="CheckBox">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -110,46 +152,49 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="2" x:Name="RootCaptureTarget" Background="#FFFFFF" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="16">
-                <Grid>
-                    <Grid.OpacityMask>
-                        <VisualBrush>
-                            <VisualBrush.Visual>
-                                <Border Background="Black" CornerRadius="16" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
-                            </VisualBrush.Visual>
-                        </VisualBrush>
-                    </Grid.OpacityMask>
+            <Grid Grid.Row="2" x:Name="ContentGrid" Margin="0,0,0,16">
+                <Border x:Name="RootCaptureTarget" Background="#FFFFFF" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="16"
+                        VerticalAlignment="Top" MaxHeight="{Binding ActualHeight, ElementName=ContentGrid}">
+                    <Grid>
+                        <Grid.OpacityMask>
+                            <VisualBrush>
+                                <VisualBrush.Visual>
+                                    <Border Background="Black" CornerRadius="16" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"/>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Grid.OpacityMask>
 
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                    <Canvas x:Name="EquipmentHeaderCanvas" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True" Background="#F8FAFC"/>
+                        <Canvas x:Name="EquipmentHeaderCanvas" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True" Background="#F8FAFC"/>
 
-                    <ScrollViewer x:Name="EquipmentScrollViewer" Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" ScrollChanged="EquipmentScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False">
-                        <Canvas x:Name="EquipmentCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
-                    </ScrollViewer>
+                        <ScrollViewer x:Name="EquipmentScrollViewer" Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" ScrollChanged="EquipmentScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False">
+                            <Canvas x:Name="EquipmentCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
+                        </ScrollViewer>
 
-                    <ScrollViewer x:Name="HeaderScrollViewer" Grid.Row="0" Grid.Column="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" ScrollChanged="HeaderScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False" Background="#F8FAFC">
-                        <Canvas x:Name="TimelineHeaderCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
-                    </ScrollViewer>
+                        <ScrollViewer x:Name="HeaderScrollViewer" Grid.Row="0" Grid.Column="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" ScrollChanged="HeaderScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False" Background="#F8FAFC">
+                            <Canvas x:Name="TimelineHeaderCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
+                        </ScrollViewer>
 
-                    <ScrollViewer x:Name="BoardScrollViewer" Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ScrollChanged="BoardScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False" Focusable="True">
-                        <Canvas x:Name="BoardContentCanvas" ClipToBounds="True" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True">
-                            <Canvas x:Name="BoardGridCanvas" Background="#FFFFFF" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
-                            <Canvas x:Name="BoardBlocksCanvas" Background="Transparent" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
-                            <Canvas x:Name="BoardInputLayer" Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Top" MouseMove="BoardInputLayer_MouseMove" MouseLeave="BoardInputLayer_MouseLeave" MouseLeftButtonDown="BoardInputLayer_MouseLeftButtonDown" MouseRightButtonDown="BoardInputLayer_MouseRightButtonDown"/>
-                        </Canvas>
-                    </ScrollViewer>
+                        <ScrollViewer x:Name="BoardScrollViewer" Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ScrollChanged="BoardScrollViewer_ScrollChanged" PreviewMouseWheel="AnyScroll_PreviewMouseWheel" CanContentScroll="False" Focusable="True">
+                            <Canvas x:Name="BoardContentCanvas" ClipToBounds="True" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                <Canvas x:Name="BoardGridCanvas" Background="#FFFFFF" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
+                                <Canvas x:Name="BoardBlocksCanvas" Background="Transparent" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
+                                <Canvas x:Name="BoardInputLayer" Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Top" MouseMove="BoardInputLayer_MouseMove" MouseLeave="BoardInputLayer_MouseLeave" MouseLeftButtonDown="BoardInputLayer_MouseLeftButtonDown" MouseRightButtonDown="BoardInputLayer_MouseRightButtonDown"/>
+                            </Canvas>
+                        </ScrollViewer>
 
-                    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" IsHitTestVisible="False"/>
-                </Grid>
-            </Border>
+                        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" IsHitTestVisible="False"/>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>
