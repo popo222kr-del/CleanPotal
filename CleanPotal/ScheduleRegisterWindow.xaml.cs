@@ -12,6 +12,7 @@ namespace CleanPotal
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
+        private bool _isHolidayLoaded = false;
 
         public ScheduleRegisterWindow()
         {
@@ -29,12 +30,12 @@ namespace CleanPotal
             CmbShiftName.SelectedIndex = 0;
             CmbShiftName.IsEnabled = false;
 
-            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool hasSchedulePermission = SessionManager.CanManageSchedule;
+            bool canManageAllAttendance = isMaster || hasSchedulePermission;
 
-            if (isMaster)
+            if (canManageAllAttendance)
             {
-                TabEdu.Visibility = Visibility.Visible;
-
                 var allNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
                                         .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
                 CmbShiftName.ItemsSource = allNames;
@@ -42,7 +43,12 @@ namespace CleanPotal
                 var myItem = allNames.FirstOrDefault(n => n.Contains(SessionManager.CurrentRealName));
                 CmbShiftName.SelectedItem = myItem ?? allNames.FirstOrDefault();
                 CmbShiftName.IsEnabled = true;
+            }
 
+            // 교육 일정 등록은 "일정 권한"이 체크된 사용자만 가능
+            if (hasSchedulePermission)
+            {
+                TabEdu.Visibility = Visibility.Visible;
                 var teams = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.TeamName))
                                      .Select(u => u.TeamName).Distinct().ToList();
                 CmbEduTeam.ItemsSource = teams;
@@ -52,6 +58,13 @@ namespace CleanPotal
             {
                 TabEdu.Visibility = Visibility.Collapsed;
             }
+
+            BtnSave.IsEnabled = false;
+            MainTab.SelectionChanged += (_, __) => RefreshPreview();
+            DpShiftEnd.SelectedDateChanged += (_, __) => RefreshPreview();
+            DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
+            CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
+            CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
 
             // 창이 열릴 때 백그라운드에서 공휴일 데이터를 로드
             this.Loaded += async (s, e) =>
@@ -63,7 +76,13 @@ namespace CleanPotal
                 _dynamicHolidays.AddRange(thisYearHolidays);
                 _dynamicHolidays.AddRange(nextYearHolidays);
                 _dynamicHolidays = _dynamicHolidays.Distinct().ToList();
+                _isHolidayLoaded = true;
+                BtnSave.IsEnabled = true;
+                TxtHolidayLoadStatus.Text = "공휴일 데이터 로딩 완료";
+                RefreshPreview();
             };
+
+            RefreshPreview();
         }
 
         private void DpShiftStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -71,6 +90,7 @@ namespace CleanPotal
             if (DpShiftStart.SelectedDate.HasValue)
             {
                 DpShiftEnd.SelectedDate = DpShiftStart.SelectedDate;
+                RefreshPreview();
             }
         }
 
@@ -79,6 +99,7 @@ namespace CleanPotal
             if (DpEduStart.SelectedDate.HasValue)
             {
                 DpEduEnd.SelectedDate = DpEduStart.SelectedDate;
+                RefreshPreview();
             }
         }
 
@@ -87,6 +108,7 @@ namespace CleanPotal
             if (CmbHalfTime == null) return;
             string selected = (CmbShiftType.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
             CmbHalfTime.Visibility = selected == "반반차" ? Visibility.Visible : Visibility.Collapsed;
+            RefreshPreview();
         }
 
         private void CmbEduTeam_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -99,12 +121,74 @@ namespace CleanPotal
 
             CmbEduName.ItemsSource = teamMembers;
             if (teamMembers.Count > 0) CmbEduName.SelectedIndex = 0;
+            RefreshPreview();
+        }
+
+        private int CountBusinessDays(DateTime startDate, DateTime endDate)
+        {
+            int count = 0;
+            for (DateTime dt = startDate; dt <= endDate; dt = dt.AddDays(1))
+            {
+                bool isWeekend = dt.DayOfWeek == DayOfWeek.Saturday || dt.DayOfWeek == DayOfWeek.Sunday;
+                bool isHoliday = _dynamicHolidays.Contains(dt.ToString("yyyy-MM-dd"));
+                if (!isWeekend && !isHoliday) count++;
+            }
+            return count;
+        }
+
+        private void RefreshPreview()
+        {
+            if (TxtShiftPreview == null || TxtEduPreview == null) return;
+
+            if (DpShiftStart.SelectedDate.HasValue && DpShiftEnd.SelectedDate.HasValue)
+            {
+                DateTime start = DpShiftStart.SelectedDate.Value.Date;
+                DateTime end = DpShiftEnd.SelectedDate.Value.Date;
+                if (start > end)
+                {
+                    TxtShiftPreview.Text = "시작일이 종료일보다 늦습니다.";
+                }
+                else
+                {
+                    int total = (end - start).Days + 1;
+                    int business = _isHolidayLoaded ? CountBusinessDays(start, end) : 0;
+                    string name = CmbShiftName.SelectedItem?.ToString() ?? SessionManager.CurrentRealName;
+                    TxtShiftPreview.Text = _isHolidayLoaded
+                        ? $"대상: {name} | 선택 {total}일 → 반영 {business}일 (주말/공휴일 제외)"
+                        : $"대상: {name} | 선택 {total}일 (공휴일 계산 대기중)";
+                }
+            }
+
+            if (DpEduStart.SelectedDate.HasValue && DpEduEnd.SelectedDate.HasValue)
+            {
+                DateTime start = DpEduStart.SelectedDate.Value.Date;
+                DateTime end = DpEduEnd.SelectedDate.Value.Date;
+                if (start > end)
+                {
+                    TxtEduPreview.Text = "시작일이 종료일보다 늦습니다.";
+                }
+                else
+                {
+                    int total = (end - start).Days + 1;
+                    int business = _isHolidayLoaded ? CountBusinessDays(start, end) : 0;
+                    string name = CmbEduName.SelectedItem?.ToString() ?? "-";
+                    TxtEduPreview.Text = _isHolidayLoaded
+                        ? $"대상: {name} | 선택 {total}일 → 스케줄 반영 {business}일"
+                        : $"대상: {name} | 선택 {total}일 (공휴일 계산 대기중)";
+                }
+            }
         }
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (!_isHolidayLoaded)
+                {
+                    MessageBox.Show("공휴일 데이터를 불러오는 중입니다. 잠시 후 다시 저장해주세요.", "잠시만 기다려주세요", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
                 if (MainTab.SelectedIndex == 0) // 근태/휴가 다중 등록
                 {
                     string selection = CmbShiftName.SelectedItem?.ToString() ?? "";

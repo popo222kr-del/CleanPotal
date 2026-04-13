@@ -20,6 +20,7 @@ namespace CleanPotal
     {
         private DateTime _currentDate;
         private Dictionary<string, List<ScheduleDetailItem>> _badgeDetails = new();
+        private int _calendarBuildVersion = 0;
 
         // 🔥 메인 창(MainWindow)의 헤더 텍스트를 실시간 변경하기 위한 이벤트
         public event Action<string>? MonthTextChanged;
@@ -29,18 +30,16 @@ namespace CleanPotal
         {
             InitializeComponent();
             _currentDate = DateTime.Today;
-            BuildCalendar(_currentDate);
+            _ = BuildCalendarAsync(_currentDate);
         }
 
-        private void BuildCalendar(DateTime targetDate)
+        private async System.Threading.Tasks.Task BuildCalendarAsync(DateTime targetDate)
         {
             // 달력이 그려질 때마다 메인 윈도우의 텍스트(예: 2026년 4월)를 바꿔라! 라고 신호를 쏩니다.
             MonthTextChanged?.Invoke(CurrentMonthText);
-
-            _badgeDetails.Clear();
+            int buildVersion = ++_calendarBuildVersion;
 
             DateTime firstDayOfMonth = new DateTime(targetDate.Year, targetDate.Month, 1);
-            int daysInMonth = DateTime.DaysInMonth(targetDate.Year, targetDate.Month);
             int startDayOfWeek = (int)firstDayOfMonth.DayOfWeek;
 
             DateTime startDate = firstDayOfMonth.AddDays(-startDayOfWeek);
@@ -48,9 +47,38 @@ namespace CleanPotal
 
             var shifts = DatabaseHelper.GetShiftSchedulesInRange(startDate, endDate);
             var edus = DatabaseHelper.GetEducationPlansInRange(startDate, endDate);
-
             var allUsers = AuthDatabaseHelper.GetAllUsers();
 
+            // 1) 먼저 휴일 정보 없이 즉시 렌더링(화면 멈춤 방지)
+            var initialDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, new Dictionary<string, string>());
+            if (buildVersion != _calendarBuildVersion) return;
+            CalendarItemsControl.ItemsSource = initialDays;
+
+            // 2) 휴일명 비동기 로드 후 갱신
+            Dictionary<string, string> holidayMap;
+            try
+            {
+                holidayMap = await HolidayManager.GetHolidayNameMapAsync(startDate.Year, endDate.Year);
+            }
+            catch
+            {
+                holidayMap = new Dictionary<string, string>();
+            }
+
+            if (buildVersion != _calendarBuildVersion) return;
+            var finalDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, holidayMap);
+            CalendarItemsControl.ItemsSource = finalDays;
+        }
+
+        private ObservableCollection<CalendarDayModel> BuildDayModels(
+            DateTime targetDate,
+            DateTime startDate,
+            List<ShiftScheduleModel> shifts,
+            List<EducationPlanModel> edus,
+            List<UserModel> allUsers,
+            Dictionary<string, string> holidayMap)
+        {
+            _badgeDetails.Clear();
             var days = new ObservableCollection<CalendarDayModel>();
 
             for (int i = 0; i < 42; i++)
@@ -63,6 +91,11 @@ namespace CleanPotal
                 };
 
                 string cellDateStr = cellDate.ToString("yyyy-MM-dd");
+                if (holidayMap.TryGetValue(cellDateStr, out var holidayName))
+                {
+                    dayModel.IsHoliday = true;
+                    dayModel.HolidayName = holidayName;
+                }
 
                 var dayShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "주간").ToList();
                 var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "야간").ToList();
@@ -172,7 +205,7 @@ namespace CleanPotal
                 days.Add(dayModel);
             }
 
-            CalendarItemsControl.ItemsSource = days;
+            return days;
         }
 
         private void AddOffBadge(List<ShiftScheduleModel> offList, string prefix, CalendarDayModel dayModel)
@@ -267,7 +300,7 @@ namespace CleanPotal
                     else if (item.SourceType == "Edu") DatabaseHelper.DeleteEducationPlan(item.Id);
 
                     ModalOverlay.Visibility = Visibility.Collapsed;
-                    BuildCalendar(_currentDate);
+                    _ = BuildCalendarAsync(_currentDate);
                 }
             }
         }
@@ -279,19 +312,19 @@ namespace CleanPotal
         public void GoPrevMonth()
         {
             _currentDate = _currentDate.AddMonths(-1);
-            BuildCalendar(_currentDate);
+            _ = BuildCalendarAsync(_currentDate);
         }
 
         public void GoNextMonth()
         {
             _currentDate = _currentDate.AddMonths(1);
-            BuildCalendar(_currentDate);
+            _ = BuildCalendarAsync(_currentDate);
         }
 
         public void GoToday()
         {
             _currentDate = DateTime.Today;
-            BuildCalendar(_currentDate);
+            _ = BuildCalendarAsync(_currentDate);
         }
 
         public void CreatePattern()
@@ -307,7 +340,7 @@ namespace CleanPotal
             var boardWin = new ScheduleProgramWindow { Owner = Window.GetWindow(this) };
             boardWin.ShowDialog();
 
-            BuildCalendar(_currentDate);
+            _ = BuildCalendarAsync(_currentDate);
         }
 
         public void RegisterSchedule()
@@ -317,7 +350,7 @@ namespace CleanPotal
 
             if (win.ShowDialog() == true)
             {
-                BuildCalendar(_currentDate);
+                _ = BuildCalendarAsync(_currentDate);
             }
         }
     }

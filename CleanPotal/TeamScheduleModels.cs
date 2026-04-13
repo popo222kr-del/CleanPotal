@@ -27,6 +27,8 @@ namespace CleanPotal
         public string DayNumber => Date.Day.ToString();
         public bool IsCurrentMonth { get; set; }
         public bool IsToday => Date.Date == DateTime.Today;
+        public bool IsHoliday { get; set; }
+        public string HolidayName { get; set; } = "";
 
         public ObservableCollection<ScheduleBadge> Badges { get; set; } = new();
     }

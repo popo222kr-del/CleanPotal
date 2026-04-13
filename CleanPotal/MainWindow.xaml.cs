@@ -11,7 +11,8 @@ namespace CleanPotal
         private string _currentViewName = "Portal";
         private HandoverView? _handoverView;
         private ScheduleBoardView? _scheduleBoardView;
-        private TeamScheduleView? _teamScheduleView; // 달력 뷰 인스턴스
+        private TeamScheduleView? _teamScheduleView;
+        private WeeklyReportView? _weeklyReportView; // 🔥 주간보고 뷰 연동
         private ReportAutomationView? _reportAutomationView;
         private ProdReqView? _prodReqView;
 
@@ -32,7 +33,7 @@ namespace CleanPotal
 
                 string team = SessionManager.CurrentTeamName ?? "소속없음";
                 string id = SessionManager.CurrentUsername ?? "";
-                LoginUserRoleText.Text = string.IsNullOrEmpty(id) ? team : $"{id} · {team}";
+                LoginUserRoleText.Text = string.IsNullOrEmpty(id) ? team : $"{id} · {team}"; // 🔥 'No.' 글자 제거 유지
 
                 StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
             }
@@ -181,7 +182,7 @@ namespace CleanPotal
         private void HideAllHeaderButtons()
         {
             HeaderSearchBoxArea.Visibility = Visibility.Collapsed;
-            HeaderCalendarControlArea.Visibility = Visibility.Collapsed; // 캘린더 컨트롤 숨김
+            if (HeaderCalendarControlArea != null) HeaderCalendarControlArea.Visibility = Visibility.Collapsed;
             HeaderSearchBox.Text = "";
 
             BtnCommandPrimary.Visibility = Visibility.Collapsed;
@@ -268,7 +269,6 @@ namespace CleanPotal
             BtnCommandReset.Visibility = Visibility.Visible;
         }
 
-        // 🔥 달력 화면 진입 시 헤더 컨트롤을 켜고 연결하는 로직
         private void ShowTeamSchedule()
         {
             _currentViewName = "TeamSchedule";
@@ -276,8 +276,7 @@ namespace CleanPotal
             if (_teamScheduleView == null)
             {
                 _teamScheduleView = new TeamScheduleView();
-                // 캘린더에서 달이 바뀔 때 메인 헤더의 텍스트(예: 2026년 4월)를 실시간으로 바꿔줍니다.
-                _teamScheduleView.MonthTextChanged += (monthText) => { HeaderMonthYearText.Text = monthText; };
+                _teamScheduleView.MonthTextChanged += (monthText) => { if (HeaderMonthYearText != null) HeaderMonthYearText.Text = monthText; };
             }
 
             MainContent.Content = _teamScheduleView;
@@ -287,17 +286,24 @@ namespace CleanPotal
 
             HideAllHeaderButtons();
 
-            // 진입 시 현재 달력의 년/월을 강제로 한 번 렌더링
-            HeaderMonthYearText.Text = _teamScheduleView.CurrentMonthText;
-            HeaderCalendarControlArea.Visibility = Visibility.Visible;
+            if (HeaderMonthYearText != null) HeaderMonthYearText.Text = _teamScheduleView.CurrentMonthText;
+            if (HeaderCalendarControlArea != null) HeaderCalendarControlArea.Visibility = Visibility.Visible;
         }
 
         private void ShowWeeklyReport()
         {
             _currentViewName = "WeeklyReport";
-            ApplySectionMeta("주간보고", "부서 주간보고 내역을 관리합니다.");
+
+            if (_weeklyReportView == null)
+            {
+                _weeklyReportView = new WeeklyReportView();
+            }
+
+            MainContent.Content = _weeklyReportView;
+
+            ApplySectionMeta("주간보고", "부서 주간보고 내역을 관리하고 지난 업무를 팔로업합니다.");
             UpdateNavSelection("WeeklyReport");
-            MainContent.Content = null;
+
             HideAllHeaderButtons();
         }
 
@@ -326,13 +332,13 @@ namespace CleanPotal
         private void BtnCommandPartialReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.PartialReset();
         private void BtnCommandReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.ResetAll();
 
-        // 🔥 메인 헤더에 생성된 달력 조작 버튼 클릭 시 -> 캘린더 뷰(_teamScheduleView)의 명령을 실행
         private void HeaderPrevMonth_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoPrevMonth();
         private void HeaderNextMonth_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoNextMonth();
         private void HeaderToday_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoToday();
         private void HeaderCreatePattern_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.CreatePattern();
         private void HeaderRegisterSchedule_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.RegisterSchedule();
 
+        // 🔥 잘렸던 UpdateNavSelection 전체 복구 완벽 완료
         private void UpdateNavSelection(string viewName)
         {
             _isUpdatingNav = true;
