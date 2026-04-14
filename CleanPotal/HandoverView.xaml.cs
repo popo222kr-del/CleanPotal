@@ -48,7 +48,12 @@ namespace CleanPotal
 
         private ICollectionView _activeView;
         private ICollectionView _doneView;
+
         private string _currentFilter = "전체";
+
+        // 🔥 업체명 검색용 변수 추가
+        private string _activeSearchKeyword = "";
+        private string _doneSearchKeyword = "";
 
         public HandoverView()
         {
@@ -68,12 +73,13 @@ namespace CleanPotal
             LoadHandoverAll();
             LoadTodayStatus();
 
+            // 🔥 리스트별로 독립된 검색 필터 함수를 지정하도록 분리
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
-            _activeView.Filter = FilterHandoverItem;
+            _activeView.Filter = FilterActiveItem;
             ActiveGrid.ItemsSource = _activeView;
 
             _doneView = CollectionViewSource.GetDefaultView(DoneItems);
-            _doneView.Filter = FilterHandoverItem;
+            _doneView.Filter = FilterDoneItem;
             DoneGrid.ItemsSource = _doneView;
 
             UpdateManageColumnVisibility();
@@ -158,7 +164,6 @@ namespace CleanPotal
         private string _editProgressText = "0%";
         public string EditProgressText { get => _editProgressText; set { _editProgressText = value; OnPropertyChanged(); } }
 
-        // 🔥 신규: 대시보드 접기/펴기 로직
         private void BtnToggleDashboard_Click(object sender, RoutedEventArgs e)
         {
             if (TopDashboardArea.Visibility == Visibility.Visible)
@@ -183,10 +188,7 @@ namespace CleanPotal
                 var edus = DatabaseHelper.GetEducationPlansByDate(today);
                 var allUsers = AuthDatabaseHelper.GetAllUsers();
 
-                string GetNameOnly(string name)
-                {
-                    return name;
-                }
+                string GetNameOnly(string name) => name;
 
                 string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
 
@@ -281,7 +283,22 @@ namespace CleanPotal
             return $"{string.Join(", ", members.Take(3))} 외 {members.Count - 3}명";
         }
 
-        // 🔥 변경: 라디오 버튼 및 퀵 필터(토글 버튼) 이벤트 병합
+        // ==========================================
+        // 🔥 검색 및 탭 필터링 로직 영역
+        // ==========================================
+
+        private void SearchVendorBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _activeSearchKeyword = SearchVendorBox.Text?.Trim() ?? "";
+            _activeView?.Refresh();
+        }
+
+        private void DoneSearchVendorBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _doneSearchKeyword = DoneSearchVendorBox.Text?.Trim() ?? "";
+            _doneView?.Refresh();
+        }
+
         private void FilterTab_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton rb && rb.Content != null)
@@ -292,24 +309,56 @@ namespace CleanPotal
             _doneView?.Refresh();
         }
 
-        // 🔥 변경: 오늘 마감 퀵 필터 로직 추가
-        private bool FilterHandoverItem(object obj)
+        private bool FilterActiveItem(object obj)
         {
             if (obj is HandoverItem item)
             {
-                bool categoryMatch = _currentFilter == "전체" || string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase);
+                bool categoryMatch = _currentFilter == "전체" ||
+                                     string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) ||
+                                     (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase));
 
                 bool dueTodayMatch = true;
                 if (ToggleDueToday?.IsChecked == true)
                 {
-                    // 오늘 출고 예정이거나 이미 지난(지연된) 건 모두 표출
                     dueTodayMatch = item.OutDate.HasValue && item.OutDate.Value.Date <= DateTime.Today;
                 }
 
-                return categoryMatch && dueTodayMatch;
+                bool searchMatch = string.IsNullOrWhiteSpace(_activeSearchKeyword) ||
+                                   item.Vendor.Contains(_activeSearchKeyword, StringComparison.OrdinalIgnoreCase);
+
+                return categoryMatch && dueTodayMatch && searchMatch;
             }
             return false;
         }
+
+        private bool FilterDoneItem(object obj)
+        {
+            if (obj is HandoverItem item)
+            {
+                bool categoryMatch = _currentFilter == "전체" ||
+                                     string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) ||
+                                     (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase));
+
+                bool searchMatch = string.IsNullOrWhiteSpace(_doneSearchKeyword) ||
+                                   item.Vendor.Contains(_doneSearchKeyword, StringComparison.OrdinalIgnoreCase);
+
+                return categoryMatch && searchMatch;
+            }
+            return false;
+        }
+
+        // 🔥 업체명에 따라 카테고리를 자동 부여하는 스마트 함수
+        private string DetermineCategory(string vendorName, string? dbCategory)
+        {
+            if (!string.IsNullOrWhiteSpace(dbCategory)) return dbCategory;
+            if (vendorName.Contains("삼성", StringComparison.OrdinalIgnoreCase)) return "삼성";
+            if (vendorName.Contains("SEMES", StringComparison.OrdinalIgnoreCase) || vendorName.Contains("세메스", StringComparison.OrdinalIgnoreCase)) return "SEMES";
+            return "QTZ"; // Default Fallback
+        }
+
+        // ==========================================
+        // 기본 데이터 로드 로직
+        // ==========================================
 
         private void LoadNotices()
         {
@@ -463,7 +512,9 @@ namespace CleanPotal
                 foreach (var item in dbItems)
                 {
                     var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase));
-                    item.Category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
+
+                    // 🔥 변경: 삼성, SEMES 등 업체명에 따른 카테고리 자동 결정 로직 반영
+                    item.Category = DetermineCategory(item.Vendor, match?.Category);
 
                     item.ManageChecked = false;
                     item.NotifyProgress();
@@ -558,7 +609,9 @@ namespace CleanPotal
 
                 var vendors = VendorStore.Load();
                 var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
-                string category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
+
+                // 🔥 변경: 등록 시 스마트 카테고리 로직 반영
+                string category = DetermineCategory(EditVendor?.Trim() ?? "", match?.Category);
 
                 var item = new HandoverItem
                 {
@@ -702,7 +755,9 @@ namespace CleanPotal
 
                 var vendors = VendorStore.Load();
                 var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
-                _currentEditItem.Category = (match != null && string.Equals(match.Category, "SEMES", StringComparison.OrdinalIgnoreCase)) ? "SEMES" : "QTZ";
+
+                // 🔥 변경: 수정 시 스마트 카테고리 로직 반영
+                _currentEditItem.Category = DetermineCategory(EditVendor?.Trim() ?? "", match?.Category);
 
                 _currentEditItem.Vendor = EditVendor?.Trim() ?? ""; _currentEditItem.Owner = EditOwner?.Trim() ?? ""; _currentEditItem.Content = EditContent ?? "";
                 _currentEditItem.InDate = EditInDate; _currentEditItem.OutDate = EditOutDate; _currentEditItem.Status = EditStatus ?? "진행";

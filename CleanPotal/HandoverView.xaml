@@ -337,6 +337,7 @@
                             <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
                             <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
                             <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="삼성" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
 
                             <Border Width="1" Background="{StaticResource BorderLight}" Margin="8,4,12,4"/>
 
@@ -346,6 +347,30 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                        <Border Background="#F1F5F9" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" Height="36" Padding="12,0" Width="180" Margin="0,0,16,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="14" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox x:Name="SearchVendorBox" Grid.Column="1" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" FontSize="13" Foreground="#0F172A" TextChanged="SearchVendorBox_TextChanged"/>
+                                <TextBlock Grid.Column="1" Text="업체명 검색..." Foreground="#94A3B8" FontSize="13" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=SearchVendorBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+
                         <Button Content="+ 새 항목 등록" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#10B981" Foreground="White" BorderThickness="0" Width="120" Height="36" Margin="0,0,12,0" Click="BtnOpenRegister_Click"/>
                         <Button Content="📅 과거 배차 이력" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#F8FAFC" Foreground="#1E293B" BorderBrush="#E2E8F0" Width="140" Height="36" Margin="0,0,12,0" Click="BtnViewHistory_Click"/>
                         <Button Content="배차표 작성" Style="{StaticResource ModalPrimaryButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Width="120" Height="36" Click="BtnCreateDispatch_Click"/>
@@ -755,6 +780,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
+
                     <Grid Grid.Row="0" Margin="0,0,0,24">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -766,10 +792,37 @@
                                 <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
                                 <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
                                 <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                                <RadioButton Content="삼성" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
                             </StackPanel>
                         </StackPanel>
-                        <Button Grid.Column="1" Content="닫기" Width="100" Height="42" Style="{StaticResource ModalPrimaryButtonStyle}" Click="CloseDoneModal_Click" VerticalAlignment="Top"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Border Background="#F1F5F9" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" Height="42" Padding="12,0" Width="200" Margin="0,0,12,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="14" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBox x:Name="DoneSearchVendorBox" Grid.Column="1" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" FontSize="13" Foreground="#0F172A" TextChanged="DoneSearchVendorBox_TextChanged"/>
+                                    <TextBlock Grid.Column="1" Text="업체명 검색..." Foreground="#94A3B8" FontSize="13" VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=DoneSearchVendorBox}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </Border>
+                            <Button Content="닫기" Width="100" Height="42" Style="{StaticResource ModalPrimaryButtonStyle}" Click="CloseDoneModal_Click"/>
+                        </StackPanel>
                     </Grid>
+
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
                         <CheckBox Content="전체 선택" IsChecked="{Binding DoneSelectAll, Mode=TwoWay}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Bold"/>
                         <Button Content="선택 삭제" Style="{StaticResource ModalDangerButtonStyle}" Width="100" Click="DoneDeleteSelected_Click"/>
