@@ -141,36 +141,10 @@
     </UserControl.Resources>
 
     <Grid Margin="12,0,12,12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="생산팀 요청 리스트" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,16,0"/>
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Content="+ 새 요청 등록" Background="#2563EB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Padding="20,10" Cursor="Hand" Click="BtnOpenRegister_Click">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="8"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="1" VerticalAlignment="Top" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="2" ClipToBounds="True">
+        <Border VerticalAlignment="Top" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="2" ClipToBounds="True">
             <DataGrid x:Name="ReqGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                       HeadersVisibility="Column" GridLinesVisibility="None"
-                      Background="White" BorderThickness="0" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
+                      Background="White" BorderThickness="0" MinRowHeight="50" CellStyle="{StaticResource CenterCellStyle}"
                       MouseDoubleClick="ReqGrid_MouseDoubleClick">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Header="선택" Width="60">
@@ -218,25 +192,28 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="구분" Binding="{Binding Category}" Width="100" ElementStyle="{StaticResource GridTextStyle}"/>
-                    <DataGridTextColumn Header="세부위치" Binding="{Binding Location}" Width="100" ElementStyle="{StaticResource GridTextStyle}"/>
-                    <DataGridTextColumn Header="요청사항" Binding="{Binding RequestDetail}" Width="2*">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource GridTextStyle}">
-                                <Setter Property="HorizontalAlignment" Value="Left"/>
-                                <Setter Property="Margin" Value="16,0,0,0"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="TextWrapping" Value="Wrap"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="구분" Binding="{Binding Category}" Width="90" ElementStyle="{StaticResource GridTextStyle}"/>
+                    <DataGridTextColumn Header="세부위치" Binding="{Binding Location}" Width="90" ElementStyle="{StaticResource GridTextStyle}"/>
 
-                    <DataGridTemplateColumn Header="첨부" Width="85">
+                    <DataGridTemplateColumn Header="요청사항" Width="2*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border Width="38" Height="38" CornerRadius="6" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
-                                        Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click"
-                                        Visibility="{Binding HasRequestImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Grid Margin="12,0,12,0" ToolTip="{Binding RequestDetail}" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding RequestContentTypeTag}" Foreground="#2563EB" FontWeight="ExtraBold" Margin="0,0,6,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding RequestDetailText}" Foreground="#1E293B" FontWeight="SemiBold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="40"/>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="첨부" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Width="36" Height="36" CornerRadius="6" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="GridThumbnail_Click" Visibility="{Binding HasRequestImage, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding RequestFirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     </Border.Background>
@@ -245,25 +222,20 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="요청자" Binding="{Binding Requester}" Width="90" ElementStyle="{StaticResource GridTextStyle}"/>
+                    <DataGridTextColumn Header="요청자" Binding="{Binding Requester}" Width="80" ElementStyle="{StaticResource GridTextStyle}"/>
 
-                    <DataGridTextColumn Header="조치내용" Binding="{Binding ActionDetail}" Width="1.5*">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource GridTextStyle}">
-                                <Setter Property="HorizontalAlignment" Value="Left"/>
-                                <Setter Property="Margin" Value="16,0,0,0"/>
-                                <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="TextWrapping" Value="Wrap"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTemplateColumn Header="조치결과" Width="85">
+                    <DataGridTemplateColumn Header="조치내용" Width="1.5*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border Width="38" Height="38" CornerRadius="6" BorderBrush="{StaticResource BorderDark}" BorderThickness="1"
-                                        Cursor="Hand" MouseLeftButtonDown="GridActionThumbnail_Click"
-                                        Visibility="{Binding HasActionImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="{Binding ActionDetail}" Margin="12,0,12,0" Foreground="#475569" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="40" VerticalAlignment="Center" ToolTip="{Binding ActionDetail}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="조치결과" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Width="36" Height="36" CornerRadius="6" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="GridActionThumbnail_Click" Visibility="{Binding HasActionImage, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding ActionFirstImagePath}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     </Border.Background>
@@ -272,12 +244,12 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="담당자" Binding="{Binding Assignee}" Width="90" ElementStyle="{StaticResource GridTextStyle}"/>
+                    <DataGridTextColumn Header="담당자" Binding="{Binding Assignee}" Width="80" ElementStyle="{StaticResource GridTextStyle}"/>
 
-                    <DataGridTemplateColumn x:Name="ManageColumn" Header="관리" Width="90" Visibility="Collapsed">
+                    <DataGridTemplateColumn x:Name="ManageColumn" Header="관리" Width="80" Visibility="Collapsed">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="삭제" Width="60" Height="32" Style="{StaticResource ModalDangerButtonStyle}" Click="ArchiveDelete_Click" Visibility="{Binding ManageChecked, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <Button Content="삭제" Width="56" Height="30" Style="{StaticResource ModalDangerButtonStyle}" Click="ArchiveDelete_Click" Visibility="{Binding ManageChecked, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -323,22 +295,19 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="구분 (위치)" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" 
-                                                  ItemsSource="{Binding ReqLocations}" SelectedItem="{Binding EditLocation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding ReqLocations}" SelectedItem="{Binding EditLocation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Border>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="세부 위치" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" 
-                                                  ItemsSource="{Binding ReqSubLocations}" SelectedItem="{Binding EditSubLocation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding ReqSubLocations}" SelectedItem="{Binding EditSubLocation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Border>
                                 </StackPanel>
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="요청 분류 (내용)" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" 
-                                                  ItemsSource="{Binding ReqContentTypes}" SelectedItem="{Binding EditContentType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding ReqContentTypes}" SelectedItem="{Binding EditContentType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -464,8 +433,51 @@
                                         <TextBlock Text="{Binding ReadDates}" Foreground="#475569" FontSize="14" Margin="0,0,20,0"/>
                                         <TextBlock Text="{Binding ReadRequester}" Foreground="#475569" FontSize="14"/>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding ReadRequestDetail}" TextWrapping="Wrap" Foreground="#334155" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
-
+                                    <TextBlock Text="요청사항 (수정 가능)" Foreground="#475569" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                    <Border Background="White" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                                        <TextBox Text="{Binding EditableRequestDetail, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" MinHeight="80" BorderThickness="0" Background="Transparent" Foreground="#0F172A" FontSize="14" IsReadOnly="{Binding IsRequestInfoReadOnly}"/>
+                                    </Border>
+                                    <TextBlock Text="등록자만 요청 원본 내용을 수정할 수 있습니다." Foreground="#DC2626" FontSize="12" Margin="0,-8,0,12" Visibility="{Binding IsRequestInfoReadOnly, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    <StackPanel Visibility="{Binding CanEditRequestInfo, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="요청 원본 사진 수정" Foreground="#475569" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                        <Border Style="{StaticResource MultiLineInputWrapperStyle}" BorderBrush="#9CA3AF" BorderThickness="1" Height="50" Margin="0,0,0,10">
+                                            <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Padding="12,12" TextWrapping="NoWrap" AcceptsReturn="False" VerticalScrollBarVisibility="Hidden" PreviewDragOver="RequestEditMemo_PreviewDragOver" Drop="RequestEditMemo_Drop" PreviewKeyDown="RequestEditMemo_PreviewKeyDown" AllowDrop="True" ToolTip="요청 원본 사진을 Ctrl+V 하거나 드래그하여 놓으세요." Text="요청 원본 이미지를 붙여넣으세요..."/>
+                                        </Border>
+                                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,12" Height="58">
+                                            <ItemsControl ItemsSource="{Binding RequestEditAttachmentPaths}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,8,0" Width="52" Height="52">
+                                                            <Border CornerRadius="4" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="ModalThumbnail_Click" ClipToBounds="True">
+                                                                <Border.Background>
+                                                                    <ImageBrush ImageSource="{Binding}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                </Border.Background>
+                                                            </Border>
+                                                            <Button Content="✕" Width="20" Height="20" Background="#EF4444" Foreground="White" FontWeight="Bold" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0" BorderThickness="0" Cursor="Hand" Click="RequestEditDeleteAttachment_Click">
+                                                                <Button.Resources>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="CornerRadius" Value="10"/>
+                                                                    </Style>
+                                                                </Button.Resources>
+                                                                <Button.Template>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border Background="{TemplateBinding Background}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Button.Template>
+                                                            </Button>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
                                     <ItemsControl ItemsSource="{Binding ReadRequestImages}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -495,31 +507,24 @@
                                     <ColumnDefinition Width="16"/>
                                     <ColumnDefinition Width="1*"/>
                                 </Grid.ColumnDefinitions>
-
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="진행 상태" Style="{StaticResource FormLabelStyle}" Foreground="#2563EB"/>
                                     <Border Style="{StaticResource InputWrapperStyle}" BorderBrush="#2563EB" BorderThickness="2">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" FontWeight="Bold" Foreground="#1E40AF"
-                                                  ItemsSource="{Binding ActionStatusOptions}"
-                                                  SelectedItem="{Binding ActionStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                        </ComboBox>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" FontWeight="Bold" Foreground="#1E40AF" ItemsSource="{Binding ActionStatusOptions}" SelectedItem="{Binding ActionStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Border>
                                 </StackPanel>
-
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="조치 예정일" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
                                         <DatePicker Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" SelectedDate="{Binding ActionDueDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Border>
                                 </StackPanel>
-
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="조치일 (고정)" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Height="42" Background="#F3F4F6" BorderBrush="{StaticResource BorderDark}" BorderThickness="1" CornerRadius="6" Padding="12,0">
                                         <TextBlock Text="{Binding ActionDateDisplay}" VerticalAlignment="Center" Foreground="#4B5563" FontSize="14" FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
-
                                 <StackPanel Grid.Column="6">
                                     <TextBlock Text="담당자" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
@@ -543,9 +548,7 @@
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="조치 결과 사진 첨부" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource MultiLineInputWrapperStyle}" BorderBrush="#9CA3AF" BorderThickness="1" Height="50">
-                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Padding="12,12" TextWrapping="NoWrap" AcceptsReturn="False" VerticalScrollBarVisibility="Hidden"
-                                                 PreviewDragOver="ActionModalMemo_PreviewDragOver" Drop="ActionModalMemo_Drop" PreviewKeyDown="ActionModalMemo_PreviewKeyDown" AllowDrop="True"
-                                                 ToolTip="결과 사진을 Ctrl+V 하거나 드래그하여 놓으세요." Text="여기에 이미지를 붙여넣으세요..."/>
+                                        <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Padding="12,12" TextWrapping="NoWrap" AcceptsReturn="False" VerticalScrollBarVisibility="Hidden" PreviewDragOver="ActionModalMemo_PreviewDragOver" Drop="ActionModalMemo_Drop" PreviewKeyDown="ActionModalMemo_PreviewKeyDown" AllowDrop="True" ToolTip="결과 사진을 Ctrl+V 하거나 드래그하여 놓으세요." Text="여기에 이미지를 붙여넣으세요..."/>
                                     </Border>
                                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,12,0,0" Height="58">
                                         <ItemsControl ItemsSource="{Binding ActionModalAttachmentPaths}">

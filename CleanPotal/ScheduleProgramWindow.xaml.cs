@@ -237,6 +237,14 @@ namespace CleanPotal
                             {
                                 int weekNum = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(cellDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
                                 bool isDayShiftWeek = (weekNum / 2) % 2 == 0;
+
+                                // 팀별 주/야 패턴을 반대로 유지해야 하므로 장팀은 기준 패턴을 반전한다.
+                                // (기존에는 팀 구분 없이 동일 계산되어 특정 월에서 두 팀이 같은 패턴으로 보이는 문제가 있었음)
+                                if (string.Equals(user.TeamName, "장팀", StringComparison.Ordinal))
+                                {
+                                    isDayShiftWeek = !isDayShiftWeek;
+                                }
+
                                 shiftType = isDayShiftWeek ? "예상:주간" : "예상:야간";
                             }
 

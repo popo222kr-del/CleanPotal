@@ -29,13 +29,54 @@
             </Setter>
         </Style>
 
+        <Style x:Key="MonthExpanderStyle" TargetType="Expander">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <StackPanel>
+                            <ToggleButton x:Name="HeaderSite" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" Cursor="Hand" Padding="12,8">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="Arrow" Text="▶" FontSize="10" VerticalAlignment="Center" Foreground="#94A3B8" Margin="0,0,8,0"/>
+                                                <ContentPresenter ContentSource="Content" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Arrow" Property="Text" Value="▼"/>
+                                                <Setter TargetName="Arrow" Property="Foreground" Value="#475569"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                                <ContentPresenter Content="{TemplateBinding Header}"/>
+                            </ToggleButton>
+                            <Border x:Name="ExpandSite" Visibility="Collapsed" Margin="0,0,0,0">
+                                <ContentPresenter />
+                            </Border>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
             <Setter Property="Background" Value="#F8FAFC"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="Foreground" Value="#0F172A"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="AcceptsReturn" Value="True"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Template">
@@ -52,8 +93,9 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="210"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="340"/>
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
@@ -63,9 +105,8 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Margin="20,0,20,16">
-                    <TextBlock Text="주간보고 히스토리" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A"/>
-                    <Button x:Name="BtnCreateNewReport" Content="+ 새 주간보고 생성" Margin="0,12,0,0" Height="42" Background="#2563EB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Click="BtnCreateNewReport_Click">
+                <StackPanel Grid.Row="0" Margin="14,8,14,12">
+                    <Button x:Name="BtnCreateNewReport" Content="+ 새 보고서 생성" Margin="0,0,0,0" Height="42" Background="#2563EB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Click="BtnCreateNewReport_Click">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="8"/>
@@ -74,79 +115,82 @@
                     </Button>
                 </StackPanel>
 
-                <ListBox x:Name="HistoryListBox" Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="12,0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="HistoryListBox_SelectionChanged">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="12,12"/>
-                            <Setter Property="Margin" Value="0,0,0,4"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                            <ContentPresenter/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
-                                                <Setter Property="Foreground" Value="#1D4ED8"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="#1E293B"/>
-                                <TextBlock Text="{Binding DateRange}" FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="GroupedHistoryControl" Margin="8,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Expander Header="{Binding MonthTitle}" IsExpanded="True" Style="{StaticResource MonthExpanderStyle}">
+                                    <Expander.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="13" FontWeight="Bold" Foreground="#475569"/>
+                                        </DataTemplate>
+                                    </Expander.HeaderTemplate>
+                                    <ListBox ItemsSource="{Binding Reports}" Background="Transparent" BorderThickness="0" SelectionChanged="HistoryListBox_SelectionChanged" Margin="8,0,0,0">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Padding" Value="10,8"/>
+                                                <Setter Property="Margin" Value="0,0,0,3"/>
+                                                <Setter Property="Cursor" Value="Hand"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ListBoxItem">
+                                                            <Grid>
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                                                    <ContentPresenter Margin="4,0,0,0"/>
+                                                                </Border>
+                                                                <Border x:Name="Indicator" Width="3" Height="16" Background="#2563EB" CornerRadius="1.5" HorizontalAlignment="Left" Visibility="Collapsed"/>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+                                                                    <Setter Property="Foreground" Value="#1D4ED8"/>
+                                                                    <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding ShortTitle}" FontWeight="Bold" FontSize="13"/>
+                                                    <TextBlock Text="{Binding DateRange}" FontSize="11" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Grid>
         </Border>
 
-        <Grid Grid.Column="1" Margin="40,32,40,24">
+        <Grid Grid.Column="1" Margin="32,24,32,24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid Grid.Row="0" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock x:Name="TxtCurrentReportTitle" Text="주간보고 제목" FontSize="28" FontWeight="ExtraBold" Foreground="#0F172A"/>
-                    <TextBlock x:Name="TxtCurrentReportDate" Text="26년 4월 2주차" FontSize="14" Foreground="#64748B" Margin="0,8,0,0"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                    <Button Content="보고용 표 보기" Height="40" Padding="16,0" Background="#F1F5F9" Foreground="#334155" FontWeight="Bold" BorderBrush="#CBD5E1" BorderThickness="1" Cursor="Hand" Click="BtnShowTable_Click">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="8"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                    <Button Content="변경사항 저장" Height="40" Padding="16,0" Margin="12,0,0,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="BtnSaveContent_Click">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="8"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
+                    <TextBlock x:Name="TxtCurrentReportTitle" Text="보고서를 선택하세요" FontSize="26" FontWeight="ExtraBold" Foreground="#0F172A"/>
+                    <TextBlock x:Name="TxtCurrentReportDate" Text="작성 기간이 표시됩니다." FontSize="13" Foreground="#64748B" Margin="0,6,0,0"/>
                 </StackPanel>
             </Grid>
 
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <ItemsControl x:Name="ReportBlocksControl">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Margin="0,0,0,16" Padding="20">
+                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Margin="0,0,0,10" Padding="12">
                                     <Border.Effect>
                                         <DropShadowEffect Color="#64748B" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
                                     </Border.Effect>
@@ -154,46 +198,140 @@
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                                        <Grid Grid.Row="0" Margin="0,0,0,6">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="140"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="18" FontWeight="ExtraBold" Foreground="#1E293B" BorderThickness="0" Background="Transparent" Tag="업무 카테고리 (예: 세정품 SPEC 관련)"/>
 
-                                            <Border Grid.Column="1" Width="100" Height="32" CornerRadius="6" BorderBrush="#CBD5E1" BorderThickness="1" ClipToBounds="True">
-                                                <ComboBox SelectedValue="{Binding Status, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Padding="12,0" Background="#F8FAFC" BorderThickness="0" VerticalContentAlignment="Center" FontWeight="Bold">
-                                                    <ComboBoxItem Content="진행 중" Foreground="#2563EB"/>
-                                                    <ComboBoxItem Content="보류" Foreground="#D97706"/>
-                                                    <ComboBoxItem Content="종결" Foreground="#64748B"/>
-                                                </ComboBox>
+                                            <Border Width="28" Height="28" CornerRadius="6" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="#1D4ED8"/>
                                             </Border>
+
+                                            <TextBox Grid.Column="1" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="15" FontWeight="ExtraBold" Foreground="#1E293B" BorderThickness="0" Background="Transparent" Margin="0,0,12,0"/>
+
+                                            <Grid Grid.Column="2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Grid.Column="0" Height="28" CornerRadius="6" BorderBrush="#CBD5E1" BorderThickness="1" ClipToBounds="True">
+                                                    <ComboBox SelectedValue="{Binding Status, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Background="#F8FAFC" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="Bold" FontSize="12">
+                                                        <ComboBoxItem Content="진행 중" Foreground="#2563EB"/>
+                                                        <ComboBoxItem Content="보류" Foreground="#D97706"/>
+                                                        <ComboBoxItem Content="종결" Foreground="#64748B"/>
+                                                    </ComboBox>
+                                                </Border>
+
+                                                <Button Grid.Column="1" Content="삭제" Width="40" Height="28" Margin="6,0,0,0" Background="#FEE2E2" Foreground="#B91C1C" FontWeight="Bold" FontSize="12" BorderBrush="#FCA5A5" BorderThickness="1" Cursor="Hand" Tag="{Binding}" Click="BtnDeleteBlock_Click">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="6"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+                                            </Grid>
                                         </Grid>
 
-                                        <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                            <TextBlock Text="세부 내용" FontSize="12" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="60"/>
-                                        </StackPanel>
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="140"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <StackPanel Grid.Row="2">
-                                            <TextBlock Text="팔로업 (→)" FontSize="12" FontWeight="Bold" Foreground="#3B82F6" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding FollowUp, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="60" Background="#EFF6FF" BorderBrush="#BFDBFE"/>
-                                        </StackPanel>
+                                            <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
+                                                <TextBox Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Margin="0,0,0,6"/>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="▶" FontSize="16" Foreground="#3B82F6" VerticalAlignment="Center" Margin="2,0,8,0"/>
+                                                    <TextBox Grid.Column="1" Text="{Binding FollowUp, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Background="#EFF6FF" BorderBrush="#BFDBFE"/>
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <Border Grid.Column="1" Height="86" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8" AllowDrop="True" PreviewDragOver="AttachmentPanel_PreviewDragOver" Drop="AttachmentPanel_Drop" PreviewKeyDown="AttachmentPanel_PreviewKeyDown" Focusable="True" Tag="{Binding}">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <TextBlock Text="첨부 (이미지/파일)" FontSize="11" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center"/>
+                                                        <Button Content="+" Height="20" Width="20" HorizontalAlignment="Right" Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand" FontWeight="Bold" Tag="{Binding}" Click="BtnAddAttachment_Click">
+                                                            <Button.Resources>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="CornerRadius" Value="10"/>
+                                                                </Style>
+                                                            </Button.Resources>
+                                                        </Button>
+                                                    </Grid>
+
+                                                    <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="46">
+                                                        <ItemsControl ItemsSource="{Binding FollowUpAttachments}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Grid Width="42" Height="42" Margin="0,0,6,0">
+                                                                        <Border Cursor="Hand" CornerRadius="6" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonDown="AttachmentPreview_Click" Background="#E2E8F0">
+                                                                            <Border.Style>
+                                                                                <Style TargetType="Border">
+                                                                                    <Setter Property="Background" Value="#E2E8F0"/>
+                                                                                    <Style.Triggers>
+                                                                                        <DataTrigger Binding="{Binding IsImage}" Value="True">
+                                                                                            <Setter Property="Background">
+                                                                                                <Setter.Value>
+                                                                                                    <ImageBrush ImageSource="{Binding FilePath}" Stretch="UniformToFill"/>
+                                                                                                </Setter.Value>
+                                                                                            </Setter>
+                                                                                        </DataTrigger>
+                                                                                    </Style.Triggers>
+                                                                                </Style>
+                                                                            </Border.Style>
+                                                                            <TextBlock Text="{Binding FileName}" Foreground="#334155" FontSize="9" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="2">
+                                                                                <TextBlock.Style>
+                                                                                    <Style TargetType="TextBlock">
+                                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding IsImage}" Value="True">
+                                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </TextBlock.Style>
+                                                                            </TextBlock>
+                                                                        </Border>
+                                                                        <Button Content="✕" Width="14" Height="14" Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Cursor="Hand" Tag="{Binding}" Click="BtnRemoveAttachment_Click">
+                                                                            <Button.Resources>
+                                                                                <Style TargetType="Border">
+                                                                                    <Setter Property="CornerRadius" Value="7"/>
+                                                                                </Style>
+                                                                            </Button.Resources>
+                                                                        </Button>
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </ScrollViewer>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Button Content="+ 새로운 업무 블록 추가" Height="50" Background="Transparent" BorderBrush="#CBD5E1" BorderThickness="1" Foreground="#64748B" FontWeight="Bold" FontSize="14" Margin="0,8,0,40" Cursor="Hand" Click="BtnAddBlock_Click">
+                    <Button Content="+ 새로운 업무 항목 추가" Height="44" Background="Transparent" BorderBrush="#CBD5E1" BorderThickness="1" Foreground="#64748B" FontWeight="Bold" FontSize="14" Margin="0,6,0,24" Cursor="Hand" Click="BtnAddBlock_Click">
                         <Button.Resources>
                             <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="12"/>
-                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
-                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="CornerRadius" Value="10"/>
                             </Style>
                         </Button.Resources>
                         <Button.Style>
@@ -211,7 +349,78 @@
             </ScrollViewer>
         </Grid>
 
-        <Border x:Name="TableModalOverlay" Grid.ColumnSpan="2" Background="#800F172A" Visibility="Collapsed" Panel.ZIndex="100">
+        <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+            <Grid x:Name="MemoArea" Margin="24,32,24,24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="추가 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,16" HorizontalAlignment="Center"/>
+
+                <TextBox Grid.Row="1" Text="{Binding Memo, UpdateSourceTrigger=PropertyChanged}" 
+                         Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" 
+                         Padding="20" FontSize="14" Foreground="#1E293B" 
+                         TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top">
+                    <TextBox.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="16"/>
+                        </Style>
+                    </TextBox.Resources>
+                </TextBox>
+            </Grid>
+        </Border>
+
+        <Border x:Name="CreateReportModal" Grid.ColumnSpan="3" Background="#80000000" Visibility="Collapsed" Panel.ZIndex="200">
+            <Border Background="White" Width="350" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16" Padding="30">
+                <StackPanel>
+                    <TextBlock Text="새 보고서 생성" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,25"/>
+
+                    <TextBlock Text="작성 주차 선택" FontSize="13" Foreground="#64748B" Margin="0,0,0,10"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="ComboYear" Grid.Column="0" Margin="0,0,5,0" Height="40" VerticalContentAlignment="Center"/>
+                        <ComboBox x:Name="ComboMonth" Grid.Column="1" Margin="5,0,5,0" Height="40" VerticalContentAlignment="Center"/>
+                        <ComboBox x:Name="ComboWeek" Grid.Column="2" Margin="5,0,0,0" Height="40" VerticalContentAlignment="Center">
+                            <ComboBoxItem Content="1주차"/>
+                            <ComboBoxItem Content="2주차"/>
+                            <ComboBoxItem Content="3주차"/>
+                            <ComboBoxItem Content="4주차"/>
+                            <ComboBoxItem Content="5주차"/>
+                        </ComboBox>
+                    </Grid>
+
+                    <TextBlock x:Name="TxtAutoDatePreview" Text="자동 계산 날짜: -" FontSize="12" Foreground="#2563EB" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="취소" Grid.Column="0" Height="45" Margin="0,0,5,0" Background="#F1F5F9" Foreground="#475569" BorderThickness="0" FontWeight="Bold" Click="BtnCancelCreate_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="10"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Content="생성하기" Grid.Column="1" Height="45" Margin="5,0,0,0" Background="#2563EB" Foreground="White" BorderThickness="0" FontWeight="Bold" Click="BtnConfirmCreate_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="10"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <Border x:Name="TableModalOverlay" Grid.ColumnSpan="3" Background="#800F172A" Visibility="Collapsed" Panel.ZIndex="100">
             <Border Background="#FFFFFF" CornerRadius="16" Margin="60" Padding="32">
                 <Border.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" ShadowDepth="5"/>
@@ -223,7 +432,7 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,20">
-                        <TextBlock Text="주간보고 인쇄/보고용 표" FontSize="22" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock x:Name="TxtModalTitle" Text="주간보고 인쇄/보고용 표" FontSize="22" FontWeight="Bold" Foreground="#0F172A"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="엑셀 다운로드" Height="36" Padding="16,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,12,0" Cursor="Hand">
                                 <Button.Resources>
@@ -280,6 +489,15 @@
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
+                            <DataGridTextColumn Header="No." Binding="{Binding Number}" Width="60">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="분류 및 항목" Binding="{Binding Category}" Width="250">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">

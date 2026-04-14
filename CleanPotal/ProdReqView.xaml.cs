@@ -39,7 +39,42 @@ namespace CleanPotal
         public string Location { get => _location; set { _location = value; OnPropertyChanged(); } }
 
         private string _requestDetail = "";
-        public string RequestDetail { get => _requestDetail; set { _requestDetail = value; OnPropertyChanged(); } }
+        public string RequestDetail
+        {
+            get => _requestDetail;
+            set
+            {
+                _requestDetail = value;
+                OnPropertyChanged();
+                // 🔥 XAML 뷰에서 카테고리 태그와 본문을 분리해서 보여주기 위해 업데이트 트리거
+                OnPropertyChanged(nameof(RequestContentTypeTag));
+                OnPropertyChanged(nameof(RequestDetailText));
+            }
+        }
+
+        // 🔥 가독성 개선: "[소모품]" 등의 대괄호 텍스트만 추출
+        public string RequestContentTypeTag
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(RequestDetail)) return "";
+                int idx = RequestDetail.IndexOf(']');
+                if (RequestDetail.StartsWith("[") && idx > 0) return RequestDetail.Substring(0, idx + 1);
+                return "";
+            }
+        }
+
+        // 🔥 가독성 개선: 대괄호 텍스트를 제외한 실제 본문만 추출
+        public string RequestDetailText
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(RequestDetail)) return "";
+                int idx = RequestDetail.IndexOf(']');
+                if (RequestDetail.StartsWith("[") && idx > 0) return RequestDetail.Substring(idx + 1).TrimStart();
+                return RequestDetail;
+            }
+        }
 
         private string _requester = "";
         public string Requester { get => _requester; set { _requester = value; OnPropertyChanged(); } }
@@ -122,6 +157,7 @@ namespace CleanPotal
 
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> ActionModalAttachmentPaths { get; } = new();
+        public ObservableCollection<string> RequestEditAttachmentPaths { get; } = new();
 
         private bool _isRegisterModalOpen;
         public bool IsRegisterModalOpen { get => _isRegisterModalOpen; set { _isRegisterModalOpen = value; OnPropertyChanged(); } }
@@ -148,6 +184,11 @@ namespace CleanPotal
         public string ReadRequester => _currentEditItem != null ? $"요청자: {_currentEditItem.Requester}" : "";
         public string ReadRequestDetail => _currentEditItem?.RequestDetail ?? "";
         public ObservableCollection<string> ReadRequestImages { get; } = new();
+        public string EditableRequestDetail { get => _editableRequestDetail; set { _editableRequestDetail = value; OnPropertyChanged(); } }
+        private string _editableRequestDetail = "";
+        public bool CanEditRequestInfo { get => _canEditRequestInfo; set { _canEditRequestInfo = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsRequestInfoReadOnly)); } }
+        private bool _canEditRequestInfo = false;
+        public bool IsRequestInfoReadOnly => !CanEditRequestInfo;
 
         public string ActionStatus
         {
@@ -183,15 +224,10 @@ namespace CleanPotal
         {
             InitializeComponent();
             DataContext = this;
-
-            // 🔥 누락되었던 핵심 코드 복구: 화면의 DataGrid와 백그라운드 리스트를 결속시킵니다.
             ReqGrid.ItemsSource = RequestList;
-
             LoadDataFromDB();
-
             UpdateSubLocations();
             EditRequester = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
-
             HookManageCheckedEvents();
         }
 
@@ -201,7 +237,6 @@ namespace CleanPotal
             try
             {
                 DatabaseHelper.CreateProdReqTable();
-
                 var items = DatabaseHelper.GetAllProdReqs();
                 foreach (var item in items)
                 {
@@ -319,7 +354,13 @@ namespace CleanPotal
             wb.SaveAs(path);
         }
 
-        private void BtnOpenRegister_Click(object sender, RoutedEventArgs e) { BtnResetRegister_Click(null, null); IsRegisterModalOpen = true; }
+        // 🔥 메인 윈도우에서 호출 가능하도록 public 함수로 변경 및 로직 수정
+        public void OpenRegisterModal()
+        {
+            BtnResetRegister_Click(null, null);
+            IsRegisterModalOpen = true;
+        }
+
         private void CloseRegisterModal_Click(object sender, RoutedEventArgs e) => IsRegisterModalOpen = false;
 
         private void BtnResetRegister_Click(object? sender, RoutedEventArgs? e)
@@ -340,7 +381,7 @@ namespace CleanPotal
             var newItem = new ProdReqItem
             {
                 Id = Guid.NewGuid(),
-                RequestDate = DateTime.Today,
+                RequestDate = EditRequestDate ?? DateTime.Today,
                 DueDate = null,
                 Status = "진행",
                 Category = EditLocation,
@@ -376,6 +417,12 @@ namespace CleanPotal
 
                 ReadRequestImages.Clear();
                 foreach (var path in ExtractPathsFromMemo(item.RequestMemo)) ReadRequestImages.Add(path);
+                RequestEditAttachmentPaths.Clear();
+                foreach (var path in ExtractPathsFromMemo(item.RequestMemo)) RequestEditAttachmentPaths.Add(path);
+                EditableRequestDetail = item.RequestDetail;
+                CanEditRequestInfo = SessionManager.IsLoggedIn &&
+                                     !string.IsNullOrWhiteSpace(item.Requester) &&
+                                     string.Equals(item.Requester.Trim(), SessionManager.CurrentRealName?.Trim(), StringComparison.OrdinalIgnoreCase);
 
                 ActionStatus = item.Status;
                 ActionDueDate = item.DueDate ?? DateTime.Today.AddDays(1);
@@ -394,9 +441,19 @@ namespace CleanPotal
         private void BtnSaveAction_Click(object sender, RoutedEventArgs e)
         {
             if (_currentEditItem == null) return;
+            if (string.IsNullOrWhiteSpace(EditableRequestDetail))
+            {
+                MessageBox.Show("요청사항은 비워둘 수 없습니다.", "입력 누락", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             _currentEditItem.Status = ActionStatus;
             _currentEditItem.DueDate = ActionDueDate;
+            if (CanEditRequestInfo)
+            {
+                _currentEditItem.RequestDetail = EditableRequestDetail.Trim();
+                _currentEditItem.RequestMemo = BuildMemo("", RequestEditAttachmentPaths);
+            }
 
             if (ActionStatus == "완료")
             {
@@ -471,6 +528,11 @@ namespace CleanPotal
         private void RegisterModalMemo_Drop(object sender, DragEventArgs e) { if (e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(Guid.NewGuid(), files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); } e.Handled = true; }
         private void RegisterModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) { var saved = SaveClipboardImages(Guid.NewGuid()); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); e.Handled = true; } }
         private void RegisterDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) RegisterModalAttachmentPaths.Remove(path); }
+
+        private void RequestEditMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
+        private void RequestEditMemo_Drop(object sender, DragEventArgs e) { if (_currentEditItem != null && e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(_currentEditItem.Id, files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) RequestEditAttachmentPaths.Add(s); } e.Handled = true; }
+        private void RequestEditMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage() && _currentEditItem != null) { var saved = SaveClipboardImages(_currentEditItem.Id); foreach (var s in saved) RequestEditAttachmentPaths.Add(s); e.Handled = true; } }
+        private void RequestEditDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) RequestEditAttachmentPaths.Remove(path); }
 
         private void ActionModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
         private void ActionModalMemo_Drop(object sender, DragEventArgs e) { if (_currentEditItem != null && e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(_currentEditItem.Id, files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) ActionModalAttachmentPaths.Add(s); } e.Handled = true; }

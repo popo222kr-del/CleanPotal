@@ -320,24 +320,35 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander x:Name="ExpanderProduction" Header="현장 인수인계" Tag="&#xE8D1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderProduction_Expanded">
-                            <StackPanel>
-                                <Button x:Name="BtnNavHandover" Content="인수인계 현황" Style="{StaticResource ErpSubButtonStyle}" Click="OpenHandover"/>
-                                <Button x:Name="BtnNavProdReq" Content="생산팀 요청사항" Style="{StaticResource ErpSubButtonStyle}" Click="OpenProdReq_Click"/>
-                                <Button x:Name="BtnNavSchedule" Content="스케줄 보드" Style="{StaticResource ErpSubButtonStyle}" Click="OpenSchedule"/>
-                            </StackPanel>
-                        </Expander>
+                        <Grid>
+                            <Expander x:Name="ExpanderProduction" Header="현장 인수인계" Tag="&#xE8D1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderProduction_Expanded">
+                                <StackPanel>
+                                    <Button x:Name="BtnNavHandover" Content="인수인계 현황" Style="{StaticResource ErpSubButtonStyle}" Click="OpenHandover"/>
+
+                                    <Grid Margin="0">
+                                        <Button x:Name="BtnNavProdReq" Content="생산팀 요청사항" Style="{StaticResource ErpSubButtonStyle}" Click="OpenProdReq_Click"/>
+                                        <Border x:Name="BadgeProdReq" Background="#EF4444" CornerRadius="10" MinWidth="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Visibility="Collapsed" IsHitTestVisible="False">
+                                            <TextBlock x:Name="BadgeProdReqText" Text="1" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,0"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <Button x:Name="BtnNavSchedule" Content="스케줄 보드" Style="{StaticResource ErpSubButtonStyle}" Click="OpenSchedule"/>
+                                </StackPanel>
+                            </Expander>
+                            <Border x:Name="BadgeExpanderProduction" Background="#EF4444" Width="8" Height="8" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,18,0" Visibility="Collapsed" IsHitTestVisible="False"/>
+                        </Grid>
 
                         <Expander x:Name="ExpanderOffice" Header="OFFICE 업무" Tag="&#xE8F1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderOffice_Expanded">
                             <StackPanel>
                                 <Button x:Name="BtnNavWeeklyReport" Content="주간보고" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWeeklyReport_Click"/>
-                                <Button x:Name="BtnNavPersonalTask" Content="개인업무" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click"/>
+                                <Button x:Name="BtnNavPersonalTask" Content="생산미팅" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click"/>
                             </StackPanel>
                         </Expander>
 
                         <Expander x:Name="ExpanderEtc" Header="기타" Tag="&#xE713;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderEtc_Expanded">
                             <StackPanel>
                                 <Button x:Name="BtnNavReport" Content="성적서 자동 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenReport_Click"/>
+                                <Button x:Name="BtnNavDispatchCert" Content="반출등록 성적서 생성" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDispatchCert_Click"/>
                             </StackPanel>
                         </Expander>
                     </StackPanel>
@@ -398,7 +409,7 @@
             </Grid.RowDefinitions>
 
             <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                <Grid Cursor="">
+                <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0">
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock x:Name="CurrentSectionTitleText" Text="대시보드" FontSize="24" FontWeight="ExtraBold" Foreground="#0F172A"/>
@@ -479,12 +490,31 @@
                         <Button x:Name="BtnCommandPartialReset" Content="부분 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandPartialReset_Click"/>
                         <Button x:Name="BtnCommandReset" Content="전체 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Foreground="#DC2626" Click="BtnCommandReset_Click"/>
 
+                        <Button x:Name="BtnCommandNewReq" Content="+ 새 요청 등록" Style="{StaticResource HeaderButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Visibility="Collapsed" Click="BtnCommandNewReq_Click"/>
+
                         <Button x:Name="BtnCommandPrimary" Content="파일 관리자" Style="{StaticResource HeaderButtonStyle}" Background="#111827" Foreground="White" BorderThickness="0" Visibility="Visible" Click="ManagePortalLinks_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
             <ContentControl x:Name="MainContent" Grid.Row="1" Margin="12,12,12,12"/>
+
+            <Border x:Name="ToastNotification" Grid.Row="1" Background="#1E293B" CornerRadius="12" Padding="20,16" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,24" Visibility="Collapsed" Panel.ZIndex="999">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.25" BlurRadius="15" ShadowDepth="5"/>
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <Border Background="#2563EB" Width="40" Height="40" CornerRadius="20" Margin="0,0,16,0">
+                        <TextBlock Text="🔔" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                        <TextBlock Text="새로운 요청 등록 알림" FontWeight="ExtraBold" Foreground="White" FontSize="15" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="ToastMessage" Text="생산팀의 새로운 요청사항이 등록되었습니다." Foreground="#94A3B8" FontSize="13"/>
+                    </StackPanel>
+                    <Button Content="✕" Background="Transparent" Foreground="#64748B" FontWeight="Bold" BorderThickness="0" FontSize="16" Cursor="Hand" Click="CloseToast_Click" VerticalAlignment="Top" Margin="0,-4,-8,0"/>
+                </StackPanel>
+            </Border>
+
         </Grid>
     </Grid>
 </Window>

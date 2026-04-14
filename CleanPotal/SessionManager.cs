@@ -2,7 +2,8 @@
 
 namespace CleanPotal
 {
-    public enum PermissionType { Files, Notices, Vendors, Schedule }
+    // 🔥 WeeklyReport 권한 타입 추가
+    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport }
 
     public static class AuthManager
     {
@@ -19,8 +20,9 @@ namespace CleanPotal
                 PermissionType.Files => SessionManager.CanManageFiles,
                 PermissionType.Notices => SessionManager.CanManageNotices,
                 PermissionType.Vendors => SessionManager.CanManageVendors,
-                // 🔥 한시적 전면 개방: 일정 메뉴는 권한 여부와 상관없이 무조건 진입 허용
-                PermissionType.Schedule => true, // 원래 코드: SessionManager.CanManageSchedule,
+                PermissionType.Schedule => true,
+                // 🔥 주간보고는 부서명에 "Office" 또는 "OFFICE"가 포함되거나 "관리자"인 경우만 허용
+                PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
                 _ => false
             };
 
@@ -32,9 +34,12 @@ namespace CleanPotal
                     PermissionType.Notices => "공지사항 관리",
                     PermissionType.Vendors => "업체 관리",
                     PermissionType.Schedule => "일정/교육 관리",
+                    PermissionType.WeeklyReport => "주간보고", // 🔥 권한 실패 시 팝업에 표시될 이름
                     _ => "해당"
                 };
-                MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+
+                // 🔥 권한이 없을 때 경고창 표시
+                MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.\n(OFFICE 소속 인원만 사용 가능합니다.)", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
             }
             return true;
