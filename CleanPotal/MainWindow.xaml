@@ -104,14 +104,13 @@
 
         <Style x:Key="SidebarExpanderStyle" TargetType="Expander">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Expander">
                         <StackPanel>
                             <ToggleButton Content="{TemplateBinding Header}" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource SidebarExpanderHeaderStyle}"/>
                             <Border x:Name="ExpandSite" Visibility="Collapsed" Background="Transparent" Margin="0,0,0,4">
-                                <ContentPresenter />
+                                <ContentPresenter/>
                             </Border>
                         </StackPanel>
                         <ControlTemplate.Triggers>
@@ -124,61 +123,8 @@
             </Setter>
         </Style>
 
-        <Style x:Key="SidebarExpanderHeaderActiveStyle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="Transparent"/>
+        <Style x:Key="SidebarExpanderActiveStyle" TargetType="Expander" BasedOn="{StaticResource SidebarExpanderStyle}">
             <Setter Property="Foreground" Value="#2563EB"/>
-            <Setter Property="Height" Value="46"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="border" Background="#EFF6FF" CornerRadius="10" Margin="8,4,8,4" HorizontalAlignment="Stretch">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Expander}}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}"/>
-                                <Grid Grid.Column="1" Width="196" HorizontalAlignment="Left" ClipToBounds="True">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="32"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{TemplateBinding Content}" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Foreground="{TemplateBinding Foreground}" Margin="4,0,0,0"/>
-                                    <TextBlock x:Name="Arrow" Grid.Column="1" Text="&#xE70E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#2563EB"/>
-                                </Grid>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Arrow" Property="Text" Value="&#xE70D;"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="SidebarExpanderActiveStyle" TargetType="Expander">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#2563EB"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Expander">
-                        <StackPanel>
-                            <ToggleButton Content="{TemplateBinding Header}" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource SidebarExpanderHeaderActiveStyle}"/>
-                            <Border x:Name="ExpandSite" Visibility="Collapsed" Background="Transparent" Margin="0,0,0,4">
-                                <ContentPresenter />
-                            </Border>
-                        </StackPanel>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsExpanded" Value="True">
-                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <Style x:Key="ErpSubButtonStyle" TargetType="Button">
@@ -269,12 +215,6 @@
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" x:Name="SidebarBorder" Width="260" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0" ClipToBounds="True">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Width" Value="260"/>
-                </Style>
-            </Border.Style>
-
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="88"/>
@@ -288,10 +228,9 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Button x:Name="BtnToggleSidebar" Grid.Column="0" Content="&#xE700;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" Background="Transparent" Foreground="#2563EB" BorderThickness="0" FontSize="16" Cursor="Hand" Click="BtnToggleSidebar_Click" ToolTip="메뉴 접기"/>
-
                     <Grid Grid.Column="1" Width="196" HorizontalAlignment="Left" ClipToBounds="True">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Image x:Name="AppLogoImage" Source="/Images/bono.png" Width="32" Height="32" Margin="0,0,8,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Image x:Name="AppLogoImage" Source="/Images/bono.png" Width="32" Height="32" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="CleanPotal" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A"/>
                                 <TextBlock Text="세정팀 통합 관리" FontSize="11" Foreground="#64748B"/>
@@ -300,14 +239,14 @@
                     </Grid>
                 </Grid>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Margin="0,10,0,0">
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Grid Grid.Column="1" Width="196" HorizontalAlignment="Left" ClipToBounds="True">
+                            <Grid Grid.Column="1" Width="196" HorizontalAlignment="Left">
                                 <TextBlock Text="MAIN MENU" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" Margin="4,0,0,0"/>
                             </Grid>
                         </Grid>
@@ -324,14 +263,12 @@
                             <Expander x:Name="ExpanderProduction" Header="현장 인수인계" Tag="&#xE8D1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderProduction_Expanded">
                                 <StackPanel>
                                     <Button x:Name="BtnNavHandover" Content="인수인계 현황" Style="{StaticResource ErpSubButtonStyle}" Click="OpenHandover"/>
-
-                                    <Grid Margin="0">
+                                    <Grid>
                                         <Button x:Name="BtnNavProdReq" Content="생산팀 요청사항" Style="{StaticResource ErpSubButtonStyle}" Click="OpenProdReq_Click"/>
                                         <Border x:Name="BadgeProdReq" Background="#EF4444" CornerRadius="10" MinWidth="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Visibility="Collapsed" IsHitTestVisible="False">
                                             <TextBlock x:Name="BadgeProdReqText" Text="1" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,0"/>
                                         </Border>
                                     </Grid>
-
                                     <Button x:Name="BtnNavSchedule" Content="스케줄 보드" Style="{StaticResource ErpSubButtonStyle}" Click="OpenSchedule"/>
                                 </StackPanel>
                             </Expander>
@@ -341,7 +278,7 @@
                         <Expander x:Name="ExpanderOffice" Header="OFFICE 업무" Tag="&#xE8F1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderOffice_Expanded">
                             <StackPanel>
                                 <Button x:Name="BtnNavWeeklyReport" Content="주간보고" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWeeklyReport_Click"/>
-                                <Button x:Name="BtnNavPersonalTask" Content="생산미팅" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click"/>
+                                <Button x:Name="BtnNavPersonalTask" Content="생산미팅" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click" Cursor="Hand"/>
                             </StackPanel>
                         </Expander>
 
@@ -355,49 +292,64 @@
                 </ScrollViewer>
 
                 <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="8,12">
-                    <Button x:Name="BtnProfileCard" Cursor="Hand" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" Padding="0">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="ProfileBorder" Background="Transparent" CornerRadius="10" Padding="4">
-                                    <ContentPresenter/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="ProfileBorder" Property="Background" Value="#F8FAFC"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="ProfileBorder" Property="Background" Value="#F1F5F9"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="48"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border x:Name="AvatarBg" Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#EFF6FF" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock x:Name="AvatarText" Text="-" FontSize="15" FontWeight="ExtraBold" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
-                            </Border>
-
-                            <Grid Grid.Column="1" Width="196" HorizontalAlignment="Left" ClipToBounds="True">
+                        <Button x:Name="BtnProfileCard" Grid.Column="0" Cursor="Arrow" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" Padding="0">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="42"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="4,0,0,0">
-                                    <TextBlock x:Name="LoginUserNameText" Text="이름" FontSize="14" FontWeight="Bold" Foreground="#0F172A"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <Border x:Name="AvatarBg" Grid.Column="0" Width="34" Height="34" CornerRadius="17" Background="#EFF6FF" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AvatarText" Text="-" FontSize="14" FontWeight="ExtraBold" Foreground="#2563EB" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                                    <TextBlock x:Name="LoginUserNameText" Text="이름" FontSize="13" FontWeight="Bold" Foreground="#0F172A"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                         <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="LoginUserRoleText" Text="소속 정보" FontSize="12" FontWeight="Medium" Foreground="#64748B" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="LoginUserRoleText" Text="소속 정보" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="&#xE712;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="16" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0"/>
                             </Grid>
-                        </Grid>
-                    </Button>
+                        </Button>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Width="32" Height="32" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="BtnOpenAccountEdit_Click" ToolTip="내 계정 정보 수정" Margin="0,0,4,0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="gearBorder" Background="Transparent" CornerRadius="6">
+                                            <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="16" Foreground="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="gearBorder" Property="Background" Value="#F1F5F9"/>
+                                                <Setter Property="Foreground" Value="#0F172A"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Button Width="32" Height="32" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="BtnLogout_Click" ToolTip="로그아웃 (다른 계정으로 로그인)">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="logoutBorder" Background="Transparent" CornerRadius="6">
+                                            <TextBlock Text="&#xE7E8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="16" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="logoutBorder" Property="Background" Value="#FEF2F2"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
@@ -418,7 +370,6 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
-
                         <Border x:Name="HeaderSearchBoxArea" Background="#F1F5F9" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" Height="40" Padding="12,0" Width="300" Margin="0,0,16,0" Visibility="Collapsed">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -443,61 +394,29 @@
                         </Border>
 
                         <StackPanel x:Name="HeaderCalendarControlArea" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="Collapsed">
-                            <Button Content="◀" Width="36" Height="36" Background="White" BorderBrush="#CBD5E1" Foreground="#475569" FontWeight="Bold" FontSize="14" Cursor="Hand" Click="HeaderPrevMonth_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                            <Button Content="◀" Width="36" Height="36" Style="{StaticResource HeaderButtonStyle}" Click="HeaderPrevMonth_Click"/>
                             <TextBlock x:Name="HeaderMonthYearText" Text="2026년 4월" FontSize="22" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" Margin="16,0"/>
-                            <Button Content="▶" Width="36" Height="36" Background="White" BorderBrush="#CBD5E1" Foreground="#475569" FontWeight="Bold" FontSize="14" Cursor="Hand" Click="HeaderNextMonth_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                            <Button Content="오늘" Margin="12,0,0,0" Padding="14,0" Height="36" Background="#F8FAFC" BorderBrush="#CBD5E1" Foreground="#475569" FontWeight="Bold" Cursor="Hand" Click="HeaderToday_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                            <Button Content="⚙️ 근무 패턴 자동 생성" Margin="24,0,0,0" Height="40" Padding="20,0" Background="#10B981" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Click="HeaderCreatePattern_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                            <Button Content="+ 일정 / 교육 등록" Margin="12,0,0,0" Height="40" Padding="20,0" Background="#2563EB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand" Click="HeaderRegisterSchedule_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                            <Button Content="▶" Width="36" Height="36" Style="{StaticResource HeaderButtonStyle}" Click="HeaderNextMonth_Click"/>
+                            <Button Content="오늘" Style="{StaticResource HeaderButtonStyle}" Click="HeaderToday_Click"/>
+                            <Button Content="⚙️ 패턴 생성" Style="{StaticResource HeaderButtonStyle}" Background="#10B981" Foreground="White" BorderThickness="0" Click="HeaderCreatePattern_Click"/>
+                            <Button Content="+ 일정 등록" Style="{StaticResource HeaderButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Click="HeaderRegisterSchedule_Click"/>
                         </StackPanel>
 
                         <Button x:Name="BtnCommandNotice" Content="공지 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed"/>
                         <Button x:Name="BtnCommandSecondary" Content="완료 목록" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed"/>
-                        <Button x:Name="BtnCommandVendor" Content="업체 정보 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandVendor_Click"/>
+                        <Button x:Name="BtnCommandVendor" Content="업체 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandVendor_Click"/>
                         <Button x:Name="BtnCommandRecipeManage" Content="레시피 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandRecipeManage_Click"/>
                         <Button x:Name="BtnCommandCapture" Content="화면 캡처" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandCapture_Click"/>
                         <Button x:Name="BtnCommandUndo" Content="되돌리기" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandUndo_Click"/>
                         <Button x:Name="BtnCommandPartialReset" Content="부분 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandPartialReset_Click"/>
                         <Button x:Name="BtnCommandReset" Content="전체 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Foreground="#DC2626" Click="BtnCommandReset_Click"/>
-
                         <Button x:Name="BtnCommandNewReq" Content="+ 새 요청 등록" Style="{StaticResource HeaderButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Visibility="Collapsed" Click="BtnCommandNewReq_Click"/>
-
                         <Button x:Name="BtnCommandPrimary" Content="파일 관리자" Style="{StaticResource HeaderButtonStyle}" Background="#111827" Foreground="White" BorderThickness="0" Visibility="Visible" Click="ManagePortalLinks_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <ContentControl x:Name="MainContent" Grid.Row="1" Margin="12,12,12,12"/>
+            <ContentControl x:Name="MainContent" Grid.Row="1" Margin="12"/>
 
             <Border x:Name="ToastNotification" Grid.Row="1" Background="#1E293B" CornerRadius="12" Padding="20,16" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,24" Visibility="Collapsed" Panel.ZIndex="999">
                 <Border.Effect>
@@ -509,12 +428,11 @@
                     </Border>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                         <TextBlock Text="새로운 요청 등록 알림" FontWeight="ExtraBold" Foreground="White" FontSize="15" Margin="0,0,0,4"/>
-                        <TextBlock x:Name="ToastMessage" Text="생산팀의 새로운 요청사항이 등록되었습니다." Foreground="#94A3B8" FontSize="13"/>
+                        <TextBlock x:Name="ToastMessage" Text="내용" Foreground="#94A3B8" FontSize="13"/>
                     </StackPanel>
                     <Button Content="✕" Background="Transparent" Foreground="#64748B" FontWeight="Bold" BorderThickness="0" FontSize="16" Cursor="Hand" Click="CloseToast_Click" VerticalAlignment="Top" Margin="0,-4,-8,0"/>
                 </StackPanel>
             </Border>
-
         </Grid>
     </Grid>
 </Window>

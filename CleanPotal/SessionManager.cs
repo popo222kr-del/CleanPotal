@@ -1,8 +1,10 @@
-﻿using System.Windows;
+﻿using System;
+using System.IO;
+using System.Text;
+using System.Windows;
 
 namespace CleanPotal
 {
-    // 🔥 WeeklyReport 권한 타입 추가
     public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport }
 
     public static class AuthManager
@@ -21,7 +23,6 @@ namespace CleanPotal
                 PermissionType.Notices => SessionManager.CanManageNotices,
                 PermissionType.Vendors => SessionManager.CanManageVendors,
                 PermissionType.Schedule => true,
-                // 🔥 주간보고는 부서명에 "Office" 또는 "OFFICE"가 포함되거나 "관리자"인 경우만 허용
                 PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
                 _ => false
             };
@@ -34,11 +35,9 @@ namespace CleanPotal
                     PermissionType.Notices => "공지사항 관리",
                     PermissionType.Vendors => "업체 관리",
                     PermissionType.Schedule => "일정/교육 관리",
-                    PermissionType.WeeklyReport => "주간보고", // 🔥 권한 실패 시 팝업에 표시될 이름
+                    PermissionType.WeeklyReport => "주간보고",
                     _ => "해당"
                 };
-
-                // 🔥 권한이 없을 때 경고창 표시
                 MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.\n(OFFICE 소속 인원만 사용 가능합니다.)", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
             }
@@ -51,7 +50,6 @@ namespace CleanPotal
         public static string CurrentUsername { get; set; } = "";
         public static string CurrentRealName { get; set; } = "";
         public static string CurrentTeamName { get; set; } = "";
-
         public static bool CanManageFiles { get; set; } = false;
         public static bool CanManageNotices { get; set; } = false;
         public static bool CanManageVendors { get; set; } = false;
@@ -59,10 +57,42 @@ namespace CleanPotal
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
 
+        private static readonly string TokenPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CleanPotal", "auth_v2.dat");
+
         public static void Logout()
         {
             CurrentUsername = ""; CurrentRealName = ""; CurrentTeamName = "";
             CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false;
+
+            if (File.Exists(TokenPath)) File.Delete(TokenPath);
+        }
+
+        public static void SaveAutoLogin(string id, string pw)
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName(TokenPath);
+                if (dir != null) Directory.CreateDirectory(dir);
+
+                string data = $"{id}|{pw}";
+                string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
+                File.WriteAllText(TokenPath, encoded);
+            }
+            catch { }
+        }
+
+        public static (string? id, string? pw) LoadAutoLogin()
+        {
+            if (!File.Exists(TokenPath)) return (null, null);
+            try
+            {
+                string encoded = File.ReadAllText(TokenPath);
+                string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+                string[] parts = decoded.Split('|');
+                if (parts.Length == 2) return (parts[0], parts[1]);
+            }
+            catch { }
+            return (null, null);
         }
     }
 }

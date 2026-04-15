@@ -42,6 +42,7 @@ namespace CleanPotal
         }
 
         public ObservableCollection<WeeklyBlockModel> Blocks { get; set; } = new();
+        public ObservableCollection<WeeklyAttachmentModel> MemoAttachments { get; set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -147,6 +148,7 @@ namespace CleanPotal
         private WeeklyReportModel? _currentReport; // 실제 저장되어 있는 원본 데이터
         private WeeklyReportModel? _draftReport;   // 화면에 띄워두고 작업하는 임시 복사본 (Clone)
         private ObservableCollection<WeeklyBlockModel>? _subscribedBlocks;
+        private ObservableCollection<WeeklyAttachmentModel>? _subscribedMemoAttachments;
 
         private bool _isDirty = false; // 변경사항 발생 여부 체크
         private bool _isNavigating = false; // 리스트박스 꼬임 방지용
@@ -190,6 +192,10 @@ namespace CleanPotal
                 }
                 clone.Blocks.Add(clonedBlock);
             }
+            foreach (var attachment in original.MemoAttachments)
+            {
+                clone.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
+            }
             return clone;
         }
 
@@ -197,6 +203,7 @@ namespace CleanPotal
         {
             if (_draftReport != null) _draftReport.PropertyChanged -= DraftReport_PropertyChanged;
             UnsubscribeBlockCollection();
+            UnsubscribeMemoAttachments();
 
             _currentReport = report;
 
@@ -206,6 +213,7 @@ namespace CleanPotal
 
             MemoArea.DataContext = _draftReport;
             SubscribeBlockCollection(_draftReport.Blocks);
+            SubscribeMemoAttachments(_draftReport.MemoAttachments);
             RenumberBlocks(_draftReport);
 
             TxtCurrentReportTitle.Text = _draftReport.Title;
@@ -213,13 +221,18 @@ namespace CleanPotal
             ReportBlocksControl.ItemsSource = _draftReport.Blocks;
 
             _isDirty = false; // 새로 불러왔으므로 깨끗한 상태
+            UpdateOverviewStats();
         }
 
         // ==========================================
         // 2. 변경사항 감지 및 [저장] 로직 (가장 중요한 부분)
         // ==========================================
         private void DraftReport_PropertyChanged(object? sender, PropertyChangedEventArgs e) => _isDirty = true;
-        private void Block_PropertyChanged(object? sender, PropertyChangedEventArgs e) => _isDirty = true;
+        private void Block_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            _isDirty = true;
+            UpdateOverviewStats();
+        }
 
         private void SubscribeBlockCollection(ObservableCollection<WeeklyBlockModel> blocks)
         {
@@ -236,12 +249,32 @@ namespace CleanPotal
             _subscribedBlocks = null;
         }
 
+        private void SubscribeMemoAttachments(ObservableCollection<WeeklyAttachmentModel> attachments)
+        {
+            _subscribedMemoAttachments = attachments;
+            _subscribedMemoAttachments.CollectionChanged += MemoAttachments_CollectionChanged;
+        }
+
+        private void UnsubscribeMemoAttachments()
+        {
+            if (_subscribedMemoAttachments == null) return;
+            _subscribedMemoAttachments.CollectionChanged -= MemoAttachments_CollectionChanged;
+            _subscribedMemoAttachments = null;
+        }
+
+        private void MemoAttachments_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            _isDirty = true;
+            UpdateOverviewStats();
+        }
+
         private void Blocks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             _isDirty = true;
             if (e.NewItems != null) foreach (WeeklyBlockModel item in e.NewItems) item.PropertyChanged += Block_PropertyChanged;
             if (e.OldItems != null) foreach (WeeklyBlockModel item in e.OldItems) item.PropertyChanged -= Block_PropertyChanged;
             if (_draftReport != null) RenumberBlocks(_draftReport);
+            UpdateOverviewStats();
         }
 
         // 메인 윈도우에서 버튼 클릭 시 실행되는 진짜 저장 로직
@@ -253,6 +286,7 @@ namespace CleanPotal
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
             if (_currentReport == null || _draftReport == null) return;
+            CommitActiveEditorChanges();
 
             // 🔥 임시 복사본(_draftReport)의 모든 변경사항을 원본(_currentReport)으로 덮어씌웁니다.
             _currentReport.Memo = _draftReport.Memo;
@@ -274,9 +308,29 @@ namespace CleanPotal
                 }
                 _currentReport.Blocks.Add(clonedBlock);
             }
+            _currentReport.MemoAttachments.Clear();
+            foreach (var attachment in _draftReport.MemoAttachments)
+            {
+                _currentReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
+            }
 
             _isDirty = false; // 원본에 반영되었으므로 다시 깨끗한 상태
             MessageBox.Show("변경사항이 안전하게 원본에 저장되었습니다.", "저장 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void CommitActiveEditorChanges()
+        {
+            var focusedElement = Keyboard.FocusedElement as DependencyObject;
+            if (focusedElement is TextBox textBox)
+            {
+                textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            }
+            else if (focusedElement is ComboBox comboBox)
+            {
+                comboBox.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
+                comboBox.GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
+            }
+            Keyboard.ClearFocus();
         }
 
         // ==========================================
@@ -424,6 +478,7 @@ namespace CleanPotal
             if (_draftReport == null) return;
             _draftReport.Blocks.Add(new WeeklyBlockModel { Category = "신규 업무" });
             RenumberBlocks(_draftReport);
+            UpdateOverviewStats();
         }
 
         private void BtnDeleteBlock_Click(object sender, RoutedEventArgs e)
@@ -439,8 +494,40 @@ namespace CleanPotal
                 {
                     _draftReport.Blocks.Remove(block);
                     RenumberBlocks(_draftReport);
+                    UpdateOverviewStats();
                 }
             }
+        }
+
+        private void BtnClearSelection_Click(object sender, RoutedEventArgs e) => ClearCurrentSelection();
+
+        private void BtnDeleteReport_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentReport == null) return;
+
+            var result = MessageBox.Show($"'{_currentReport.Title}' 보고서를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.", "보고서 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes) return;
+
+            var ownerGroup = GroupedHistory.FirstOrDefault(g => g.Reports.Contains(_currentReport));
+            ownerGroup?.Reports.Remove(_currentReport);
+            if (ownerGroup != null && ownerGroup.Reports.Count == 0) GroupedHistory.Remove(ownerGroup);
+            ClearCurrentSelection();
+        }
+
+        private void BtnAddMemoAttachment_Click(object sender, RoutedEventArgs e)
+        {
+            if (_draftReport == null) return;
+            var dialog = new OpenFileDialog { Multiselect = true, Filter = "지원 파일|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp;*.pdf;*.xlsx;*.xls;*.doc;*.docx;*.ppt;*.pptx|모든 파일|*.*" };
+            if (dialog.ShowDialog() != true) return;
+            AddMemoAttachments(dialog.FileNames);
+        }
+
+        private void BtnRemoveMemoAttachment_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: WeeklyAttachmentModel attachment } || _draftReport == null) return;
+            _draftReport.MemoAttachments.Remove(attachment);
+            _isDirty = true;
+            UpdateOverviewStats();
         }
 
         public void ShowReportTable() => BtnShowTable_Click(this, new RoutedEventArgs());
@@ -534,6 +621,100 @@ namespace CleanPotal
             encoder.Frames.Add(BitmapFrame.Create(image));
             encoder.Save(fs);
             return path;
+        }
+
+        private void MemoAttachmentPanel_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MemoAttachmentPanel_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) return;
+            AddMemoAttachments(files);
+            e.Handled = true;
+        }
+
+        private void MemoAttachmentPanel_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.V || (Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
+
+            if (Clipboard.ContainsImage())
+            {
+                string saved = SaveClipboardImage();
+                if (!string.IsNullOrWhiteSpace(saved)) AddMemoAttachments(new[] { saved });
+                e.Handled = true;
+                return;
+            }
+
+            if (!Clipboard.ContainsFileDropList()) return;
+            var files = Clipboard.GetFileDropList().Cast<string>().ToArray();
+            if (files.Length == 0) return;
+            AddMemoAttachments(files);
+            e.Handled = true;
+        }
+
+        private void AddMemoAttachments(IEnumerable<string> files)
+        {
+            if (_draftReport == null) return;
+            var added = files
+                .Where(File.Exists)
+                .Where(file => AllowedExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (added.Count == 0) return;
+            foreach (var file in added)
+            {
+                if (_draftReport.MemoAttachments.Any(a => string.Equals(a.FilePath, file, StringComparison.OrdinalIgnoreCase))) continue;
+                _draftReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = file });
+            }
+            _isDirty = true;
+            UpdateOverviewStats();
+        }
+
+        private void ClearCurrentSelection()
+        {
+            _currentReport = null;
+            if (_draftReport != null) _draftReport.PropertyChanged -= DraftReport_PropertyChanged;
+            _draftReport = null;
+            UnsubscribeBlockCollection();
+            UnsubscribeMemoAttachments();
+
+            TxtCurrentReportTitle.Text = "보고서를 선택하세요";
+            TxtCurrentReportDate.Text = "작성 기간이 표시됩니다.";
+            ReportBlocksControl.ItemsSource = null;
+            MemoArea.DataContext = null;
+            _isDirty = false;
+            UpdateOverviewStats();
+        }
+
+        private void UpdateOverviewStats()
+        {
+            var report = _draftReport;
+            if (report == null)
+            {
+                TxtStatTotal.Text = "총 0건";
+                TxtStatInProgress.Text = "진행 0";
+                TxtStatPending.Text = "보류 0";
+                TxtStatClosed.Text = "종결 0";
+                TxtStatAttachments.Text = "첨부 0";
+                return;
+            }
+
+            int total = report.Blocks.Count;
+            int inProgress = report.Blocks.Count(b => b.Status == "진행 중");
+            int pending = report.Blocks.Count(b => b.Status == "보류");
+            int closed = report.Blocks.Count(b => b.Status == "종결");
+            int attachments = report.Blocks.Sum(b => b.FollowUpAttachments.Count) + report.MemoAttachments.Count;
+
+            TxtStatTotal.Text = $"총 {total}건";
+            TxtStatInProgress.Text = $"진행 {inProgress}";
+            TxtStatPending.Text = $"보류 {pending}";
+            TxtStatClosed.Text = $"종결 {closed}";
+            TxtStatAttachments.Text = $"첨부 {attachments}";
         }
 
         private static void RenumberBlocks(WeeklyReportModel report)

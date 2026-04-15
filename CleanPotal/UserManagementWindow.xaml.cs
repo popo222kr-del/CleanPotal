@@ -73,6 +73,12 @@ namespace CleanPotal
             string pw = TxtNewPw.Text.Trim();
             string name = TxtNewName.Text.Trim();
 
+            if (id.Length < 4)
+            {
+                MessageBox.Show("아이디는 영문/숫자 상관없이 최소 4글자 이상이어야 합니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(pw) || string.IsNullOrEmpty(name))
             {
                 MessageBox.Show("사번, 비밀번호, 이름은 필수 입력 항목입니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -117,6 +123,12 @@ namespace CleanPotal
                 string id = TxtNewId.Text.Trim();
                 string pw = TxtNewPw.Text.Trim();
                 string name = TxtNewName.Text.Trim();
+
+                if (id.Length < 4)
+                {
+                    MessageBox.Show("아이디는 영문/숫자 상관없이 최소 4글자 이상이어야 합니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
                 if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(pw) || string.IsNullOrEmpty(name))
                 {

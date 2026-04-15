@@ -8,31 +8,50 @@ namespace CleanPotal
         public LoginWindow()
         {
             InitializeComponent();
-            TxtUsername.Focus();
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 🔥 앱 실행 시 자동 로그인 정보가 있는지 확인
+            var (savedId, savedPw) = SessionManager.LoadAutoLogin();
+            if (!string.IsNullOrEmpty(savedId) && !string.IsNullOrEmpty(savedPw))
+            {
+                // 사용자에게 '자동 로그인 중'임을 알리기 위해 아주 짧은 대기 (0.5초)
+                await System.Threading.Tasks.Task.Delay(500);
+                DoLogin(savedId, savedPw, true);
+            }
+            else
+            {
+                TxtUsername.Focus();
+            }
         }
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
-            string username = TxtUsername.Text.Trim();
-            string password = TxtPassword.Password.Trim();
+            DoLogin(TxtUsername.Text.Trim(), TxtPassword.Password.Trim(), false);
+        }
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        private void DoLogin(string id, string pw, bool isAuto)
+        {
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(pw))
             {
-                MessageBox.Show("아이디와 패스워드를 모두 입력해주세요.", "로그인 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (!isAuto) MessageBox.Show("아이디와 패스워드를 모두 입력해주세요.", "로그인 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var user = AuthDatabaseHelper.ValidateUserObject(username, password);
+            var user = AuthDatabaseHelper.ValidateUserObject(id, pw);
             if (user != null)
             {
                 SessionManager.CurrentUsername = user.Username;
                 SessionManager.CurrentRealName = user.RealName;
                 SessionManager.CurrentTeamName = user.TeamName;
-
                 SessionManager.CanManageFiles = user.CanManageFiles;
                 SessionManager.CanManageNotices = user.CanManageNotices;
                 SessionManager.CanManageVendors = user.CanManageVendors;
-                SessionManager.CanManageSchedule = user.CanManageSchedule; // 🔥 권한 저장
+                SessionManager.CanManageSchedule = user.CanManageSchedule;
+
+                // 🔥 자동 로그인 체크 시 정보 저장
+                if (ChkAutoLogin.IsChecked == true) SessionManager.SaveAutoLogin(id, pw);
 
                 MainWindow mainWin = new MainWindow();
                 mainWin.Show();
@@ -40,34 +59,26 @@ namespace CleanPotal
             }
             else
             {
-                MessageBox.Show("아이디 또는 패스워드가 일치하지 않습니다.", "로그인 실패", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtPassword.Clear();
-                TxtPassword.Focus();
+                if (isAuto)
+                {
+                    SessionManager.Logout(); // 만약 비번이 그사이 바뀌어서 실패했다면 저장된 티켓 파기
+                }
+                else
+                {
+                    MessageBox.Show("아이디 또는 패스워드가 일치하지 않습니다.", "로그인 실패", MessageBoxButton.OK, MessageBoxImage.Error);
+                    TxtPassword.Clear();
+                    TxtPassword.Focus();
+                }
             }
         }
 
-        private void Input_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter) BtnLogin_Click(sender, e);
-        }
+        private void Input_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) BtnLogin_Click(sender, e); }
 
         private void BtnUserManager_Click(object sender, RoutedEventArgs e)
         {
-            string username = TxtUsername.Text.Trim();
-            string password = TxtPassword.Password.Trim();
-
-            var user = AuthDatabaseHelper.ValidateUserObject(username, password);
-
-            // 🔥 admin 대신 1004 (박주언) 계정인지 확인!
-            if (user != null && user.Username == "1004")
-            {
-                var userWin = new UserManagementWindow { Owner = this };
-                userWin.ShowDialog();
-            }
-            else
-            {
-                MessageBox.Show("사용자 관리는 '최고 관리자(1004)' 전용 메뉴입니다.\n아이디와 비밀번호를 올바르게 입력 후 클릭하세요.", "권한 필요", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+            var user = AuthDatabaseHelper.ValidateUserObject(TxtUsername.Text.Trim(), TxtPassword.Password.Trim());
+            if (user != null && user.Username == "1004") { new UserManagementWindow { Owner = this }.ShowDialog(); }
+            else { MessageBox.Show("사용자 관리는 '최고 관리자(1004)' 전용 메뉴입니다.\n아이디와 비밀번호를 올바르게 입력 후 클릭하세요.", "권한 필요", MessageBoxButton.OK, MessageBoxImage.Information); }
         }
 
         private void BtnExit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();

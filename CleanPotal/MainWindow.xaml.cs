@@ -21,7 +21,6 @@ namespace CleanPotal
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
 
-        // 🔥 알림 시스템용 변수
         private DispatcherTimer? _pollingTimer;
         private int _lastReqCount = 0;
         private int _unreadReqCount = 0;
@@ -58,26 +57,22 @@ namespace CleanPotal
 
             this.Loaded += (s, e) => {
                 ShowPortal();
-                InitializePollingTimer(); // 🔥 백그라운드 알림 감지 시작
+                InitializePollingTimer();
             };
         }
 
-        // ==========================================
-        // 🔥 생산팀 요청 스마트 알림 로직 (타이머)
-        // ==========================================
         private void InitializePollingTimer()
         {
             try { _lastReqCount = DatabaseHelper.GetAllProdReqs().Count; } catch { _lastReqCount = 0; }
 
             _pollingTimer = new DispatcherTimer();
-            _pollingTimer.Interval = TimeSpan.FromSeconds(15); // 15초 주기로 가볍게 스캔
+            _pollingTimer.Interval = TimeSpan.FromSeconds(15);
             _pollingTimer.Tick += PollingTimer_Tick;
             _pollingTimer.Start();
         }
 
         private void PollingTimer_Tick(object? sender, EventArgs e)
         {
-            // UI 멈춤 현상을 막기 위해 백그라운드 스레드(Task.Run)로 DB 조회
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
@@ -85,7 +80,6 @@ namespace CleanPotal
                     var currentList = DatabaseHelper.GetAllProdReqs();
                     int currentCount = currentList.Count;
 
-                    // UI 업데이트는 다시 메인 스레드(Dispatcher)로 넘겨서 처리
                     Dispatcher.Invoke(() =>
                     {
                         if (currentCount > _lastReqCount && _lastReqCount != 0)
@@ -93,7 +87,6 @@ namespace CleanPotal
                             int newItemsCount = currentCount - _lastReqCount;
                             _lastReqCount = currentCount;
 
-                            // 현재 화면이 생산팀 요청사항 화면이 아닐 때만 알림 발생
                             if (_currentViewName != "ProdReq")
                             {
                                 _unreadReqCount += newItemsCount;
@@ -103,7 +96,6 @@ namespace CleanPotal
                         }
                         else if (currentCount != _lastReqCount)
                         {
-                            // 누군가 지웠을 경우 카운트만 동기화
                             _lastReqCount = currentCount;
                         }
                     });
@@ -132,7 +124,6 @@ namespace CleanPotal
             ToastMessage.Text = message;
             ToastNotification.Visibility = Visibility.Visible;
 
-            // 5초 뒤 토스트 자동 숨김
             var hideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             hideTimer.Tick += (s, e) => {
                 ToastNotification.Visibility = Visibility.Collapsed;
@@ -141,24 +132,35 @@ namespace CleanPotal
             hideTimer.Start();
         }
 
-        private void CloseToast_Click(object sender, RoutedEventArgs e)
+        private void CloseToast_Click(object sender, RoutedEventArgs e) => ToastNotification.Visibility = Visibility.Collapsed;
+
+        // 🔥 내 계정 수정 모달 열기
+        private void BtnOpenAccountEdit_Click(object sender, RoutedEventArgs e)
         {
-            ToastNotification.Visibility = Visibility.Collapsed;
+            AccountEditWindow editWin = new AccountEditWindow { Owner = this };
+            if (editWin.ShowDialog() == true)
+            {
+                LoginUserNameText.Text = SessionManager.CurrentRealName;
+                AvatarText.Text = SessionManager.CurrentRealName.Substring(0, 1);
+            }
         }
 
-        // ==========================================
-        // 기존 UI 공통 로직
-        // ==========================================
-        private void HeaderSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        // 🔥 로그아웃 기능 추가
+        private void BtnLogout_Click(object sender, RoutedEventArgs e)
         {
-            if (MainContent.Content is PortalView pv) pv.FilterAndBind(HeaderSearchBox.Text);
+            if (MessageBox.Show("현재 계정에서 로그아웃 하시겠습니까?", "로그아웃 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                SessionManager.Logout(); // 정보 삭제
+
+                LoginWindow loginWin = new LoginWindow();
+                loginWin.Show();
+
+                this.Close();
+            }
         }
 
-        private void BtnToggleSidebar_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isSidebarOpen) CloseSidebar();
-            else OpenSidebar();
-        }
+        private void HeaderSearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (MainContent.Content is PortalView pv) pv.FilterAndBind(HeaderSearchBox.Text); }
+        private void BtnToggleSidebar_Click(object sender, RoutedEventArgs e) { if (_isSidebarOpen) CloseSidebar(); else OpenSidebar(); }
 
         private void OpenSidebar()
         {
@@ -177,10 +179,8 @@ namespace CleanPotal
             AnimateSidebarWidth(64);
 
             _isUpdatingNav = true;
-            ExpanderAttendance.IsExpanded = false;
-            ExpanderProduction.IsExpanded = false;
-            ExpanderOffice.IsExpanded = false;
-            ExpanderEtc.IsExpanded = false;
+            ExpanderAttendance.IsExpanded = false; ExpanderProduction.IsExpanded = false;
+            ExpanderOffice.IsExpanded = false; ExpanderEtc.IsExpanded = false;
             _isUpdatingNav = false;
         }
 
@@ -209,12 +209,7 @@ namespace CleanPotal
         private void OpenHandover(object sender, RoutedEventArgs e) { OpenSidebar(); ShowHandover(); }
         private void OpenSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowSchedule(); }
         private void OpenTeamSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowTeamSchedule(); }
-
-        private void OpenProdReq_Click(object sender, RoutedEventArgs e)
-        {
-            OpenSidebar();
-            ShowProdReq();
-        }
+        private void OpenProdReq_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProdReq(); }
 
         private void OpenWeeklyReport_Click(object sender, RoutedEventArgs e)
         {
@@ -233,36 +228,17 @@ namespace CleanPotal
                 MessageBox.Show("해당 기능은 Office 소속 인원만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
-
             return true;
         }
 
-        private void OpenDispatchCert_Click(object sender, RoutedEventArgs e)
-        {
-            OpenSidebar();
-            if (!CanOpenEtcOfficeFeature()) return;
-            ShowDispatchCert();
-        }
-
-        private void OpenReport_Click(object sender, RoutedEventArgs e)
-        {
-            OpenSidebar();
-            if (!CanOpenEtcOfficeFeature()) return;
-            ShowReport();
-        }
-
-        private void BtnCommandVendor_Click(object sender, RoutedEventArgs e)
-        {
-            if (!AuthManager.CheckAuth(PermissionType.Vendors)) return;
-            var vendorWin = new VendorManagerWindow { Owner = this };
-            vendorWin.ShowDialog();
-        }
+        private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
+        private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
+        private void BtnCommandVendor_Click(object sender, RoutedEventArgs e) { if (!AuthManager.CheckAuth(PermissionType.Vendors)) return; new VendorManagerWindow { Owner = this }.ShowDialog(); }
 
         private void ManagePortalLinks_Click(object sender, RoutedEventArgs e)
         {
             if (!AuthManager.CheckAuth(PermissionType.Files)) return;
-            PortalManagerWindow win = new PortalManagerWindow { Owner = this };
-            win.ShowDialog();
+            new PortalManagerWindow { Owner = this }.ShowDialog();
             if (_currentViewName == "Portal") ShowPortal();
         }
 
@@ -279,16 +255,11 @@ namespace CleanPotal
             if (HeaderCalendarControlArea != null) HeaderCalendarControlArea.Visibility = Visibility.Collapsed;
             HeaderSearchBox.Text = "";
 
-            BtnCommandPrimary.Visibility = Visibility.Collapsed;
-            BtnCommandNotice.Visibility = Visibility.Collapsed;
-            BtnCommandSecondary.Visibility = Visibility.Collapsed;
-            BtnCommandVendor.Visibility = Visibility.Collapsed;
-            BtnCommandRecipeManage.Visibility = Visibility.Collapsed;
-            BtnCommandCapture.Visibility = Visibility.Collapsed;
-            BtnCommandUndo.Visibility = Visibility.Collapsed;
-            BtnCommandPartialReset.Visibility = Visibility.Collapsed;
-            BtnCommandReset.Visibility = Visibility.Collapsed;
-            BtnCommandNewReq.Visibility = Visibility.Collapsed;
+            BtnCommandPrimary.Visibility = Visibility.Collapsed; BtnCommandNotice.Visibility = Visibility.Collapsed;
+            BtnCommandSecondary.Visibility = Visibility.Collapsed; BtnCommandVendor.Visibility = Visibility.Collapsed;
+            BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed;
+            BtnCommandUndo.Visibility = Visibility.Collapsed; BtnCommandPartialReset.Visibility = Visibility.Collapsed;
+            BtnCommandReset.Visibility = Visibility.Collapsed; BtnCommandNewReq.Visibility = Visibility.Collapsed;
         }
 
         private void ShowPortal()
@@ -296,13 +267,9 @@ namespace CleanPotal
             _currentViewName = "Portal";
             ApplySectionMeta("업무 파일 통합 관리", "자주 사용하는 파일과 폴더를 빠르게 실행합니다.");
             UpdateNavSelection("Portal");
-
             MainContent.Content = new PortalView();
-
-            HideAllHeaderButtons();
-            HeaderSearchBoxArea.Visibility = Visibility.Visible;
-            BtnCommandPrimary.Content = "파일 관리자";
-            BtnCommandPrimary.Visibility = Visibility.Visible;
+            HideAllHeaderButtons(); HeaderSearchBoxArea.Visibility = Visibility.Visible;
+            BtnCommandPrimary.Content = "파일 관리자"; BtnCommandPrimary.Visibility = Visibility.Visible;
         }
 
         private void ShowReport()
@@ -334,15 +301,10 @@ namespace CleanPotal
             ApplySectionMeta("생산팀 요청사항", "생산팀의 부자재/수리 요청을 기록하고 조치 결과를 관리합니다.");
             UpdateNavSelection("ProdReq");
 
-            // 🔥 생산팀 요청사항 메뉴 접속 시 알림 배지 및 카운트 초기화
-            _unreadReqCount = 0;
-            UpdateBadge();
-            ToastNotification.Visibility = Visibility.Collapsed;
+            _unreadReqCount = 0; UpdateBadge(); ToastNotification.Visibility = Visibility.Collapsed;
 
-            // 데이터 갱신을 위해 뷰 객체를 다시 할당
             _prodReqView = new ProdReqView();
             MainContent.Content = _prodReqView;
-
             HideAllHeaderButtons();
             BtnCommandNewReq.Visibility = Visibility.Visible;
         }
@@ -390,7 +352,6 @@ namespace CleanPotal
         private void ShowPersonalTask()
         {
             _currentViewName = "PersonalTask";
-            // 🔥 메인 윈도우 제목 및 설명을 '생산 미팅'에 맞게 변경 적용
             ApplySectionMeta("생산 미팅", "생산 관련 미팅 및 협의 내용을 관리합니다.");
             UpdateNavSelection("PersonalTask");
             MainContent.Content = null;
@@ -402,10 +363,8 @@ namespace CleanPotal
             _currentViewName = "DispatchCert";
             ApplySectionMeta("반출등록 성적서 생성", "반출등록 시트 데이터를 기준으로 템플릿 성적서를 수량만큼 자동 생성하고 생성이력을 기록합니다.");
             UpdateNavSelection("DispatchCert");
-
             if (_dispatchCertificateBatchView == null) _dispatchCertificateBatchView = new DispatchCertificateBatchView();
             MainContent.Content = _dispatchCertificateBatchView;
-
             HideAllHeaderButtons();
         }
 
@@ -427,28 +386,14 @@ namespace CleanPotal
         {
             _isUpdatingNav = true;
 
-            var mainNormal = (Style)FindResource("ErpMainButtonStyle");
-            var mainSelected = (Style)FindResource("ErpMainButtonSelectedStyle");
-            var subNormal = (Style)FindResource("ErpSubButtonStyle");
-            var subSelected = (Style)FindResource("ErpSubButtonSelectedStyle");
+            var mainNormal = (Style)FindResource("ErpMainButtonStyle"); var mainSelected = (Style)FindResource("ErpMainButtonSelectedStyle");
+            var subNormal = (Style)FindResource("ErpSubButtonStyle"); var subSelected = (Style)FindResource("ErpSubButtonSelectedStyle");
+            var expNormal = (Style)FindResource("SidebarExpanderStyle"); var expActive = (Style)FindResource("SidebarExpanderActiveStyle");
 
-            var expNormal = (Style)FindResource("SidebarExpanderStyle");
-            var expActive = (Style)FindResource("SidebarExpanderActiveStyle");
+            BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
+            BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
 
-            BtnNavPortal.Style = mainNormal;
-            BtnNavReport.Style = subNormal;
-            BtnNavHandover.Style = subNormal;
-            BtnNavProdReq.Style = subNormal;
-            BtnNavTeamSchedule.Style = subNormal;
-            BtnNavSchedule.Style = subNormal;
-            BtnNavWeeklyReport.Style = subNormal;
-            BtnNavPersonalTask.Style = subNormal;
-            BtnNavDispatchCert.Style = subNormal;
-
-            ExpanderAttendance.Style = expNormal;
-            ExpanderProduction.Style = expNormal;
-            ExpanderOffice.Style = expNormal;
-            ExpanderEtc.Style = expNormal;
+            ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
 
             switch (viewName)
             {
@@ -460,11 +405,7 @@ namespace CleanPotal
                 case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
                 case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
                 case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "DispatchCert":
-                    BtnNavDispatchCert.Style = subSelected;
-                    ExpanderEtc.Style = expActive;
-                    if (_isSidebarOpen) ExpanderEtc.IsExpanded = true;
-                    break;
+                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;
