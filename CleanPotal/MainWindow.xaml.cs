@@ -14,6 +14,7 @@ namespace CleanPotal
         private ScheduleBoardView? _scheduleBoardView;
         private TeamScheduleView? _teamScheduleView;
         private WeeklyReportView? _weeklyReportView;
+        private ProductionMeetingView? _productionMeetingView;
         private ReportAutomationView? _reportAutomationView;
         private DispatchCertificateBatchView? _dispatchCertificateBatchView;
         private ProdReqView? _prodReqView;
@@ -196,12 +197,13 @@ namespace CleanPotal
             if (_currentViewName == "Report" || _currentViewName == "DispatchCert") ExpanderEtc.IsExpanded = true;
             else if (_currentViewName == "Handover" || _currentViewName == "ProdReq" || _currentViewName == "Schedule") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
-            else if (_currentViewName == "WeeklyReport" || _currentViewName == "PersonalTask") ExpanderOffice.IsExpanded = true;
+            else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
+            else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
-        private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover") OpenHandover(sender, e); }
+        private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask") OpenWeeklyReport_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
 
@@ -353,9 +355,12 @@ namespace CleanPotal
         {
             _currentViewName = "PersonalTask";
             ApplySectionMeta("생산 미팅", "생산 관련 미팅 및 협의 내용을 관리합니다.");
+            if (_productionMeetingView == null) _productionMeetingView = new ProductionMeetingView();
+            MainContent.Content = _productionMeetingView;
             UpdateNavSelection("PersonalTask");
-            MainContent.Content = null;
             HideAllHeaderButtons();
+            BtnCommandNotice.Content = "보고용 표 보기"; BtnCommandNotice.Visibility = Visibility.Visible;
+            BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
         private void ShowDispatchCert()
@@ -368,8 +373,8 @@ namespace CleanPotal
             HideAllHeaderButtons();
         }
 
-        private void BtnCommandNotice_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenNoticeModal(); else if (MainContent.Content is WeeklyReportView wr) wr.ShowReportTable(); }
-        private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); }
+        private void BtnCommandNotice_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenNoticeModal(); else if (MainContent.Content is WeeklyReportView wr) wr.ShowReportTable(); else if (MainContent.Content is ProductionMeetingView pm) pm.ShowReportTable(); }
+        private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); else if (MainContent.Content is ProductionMeetingView pm) pm.SaveReportChanges(); }
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
         private void BtnCommandUndo_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.UndoAction();
@@ -404,7 +409,7 @@ namespace CleanPotal
                 case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
                 case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
+                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
             }
 

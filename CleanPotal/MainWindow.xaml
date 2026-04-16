@@ -263,6 +263,7 @@
                             <Expander x:Name="ExpanderProduction" Header="현장 인수인계" Tag="&#xE8D1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderProduction_Expanded">
                                 <StackPanel>
                                     <Button x:Name="BtnNavHandover" Content="인수인계 현황" Style="{StaticResource ErpSubButtonStyle}" Click="OpenHandover"/>
+                                    <Button x:Name="BtnNavPersonalTask" Content="생산미팅" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click" Cursor="Hand"/>
                                     <Grid>
                                         <Button x:Name="BtnNavProdReq" Content="생산팀 요청사항" Style="{StaticResource ErpSubButtonStyle}" Click="OpenProdReq_Click"/>
                                         <Border x:Name="BadgeProdReq" Background="#EF4444" CornerRadius="10" MinWidth="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Visibility="Collapsed" IsHitTestVisible="False">
@@ -278,7 +279,6 @@
                         <Expander x:Name="ExpanderOffice" Header="OFFICE 업무" Tag="&#xE8F1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderOffice_Expanded">
                             <StackPanel>
                                 <Button x:Name="BtnNavWeeklyReport" Content="주간보고" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWeeklyReport_Click"/>
-                                <Button x:Name="BtnNavPersonalTask" Content="생산미팅" Style="{StaticResource ErpSubButtonStyle}" Click="OpenPersonalTask_Click" Cursor="Hand"/>
                             </StackPanel>
                         </Expander>
 

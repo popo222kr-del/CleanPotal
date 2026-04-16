@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="CleanPotal.WeeklyReportView"
+﻿<UserControl x:Class="CleanPotal.ProductionMeetingView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="#FFFFFF" SnapsToDevicePixels="True" UseLayoutRounding="True">
@@ -159,7 +159,6 @@
                                             <DataTemplate>
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding ShortTitle}" FontWeight="Bold" FontSize="13"/>
-                                                    <TextBlock Text="{Binding DateRange}" FontSize="11" Foreground="#64748B" Margin="0,1,0,0"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -488,25 +487,10 @@
                 <StackPanel>
                     <TextBlock Text="새 보고서 생성" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,25"/>
 
-                    <TextBlock Text="작성 주차 선택" FontSize="13" Foreground="#64748B" Margin="0,0,0,10"/>
-                    <Grid Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ComboYear" Grid.Column="0" Margin="0,0,5,0" Height="40" VerticalContentAlignment="Center"/>
-                        <ComboBox x:Name="ComboMonth" Grid.Column="1" Margin="5,0,5,0" Height="40" VerticalContentAlignment="Center"/>
-                        <ComboBox x:Name="ComboWeek" Grid.Column="2" Margin="5,0,0,0" Height="40" VerticalContentAlignment="Center">
-                            <ComboBoxItem Content="1주차"/>
-                            <ComboBoxItem Content="2주차"/>
-                            <ComboBoxItem Content="3주차"/>
-                            <ComboBoxItem Content="4주차" Margin="0,10,0,0"/>
-                            <ComboBoxItem Content="5주차"/>
-                        </ComboBox>
-                    </Grid>
+                    <TextBlock Text="작성 날짜 선택" FontSize="13" Foreground="#64748B" Margin="0,0,0,10"/>
+                    <DatePicker x:Name="DpMeetingDate" Height="40" SelectedDateFormat="Long" HorizontalContentAlignment="Center"/>
 
-                    <TextBlock x:Name="TxtAutoDatePreview" Text="자동 계산 날짜: -" FontSize="12" Foreground="#2563EB" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+                    <TextBlock x:Name="TxtAutoDatePreview" Text="선택 날짜: -" FontSize="12" Foreground="#2563EB" HorizontalAlignment="Center" Margin="0,12,0,30"/>
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -546,14 +530,14 @@
                     <Grid Grid.Row="0" Margin="0,0,0,20">
                         <TextBlock x:Name="TxtModalTitle" Text="주간보고 인쇄/보고용 표" FontSize="22" FontWeight="Bold" Foreground="#0F172A"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="엑셀 다운로드" Height="36" Padding="16,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,12,0" Cursor="Hand" Click="BtnExportExcel_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                            <Button Content="닫기" Height="36" Padding="16,0" Background="#F1F5F9" Foreground="#334155" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="BtnCloseTable_Click">
+                                <Button Content="엑셀 다운로드" Height="36" Padding="16,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,12,0" Cursor="Hand" Click="BtnExportExcel_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="8"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                                <Button Content="닫기" Height="36" Padding="16,0" Background="#F1F5F9" Foreground="#334155" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="BtnCloseTable_Click">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8"/>

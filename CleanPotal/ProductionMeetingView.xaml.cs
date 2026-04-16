@@ -23,13 +23,13 @@ namespace CleanPotal
     // ==========================================
     // 데이터 모델 정의 (누락 방지)
     // ==========================================
-    public class WeeklyGroupModel
+    public class ProductionMeetingGroupModel
     {
         public string MonthTitle { get; set; } = "";
-        public ObservableCollection<WeeklyReportModel> Reports { get; set; } = new();
+        public ObservableCollection<ProductionMeetingReportModel> Reports { get; set; } = new();
     }
 
-    public class WeeklyReportModel : INotifyPropertyChanged
+    public class ProductionMeetingReportModel : INotifyPropertyChanged
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Title { get; set; } = "";
@@ -43,14 +43,14 @@ namespace CleanPotal
             set { if (_memo == value) return; _memo = value; OnPropertyChanged(); }
         }
 
-        public ObservableCollection<WeeklyBlockModel> Blocks { get; set; } = new();
-        public ObservableCollection<WeeklyAttachmentModel> MemoAttachments { get; set; } = new();
+        public ObservableCollection<ProductionMeetingBlockModel> Blocks { get; set; } = new();
+        public ObservableCollection<ProductionMeetingAttachmentModel> MemoAttachments { get; set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    public class WeeklyAttachmentModel
+    public class ProductionMeetingAttachmentModel
     {
         public string FilePath { get; set; } = "";
         public string FileName => Path.GetFileName(FilePath);
@@ -63,7 +63,7 @@ namespace CleanPotal
         }
     }
 
-    public class WeeklyBlockModel : INotifyPropertyChanged
+    public class ProductionMeetingBlockModel : INotifyPropertyChanged
     {
         private static readonly Regex NumberPrefixRegex = new(@"^\s*\d+\.\s*", RegexOptions.Compiled);
 
@@ -87,7 +87,7 @@ namespace CleanPotal
             }
         }
 
-        public ObservableCollection<WeeklyAttachmentModel> FollowUpAttachments { get; } = new();
+        public ObservableCollection<ProductionMeetingAttachmentModel> FollowUpAttachments { get; } = new();
         public bool HasAttachment => FollowUpAttachments.Count > 0;
 
         private string _content = "";
@@ -115,42 +115,19 @@ namespace CleanPotal
         {
             get
             {
-                var lines = new List<string>();
-
-                if (!string.IsNullOrWhiteSpace(Content))
-                {
-                    lines.Add("【기존 내용】");
-                    foreach (var line in Content
-                                 .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-                                 .Where(x => !string.IsNullOrWhiteSpace(x)))
-                    {
-                        lines.Add($"• {line.Trim()}");
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(FollowUp))
-                {
-                    if (lines.Count > 0) lines.Add("");
-                    lines.Add("【팔로업】");
-                    foreach (var line in FollowUp
-                                 .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-                                 .Where(x => !string.IsNullOrWhiteSpace(x)))
-                    {
-                        lines.Add($"→ {line.Trim()}");
-                    }
-                }
-
+                string result = "";
+                if (!string.IsNullOrWhiteSpace(Content)) result += $"· {Content}\n";
+                if (!string.IsNullOrWhiteSpace(FollowUp)) result += $"→ {FollowUp}";
                 if (FollowUpAttachments.Count > 0)
                 {
-                    if (lines.Count > 0) lines.Add("");
-                    lines.Add($"【첨부】 {FollowUpAttachments.Count}건");
+                    if (result.Length > 0) result += "\n";
+                    result += $"📎 첨부 {FollowUpAttachments.Count}건";
                 }
-
-                return string.Join("\n", lines).Trim();
+                return result.TrimEnd();
             }
         }
 
-        public WeeklyBlockModel()
+        public ProductionMeetingBlockModel()
         {
             FollowUpAttachments.CollectionChanged += (_, __) =>
             {
@@ -166,22 +143,22 @@ namespace CleanPotal
     // ==========================================
     // 메인 컨트롤 로직
     // ==========================================
-    public partial class WeeklyReportView : UserControl
+    public partial class ProductionMeetingView : UserControl
     {
-        public ObservableCollection<WeeklyGroupModel> GroupedHistory { get; set; } = new();
+        public ObservableCollection<ProductionMeetingGroupModel> GroupedHistory { get; set; } = new();
 
-        private WeeklyReportModel? _currentReport; // 실제 저장되어 있는 원본 데이터
-        private WeeklyReportModel? _draftReport;   // 화면에 띄워두고 작업하는 임시 복사본 (Clone)
-        private ObservableCollection<WeeklyBlockModel>? _subscribedBlocks;
-        private ObservableCollection<WeeklyAttachmentModel>? _subscribedMemoAttachments;
+        private ProductionMeetingReportModel? _currentReport; // 실제 저장되어 있는 원본 데이터
+        private ProductionMeetingReportModel? _draftReport;   // 화면에 띄워두고 작업하는 임시 복사본 (Clone)
+        private ObservableCollection<ProductionMeetingBlockModel>? _subscribedBlocks;
+        private ObservableCollection<ProductionMeetingAttachmentModel>? _subscribedMemoAttachments;
 
         private bool _isDirty = false; // 변경사항 발생 여부 체크
         private bool _isNavigating = false; // 리스트박스 꼬임 방지용
 
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
-        private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "weekly_attachments");
+        private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "production_meeting_attachments");
 
-        public WeeklyReportView()
+        public ProductionMeetingView()
         {
             InitializeComponent();
             GroupedHistoryControl.ItemsSource = GroupedHistory;
@@ -193,9 +170,9 @@ namespace CleanPotal
         // ==========================================
         // 1. 임시 작업장(Clone) 및 데이터 연동 로직
         // ==========================================
-        private WeeklyReportModel CloneReport(WeeklyReportModel original)
+        private ProductionMeetingReportModel CloneReport(ProductionMeetingReportModel original)
         {
-            var clone = new WeeklyReportModel
+            var clone = new ProductionMeetingReportModel
             {
                 Id = original.Id,
                 Title = original.Title,
@@ -205,7 +182,7 @@ namespace CleanPotal
             };
             foreach (var block in original.Blocks)
             {
-                var clonedBlock = new WeeklyBlockModel
+                var clonedBlock = new ProductionMeetingBlockModel
                 {
                     Number = block.Number,
                     Category = block.Category,
@@ -215,18 +192,18 @@ namespace CleanPotal
                 };
                 foreach (var att in block.FollowUpAttachments)
                 {
-                    clonedBlock.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                    clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                 }
                 clone.Blocks.Add(clonedBlock);
             }
             foreach (var attachment in original.MemoAttachments)
             {
-                clone.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
+                clone.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
             }
             return clone;
         }
 
-        private void SetCurrentReport(WeeklyReportModel report)
+        private void SetCurrentReport(ProductionMeetingReportModel report)
         {
             if (_draftReport != null) _draftReport.PropertyChanged -= DraftReport_PropertyChanged;
             UnsubscribeBlockCollection();
@@ -261,7 +238,7 @@ namespace CleanPotal
             UpdateOverviewStats();
         }
 
-        private void SubscribeBlockCollection(ObservableCollection<WeeklyBlockModel> blocks)
+        private void SubscribeBlockCollection(ObservableCollection<ProductionMeetingBlockModel> blocks)
         {
             _subscribedBlocks = blocks;
             _subscribedBlocks.CollectionChanged += Blocks_CollectionChanged;
@@ -276,7 +253,7 @@ namespace CleanPotal
             _subscribedBlocks = null;
         }
 
-        private void SubscribeMemoAttachments(ObservableCollection<WeeklyAttachmentModel> attachments)
+        private void SubscribeMemoAttachments(ObservableCollection<ProductionMeetingAttachmentModel> attachments)
         {
             _subscribedMemoAttachments = attachments;
             _subscribedMemoAttachments.CollectionChanged += MemoAttachments_CollectionChanged;
@@ -298,8 +275,8 @@ namespace CleanPotal
         private void Blocks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             _isDirty = true;
-            if (e.NewItems != null) foreach (WeeklyBlockModel item in e.NewItems) item.PropertyChanged += Block_PropertyChanged;
-            if (e.OldItems != null) foreach (WeeklyBlockModel item in e.OldItems) item.PropertyChanged -= Block_PropertyChanged;
+            if (e.NewItems != null) foreach (ProductionMeetingBlockModel item in e.NewItems) item.PropertyChanged += Block_PropertyChanged;
+            if (e.OldItems != null) foreach (ProductionMeetingBlockModel item in e.OldItems) item.PropertyChanged -= Block_PropertyChanged;
             if (_draftReport != null) RenumberBlocks(_draftReport);
             UpdateOverviewStats();
         }
@@ -321,7 +298,7 @@ namespace CleanPotal
 
             foreach (var block in _draftReport.Blocks)
             {
-                var clonedBlock = new WeeklyBlockModel
+                var clonedBlock = new ProductionMeetingBlockModel
                 {
                     Number = block.Number,
                     Category = block.Category,
@@ -331,14 +308,14 @@ namespace CleanPotal
                 };
                 foreach (var att in block.FollowUpAttachments)
                 {
-                    clonedBlock.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                    clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                 }
                 _currentReport.Blocks.Add(clonedBlock);
             }
             _currentReport.MemoAttachments.Clear();
             foreach (var attachment in _draftReport.MemoAttachments)
             {
-                _currentReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
+                _currentReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
             }
 
             _isDirty = false; // 원본에 반영되었으므로 다시 깨끗한 상태
@@ -368,7 +345,7 @@ namespace CleanPotal
         {
             if (_isNavigating) return;
 
-            if (sender is ListBox lb && lb.SelectedItem is WeeklyReportModel selected)
+            if (sender is ListBox lb && lb.SelectedItem is ProductionMeetingReportModel selected)
             {
                 if (_isDirty)
                 {
@@ -392,43 +369,16 @@ namespace CleanPotal
         // ==========================================
         private void InitCreateModal()
         {
-            for (int y = 2024; y <= DateTime.Now.Year + 1; y++) ComboYear.Items.Add(y);
-            for (int m = 1; m <= 12; m++) ComboMonth.Items.Add(m);
-
-            ComboYear.SelectedItem = DateTime.Now.Year;
-            ComboMonth.SelectedItem = DateTime.Now.Month;
-            ComboWeek.SelectedIndex = GetCurrentWeekOfMonth(DateTime.Now) - 1;
-
-            ComboYear.SelectionChanged += (s, e) => UpdateDatePreview();
-            ComboMonth.SelectionChanged += (s, e) => UpdateDatePreview();
-            ComboWeek.SelectionChanged += (s, e) => UpdateDatePreview();
+            DpMeetingDate.SelectedDate = DateTime.Today;
+            DpMeetingDate.SelectedDateChanged += (s, e) => UpdateDatePreview();
             UpdateDatePreview();
-        }
-
-        private int GetCurrentWeekOfMonth(DateTime date)
-        {
-            DateTime firstDay = new DateTime(date.Year, date.Month, 1);
-            int firstDayOfWeek = (int)firstDay.DayOfWeek;
-            if (firstDayOfWeek == 0) firstDayOfWeek = 7;
-            return (date.Day + firstDayOfWeek - 2) / 7 + 1;
-        }
-
-        private string GetDateRangeForWeek(int year, int month, int week)
-        {
-            DateTime firstDay = new DateTime(year, month, 1);
-            int firstDayOfWeek = (int)firstDay.DayOfWeek;
-            if (firstDayOfWeek == 0) firstDayOfWeek = 7;
-
-            DateTime targetMonday = firstDay.AddDays((week - 1) * 7 - (firstDayOfWeek - 1));
-            DateTime targetFriday = targetMonday.AddDays(4);
-
-            return $"{targetMonday:yyyy.MM.dd} ~ {targetFriday:yyyy.MM.dd}";
         }
 
         private void UpdateDatePreview()
         {
-            if (ComboYear.SelectedItem == null || ComboMonth.SelectedItem == null || ComboWeek.SelectedIndex < 0) return;
-            TxtAutoDatePreview.Text = "자동 계산 날짜: " + GetDateRangeForWeek((int)ComboYear.SelectedItem, (int)ComboMonth.SelectedItem, ComboWeek.SelectedIndex + 1);
+            if (DpMeetingDate.SelectedDate == null) return;
+            var selectedDate = DpMeetingDate.SelectedDate.Value;
+            TxtAutoDatePreview.Text = $"선택 날짜: {selectedDate:yyyy.MM.dd (ddd)}";
         }
 
         private void BtnCreateNewReport_Click(object sender, RoutedEventArgs e)
@@ -439,55 +389,59 @@ namespace CleanPotal
                 if (result == MessageBoxResult.No) return;
             }
 
-            ComboYear.SelectedItem = DateTime.Now.Year;
-            ComboMonth.SelectedItem = DateTime.Now.Month;
-            ComboWeek.SelectedIndex = GetCurrentWeekOfMonth(DateTime.Now) - 1;
+            DpMeetingDate.SelectedDate = DateTime.Today;
             CreateReportModal.Visibility = Visibility.Visible;
         }
 
         private void BtnConfirmCreate_Click(object sender, RoutedEventArgs e)
         {
-            int year = (int)ComboYear.SelectedItem;
-            int month = (int)ComboMonth.SelectedItem;
-            int week = ComboWeek.SelectedIndex + 1;
-            string title = $"{year % 100}년 {month}월 {week}주차";
-            string dateRange = GetDateRangeForWeek(year, month, week);
+            var selectedDate = DpMeetingDate.SelectedDate ?? DateTime.Today;
+            string title = $"{selectedDate:yyyy년 M월 d일}";
+            string dateRange = $"{selectedDate:yyyy.MM.dd}";
 
-            var existing = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Title == title);
+            var existing = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.DateRange == dateRange);
             if (existing != null)
             {
-                MessageBox.Show($"이미 '{title}' 보고서가 존재합니다.\n해당 보고서로 이동합니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"이미 '{selectedDate:yyyy.MM.dd}' 날짜의 미팅 보고서가 존재합니다.\n해당 보고서로 이동합니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
                 SetCurrentReport(existing);
                 CreateReportModal.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            string monthGroupTitle = $"{year}년 {month}월";
+            string monthGroupTitle = $"{selectedDate:yyyy년 M월}";
             var group = GroupedHistory.FirstOrDefault(g => g.MonthTitle == monthGroupTitle);
             if (group == null)
             {
-                group = new WeeklyGroupModel { MonthTitle = monthGroupTitle };
+                group = new ProductionMeetingGroupModel { MonthTitle = monthGroupTitle };
                 GroupedHistory.Add(group);
                 var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
                 GroupedHistory.Clear();
                 foreach (var s in sorted) GroupedHistory.Add(s);
             }
 
-            var newReport = new WeeklyReportModel { Title = title, ShortTitle = $"{week}주차", DateRange = dateRange };
+            var newReport = new ProductionMeetingReportModel
+            {
+                Title = title,
+                ShortTitle = $"{selectedDate:MM.dd} ({selectedDate:ddd})",
+                DateRange = dateRange
+            };
 
-            var lastReport = GroupedHistory.SelectMany(g => g.Reports).OrderByDescending(r => r.DateRange).FirstOrDefault();
+            var lastReport = GroupedHistory
+                .SelectMany(g => g.Reports)
+                .OrderByDescending(r => ParseReportDate(r.DateRange))
+                .FirstOrDefault();
             if (lastReport != null)
             {
                 foreach (var b in lastReport.Blocks.Where(x => x.Status != "종결"))
                 {
-                    var copied = new WeeklyBlockModel { Category = b.Category, Content = b.Content, FollowUp = b.FollowUp, Status = b.Status };
-                    foreach (var att in b.FollowUpAttachments) copied.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                    var copied = new ProductionMeetingBlockModel { Category = b.Category, Content = b.Content, FollowUp = b.FollowUp, Status = b.Status };
+                    foreach (var att in b.FollowUpAttachments) copied.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                     newReport.Blocks.Add(copied);
                 }
             }
 
             group.Reports.Add(newReport);
-            var sortedReports = group.Reports.OrderByDescending(r => r.Title).ToList();
+            var sortedReports = group.Reports.OrderByDescending(r => ParseReportDate(r.DateRange)).ToList();
             group.Reports.Clear();
             foreach (var r in sortedReports) group.Reports.Add(r);
 
@@ -495,6 +449,16 @@ namespace CleanPotal
             SetCurrentReport(newReport);
             SaveToStorage();
             CreateReportModal.Visibility = Visibility.Collapsed;
+        }
+
+        private static DateTime ParseReportDate(string dateText)
+        {
+            if (DateTime.TryParseExact(dateText, "yyyy.MM.dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            {
+                return parsed;
+            }
+
+            return DateTime.MinValue;
         }
 
         private void BtnCancelCreate_Click(object sender, RoutedEventArgs e) => CreateReportModal.Visibility = Visibility.Collapsed;
@@ -505,7 +469,7 @@ namespace CleanPotal
         private void BtnAddBlock_Click(object sender, RoutedEventArgs e)
         {
             if (_draftReport == null) return;
-            _draftReport.Blocks.Add(new WeeklyBlockModel { Category = "신규 업무" });
+            _draftReport.Blocks.Add(new ProductionMeetingBlockModel { Category = "신규 업무" });
             RenumberBlocks(_draftReport);
             UpdateOverviewStats();
         }
@@ -513,7 +477,7 @@ namespace CleanPotal
         private void BtnDeleteBlock_Click(object sender, RoutedEventArgs e)
         {
             if (_draftReport == null) return;
-            if (sender is Button { Tag: WeeklyBlockModel block })
+            if (sender is Button { Tag: ProductionMeetingBlockModel block })
             {
                 // 🔥 삭제 전 2중 안전장치 (팝업창) 추가
                 var result = MessageBox.Show("해당 업무 항목을 정말 삭제하시겠습니까?", "항목 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -554,7 +518,7 @@ namespace CleanPotal
 
         private void BtnRemoveMemoAttachment_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button { Tag: WeeklyAttachmentModel attachment } || _draftReport == null) return;
+            if (sender is not Button { Tag: ProductionMeetingAttachmentModel attachment } || _draftReport == null) return;
             _draftReport.MemoAttachments.Remove(attachment);
             _isDirty = true;
             UpdateOverviewStats();
@@ -581,7 +545,7 @@ namespace CleanPotal
             {
                 Title = "저장 위치 선택",
                 Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = $"{SanitizeFileName(_draftReport.Title)}_주간보고.xlsx"
+                FileName = $"{SanitizeFileName(_draftReport.Title)}_생산미팅.xlsx"
             };
             if (saveDialog.ShowDialog() != true) return;
 
@@ -589,7 +553,7 @@ namespace CleanPotal
             {
                 File.Copy(templateDialog.FileName, saveDialog.FileName, true);
                 using var workbook = new XLWorkbook(saveDialog.FileName);
-                var worksheet = workbook.Worksheets.FirstOrDefault() ?? workbook.AddWorksheet("주간보고");
+                var worksheet = workbook.Worksheets.FirstOrDefault() ?? workbook.AddWorksheet("생산미팅");
 
                 WriteBlocksToWorksheet(worksheet, _draftReport.Title, _draftReport.Blocks.Cast<object>().ToList());
 
@@ -614,7 +578,7 @@ namespace CleanPotal
 
         private void BtnAddAttachment_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button { Tag: WeeklyBlockModel block }) return;
+            if (sender is not Button { Tag: ProductionMeetingBlockModel block }) return;
             var dialog = new OpenFileDialog { Multiselect = true, Filter = "지원 파일|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp;*.pdf;*.xlsx;*.xls;*.doc;*.docx;*.ppt;*.pptx|모든 파일|*.*" };
             if (dialog.ShowDialog() != true) return;
             AddAttachments(block, dialog.FileNames);
@@ -622,21 +586,21 @@ namespace CleanPotal
 
         private void BtnRemoveAttachment_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button { Tag: WeeklyAttachmentModel attachment } || _draftReport == null) return;
+            if (sender is not Button { Tag: ProductionMeetingAttachmentModel attachment } || _draftReport == null) return;
             var owner = _draftReport.Blocks.FirstOrDefault(b => b.FollowUpAttachments.Contains(attachment));
             owner?.FollowUpAttachments.Remove(attachment);
         }
 
         private void AttachmentPreview_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not FrameworkElement { DataContext: WeeklyAttachmentModel attachment }) return;
+            if (sender is not FrameworkElement { DataContext: ProductionMeetingAttachmentModel attachment }) return;
             string resolvedPath = ResolveAttachmentPath(attachment.FilePath);
             if (!File.Exists(resolvedPath))
             {
                 MessageBox.Show("첨부 파일을 찾을 수 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            if (WeeklyAttachmentModel.IsImagePath(resolvedPath)) ShowImagePopup(resolvedPath);
+            if (ProductionMeetingAttachmentModel.IsImagePath(resolvedPath)) ShowImagePopup(resolvedPath);
             else Process.Start(new ProcessStartInfo(resolvedPath) { UseShellExecute = true });
         }
 
@@ -648,7 +612,7 @@ namespace CleanPotal
 
         private void AttachmentPanel_Drop(object sender, DragEventArgs e)
         {
-            if (sender is not FrameworkElement { Tag: WeeklyBlockModel block }) return;
+            if (sender is not FrameworkElement { Tag: ProductionMeetingBlockModel block }) return;
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
@@ -658,7 +622,7 @@ namespace CleanPotal
 
         private void AttachmentPanel_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (sender is not FrameworkElement { Tag: WeeklyBlockModel block }) return;
+            if (sender is not FrameworkElement { Tag: ProductionMeetingBlockModel block }) return;
             if (e.Key != Key.V || (Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
             if (!Clipboard.ContainsImage()) return;
             string saved = SaveClipboardImage();
@@ -666,7 +630,7 @@ namespace CleanPotal
             e.Handled = true;
         }
 
-        private static void AddAttachments(WeeklyBlockModel block, IEnumerable<string> files)
+        private static void AddAttachments(ProductionMeetingBlockModel block, IEnumerable<string> files)
         {
             foreach (var file in files.Where(File.Exists))
             {
@@ -675,7 +639,7 @@ namespace CleanPotal
                 string persistedPath = PersistAttachment(file);
                 if (string.IsNullOrWhiteSpace(persistedPath)) continue;
                 if (block.FollowUpAttachments.Any(a => string.Equals(a.FilePath, persistedPath, StringComparison.OrdinalIgnoreCase))) continue;
-                block.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = persistedPath });
+                block.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = persistedPath });
             }
         }
 
@@ -740,7 +704,7 @@ namespace CleanPotal
                 string persistedPath = PersistAttachment(file);
                 if (string.IsNullOrWhiteSpace(persistedPath)) continue;
                 if (_draftReport.MemoAttachments.Any(a => string.Equals(a.FilePath, persistedPath, StringComparison.OrdinalIgnoreCase))) continue;
-                _draftReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = persistedPath });
+                _draftReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = persistedPath });
             }
             _isDirty = true;
             UpdateOverviewStats();
@@ -839,43 +803,14 @@ namespace CleanPotal
             TxtStatAttachments.Text = $"첨부 {attachments}";
         }
 
-        private static void RenumberBlocks(WeeklyReportModel report)
+        private static void RenumberBlocks(ProductionMeetingReportModel report)
         {
             for (int i = 0; i < report.Blocks.Count; i++) report.Blocks[i].Number = i + 1;
         }
 
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-        private static string StoragePath => AppPaths.WeeklyReportsFilePath;
-
-        private void NormalizeGroups()
-        {
-            var normalized = GroupedHistory
-                .Where(g => !string.IsNullOrWhiteSpace(g.MonthTitle))
-                .Select(g =>
-                {
-                    var validReports = g.Reports
-                        .Where(r => !string.IsNullOrWhiteSpace(r.Title))
-                        .OrderByDescending(r => r.Title)
-                        .ToList();
-
-                    var group = new WeeklyGroupModel { MonthTitle = g.MonthTitle };
-                    foreach (var report in validReports)
-                    {
-                        group.Reports.Add(report);
-                    }
-                    return group;
-                })
-                .Where(g => g.Reports.Count > 0)
-                .OrderByDescending(g => g.MonthTitle)
-                .ToList();
-
-            GroupedHistory.Clear();
-            foreach (var group in normalized)
-            {
-                GroupedHistory.Add(group);
-            }
-        }
+        private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
         private void LoadFromStorage()
         {
@@ -889,10 +824,10 @@ namespace CleanPotal
                 GroupedHistory.Clear();
                 foreach (var group in data)
                 {
-                    var mappedGroup = new WeeklyGroupModel { MonthTitle = group.MonthTitle ?? "" };
+                    var mappedGroup = new ProductionMeetingGroupModel { MonthTitle = group.MonthTitle ?? "" };
                     foreach (var report in group.Reports ?? new())
                     {
-                        var mappedReport = new WeeklyReportModel
+                        var mappedReport = new ProductionMeetingReportModel
                         {
                             Id = string.IsNullOrWhiteSpace(report.Id) ? Guid.NewGuid().ToString() : report.Id,
                             Title = report.Title ?? "",
@@ -903,7 +838,7 @@ namespace CleanPotal
 
                         foreach (var block in report.Blocks ?? new())
                         {
-                            var mappedBlock = new WeeklyBlockModel
+                            var mappedBlock = new ProductionMeetingBlockModel
                             {
                                 Number = block.Number,
                                 Category = block.Category ?? "",
@@ -914,7 +849,7 @@ namespace CleanPotal
                             foreach (var att in block.FollowUpAttachments ?? new())
                             {
                                 if (!string.IsNullOrWhiteSpace(att.FilePath))
-                                    mappedBlock.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                                    mappedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                             }
                             mappedReport.Blocks.Add(mappedBlock);
                         }
@@ -922,18 +857,13 @@ namespace CleanPotal
                         foreach (var att in report.MemoAttachments ?? new())
                         {
                             if (!string.IsNullOrWhiteSpace(att.FilePath))
-                                mappedReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                                mappedReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                         }
 
                         mappedGroup.Reports.Add(mappedReport);
                     }
-                    if (!string.IsNullOrWhiteSpace(mappedGroup.MonthTitle) && mappedGroup.Reports.Count > 0)
-                    {
-                        GroupedHistory.Add(mappedGroup);
-                    }
+                    GroupedHistory.Add(mappedGroup);
                 }
-
-                NormalizeGroups();
             }
             catch { }
         }
@@ -942,7 +872,6 @@ namespace CleanPotal
         {
             try
             {
-                NormalizeGroups();
                 Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {

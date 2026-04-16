@@ -15,6 +15,8 @@ namespace CleanPotal
         public static string ButtonsFilePath => Path.Combine(DataRoot, "buttons.json");
         public static string GetFallbackButtonsPath() => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "buttons.json");
         public static string VendorsFilePath => Path.Combine(DataRoot, "vendors.json");
+        public static string WeeklyReportsFilePath => Path.Combine(DataRoot, "weekly_reports.json");
+        public static string ProductionMeetingFilePath => Path.Combine(DataRoot, "production_meetings.json");
 
         public static string ActiveFilePath => Path.Combine(DataRoot, "active_handovers.json");
         public static string DoneFilePath => Path.Combine(DataRoot, "done_handovers.json");
