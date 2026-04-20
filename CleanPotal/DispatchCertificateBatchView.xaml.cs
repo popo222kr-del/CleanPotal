@@ -79,12 +79,23 @@ namespace CleanPotal
             AetsPreviewGrid.ItemsSource = AetsPreviewList;
         }
 
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            _isAetsMode = RbAets?.IsChecked == true;
+            ApplyModeState();
+        }
+
         private void Mode_Changed(object sender, RoutedEventArgs e)
         {
             _isAetsMode = RbAets?.IsChecked == true;
+            ApplyModeState();
+            Logs.Clear();
+        }
+
+        private void ApplyModeState()
+        {
             if (AetsFilePanel != null) AetsFilePanel.Visibility = _isAetsMode ? Visibility.Visible : Visibility.Collapsed;
             if (PreviewBorder != null) PreviewBorder.Visibility = _isAetsMode ? Visibility.Visible : Visibility.Collapsed;
-            Logs.Clear();
         }
 
         private void AetsPanel_PreviewDragOver(object sender, DragEventArgs e)
@@ -120,43 +131,44 @@ namespace CleanPotal
             AetsPreviewList.Clear();
             try
             {
-                await Task.Run(() =>
+                var parsedItems = await Task.Run(() =>
                 {
                     // 확장자에 따라 파싱 방식(CSV vs Excel)을 스마트하게 분리합니다.
                     if (aetsPath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        ParseCsvData(aetsPath);
+                        return ParseCsvData(aetsPath);
                     }
-                    else
-                    {
-                        ParseExcelData(aetsPath);
-                    }
+                    return ParseExcelData(aetsPath);
                 });
+
+                foreach (var item in parsedItems)
+                {
+                    AetsPreviewList.Add(item);
+                }
             }
             catch (Exception ex) { Dispatcher.Invoke(() => MessageBox.Show("파일 읽기 실패: " + ex.Message)); }
         }
 
-        // 🔥 신규: CSV 전용 초고속 파싱 엔진 탑재
-        private void ParseCsvData(string path)
+        private static List<AetsPreviewModel> ParseCsvData(string path)
         {
             DateTime exDate = DateTime.Today;
             string exMgr = "", exCom = "AETS";
+            var parsedItems = new List<AetsPreviewModel>();
 
             System.Text.Encoding encoding = System.Text.Encoding.Default;
             try { encoding = System.Text.Encoding.GetEncoding("euc-kr"); } catch { }
 
-            string[] lines = File.ReadAllLines(path, encoding);
             bool isList = false, isInfo = false;
-
-            foreach (var line in lines)
+            foreach (var line in File.ReadLines(path, encoding))
             {
-                var cells = line.Split(',').Select(x => x.Trim('\"', ' ')).ToArray();
-                if (cells.Length < 2) continue;
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var cells = ParseCsvRow(line);
+                if (cells.Count < 2) continue;
 
-                string cellB = cells.Length > 1 ? cells[1] : "";
-                string cellC = cells.Length > 2 ? cells[2] : "";
-                string cellD = cells.Length > 3 ? cells[3] : "";
-                string cellF = cells.Length > 5 ? cells[5] : "";
+                string cellB = GetCsvCell(cells, 1);
+                string cellC = GetCsvCell(cells, 2);
+                string cellD = GetCsvCell(cells, 3);
+                string cellF = GetCsvCell(cells, 5);
 
                 if (cellB.Contains("반출 정보")) { isInfo = true; isList = false; continue; }
                 if (cellB.Contains("반출 LIST")) { isList = true; isInfo = false; continue; }
@@ -182,25 +194,67 @@ namespace CleanPotal
 
                     for (int i = 0; i < qty; i++)
                     {
-                        Dispatcher.Invoke(() => AetsPreviewList.Add(new AetsPreviewModel
+                        parsedItems.Add(new AetsPreviewModel
                         {
                             PartName = cellC,
                             ItemCode = cellD,
                             CompanyName = exCom,
                             ManagerName = exMgr,
                             OutDate = exDate
-                        }));
+                        });
                     }
                 }
             }
+            return parsedItems;
         }
 
-        private void ParseExcelData(string path)
+        private static string GetCsvCell(List<string> cells, int index)
+        {
+            return cells.Count > index ? cells[index] : "";
+        }
+
+        private static List<string> ParseCsvRow(string line)
+        {
+            var result = new List<string>();
+            var field = new System.Text.StringBuilder();
+            bool inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char ch = line[i];
+                if (ch == '\"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
+                    {
+                        field.Append('\"');
+                        i++;
+                        continue;
+                    }
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (ch == ',' && !inQuotes)
+                {
+                    result.Add(field.ToString().Trim());
+                    field.Clear();
+                    continue;
+                }
+
+                field.Append(ch);
+            }
+
+            result.Add(field.ToString().Trim());
+            return result;
+        }
+
+        private static List<AetsPreviewModel> ParseExcelData(string path)
         {
             using var wb = new XLWorkbook(path);
             var ws = wb.Worksheet(1);
             DateTime exDate = DateTime.Today;
             string exMgr = "", exCom = "AETS";
+            var parsedItems = new List<AetsPreviewModel>();
 
             foreach (var row in ws.RowsUsed())
             {
@@ -236,17 +290,18 @@ namespace CleanPotal
 
                     for (int i = 0; i < qty; i++)
                     {
-                        Dispatcher.Invoke(() => AetsPreviewList.Add(new AetsPreviewModel
+                        parsedItems.Add(new AetsPreviewModel
                         {
                             PartName = part,
                             ItemCode = code,
                             CompanyName = exCom,
                             ManagerName = exMgr,
                             OutDate = exDate
-                        }));
+                        });
                     }
                 }
             }
+            return parsedItems;
         }
 
         private async void BtnRun_Click(object sender, RoutedEventArgs e)

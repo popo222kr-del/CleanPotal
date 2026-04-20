@@ -66,7 +66,7 @@
             <RadioButton x:Name="RbAets" Content="고객사(AETS) 의뢰 양식" Checked="Mode_Changed" FontWeight="Bold" Foreground="#1E293B" FontSize="14"/>
         </StackPanel>
 
-        <Border Grid.Row="1" x:Name="AetsFilePanel" Height="140" Background="White" BorderBrush="#2563EB" BorderThickness="2" CornerRadius="12" Margin="0,0,0,20" AllowDrop="True" PreviewDragOver="AetsPanel_PreviewDragOver" Drop="AetsPanel_Drop">
+        <Border Grid.Row="1" x:Name="AetsFilePanel" Height="140" Background="White" BorderBrush="#2563EB" BorderThickness="2" CornerRadius="12" Margin="0,0,0,20" Visibility="Collapsed" AllowDrop="True" PreviewDragOver="AetsPanel_PreviewDragOver" Drop="AetsPanel_Drop">
             <Border.Style>
                 <Style TargetType="Border">
                     <Style.Triggers>
@@ -85,7 +85,7 @@
 
         <Button x:Name="BtnRun" Grid.Row="2" Content="성적서 자동 생성 실행" Width="220" Height="46" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,0,0,20" Click="BtnRun_Click"/>
 
-        <Border x:Name="PreviewBorder" Grid.Row="3" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10" Margin="0,0,0,20" MaxHeight="350">
+        <Border x:Name="PreviewBorder" Grid.Row="3" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="10" Margin="0,0,0,20" MaxHeight="350" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

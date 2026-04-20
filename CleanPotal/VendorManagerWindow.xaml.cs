@@ -36,6 +36,26 @@ namespace CleanPotal
                 VendorListBox.SelectedIndex = 0;
         }
 
+        // =========================================================================
+        // 🔥 버그 완벽 해결: 마우스 클릭 시 포커스를 강제로 가져와 무조건 원클릭에 작동하게 만듭니다.
+        // =========================================================================
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseDown(e);
+
+            if (e.OriginalSource is DependencyObject depObj)
+            {
+                // 입력창(TextBox)이나 스크롤 조작이 아닐 경우, 무조건 화면 전체로 포커스를 
+                // 강제 회수하여 다음 클릭(버튼 등)이 씹히지 않고 한 번에 작동하도록 합니다.
+                if (!(depObj is System.Windows.Controls.Primitives.TextBoxBase) &&
+                    !(depObj is System.Windows.Controls.Primitives.Thumb))
+                {
+                    Keyboard.Focus(this);
+                }
+            }
+        }
+        // =========================================================================
+
         // --- 필터 및 검색 로직 ---
         private void FilterTab_Checked(object sender, RoutedEventArgs e)
         {
@@ -134,7 +154,11 @@ namespace CleanPotal
             SettingsOverlay.Visibility = Visibility.Visible;
         }
 
-        private void BtnCloseSettings_Click(object sender, RoutedEventArgs e) => SettingsOverlay.Visibility = Visibility.Collapsed;
+        private void BtnCloseSettings_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsOverlay.Visibility = Visibility.Collapsed;
+            Keyboard.Focus(this); // 🔥 팝업이 닫힐 때 포커스가 증발해서 씹히는 현상 방지
+        }
 
         private void BtnChangeMasterDb_Click(object sender, RoutedEventArgs e)
         {
@@ -192,7 +216,7 @@ namespace CleanPotal
         {
             try
             {
-                Keyboard.ClearFocus();
+                Keyboard.Focus(this); // 🔥 저장 시에도 확실하게 포커스 정리
                 VendorStore.Save(Vendors);
                 UpdateSummary();
                 MessageBox.Show("안전하게 저장되었습니다.");
