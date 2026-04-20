@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace CleanPotal
 {
@@ -11,7 +12,6 @@ namespace CleanPotal
         private string _vendor = "";
         public string Vendor { get => _vendor; set { _vendor = value; OnPropertyChanged(); } }
 
-        // 🔥 누락되었던 탭 분류용 속성 (SEMES, QTZ)
         private string _category = "QTZ";
         public string Category { get => _category; set { _category = value; OnPropertyChanged(); } }
 
@@ -30,6 +30,25 @@ namespace CleanPotal
         private string _status = "진행";
         public string Status { get => _status; set { _status = value; OnPropertyChanged(); NotifyProgress(); } }
 
+        private string _deliveryMethod = "➖ 미정";
+        public string DeliveryMethod
+        {
+            get => _deliveryMethod;
+            set { _deliveryMethod = value; OnPropertyChanged(); OnPropertyChanged(nameof(DeliveryIcon)); }
+        }
+
+        public string DeliveryIcon
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(DeliveryMethod)) return "";
+                if (DeliveryMethod.Contains("배차")) return "🚚\uFE0F";
+                if (DeliveryMethod.Contains("택배")) return "📦\uFE0F";
+                if (DeliveryMethod.Contains("업체 회수")) return "🏢\uFE0F";
+                return "➖";
+            }
+        }
+
         private string _memo = "";
         public string Memo
         {
@@ -37,7 +56,24 @@ namespace CleanPotal
             set
             {
                 _memo = value;
+
+                // 🔥 수정: 인덱스 계산 에러가 발생하지 않도록 안전한 정규식(Regex)으로 납품 방법 추출!
+                if (!string.IsNullOrWhiteSpace(_memo))
+                {
+                    var match = Regex.Match(_memo, @"\[\[DELIVERY\]\](.*?)\[\[/DELIVERY\]\]");
+                    if (match.Success)
+                    {
+                        string dm = match.Groups[1].Value;
+                        if (!string.IsNullOrWhiteSpace(dm))
+                        {
+                            _deliveryMethod = dm;
+                        }
+                    }
+                }
+
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(DeliveryMethod));
+                OnPropertyChanged(nameof(DeliveryIcon));
                 OnPropertyChanged(nameof(DisplayMemoText));
                 OnPropertyChanged(nameof(FirstImagePath));
                 OnPropertyChanged(nameof(HasImage));
@@ -50,9 +86,18 @@ namespace CleanPotal
             get
             {
                 if (string.IsNullOrWhiteSpace(Memo)) return "";
-                int start = Memo.IndexOf("[[HANDOVER_IMAGES]]", StringComparison.Ordinal);
-                if (start < 0) return Memo;
-                return Memo.Substring(0, start).TrimEnd();
+                string text = Memo;
+
+                // 🔥 수정: 화면에 보일 때는 숨겨둔 납품 방법 태그를 정규식으로 깔끔하게 지움!
+                text = Regex.Replace(text, @"\[\[DELIVERY\]\].*?\[\[/DELIVERY\]\]\r?\n?", "");
+
+                int iStart = text.IndexOf("[[HANDOVER_IMAGES]]", StringComparison.Ordinal);
+                if (iStart >= 0)
+                {
+                    text = text.Substring(0, iStart);
+                }
+
+                return text.Trim();
             }
         }
 
@@ -72,7 +117,6 @@ namespace CleanPotal
                     string trimmed = line.Trim();
                     if (!string.IsNullOrWhiteSpace(trimmed))
                     {
-                        // 공용 네트워크 폴더 참조
                         string root = System.IO.Path.Combine(AppPaths.DataRoot, "handover_images");
                         return System.IO.Path.GetFullPath(System.IO.Path.Combine(root, trimmed));
                     }
@@ -124,7 +168,6 @@ namespace CleanPotal
         private DateTime _modifyDate = DateTime.Now;
         public DateTime ModifyDate { get => _modifyDate; set { _modifyDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(ModifierText)); OnPropertyChanged(nameof(IsNewUpdate)); } }
 
-        // 🔥 누락되었던 개별 사용자 읽음 처리 기록 속성
         private string _readBy = "";
         public string ReadBy { get => _readBy; set { _readBy = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsNewUpdate)); } }
 
@@ -132,7 +175,6 @@ namespace CleanPotal
         public string ModifierText => string.IsNullOrEmpty(ModifierName) ? "" : $"🔄 수정: {ModifierName} ({ModifyDate:yy.MM.dd HH:mm})";
         public bool HasModifier => !string.IsNullOrEmpty(ModifierName);
 
-        // 🔥 누락되었던 알림/레드닷 표시 계산 로직 (새 글 + 수정 글 모두 포함)
         public bool IsNewUpdate
         {
             get
@@ -140,15 +182,12 @@ namespace CleanPotal
                 if (!SessionManager.IsLoggedIn) return false;
                 string currentUser = SessionManager.CurrentRealName;
 
-                // 1. 내가 이미 클릭해서 읽은 항목이라면 빨간 점 즉시 소멸
                 if (!string.IsNullOrEmpty(ReadBy) && ReadBy.Contains(currentUser)) return false;
 
-                // 2. 다른 사람이 24시간 이내에 새로 등록한 경우
                 bool isNewlyCreated = !string.IsNullOrEmpty(CreatorName) &&
                                       CreatorName != currentUser &&
                                       (DateTime.Now - CreateDate).TotalHours <= 24;
 
-                // 3. 다른 사람이 24시간 이내에 수정한 경우
                 bool isRecentlyModified = !string.IsNullOrEmpty(ModifierName) &&
                                           ModifierName != currentUser &&
                                           (DateTime.Now - ModifyDate).TotalHours <= 24;

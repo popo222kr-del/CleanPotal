@@ -68,7 +68,7 @@ namespace CleanPotal
                 new VendorModel
                 {
                     VendorName = "우암",
-                    Category = "", // '일반' 제거
+                    Category = "",
                     Addresses = new ObservableCollection<AddressModel>
                     {
                         new AddressModel { IsMain = true, LocationName = "본사", FullAddress = "경기 안성시 미양면 강덕1길 138-4" }
@@ -76,12 +76,13 @@ namespace CleanPotal
                     Managers = new ObservableCollection<ManagerModel>
                     {
                         new ManagerModel { ManagerName = "최남용", ContactNumber = "010-9008-3089" }
-                    }
+                    },
+                    Templates = new ObservableCollection<VendorTemplateModel>()
                 },
                 new VendorModel
                 {
                     VendorName = "영신",
-                    Category = "", // '일반' 제거
+                    Category = "",
                     Addresses = new ObservableCollection<AddressModel>
                     {
                         new AddressModel { IsMain = true, LocationName = "본사", FullAddress = "충북 진천군 광혜원면 용소1길 10" }
@@ -89,14 +90,14 @@ namespace CleanPotal
                     Managers = new ObservableCollection<ManagerModel>
                     {
                         new ManagerModel { ManagerName = "정성수", ContactNumber = "010-2375-1930" }
-                    }
+                    },
+                    Templates = new ObservableCollection<VendorTemplateModel>()
                 }
             };
         }
 
         private static VendorModel CloneVendor(VendorModel source)
         {
-            // 데이터 복제 시 '일반'이 있으면 빈값으로 정제
             string cat = source.Category?.Trim() ?? "";
             if (cat == "일반") cat = "";
 
@@ -114,6 +115,15 @@ namespace CleanPotal
                 {
                     ManagerName = m.ManagerName?.Trim() ?? string.Empty,
                     ContactNumber = m.ContactNumber?.Trim() ?? string.Empty
+                })),
+                // 🔥 템플릿 복제 추가
+                Templates = new ObservableCollection<VendorTemplateModel>((source.Templates ?? new()).Select(t => new VendorTemplateModel
+                {
+                    IsUsed = t.IsUsed,
+                    ItemCode = t.ItemCode?.Trim() ?? string.Empty,
+                    TemplatePath = t.TemplatePath?.Trim() ?? string.Empty,
+                    BasePath = t.BasePath?.Trim() ?? string.Empty,
+                    FileNameRule = t.FileNameRule?.Trim() ?? string.Empty
                 }))
             };
         }

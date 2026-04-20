@@ -21,7 +21,7 @@ using System.Windows.Media.Imaging;
 namespace CleanPotal
 {
     // ==========================================
-    // 데이터 모델 정의 (누락 방지)
+    // 데이터 모델 정의
     // ==========================================
     public class ProductionMeetingGroupModel
     {
@@ -147,13 +147,13 @@ namespace CleanPotal
     {
         public ObservableCollection<ProductionMeetingGroupModel> GroupedHistory { get; set; } = new();
 
-        private ProductionMeetingReportModel? _currentReport; // 실제 저장되어 있는 원본 데이터
-        private ProductionMeetingReportModel? _draftReport;   // 화면에 띄워두고 작업하는 임시 복사본 (Clone)
+        private ProductionMeetingReportModel? _currentReport;
+        private ProductionMeetingReportModel? _draftReport;
         private ObservableCollection<ProductionMeetingBlockModel>? _subscribedBlocks;
         private ObservableCollection<ProductionMeetingAttachmentModel>? _subscribedMemoAttachments;
 
-        private bool _isDirty = false; // 변경사항 발생 여부 체크
-        private bool _isNavigating = false; // 리스트박스 꼬임 방지용
+        private bool _isDirty = false;
+        private bool _isNavigating = false;
 
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
         private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "production_meeting_attachments");
@@ -164,12 +164,8 @@ namespace CleanPotal
             GroupedHistoryControl.ItemsSource = GroupedHistory;
             InitCreateModal();
             LoadFromStorage();
-            // 빈 화면 유지 (더미 데이터 삭제)
         }
 
-        // ==========================================
-        // 1. 임시 작업장(Clone) 및 데이터 연동 로직
-        // ==========================================
         private ProductionMeetingReportModel CloneReport(ProductionMeetingReportModel original)
         {
             var clone = new ProductionMeetingReportModel
@@ -190,16 +186,10 @@ namespace CleanPotal
                     Content = block.Content,
                     FollowUp = block.FollowUp
                 };
-                foreach (var att in block.FollowUpAttachments)
-                {
-                    clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-                }
+                foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                 clone.Blocks.Add(clonedBlock);
             }
-            foreach (var attachment in original.MemoAttachments)
-            {
-                clone.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
-            }
+            foreach (var attachment in original.MemoAttachments) clone.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
             return clone;
         }
 
@@ -210,8 +200,6 @@ namespace CleanPotal
             UnsubscribeMemoAttachments();
 
             _currentReport = report;
-
-            // 🔥 원본 데이터를 보호하기 위해 Clone(복사본)을 떠서 화면에 바인딩합니다.
             _draftReport = CloneReport(report);
             _draftReport.PropertyChanged += DraftReport_PropertyChanged;
 
@@ -224,19 +212,12 @@ namespace CleanPotal
             TxtCurrentReportDate.Text = _draftReport.DateRange;
             ReportBlocksControl.ItemsSource = _draftReport.Blocks;
 
-            _isDirty = false; // 새로 불러왔으므로 깨끗한 상태
+            _isDirty = false;
             UpdateOverviewStats();
         }
 
-        // ==========================================
-        // 2. 변경사항 감지 및 [저장] 로직 (가장 중요한 부분)
-        // ==========================================
         private void DraftReport_PropertyChanged(object? sender, PropertyChangedEventArgs e) => _isDirty = true;
-        private void Block_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            _isDirty = true;
-            UpdateOverviewStats();
-        }
+        private void Block_PropertyChanged(object? sender, PropertyChangedEventArgs e) { _isDirty = true; UpdateOverviewStats(); }
 
         private void SubscribeBlockCollection(ObservableCollection<ProductionMeetingBlockModel> blocks)
         {
@@ -266,11 +247,7 @@ namespace CleanPotal
             _subscribedMemoAttachments = null;
         }
 
-        private void MemoAttachments_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            _isDirty = true;
-            UpdateOverviewStats();
-        }
+        private void MemoAttachments_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) { _isDirty = true; UpdateOverviewStats(); }
 
         private void Blocks_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
@@ -281,18 +258,13 @@ namespace CleanPotal
             UpdateOverviewStats();
         }
 
-        // 메인 윈도우에서 버튼 클릭 시 실행되는 진짜 저장 로직
-        public void SaveReportChanges()
-        {
-            BtnSaveContent_Click(this, new RoutedEventArgs());
-        }
+        public void SaveReportChanges() => BtnSaveContent_Click(this, new RoutedEventArgs());
 
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
 
-            // 🔥 임시 복사본(_draftReport)의 모든 변경사항을 원본(_currentReport)으로 덮어씌웁니다.
             _currentReport.Memo = _draftReport.Memo;
             _currentReport.Blocks.Clear();
 
@@ -306,19 +278,13 @@ namespace CleanPotal
                     Content = block.Content,
                     FollowUp = block.FollowUp
                 };
-                foreach (var att in block.FollowUpAttachments)
-                {
-                    clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-                }
+                foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                 _currentReport.Blocks.Add(clonedBlock);
             }
             _currentReport.MemoAttachments.Clear();
-            foreach (var attachment in _draftReport.MemoAttachments)
-            {
-                _currentReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
-            }
+            foreach (var attachment in _draftReport.MemoAttachments) _currentReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = attachment.FilePath });
 
-            _isDirty = false; // 원본에 반영되었으므로 다시 깨끗한 상태
+            _isDirty = false;
             SaveToStorage();
             MessageBox.Show("변경사항이 안전하게 원본에 저장되었습니다.", "저장 완료", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -326,10 +292,7 @@ namespace CleanPotal
         private void CommitActiveEditorChanges()
         {
             var focusedElement = Keyboard.FocusedElement as DependencyObject;
-            if (focusedElement is TextBox textBox)
-            {
-                textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
-            }
+            if (focusedElement is TextBox textBox) textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
             else if (focusedElement is ComboBox comboBox)
             {
                 comboBox.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateSource();
@@ -338,9 +301,6 @@ namespace CleanPotal
             Keyboard.ClearFocus();
         }
 
-        // ==========================================
-        // 3. 네비게이션 시 안전장치 (실수 방지용 팝업)
-        // ==========================================
         private void HistoryListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_isNavigating) return;
@@ -352,21 +312,16 @@ namespace CleanPotal
                     var result = MessageBox.Show("저장되지 않은 변경사항이 있습니다. 무시하고 이동하시겠습니까?\n(아니오를 누르면 현재 화면에 머무릅니다)", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (result == MessageBoxResult.No)
                     {
-                        // 이동을 취소하고 선택을 원래대로 되돌림
                         _isNavigating = true;
                         lb.SelectedItem = _currentReport;
                         _isNavigating = false;
                         return;
                     }
                 }
-                // 이동을 승인했거나 변경사항이 없으면 새로운 리스트 로드
                 SetCurrentReport(selected);
             }
         }
 
-        // ==========================================
-        // 4. 새 보고서 생성 (스마트 달력 로직)
-        // ==========================================
         private void InitCreateModal()
         {
             DpMeetingDate.SelectedDate = DateTime.Today;
@@ -457,15 +412,11 @@ namespace CleanPotal
             {
                 return parsed;
             }
-
             return DateTime.MinValue;
         }
 
         private void BtnCancelCreate_Click(object sender, RoutedEventArgs e) => CreateReportModal.Visibility = Visibility.Collapsed;
 
-        // ==========================================
-        // 5. 기타 블록 및 첨부파일 제어 (Draft 기반)
-        // ==========================================
         private void BtnAddBlock_Click(object sender, RoutedEventArgs e)
         {
             if (_draftReport == null) return;
@@ -479,10 +430,7 @@ namespace CleanPotal
             if (_draftReport == null) return;
             if (sender is Button { Tag: ProductionMeetingBlockModel block })
             {
-                // 🔥 삭제 전 2중 안전장치 (팝업창) 추가
                 var result = MessageBox.Show("해당 업무 항목을 정말 삭제하시겠습니까?", "항목 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-                // 사용자가 '예'를 눌렀을 때만 삭제 진행
                 if (result == MessageBoxResult.Yes)
                 {
                     _draftReport.Blocks.Remove(block);
@@ -526,6 +474,10 @@ namespace CleanPotal
 
         public void ShowReportTable() => BtnShowTable_Click(this, new RoutedEventArgs());
         private void BtnCloseTable_Click(object sender, RoutedEventArgs e) => TableModalOverlay.Visibility = Visibility.Collapsed;
+
+        // ==========================================
+        // 🔥 생산미팅 엑셀 자동 생성 및 내보내기 (템플릿 불필요)
+        // ==========================================
         private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
             if (_draftReport == null || _draftReport.Blocks.Count == 0)
@@ -534,35 +486,112 @@ namespace CleanPotal
                 return;
             }
 
-            var templateDialog = new OpenFileDialog
-            {
-                Title = "엑셀 서식 파일 선택",
-                Filter = "Excel 파일 (*.xlsx)|*.xlsx"
-            };
-            if (templateDialog.ShowDialog() != true) return;
+            // 요청하신 파일명 형식: 생산미팅_26년 4월 16일 목요일.xlsx
+            string defaultFileName = "생산미팅.xlsx";
+            string reportTitle = _draftReport.Title + " 생산미팅";
 
+            if (DateTime.TryParseExact(_draftReport.DateRange, "yyyy.MM.dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            {
+                string dateStr = dt.ToString("yy년 M월 d일 dddd", new CultureInfo("ko-KR")); // 예: 26년 4월 16일 목요일
+                defaultFileName = $"생산미팅_{dateStr}.xlsx";
+                reportTitle = $"{dateStr} 생산미팅";
+            }
+            else
+            {
+                defaultFileName = $"생산미팅_{SanitizeFileName(_draftReport.Title)}.xlsx";
+            }
+
+            // 바로 저장 위치 선택 창 띄우기
             var saveDialog = new SaveFileDialog
             {
                 Title = "저장 위치 선택",
                 Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = $"{SanitizeFileName(_draftReport.Title)}_생산미팅.xlsx"
+                FileName = defaultFileName
             };
+
             if (saveDialog.ShowDialog() != true) return;
 
             try
             {
-                File.Copy(templateDialog.FileName, saveDialog.FileName, true);
-                using var workbook = new XLWorkbook(saveDialog.FileName);
-                var worksheet = workbook.Worksheets.FirstOrDefault() ?? workbook.AddWorksheet("생산미팅");
+                using var workbook = new XLWorkbook();
+                var ws = workbook.Worksheets.Add("생산미팅");
 
-                WriteBlocksToWorksheet(worksheet, _draftReport.Title, _draftReport.Blocks.Cast<object>().ToList());
+                // 1. 타이틀 영역 생성 (A1)
+                ws.Cell(1, 1).Value = reportTitle;
+                ws.Cell(1, 1).Style.Font.Bold = true;
+                ws.Cell(1, 1).Style.Font.FontSize = 18;
+                ws.Cell(1, 1).Style.Font.FontColor = XLColor.Black;
+                ws.Range(1, 1, 1, 4).Merge(); // A1 ~ D1 병합
 
-                workbook.Save();
-                MessageBox.Show("엑셀 파일로 내보냈습니다.", "엑셀 내보내기", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 2. 표 헤더 생성 (3행)
+                int headerRow = 3;
+                ws.Cell(headerRow, 1).Value = "No.";
+                ws.Cell(headerRow, 2).Value = "분류 및 항목";
+                ws.Cell(headerRow, 3).Value = "세부 내용 및 팔로업";
+                ws.Cell(headerRow, 4).Value = "상태";
+
+                // 헤더 스타일 적용 (이미지 디자인 반영: 옅은 파란색 배경, 파란색 글씨)
+                var headerRange = ws.Range(headerRow, 1, headerRow, 4);
+                headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#E6F0FF");
+                headerRange.Style.Font.FontColor = XLColor.FromHtml("#1E3A8A");
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                headerRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#B4C6E7");
+                headerRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#B4C6E7");
+
+                // 3. 데이터 로우 채우기
+                int currentRow = 4;
+                foreach (var block in _draftReport.Blocks)
+                {
+                    ws.Cell(currentRow, 1).Value = block.Number;
+                    ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    ws.Cell(currentRow, 2).Value = block.Category;
+                    ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    ws.Cell(currentRow, 3).Value = block.FormattedContent;
+                    ws.Cell(currentRow, 3).Style.Alignment.WrapText = true; // 내용 줄바꿈
+                    ws.Cell(currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                    ws.Cell(currentRow, 4).Value = block.Status;
+                    ws.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    currentRow++;
+                }
+
+                // 데이터 영역 테두리 및 중앙 정렬 적용
+                if (_draftReport.Blocks.Count > 0)
+                {
+                    var dataRange = ws.Range(4, 1, currentRow - 1, 4);
+                    dataRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                    dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                    dataRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#B4C6E7");
+                    dataRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#B4C6E7");
+                }
+
+                // 4. 컬럼 너비 비율에 맞게 쾌적하게 조정
+                ws.Column(1).Width = 6;
+                ws.Column(2).Width = 25;
+                ws.Column(3).Width = 80;
+                ws.Column(4).Width = 12;
+
+                // 엑셀 파일 저장
+                workbook.SaveAs(saveDialog.FileName);
+
+                // 생성 직후 바로 열기
+                if (MessageBox.Show("엑셀 파일이 성공적으로 생성되었습니다.\n지금 바로 열어서 확인하시겠습니까?", "생성 완료", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"엑셀 내보내기에 실패했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"엑셀 자동 생성에 실패했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -572,7 +601,7 @@ namespace CleanPotal
             TxtModalTitle.Text = $"{_draftReport.Title} 주간보고";
             ReportDataGrid.ItemsSource = null;
             RenumberBlocks(_draftReport);
-            ReportDataGrid.ItemsSource = _draftReport.Blocks; // 팝업에는 현재 편집중인 내용을 띄움
+            ReportDataGrid.ItemsSource = _draftReport.Blocks;
             TableModalOverlay.Visibility = Visibility.Visible;
         }
 
@@ -952,61 +981,6 @@ namespace CleanPotal
         {
             var invalid = Path.GetInvalidFileNameChars();
             return new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
-        }
-
-        private static void WriteBlocksToWorksheet(IXLWorksheet worksheet, string title, List<object> blocks)
-        {
-            if (!string.IsNullOrWhiteSpace(title))
-            {
-                worksheet.Cell(1, 1).Value = title;
-            }
-
-            int headerRow = FindHeaderRow(worksheet);
-            if (headerRow < 1)
-            {
-                headerRow = 3;
-                worksheet.Cell(headerRow, 1).Value = "No.";
-                worksheet.Cell(headerRow, 2).Value = "분류 및 항목";
-                worksheet.Cell(headerRow, 3).Value = "세부 내용 및 팔로업";
-                worksheet.Cell(headerRow, 4).Value = "상태";
-            }
-
-            int startRow = headerRow + 1;
-            int lastUsedRow = Math.Max(startRow + blocks.Count - 1, worksheet.LastRowUsed()?.RowNumber() ?? startRow);
-            for (int row = startRow; row <= lastUsedRow; row++)
-            {
-                worksheet.Cell(row, 1).Clear(XLClearOptions.Contents);
-                worksheet.Cell(row, 2).Clear(XLClearOptions.Contents);
-                worksheet.Cell(row, 3).Clear(XLClearOptions.Contents);
-                worksheet.Cell(row, 4).Clear(XLClearOptions.Contents);
-            }
-
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                int row = startRow + i;
-                dynamic block = blocks[i];
-                worksheet.Cell(row, 1).Value = block.Number;
-                worksheet.Cell(row, 2).Value = block.Category ?? "";
-                worksheet.Cell(row, 3).Value = block.FormattedContent ?? "";
-                worksheet.Cell(row, 4).Value = block.Status ?? "";
-                worksheet.Cell(row, 3).Style.Alignment.WrapText = true;
-            }
-        }
-
-        private static int FindHeaderRow(IXLWorksheet worksheet)
-        {
-            int maxRow = Math.Min(20, worksheet.LastRowUsed()?.RowNumber() ?? 20);
-            for (int row = 1; row <= maxRow; row++)
-            {
-                string c1 = worksheet.Cell(row, 1).GetString();
-                string c2 = worksheet.Cell(row, 2).GetString();
-                if (c1.Contains("No", StringComparison.OrdinalIgnoreCase) &&
-                    (c2.Contains("분류") || c2.Contains("항목")))
-                {
-                    return row;
-                }
-            }
-            return -1;
         }
     }
 }

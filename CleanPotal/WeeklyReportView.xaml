@@ -91,7 +91,11 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid x:Name="RootLayout" Background="Transparent" PreviewMouseWheel="RootLayout_PreviewMouseWheel">
+        <Grid.LayoutTransform>
+            <ScaleTransform x:Name="MainScaleTransform" ScaleX="1.0" ScaleY="1.0"/>
+        </Grid.LayoutTransform>
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="210"/>
             <ColumnDefinition Width="*"/>
@@ -206,7 +210,30 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="#F1F5F9" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" Height="32" Padding="8,0" Width="160" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" FontSize="12" Foreground="#0F172A" TextChanged="SearchBox_TextChanged"/>
+                            <TextBlock Grid.Column="1" Text="내용 검색..." Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
                     <Button x:Name="BtnDeleteReport" Content="보고서 삭제" Height="32" Padding="12,0" Margin="0,0,10,0" Background="#FEE2E2" Foreground="#B91C1C" BorderBrush="#FCA5A5" BorderThickness="1" FontWeight="Bold" Cursor="Hand" Click="BtnDeleteReport_Click">
                         <Button.Resources>
                             <Style TargetType="Border">
@@ -229,7 +256,7 @@
                     <ItemsControl x:Name="ReportBlocksControl">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Margin="0,0,0,10" Padding="12">
+                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Margin="0,0,0,10" Padding="12" AllowDrop="True" PreviewDragOver="Card_PreviewDragOver" Drop="Card_Drop" MouseMove="Card_MouseMove" Tag="{Binding}">
                                     <Border.Effect>
                                         <DropShadowEffect Color="#64748B" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
                                     </Border.Effect>
@@ -404,9 +431,9 @@
                     </Grid.RowDefinitions>
 
                     <TextBox Grid.Row="0" x:Name="MemoTextBox" Text="{Binding Memo, UpdateSourceTrigger=PropertyChanged}" 
-                         Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" 
-                         Padding="20" FontSize="14" Foreground="#1E293B" 
-                         TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top">
+                             Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" 
+                             Padding="20" FontSize="14" Foreground="#1E293B" 
+                             TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top">
                         <TextBox.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="16"/>
@@ -628,6 +655,39 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Header="첨부 사진" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding FollowUpAttachments}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="5"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="2" CornerRadius="4" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" Cursor="Hand" MouseLeftButtonDown="ReportImage_Click">
+                                                        <Image Source="{Binding AbsolutePath}" Height="50" Stretch="UniformToFill">
+                                                            <Image.Style>
+                                                                <Style TargetType="Image">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsImage}" Value="False">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Image.Style>
+                                                        </Image>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="100">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -50,8 +51,6 @@ namespace CleanPotal
         private ICollectionView _doneView;
 
         private string _currentFilter = "전체";
-
-        // 🔥 업체명 검색용 변수 추가
         private string _activeSearchKeyword = "";
         private string _doneSearchKeyword = "";
 
@@ -59,12 +58,15 @@ namespace CleanPotal
         {
             InitializeComponent();
             DataContext = this;
-            StatusOptions = new ObservableCollection<string> { "진행", "보류", "완료" };
-            TodayText = DateTime.Now.ToString("yyyy-MM-dd dddd");
 
+            StatusOptions = new ObservableCollection<string> { "진행", "포장", "완료" };
+            DeliveryOptions = new ObservableCollection<string> { "➖ 미정", "🚚 배차", "📦 택배", "🏢 업체 회수" };
+
+            TodayText = DateTime.Now.ToString("yyyy-MM-dd dddd");
             EditInDate = DateTime.Today;
             EditOutDate = DateTime.Today;
             EditStatus = "진행";
+            EditDeliveryMethod = "➖ 미정";
 
             HookManageCheckedEvents();
             HookDoneCheckedEvents();
@@ -73,7 +75,6 @@ namespace CleanPotal
             LoadHandoverAll();
             LoadTodayStatus();
 
-            // 🔥 리스트별로 독립된 검색 필터 함수를 지정하도록 분리
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
             _activeView.Filter = FilterActiveItem;
             ActiveGrid.ItemsSource = _activeView;
@@ -100,10 +101,9 @@ namespace CleanPotal
         public ObservableCollection<HandoverItem> ActiveItems { get; } = new();
         public ObservableCollection<HandoverItem> DoneItems { get; } = new();
         public ObservableCollection<string> StatusOptions { get; }
+        public ObservableCollection<string> DeliveryOptions { get; }
         public ObservableCollection<NoticeItem> NoticeItems { get; } = new();
-
         public ObservableCollection<TeamStatusGroup> TeamStatusGroups { get; } = new();
-
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> EditModalAttachmentPaths { get; } = new();
 
@@ -126,13 +126,7 @@ namespace CleanPotal
         public bool? DoneSelectAll
         {
             get => _doneSelectAll;
-            set
-            {
-                _doneSelectAll = value;
-                OnPropertyChanged();
-                if (value.HasValue)
-                    foreach (var item in DoneItems) item.ManageChecked = value.Value;
-            }
+            set { _doneSelectAll = value; OnPropertyChanged(); if (value.HasValue) foreach (var item in DoneItems) item.ManageChecked = value.Value; }
         }
 
         private HandoverItem? _currentEditItem;
@@ -155,6 +149,9 @@ namespace CleanPotal
         private string _editStatus = "진행";
         public string EditStatus { get => _editStatus; set { _editStatus = value; OnPropertyChanged(); RefreshTopProgressPreview(); } }
 
+        private string _editDeliveryMethod = "➖ 미정";
+        public string EditDeliveryMethod { get => _editDeliveryMethod; set { _editDeliveryMethod = value; OnPropertyChanged(); } }
+
         private string _editMemo = "";
         public string EditMemo { get => _editMemo; set { _editMemo = value; OnPropertyChanged(); } }
 
@@ -166,16 +163,8 @@ namespace CleanPotal
 
         private void BtnToggleDashboard_Click(object sender, RoutedEventArgs e)
         {
-            if (TopDashboardArea.Visibility == Visibility.Visible)
-            {
-                TopDashboardArea.Visibility = Visibility.Collapsed;
-                BtnToggleDashboard.Content = "대시보드 펴기 ▼";
-            }
-            else
-            {
-                TopDashboardArea.Visibility = Visibility.Visible;
-                BtnToggleDashboard.Content = "대시보드 접기 ▲";
-            }
+            if (TopDashboardArea.Visibility == Visibility.Visible) { TopDashboardArea.Visibility = Visibility.Collapsed; BtnToggleDashboard.Content = "대시보드 펴기 ▼"; }
+            else { TopDashboardArea.Visibility = Visibility.Visible; BtnToggleDashboard.Content = "대시보드 접기 ▲"; }
         }
 
         private void LoadTodayStatus()
@@ -187,408 +176,98 @@ namespace CleanPotal
                 var shifts = DatabaseHelper.GetShiftSchedulesByDate(today);
                 var edus = DatabaseHelper.GetEducationPlansByDate(today);
                 var allUsers = AuthDatabaseHelper.GetAllUsers();
-
-                string GetNameOnly(string name) => name;
-
                 string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
 
                 foreach (var tName in targetTeams)
                 {
                     var group = new TeamStatusGroup { TeamName = tName };
                     var teamUsers = allUsers.Where(u => u.TeamName == tName).Select(u => u.RealName).ToList();
-
                     var tShifts = shifts.Where(s => teamUsers.Contains(s.MemberName) || s.TeamGroup == tName).ToList();
                     var tEdus = edus.Where(e => teamUsers.Contains(e.MemberName)).ToList();
 
                     var dayShifts = tShifts.Where(s => s.ShiftType == "주간" || s.ShiftType == "예상:주간").Select(s => s.MemberName).Distinct().ToList();
-                    if (dayShifts.Count > 0)
-                    {
-                        var formattedNames = dayShifts.Select(GetNameOnly).ToList();
-                        group.StatusList.Add(new TodayStatusItem
-                        {
-                            BadgeText = $"주간 ({dayShifts.Count})",
-                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(254, 243, 199)),
-                            TextBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)),
-                            MembersText = FormatMembersText(formattedNames)
-                        });
-                    }
+                    if (dayShifts.Count > 0) group.StatusList.Add(new TodayStatusItem { BadgeText = $"주간 ({dayShifts.Count})", BackgroundBrush = new SolidColorBrush(Color.FromRgb(254, 243, 199)), TextBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)), MembersText = FormatMembersText(dayShifts) });
 
                     var nightShifts = tShifts.Where(s => s.ShiftType == "야간" || s.ShiftType == "예상:야간").Select(s => s.MemberName).Distinct().ToList();
-                    if (nightShifts.Count > 0)
-                    {
-                        var formattedNames = nightShifts.Select(GetNameOnly).ToList();
-                        group.StatusList.Add(new TodayStatusItem
-                        {
-                            BadgeText = $"야간 ({nightShifts.Count})",
-                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(224, 231, 255)),
-                            TextBrush = new SolidColorBrush(Color.FromRgb(67, 56, 202)),
-                            MembersText = FormatMembersText(formattedNames)
-                        });
-                    }
+                    if (nightShifts.Count > 0) group.StatusList.Add(new TodayStatusItem { BadgeText = $"야간 ({nightShifts.Count})", BackgroundBrush = new SolidColorBrush(Color.FromRgb(224, 231, 255)), TextBrush = new SolidColorBrush(Color.FromRgb(67, 56, 202)), MembersText = FormatMembersText(nightShifts) });
 
                     var offShifts = tShifts.Where(s => s.ShiftType.Contains("휴무") || s.ShiftType.Contains("연차") || s.ShiftType.Contains("반차")).ToList();
-                    if (offShifts.Count > 0)
-                    {
-                        var offNames = offShifts.Select(s => s.ShiftType == "연차" || s.ShiftType == "휴무"
-                            ? GetNameOnly(s.MemberName)
-                            : $"{GetNameOnly(s.MemberName)} ({s.ShiftType})").ToList();
+                    if (offShifts.Count > 0) group.StatusList.Add(new TodayStatusItem { BadgeText = $"휴무 ({offShifts.Count})", BackgroundBrush = new SolidColorBrush(Color.FromRgb(243, 232, 255)), TextBrush = new SolidColorBrush(Color.FromRgb(126, 34, 206)), MembersText = FormatMembersText(offShifts.Select(s => s.ShiftType == "연차" || s.ShiftType == "휴무" ? s.MemberName : $"{s.MemberName} ({s.ShiftType})").ToList()) });
 
-                        group.StatusList.Add(new TodayStatusItem
-                        {
-                            BadgeText = $"휴무 ({offShifts.Count})",
-                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(243, 232, 255)),
-                            TextBrush = new SolidColorBrush(Color.FromRgb(126, 34, 206)),
-                            MembersText = FormatMembersText(offNames)
-                        });
-                    }
+                    if (tEdus.Count > 0) group.StatusList.Add(new TodayStatusItem { BadgeText = $"교육 ({tEdus.Count})", BackgroundBrush = new SolidColorBrush(Color.FromRgb(236, 252, 203)), TextBrush = new SolidColorBrush(Color.FromRgb(101, 163, 13)), MembersText = FormatMembersText(tEdus.Select(e => $"{e.MemberName} ({e.CourseName})").ToList()) });
 
-                    if (tEdus.Count > 0)
-                    {
-                        var eduNames = tEdus.Select(e => $"{GetNameOnly(e.MemberName)} ({e.CourseName})").ToList();
-                        group.StatusList.Add(new TodayStatusItem
-                        {
-                            BadgeText = $"교육 ({tEdus.Count})",
-                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(236, 252, 203)),
-                            TextBrush = new SolidColorBrush(Color.FromRgb(101, 163, 13)),
-                            MembersText = FormatMembersText(eduNames)
-                        });
-                    }
-
-                    if (group.StatusList.Count == 0)
-                    {
-                        group.StatusList.Add(new TodayStatusItem
-                        {
-                            BadgeText = "상태",
-                            BackgroundBrush = new SolidColorBrush(Color.FromRgb(241, 245, 249)),
-                            TextBrush = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
-                            MembersText = "일정 없음"
-                        });
-                    }
-
+                    if (group.StatusList.Count == 0) group.StatusList.Add(new TodayStatusItem { BadgeText = "상태", BackgroundBrush = new SolidColorBrush(Color.FromRgb(241, 245, 249)), TextBrush = new SolidColorBrush(Color.FromRgb(100, 116, 139)), MembersText = "일정 없음" });
                     TeamStatusGroups.Add(group);
                 }
-
-                if (TodayStatusList != null)
-                {
-                    TodayStatusList.ItemsSource = TeamStatusGroups;
-                }
+                if (TodayStatusList != null) TodayStatusList.ItemsSource = TeamStatusGroups;
             }
             catch { }
         }
 
-        private string FormatMembersText(List<string> members)
-        {
-            if (members.Count == 0) return "";
-            if (members.Count <= 4) return string.Join(", ", members);
-            return $"{string.Join(", ", members.Take(3))} 외 {members.Count - 3}명";
-        }
+        private string FormatMembersText(List<string> members) { if (members.Count == 0) return ""; if (members.Count <= 4) return string.Join(", ", members); return $"{string.Join(", ", members.Take(3))} 외 {members.Count - 3}명"; }
 
-        // ==========================================
-        // 🔥 검색 및 탭 필터링 로직 영역
-        // ==========================================
+        private void SearchVendorBox_TextChanged(object sender, TextChangedEventArgs e) { _activeSearchKeyword = SearchVendorBox.Text?.Trim() ?? ""; _activeView?.Refresh(); }
+        private void DoneSearchVendorBox_TextChanged(object sender, TextChangedEventArgs e) { _doneSearchKeyword = DoneSearchVendorBox.Text?.Trim() ?? ""; _doneView?.Refresh(); }
 
-        private void SearchVendorBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _activeSearchKeyword = SearchVendorBox.Text?.Trim() ?? "";
-            _activeView?.Refresh();
-        }
+        private void FilterTab_Checked(object sender, RoutedEventArgs e) { if (sender is RadioButton rb && rb.Content != null) _currentFilter = rb.Content.ToString() ?? "전체"; _activeView?.Refresh(); _doneView?.Refresh(); }
 
-        private void DoneSearchVendorBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _doneSearchKeyword = DoneSearchVendorBox.Text?.Trim() ?? "";
-            _doneView?.Refresh();
-        }
-
-        private void FilterTab_Checked(object sender, RoutedEventArgs e)
-        {
-            if (sender is RadioButton rb && rb.Content != null)
-            {
-                _currentFilter = rb.Content.ToString() ?? "전체";
-            }
-            _activeView?.Refresh();
-            _doneView?.Refresh();
-        }
+        private void ToggleDueToday_Click(object sender, RoutedEventArgs e) { if (ToggleDueToday.IsChecked == true) ToggleDueTomorrow.IsChecked = false; _activeView?.Refresh(); _doneView?.Refresh(); }
+        private void ToggleDueTomorrow_Click(object sender, RoutedEventArgs e) { if (ToggleDueTomorrow.IsChecked == true) ToggleDueToday.IsChecked = false; _activeView?.Refresh(); _doneView?.Refresh(); }
 
         private bool FilterActiveItem(object obj)
         {
             if (obj is HandoverItem item)
             {
-                bool categoryMatch = _currentFilter == "전체" ||
-                                     string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) ||
-                                     (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase));
-
-                bool dueTodayMatch = true;
-                if (ToggleDueToday?.IsChecked == true)
-                {
-                    dueTodayMatch = item.OutDate.HasValue && item.OutDate.Value.Date <= DateTime.Today;
-                }
-
-                bool searchMatch = string.IsNullOrWhiteSpace(_activeSearchKeyword) ||
-                                   item.Vendor.Contains(_activeSearchKeyword, StringComparison.OrdinalIgnoreCase);
-
-                return categoryMatch && dueTodayMatch && searchMatch;
+                bool categoryMatch = _currentFilter == "전체" || string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) || (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase));
+                bool filterByToday = ToggleDueToday?.IsChecked == true;
+                bool filterByTomorrow = ToggleDueTomorrow?.IsChecked == true;
+                bool dateMatch = true;
+                if (filterByToday || filterByTomorrow) { dateMatch = false; if (item.OutDate.HasValue) { if (filterByToday && item.OutDate.Value.Date <= DateTime.Today) dateMatch = true; if (filterByTomorrow && item.OutDate.Value.Date == DateTime.Today.AddDays(1)) dateMatch = true; } }
+                bool searchMatch = string.IsNullOrWhiteSpace(_activeSearchKeyword) || item.Vendor.Contains(_activeSearchKeyword, StringComparison.OrdinalIgnoreCase);
+                return categoryMatch && dateMatch && searchMatch;
             }
             return false;
         }
 
-        private bool FilterDoneItem(object obj)
-        {
-            if (obj is HandoverItem item)
-            {
-                bool categoryMatch = _currentFilter == "전체" ||
-                                     string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) ||
-                                     (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase));
+        private bool FilterDoneItem(object obj) { if (obj is HandoverItem item) { bool categoryMatch = _currentFilter == "전체" || string.Equals(item.Category, _currentFilter, StringComparison.OrdinalIgnoreCase) || (_currentFilter == "삼성" && item.Vendor.Contains("삼성", StringComparison.OrdinalIgnoreCase)); bool searchMatch = string.IsNullOrWhiteSpace(_doneSearchKeyword) || item.Vendor.Contains(_doneSearchKeyword, StringComparison.OrdinalIgnoreCase); return categoryMatch && searchMatch; } return false; }
 
-                bool searchMatch = string.IsNullOrWhiteSpace(_doneSearchKeyword) ||
-                                   item.Vendor.Contains(_doneSearchKeyword, StringComparison.OrdinalIgnoreCase);
-
-                return categoryMatch && searchMatch;
-            }
-            return false;
-        }
-
-        // 🔥 업체명에 따라 카테고리를 자동 부여하는 스마트 함수
-        private string DetermineCategory(string vendorName, string? dbCategory)
-        {
-            if (!string.IsNullOrWhiteSpace(dbCategory)) return dbCategory;
-            if (vendorName.Contains("삼성", StringComparison.OrdinalIgnoreCase)) return "삼성";
-            if (vendorName.Contains("SEMES", StringComparison.OrdinalIgnoreCase) || vendorName.Contains("세메스", StringComparison.OrdinalIgnoreCase)) return "SEMES";
-            return "QTZ"; // Default Fallback
-        }
-
-        // ==========================================
-        // 기본 데이터 로드 로직
-        // ==========================================
+        private string DetermineCategory(string vendorName, string? dbCategory) { if (!string.IsNullOrWhiteSpace(dbCategory)) return dbCategory; if (vendorName.Contains("삼성", StringComparison.OrdinalIgnoreCase)) return "삼성"; if (vendorName.Contains("SEMES", StringComparison.OrdinalIgnoreCase) || vendorName.Contains("세메스", StringComparison.OrdinalIgnoreCase)) return "SEMES"; return "QTZ"; }
 
         private void LoadNotices()
         {
             NoticeItems.Clear();
-            try
-            {
-                string path = Path.Combine(AppPaths.DataRoot, "office_notice.json");
-                if (File.Exists(path))
-                {
-                    string json = File.ReadAllText(path, Encoding.UTF8);
-                    var list = JsonSerializer.Deserialize<List<NoticeItem>>(json);
-                    if (list != null) foreach (var item in list) NoticeItems.Add(item);
-                }
-                else
-                {
-                    NoticeItems.Add(new NoticeItem { Text = "포장 시 RUNSHEET, 라벨, 성적서 확인 후 작업 진행." });
-                    NoticeItems.Add(new NoticeItem { Text = "A급 제품 스토커 적재 전 클리닝 후 적재." });
-                }
-            }
+            try { string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); if (File.Exists(path)) { string json = File.ReadAllText(path, Encoding.UTF8); var list = JsonSerializer.Deserialize<List<NoticeItem>>(json); if (list != null) foreach (var item in list) NoticeItems.Add(item); } }
             catch { }
         }
 
-        private void SaveNotices()
-        {
-            try
-            {
-                Directory.CreateDirectory(AppPaths.DataRoot);
-                string path = Path.Combine(AppPaths.DataRoot, "office_notice.json");
-                string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(path, json, Encoding.UTF8);
-            }
-            catch { }
-        }
+        private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
-        public void OpenNoticeModal()
-        {
-            if (AuthManager.CheckAuth(PermissionType.Notices))
-            {
-                IsNoticeModalOpen = true;
-            }
-        }
-
+        public void OpenNoticeModal() { if (AuthManager.CheckAuth(PermissionType.Notices)) IsNoticeModalOpen = true; }
         private void CloseNoticeModal_Click(object sender, RoutedEventArgs e) => IsNoticeModalOpen = false;
+        private void AddNotice_Click(object sender, RoutedEventArgs e) { string text = NoticeInputBox?.Text?.Trim() ?? ""; if (string.IsNullOrWhiteSpace(text)) return; NoticeItems.Add(new NoticeItem { Text = text }); if (NoticeInputBox != null) NoticeInputBox.Text = ""; SaveNotices(); }
+        private void DeleteNotice_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is NoticeItem item) { NoticeItems.Remove(item); SaveNotices(); } }
+        private void NoticeInputBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { e.Handled = true; AddNotice_Click(sender, e); } }
 
-        private void AddNotice_Click(object sender, RoutedEventArgs e)
-        {
-            string text = NoticeInputBox?.Text?.Trim() ?? "";
-            if (string.IsNullOrWhiteSpace(text)) return;
-            NoticeItems.Add(new NoticeItem { Text = text });
-            if (NoticeInputBox != null) NoticeInputBox.Text = "";
-            SaveNotices();
-        }
+        private void RefreshTopProgressPreview() { if (string.Equals(EditStatus, "완료", StringComparison.OrdinalIgnoreCase)) { EditProgressPercent = 100; EditProgressText = "100%"; return; } EditProgressPercent = HandoverItem.CalcProgressPercent(DateTime.Today, EditInDate, EditOutDate); EditProgressText = $"{EditProgressPercent}%"; }
 
-        private void DeleteNotice_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is NoticeItem item)
-            {
-                NoticeItems.Remove(item);
-                SaveNotices();
-            }
-        }
+        private void HookManageCheckedEvents() { ActiveItems.CollectionChanged -= ActiveItems_CollectionChanged; ActiveItems.CollectionChanged += ActiveItems_CollectionChanged; }
+        private void ActiveItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) { if (e.OldItems != null) foreach (HandoverItem item in e.OldItems) item.PropertyChanged -= ActiveItem_PropertyChanged; if (e.NewItems != null) foreach (HandoverItem item in e.NewItems) item.PropertyChanged += ActiveItem_PropertyChanged; UpdateManageColumnVisibility(); }
+        private void ActiveItem_PropertyChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(HandoverItem.ManageChecked)) UpdateManageColumnVisibility(); }
+        private void UpdateManageColumnVisibility() { bool show = ActiveItems.Any(x => x.ManageChecked); if (ManageColumn != null) ManageColumn.Visibility = show ? Visibility.Visible : Visibility.Collapsed; }
 
-        private void NoticeInputBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-            {
-                e.Handled = true;
-                AddNotice_Click(sender, e);
-            }
-        }
+        private void HookDoneCheckedEvents() { DoneItems.CollectionChanged -= DoneItems_CollectionChanged; DoneItems.CollectionChanged += DoneItems_CollectionChanged; foreach (var item in DoneItems) { item.PropertyChanged -= DoneItem_PropertyChanged; item.PropertyChanged += DoneItem_PropertyChanged; } }
+        private void DoneItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) { if (e.OldItems != null) foreach (HandoverItem item in e.OldItems) item.PropertyChanged -= DoneItem_PropertyChanged; if (e.NewItems != null) foreach (HandoverItem item in e.NewItems) item.PropertyChanged += DoneItem_PropertyChanged; UpdateDoneSelectAllState(); }
+        private void DoneItem_PropertyChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(HandoverItem.ManageChecked)) UpdateDoneSelectAllState(); }
+        private void UpdateDoneSelectAllState() { if (DoneItems.Count == 0) { DoneSelectAll = false; return; } bool all = DoneItems.All(x => x.ManageChecked); bool none = DoneItems.All(x => !x.ManageChecked); _doneSelectAll = all ? true : (none ? false : null); OnPropertyChanged(nameof(DoneSelectAll)); }
 
-        private void RefreshTopProgressPreview()
-        {
-            if (string.Equals(EditStatus, "완료", StringComparison.OrdinalIgnoreCase))
-            {
-                EditProgressPercent = 100;
-                EditProgressText = "100%";
-                return;
-            }
-            EditProgressPercent = HandoverItem.CalcProgressPercent(DateTime.Today, EditInDate, EditOutDate);
-            EditProgressText = $"{EditProgressPercent}%";
-        }
+        private void LoadHandoverAll() { foreach (var it in ActiveItems) it.PropertyChanged -= ActiveItem_PropertyChanged; ActiveItems.Clear(); DoneItems.Clear(); try { var vendors = VendorStore.Load(); var dbItems = DatabaseHelper.GetAllHandovers(); foreach (var item in dbItems) { var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase)); item.Category = DetermineCategory(item.Vendor, match?.Category); item.ManageChecked = false; item.NotifyProgress(); if (item.IsDone) DoneItems.Add(item); else ActiveItems.Add(item); } ReorderDone(); _activeView?.Refresh(); _doneView?.Refresh(); } catch (Exception ex) { MessageBox.Show($"DB 데이터 로드 실패: {ex.Message}", "오류"); } }
+        private void ReorderDone() { var ordered = DoneItems.OrderByDescending(x => x.OutDate ?? DateTime.MinValue).ToList(); DoneItems.Clear(); foreach (var item in ordered) DoneItems.Add(item); }
 
-        private void HookManageCheckedEvents()
-        {
-            ActiveItems.CollectionChanged -= ActiveItems_CollectionChanged;
-            ActiveItems.CollectionChanged += ActiveItems_CollectionChanged;
-        }
+        private void ActiveGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ActiveGrid.SelectedItem is HandoverItem item) MarkAsRead(item); }
+        private void DoneGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (DoneGrid.SelectedItem is HandoverItem item) MarkAsRead(item); }
+        private void MarkAsRead(HandoverItem item) { if (!SessionManager.IsLoggedIn) return; string currentUser = SessionManager.CurrentRealName; if (item.IsNewUpdate) { string currentReadBy = item.ReadBy ?? ""; if (!currentReadBy.Contains(currentUser)) { item.ReadBy = currentReadBy + currentUser + ","; DatabaseHelper.UpdateHandoverReadBy(item.Id, item.ReadBy); } } }
 
-        private void ActiveItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.OldItems != null) foreach (HandoverItem item in e.OldItems) item.PropertyChanged -= ActiveItem_PropertyChanged;
-            if (e.NewItems != null) foreach (HandoverItem item in e.NewItems) item.PropertyChanged += ActiveItem_PropertyChanged;
-            UpdateManageColumnVisibility();
-        }
-
-        private void ActiveItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(HandoverItem.ManageChecked)) UpdateManageColumnVisibility();
-        }
-
-        private void UpdateManageColumnVisibility()
-        {
-            bool show = ActiveItems.Any(x => x.ManageChecked);
-            if (ManageColumn != null) ManageColumn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void HookDoneCheckedEvents()
-        {
-            DoneItems.CollectionChanged -= DoneItems_CollectionChanged;
-            DoneItems.CollectionChanged += DoneItems_CollectionChanged;
-            foreach (var item in DoneItems)
-            {
-                item.PropertyChanged -= DoneItem_PropertyChanged;
-                item.PropertyChanged += DoneItem_PropertyChanged;
-            }
-        }
-
-        private void DoneItems_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.OldItems != null) foreach (HandoverItem item in e.OldItems) item.PropertyChanged -= DoneItem_PropertyChanged;
-            if (e.NewItems != null) foreach (HandoverItem item in e.NewItems) item.PropertyChanged += DoneItem_PropertyChanged;
-            UpdateDoneSelectAllState();
-        }
-
-        private void DoneItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(HandoverItem.ManageChecked)) UpdateDoneSelectAllState();
-        }
-
-        private void UpdateDoneSelectAllState()
-        {
-            if (DoneItems.Count == 0) { DoneSelectAll = false; return; }
-            bool all = DoneItems.All(x => x.ManageChecked);
-            bool none = DoneItems.All(x => !x.ManageChecked);
-            _doneSelectAll = all ? true : (none ? false : null);
-            OnPropertyChanged(nameof(DoneSelectAll));
-        }
-
-        private void LoadHandoverAll()
-        {
-            foreach (var it in ActiveItems) it.PropertyChanged -= ActiveItem_PropertyChanged;
-            ActiveItems.Clear();
-            DoneItems.Clear();
-
-            try
-            {
-                var vendors = VendorStore.Load();
-                var dbItems = DatabaseHelper.GetAllHandovers();
-
-                foreach (var item in dbItems)
-                {
-                    var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase));
-
-                    // 🔥 변경: 삼성, SEMES 등 업체명에 따른 카테고리 자동 결정 로직 반영
-                    item.Category = DetermineCategory(item.Vendor, match?.Category);
-
-                    item.ManageChecked = false;
-                    item.NotifyProgress();
-                    if (item.IsDone) DoneItems.Add(item);
-                    else ActiveItems.Add(item);
-                }
-                ReorderDone();
-
-                _activeView?.Refresh();
-                _doneView?.Refresh();
-            }
-            catch (Exception ex) { MessageBox.Show($"DB 데이터 로드 실패: {ex.Message}", "오류"); }
-        }
-
-        private void ReorderDone()
-        {
-            var ordered = DoneItems.OrderByDescending(x => x.OutDate ?? DateTime.MinValue).ToList();
-            DoneItems.Clear();
-            foreach (var item in ordered) DoneItems.Add(item);
-        }
-
-        private void ActiveGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ActiveGrid.SelectedItem is HandoverItem item)
-            {
-                MarkAsRead(item);
-            }
-        }
-
-        private void DoneGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (DoneGrid.SelectedItem is HandoverItem item)
-            {
-                MarkAsRead(item);
-            }
-        }
-
-        private void MarkAsRead(HandoverItem item)
-        {
-            if (!SessionManager.IsLoggedIn) return;
-            string currentUser = SessionManager.CurrentRealName;
-
-            if (item.IsNewUpdate)
-            {
-                string currentReadBy = item.ReadBy ?? "";
-                if (!currentReadBy.Contains(currentUser))
-                {
-                    item.ReadBy = currentReadBy + currentUser + ",";
-                    DatabaseHelper.UpdateHandoverReadBy(item.Id, item.ReadBy);
-                }
-            }
-        }
-
-        private void AppendDoneDeletedToExcel(HandoverItem item)
-        {
-            string path = AppPaths.DoneDeletedExcelPath;
-            using var wb = File.Exists(path) ? new XLWorkbook(path) : new XLWorkbook();
-            var ws = wb.Worksheets.FirstOrDefault(x => x.Name == AppPaths.DoneDeletedSheet) ?? wb.AddWorksheet(AppPaths.DoneDeletedSheet);
-            if (ws.LastRowUsed() == null)
-            {
-                ws.Cell(1, 1).Value = "삭제일시"; ws.Cell(1, 2).Value = "업체"; ws.Cell(1, 3).Value = "내용";
-                ws.Cell(1, 4).Value = "입고일"; ws.Cell(1, 5).Value = "출고일"; ws.Cell(1, 6).Value = "상태";
-                ws.Cell(1, 7).Value = "메모"; ws.Cell(1, 8).Value = "담당자"; ws.Row(1).Style.Font.Bold = true;
-            }
-            int row = (ws.LastRowUsed()?.RowNumber() ?? 1) + 1;
-            ws.Cell(row, 1).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            ws.Cell(row, 2).Value = item.Vendor; ws.Cell(row, 3).Value = item.Content;
-            ws.Cell(row, 4).Value = item.InDate?.ToString("yyyy-MM-dd") ?? "";
-            ws.Cell(row, 5).Value = item.OutDate?.ToString("yyyy-MM-dd") ?? "";
-            ws.Cell(row, 6).Value = item.Status; ws.Cell(row, 7).Value = item.Memo;
-            ws.Cell(row, 8).Value = item.Owner;
-            ws.Columns().AdjustToContents();
-            wb.SaveAs(path);
-        }
+        private void AppendDoneDeletedToExcel(HandoverItem item) { string path = AppPaths.DoneDeletedExcelPath; using var wb = File.Exists(path) ? new XLWorkbook(path) : new XLWorkbook(); var ws = wb.Worksheets.FirstOrDefault(x => x.Name == AppPaths.DoneDeletedSheet) ?? wb.AddWorksheet(AppPaths.DoneDeletedSheet); if (ws.LastRowUsed() == null) { ws.Cell(1, 1).Value = "삭제일시"; ws.Cell(1, 2).Value = "업체"; ws.Cell(1, 3).Value = "내용"; ws.Cell(1, 4).Value = "입고일"; ws.Cell(1, 5).Value = "출고일"; ws.Cell(1, 6).Value = "상태"; ws.Cell(1, 7).Value = "메모"; ws.Cell(1, 8).Value = "담당자"; ws.Row(1).Style.Font.Bold = true; } int row = (ws.LastRowUsed()?.RowNumber() ?? 1) + 1; ws.Cell(row, 1).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"); ws.Cell(row, 2).Value = item.Vendor; ws.Cell(row, 3).Value = item.Content; ws.Cell(row, 4).Value = item.InDate?.ToString("yyyy-MM-dd") ?? ""; ws.Cell(row, 5).Value = item.OutDate?.ToString("yyyy-MM-dd") ?? ""; ws.Cell(row, 6).Value = item.Status; ws.Cell(row, 7).Value = item.Memo; ws.Cell(row, 8).Value = item.Owner; ws.Columns().AdjustToContents(); wb.SaveAs(path); }
 
         private void BtnOpenRegister_Click(object sender, RoutedEventArgs e)
         {
@@ -602,15 +281,8 @@ namespace CleanPotal
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent))
-                {
-                    MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return;
-                }
-
-                var vendors = VendorStore.Load();
-                var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
-
-                // 🔥 변경: 등록 시 스마트 카테고리 로직 반영
+                if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent)) { MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return; }
+                var vendors = VendorStore.Load(); var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
                 string category = DetermineCategory(EditVendor?.Trim() ?? "", match?.Category);
 
                 var item = new HandoverItem
@@ -622,129 +294,84 @@ namespace CleanPotal
                     InDate = EditInDate,
                     OutDate = EditOutDate,
                     Status = EditStatus ?? "진행",
-                    Memo = BuildMemo(EditMemo ?? "", RegisterModalAttachmentPaths),
+                    DeliveryMethod = EditDeliveryMethod ?? "➖ 미정",
+                    Memo = BuildMemo(EditMemo ?? "", RegisterModalAttachmentPaths, EditDeliveryMethod ?? "➖ 미정"),
                     ManageChecked = false,
                     CreatorName = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음",
                     CreateDate = DateTime.Now,
                     Category = category,
-
                     ReadBy = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName + "," : ""
                 };
 
-                item.NotifyProgress();
-                if (item.IsDone) DoneItems.Insert(0, item);
-                else ActiveItems.Insert(0, item);
-
-                DatabaseHelper.InsertHandover(item);
-
-                _activeView?.Refresh();
-                _doneView?.Refresh();
-
-                HandoverReset_Click(sender, e);
-                IsRegisterModalOpen = false;
+                item.NotifyProgress(); if (item.IsDone) DoneItems.Insert(0, item); else ActiveItems.Insert(0, item);
+                DatabaseHelper.InsertHandover(item); _activeView?.Refresh(); _doneView?.Refresh(); HandoverReset_Click(sender, e); IsRegisterModalOpen = false;
             }
             catch (Exception ex) { MessageBox.Show($"저장 실패: {ex.Message}", "오류"); }
         }
 
-        private void HandoverReset_Click(object sender, RoutedEventArgs e)
-        {
-            EditVendor = ""; EditOwner = ""; EditContent = ""; EditInDate = DateTime.Today; EditOutDate = DateTime.Today; EditStatus = "진행"; EditMemo = "";
-            RegisterModalAttachmentPaths.Clear(); EditModalAttachmentPaths.Clear(); RefreshTopProgressPreview();
-        }
+        private void HandoverReset_Click(object sender, RoutedEventArgs e) { EditVendor = ""; EditOwner = ""; EditContent = ""; EditInDate = DateTime.Today; EditOutDate = DateTime.Today; EditStatus = "진행"; EditDeliveryMethod = "➖ 미정"; EditMemo = ""; RegisterModalAttachmentPaths.Clear(); EditModalAttachmentPaths.Clear(); RefreshTopProgressPreview(); }
 
         private void OpenEditModal(HandoverItem item)
         {
-            _currentEditItem = item;
-            EditVendor = item.Vendor; EditOwner = item.Owner; EditContent = item.Content;
-            EditInDate = item.InDate; EditOutDate = item.OutDate; EditStatus = item.Status; EditMemo = ExtractMemoText(item.Memo);
-            EditModalAttachmentPaths.Clear(); foreach (var path in ExtractAttachmentPaths(item.Memo)) EditModalAttachmentPaths.Add(path);
-            RefreshTopProgressPreview(); IsEditModalOpen = true;
+            _currentEditItem = item; EditVendor = item.Vendor; EditOwner = item.Owner; EditContent = item.Content; EditInDate = item.InDate; EditOutDate = item.OutDate; EditStatus = item.Status;
+            EditDeliveryMethod = item.DeliveryMethod ?? "➖ 미정";
+            EditMemo = ExtractMemoText(item.Memo); EditModalAttachmentPaths.Clear(); foreach (var path in ExtractAttachmentPaths(item.Memo)) EditModalAttachmentPaths.Add(path); RefreshTopProgressPreview(); IsEditModalOpen = true;
         }
 
         private void CloseRegisterModal_Click(object sender, RoutedEventArgs e) => IsRegisterModalOpen = false;
         private void CloseEditModal_Click(object sender, RoutedEventArgs e) => IsEditModalOpen = false;
         private void CloseDoneModal_Click(object sender, RoutedEventArgs e) => IsDoneModalOpen = false;
 
-        private void ActiveGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if ((e.OriginalSource as DependencyObject) is DependencyObject source)
-            {
-                var row = FindAncestor<DataGridRow>(source);
-                if (row?.Item is HandoverItem item) { OpenEditModal(item); e.Handled = true; }
-            }
-        }
+        private void ActiveGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) { if ((e.OriginalSource as DependencyObject) is DependencyObject source) { var row = FindAncestor<DataGridRow>(source); if (row?.Item is HandoverItem item) { OpenEditModal(item); e.Handled = true; } } }
+        private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject { while (current != null) { if (current is T target) return target; current = VisualTreeHelper.GetParent(current); } return null; }
 
-        private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
-        {
-            while (current != null) { if (current is T target) return target; current = VisualTreeHelper.GetParent(current); }
-            return null;
-        }
+        private void HandoverDelete_Click(object sender, RoutedEventArgs e) { var item = (sender as FrameworkElement)?.DataContext as HandoverItem; if (item == null) return; if (!item.ManageChecked) { MessageBox.Show("체크한 항목만 삭제할 수 있습니다.", "알림"); return; } if (MessageBox.Show("선택한 항목을 삭제할까요?", "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes) { ActiveItems.Remove(item); DatabaseHelper.DeleteHandover(item.Id); UpdateManageColumnVisibility(); } }
 
-        private void HandoverDelete_Click(object sender, RoutedEventArgs e)
-        {
-            var item = (sender as FrameworkElement)?.DataContext as HandoverItem;
-            if (item == null) return;
-            if (!item.ManageChecked) { MessageBox.Show("체크한 항목만 삭제할 수 있습니다.", "알림"); return; }
-            if (MessageBox.Show("선택한 항목을 삭제할까요?", "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                ActiveItems.Remove(item); DatabaseHelper.DeleteHandover(item.Id); UpdateManageColumnVisibility();
-            }
-        }
-
-        private static bool HasImageFiles(IDataObject data) { if (!data.GetDataPresent(DataFormats.FileDrop)) return false; var files = data.GetData(DataFormats.FileDrop) as string[]; return files != null && files.Any(IsImageFile); }
         private static bool IsImageFile(string path) { string ext = Path.GetExtension(path) ?? ""; return AllowedImageExtensions.Any(x => string.Equals(x, ext, StringComparison.OrdinalIgnoreCase)); }
-
         private static string GetImageRootDirectory() { string dir = Path.Combine(AppPaths.DataRoot, "handover_images"); Directory.CreateDirectory(dir); return dir; }
 
-        private static List<string> ExtractAttachmentPaths(string? memo)
+        // 🔥 수정: 정규식을 활용하여 에러 없이 깔끔하게 숨겨진 태그 제거 및 텍스트 추출
+        private static string ExtractMemoText(string? memo)
         {
-            var result = new List<string>(); if (string.IsNullOrWhiteSpace(memo)) return result;
-            int start = memo.IndexOf(ImageBlockStart, StringComparison.Ordinal); int end = memo.IndexOf(ImageBlockEnd, StringComparison.Ordinal);
-            if (start < 0 || end < 0 || end <= start) return result;
-            string block = memo.Substring(start + ImageBlockStart.Length, end - (start + ImageBlockStart.Length));
-            foreach (var line in block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+            if (string.IsNullOrWhiteSpace(memo)) return "";
+            string text = memo;
+            text = Regex.Replace(text, @"\[\[DELIVERY\]\].*?\[\[/DELIVERY\]\]\r?\n?", "");
+
+            int iStart = text.IndexOf(ImageBlockStart, StringComparison.Ordinal);
+            if (iStart >= 0) text = text.Substring(0, iStart);
+
+            return text.Trim();
+        }
+
+        private static string BuildMemo(string? plainText, IEnumerable<string>? paths, string deliveryMethod)
+        {
+            var sb = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(plainText)) sb.AppendLine(plainText.TrimEnd());
+
+            sb.AppendLine($"[[DELIVERY]]{deliveryMethod}[[/DELIVERY]]");
+
+            var cleanPaths = (paths ?? Enumerable.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (cleanPaths.Count > 0)
             {
-                string trimmed = line.Trim(); if (!string.IsNullOrWhiteSpace(trimmed)) result.Add(trimmed);
+                sb.AppendLine(ImageBlockStart);
+                foreach (var path in cleanPaths) sb.AppendLine(path);
+                sb.Append(ImageBlockEnd);
             }
-            return result;
+            return sb.ToString();
         }
 
-        private static string ExtractMemoText(string? memo) { if (string.IsNullOrWhiteSpace(memo)) return ""; int start = memo.IndexOf(ImageBlockStart, StringComparison.Ordinal); if (start < 0) return memo; return memo.Substring(0, start).TrimEnd(); }
-        private static string BuildMemo(string? plainText, IEnumerable<string>? paths) { string text = plainText ?? ""; var cleanPaths = (paths ?? Enumerable.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList(); if (cleanPaths.Count == 0) return text; var sb = new StringBuilder(); sb.Append(text.TrimEnd()); if (sb.Length > 0) sb.AppendLine(); sb.AppendLine(ImageBlockStart); foreach (var path in cleanPaths) sb.AppendLine(path); sb.Append(ImageBlockEnd); return sb.ToString(); }
-
-        private static List<string> SaveDroppedImages(HandoverItem item, IEnumerable<string> sourceFiles)
-        {
-            string root = GetImageRootDirectory(); string itemKey = item.Id == Guid.Empty ? Guid.NewGuid().ToString("N") : item.Id.ToString("N");
-            string itemDir = Path.Combine(root, itemKey); Directory.CreateDirectory(itemDir);
-            var saved = new List<string>();
-            foreach (var source in sourceFiles.Where(IsImageFile)) { string ext = Path.GetExtension(source); string fileName = $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{ext}"; string dest = Path.Combine(itemDir, fileName); File.Copy(source, dest, true); saved.Add(Path.GetRelativePath(root, dest)); }
-            return saved;
-        }
+        private static List<string> ExtractAttachmentPaths(string? memo) { var result = new List<string>(); if (string.IsNullOrWhiteSpace(memo)) return result; int start = memo.IndexOf(ImageBlockStart, StringComparison.Ordinal); int end = memo.IndexOf(ImageBlockEnd, StringComparison.Ordinal); if (start < 0 || end < 0 || end <= start) return result; string block = memo.Substring(start + ImageBlockStart.Length, end - (start + ImageBlockStart.Length)); foreach (var line in block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)) { string trimmed = line.Trim(); if (!string.IsNullOrWhiteSpace(trimmed)) result.Add(trimmed); } return result; }
+        private static List<string> SaveDroppedImages(HandoverItem item, IEnumerable<string>? sourceFiles) { string root = GetImageRootDirectory(); string itemKey = item.Id == Guid.Empty ? Guid.NewGuid().ToString("N") : item.Id.ToString("N"); string itemDir = Path.Combine(root, itemKey); Directory.CreateDirectory(itemDir); var saved = new List<string>(); if (sourceFiles == null) return saved; foreach (var source in sourceFiles.Where(IsImageFile)) { string ext = Path.GetExtension(source); string fileName = $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{ext}"; string dest = Path.Combine(itemDir, fileName); File.Copy(source, dest, true); saved.Add(Path.GetRelativePath(root, dest)); } return saved; }
 
         private static bool ClipboardHasSupportedImage() => Clipboard.ContainsImage();
-        private static List<string> SaveClipboardImages(HandoverItem item)
-        {
-            var saved = new List<string>(); if (!Clipboard.ContainsImage()) return saved; BitmapSource? image = Clipboard.GetImage(); if (image == null) return saved;
-            string root = GetImageRootDirectory(); string itemKey = item.Id == Guid.Empty ? Guid.NewGuid().ToString("N") : item.Id.ToString("N");
-            string itemDir = Path.Combine(root, itemKey); Directory.CreateDirectory(itemDir); string fileName = $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.png"; string dest = Path.Combine(itemDir, fileName);
-            using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write)) { var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(image)); encoder.Save(fs); }
-            saved.Add(Path.GetRelativePath(root, dest)); return saved;
-        }
+        private static List<string> SaveClipboardImages(HandoverItem item) { var saved = new List<string>(); if (!ClipboardHasSupportedImage()) return saved; BitmapSource? image = Clipboard.GetImage(); if (image == null) return saved; string root = GetImageRootDirectory(); string itemKey = item.Id == Guid.Empty ? Guid.NewGuid().ToString("N") : item.Id.ToString("N"); string itemDir = Path.Combine(root, itemKey); Directory.CreateDirectory(itemDir); string fileName = $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.png"; string dest = Path.Combine(itemDir, fileName); using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write)) { var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(image)); encoder.Save(fs); } saved.Add(Path.GetRelativePath(root, dest)); return saved; }
 
-        private void RegisterModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
+        private void RegisterModalMemo_PreviewDragOver(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) { var files = e.Data.GetData(DataFormats.FileDrop) as string[]; e.Effects = (files != null && files.Any(IsImageFile)) ? DragDropEffects.Copy : DragDropEffects.None; } else { e.Effects = DragDropEffects.None; } e.Handled = true; }
         private void RegisterModalMemo_Drop(object sender, DragEventArgs e) { if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return; var files = e.Data.GetData(DataFormats.FileDrop) as string[]; if (files == null) return; var tempItem = new HandoverItem { Id = Guid.NewGuid() }; var saved = SaveDroppedImages(tempItem, files.Where(IsImageFile)); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); e.Handled = true; }
         private void RegisterModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control) return; if (!ClipboardHasSupportedImage()) return; var tempItem = new HandoverItem { Id = Guid.NewGuid() }; var saved = SaveClipboardImages(tempItem); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); e.Handled = true; }
         private void RegisterDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) RegisterModalAttachmentPaths.Remove(path); }
 
-        private void DoneDeleteSelected_Click(object sender, RoutedEventArgs e)
-        {
-            var targets = DoneItems.Where(x => x.ManageChecked).ToList(); if (targets.Count == 0) return;
-            if (MessageBox.Show($"선택한 완료 항목 {targets.Count}건을 삭제할까요?", "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                try { foreach (var item in targets) { AppendDoneDeletedToExcel(item); DoneItems.Remove(item); DatabaseHelper.DeleteHandover(item.Id); } UpdateDoneSelectAllState(); }
-                catch (Exception ex) { MessageBox.Show($"삭제 실패: {ex.Message}", "오류"); }
-            }
-        }
+        private void DoneDeleteSelected_Click(object sender, RoutedEventArgs e) { var targets = DoneItems.Where(x => x.ManageChecked).ToList(); if (targets.Count == 0) return; if (MessageBox.Show($"선택한 완료 항목 {targets.Count}건을 삭제할까요?", "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes) { try { foreach (var item in targets) { AppendDoneDeletedToExcel(item); DoneItems.Remove(item); DatabaseHelper.DeleteHandover(item.Id); } UpdateDoneSelectAllState(); } catch (Exception ex) { MessageBox.Show($"삭제 실패: {ex.Message}", "오류"); } } }
 
         private void EditModalSave_Click(object sender, RoutedEventArgs e)
         {
@@ -752,38 +379,24 @@ namespace CleanPotal
             try
             {
                 if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent)) { MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return; }
-
-                var vendors = VendorStore.Load();
-                var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
-
-                // 🔥 변경: 수정 시 스마트 카테고리 로직 반영
+                var vendors = VendorStore.Load(); var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, EditVendor?.Trim(), StringComparison.OrdinalIgnoreCase));
                 _currentEditItem.Category = DetermineCategory(EditVendor?.Trim() ?? "", match?.Category);
-
                 _currentEditItem.Vendor = EditVendor?.Trim() ?? ""; _currentEditItem.Owner = EditOwner?.Trim() ?? ""; _currentEditItem.Content = EditContent ?? "";
                 _currentEditItem.InDate = EditInDate; _currentEditItem.OutDate = EditOutDate; _currentEditItem.Status = EditStatus ?? "진행";
-                _currentEditItem.Memo = BuildMemo(EditMemo ?? "", EditModalAttachmentPaths); _currentEditItem.NotifyProgress();
 
-                _currentEditItem.ModifierName = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
-                _currentEditItem.ModifyDate = DateTime.Now;
+                _currentEditItem.DeliveryMethod = EditDeliveryMethod ?? "➖ 미정";
 
-                _currentEditItem.ReadBy = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName + "," : "";
-
+                _currentEditItem.Memo = BuildMemo(EditMemo ?? "", EditModalAttachmentPaths, EditDeliveryMethod ?? "➖ 미정"); _currentEditItem.NotifyProgress();
+                _currentEditItem.ModifierName = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음"; _currentEditItem.ModifyDate = DateTime.Now; _currentEditItem.ReadBy = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName + "," : "";
                 DatabaseHelper.UpdateHandover(_currentEditItem);
-
                 if (_currentEditItem.IsDone) { if (ActiveItems.Contains(_currentEditItem)) ActiveItems.Remove(_currentEditItem); _currentEditItem.ManageChecked = false; if (!DoneItems.Contains(_currentEditItem)) DoneItems.Insert(0, _currentEditItem); ReorderDone(); }
                 else { if (DoneItems.Contains(_currentEditItem)) DoneItems.Remove(_currentEditItem); if (!ActiveItems.Contains(_currentEditItem)) ActiveItems.Insert(0, _currentEditItem); }
-
-                UpdateManageColumnVisibility();
-
-                _activeView?.Refresh();
-                _doneView?.Refresh();
-
-                IsEditModalOpen = false;
+                UpdateManageColumnVisibility(); _activeView?.Refresh(); _doneView?.Refresh(); IsEditModalOpen = false;
             }
             catch (Exception ex) { MessageBox.Show($"수정 실패: {ex.Message}", "오류"); }
         }
 
-        private void EditModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
+        private void EditModalMemo_PreviewDragOver(object sender, DragEventArgs e) { if (e.Data.GetDataPresent(DataFormats.FileDrop)) { var files = e.Data.GetData(DataFormats.FileDrop) as string[]; e.Effects = (files != null && files.Any(IsImageFile)) ? DragDropEffects.Copy : DragDropEffects.None; } else { e.Effects = DragDropEffects.None; } e.Handled = true; }
         private void EditModalMemo_Drop(object sender, DragEventArgs e) { if (_currentEditItem == null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return; var files = e.Data.GetData(DataFormats.FileDrop) as string[]; if (files == null) return; var saved = SaveDroppedImages(_currentEditItem, files.Where(IsImageFile)); foreach (var s in saved) EditModalAttachmentPaths.Add(s); e.Handled = true; }
         private void EditModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control) return; if (_currentEditItem == null || !ClipboardHasSupportedImage()) return; var saved = SaveClipboardImages(_currentEditItem); foreach (var s in saved) EditModalAttachmentPaths.Add(s); e.Handled = true; }
         private void EditDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) EditModalAttachmentPaths.Remove(path); }
@@ -793,43 +406,16 @@ namespace CleanPotal
         private void GridThumbnail_Click(object sender, MouseButtonEventArgs e) { if (sender is FrameworkElement element && element.DataContext is HandoverItem item && item.HasImage) { ShowImagePopup(item.FirstImagePath); e.Handled = true; } }
         private void ShowImagePopup(string imagePath) { try { var window = new Window { Title = "이미지 뷰어", Width = 1000, Height = 800, WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = Window.GetWindow(this), Background = new SolidColorBrush(Color.FromRgb(24, 24, 27)) }; var img = new Image { Source = new BitmapImage(new Uri(imagePath)), Stretch = Stretch.Uniform, Margin = new Thickness(20) }; window.Content = img; window.ShowDialog(); } catch (Exception ex) { MessageBox.Show($"이미지를 불러올 수 없습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error); } }
 
-        private void BtnViewHistory_Click(object sender, RoutedEventArgs e)
-        {
-            var historyWin = new DispatchHistoryWindow { Owner = Window.GetWindow(this) };
-            historyWin.ShowDialog();
-        }
+        private void BtnViewHistory_Click(object sender, RoutedEventArgs e) { var historyWin = new DispatchHistoryWindow { Owner = Window.GetWindow(this) }; historyWin.ShowDialog(); }
 
         private void BtnCreateDispatch_Click(object sender, RoutedEventArgs e)
         {
             var selectedHandoverItems = ActiveItems.Where(i => i.ManageChecked).ToList();
-            if (selectedHandoverItems.Count == 0)
-            {
-                MessageBox.Show("배차할 항목을 진행 목록에서 먼저 선택(체크)해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
+            if (selectedHandoverItems.Count == 0) { MessageBox.Show("배차할 항목을 진행 목록에서 먼저 선택(체크)해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             var newDispatchItems = new ObservableCollection<DispatchItemModel>();
-            foreach (var handoverItem in selectedHandoverItems)
-            {
-                var dispatchItem = new DispatchItemModel
-                {
-                    VendorName = handoverItem.Vendor,
-                    IncomingDetails = handoverItem.Content,
-                    OutgoingDetails = "-",
-                    Note = ""
-                };
-                dispatchItem.LoadComboboxData();
-                newDispatchItems.Add(dispatchItem);
-            }
-
-            var dispatchWin = new DispatchWindow(newDispatchItems) { Owner = Window.GetWindow(this) };
-            dispatchWin.ShowDialog();
-
-            foreach (var item in selectedHandoverItems)
-            {
-                item.ManageChecked = false;
-            }
-
+            foreach (var handoverItem in selectedHandoverItems) { var dispatchItem = new DispatchItemModel { VendorName = handoverItem.Vendor, IncomingDetails = handoverItem.Content, OutgoingDetails = "-", Note = "" }; dispatchItem.LoadComboboxData(); newDispatchItems.Add(dispatchItem); }
+            var dispatchWin = new DispatchWindow(newDispatchItems) { Owner = Window.GetWindow(this) }; dispatchWin.ShowDialog();
+            foreach (var item in selectedHandoverItems) { item.ManageChecked = false; }
             UpdateManageColumnVisibility();
         }
     }

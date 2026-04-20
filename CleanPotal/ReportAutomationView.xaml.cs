@@ -36,7 +36,10 @@ namespace CleanPotal
         public ObservableCollection<ReportTaskModel> MesTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
         public ObservableCollection<ReportTaskModel> DirectTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
 
-        private readonly string SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection\";
+        // 🔥 요청: 신규/기존 경로 분리 적용
+        private readonly string NEW_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Ori\";
+        private readonly string OLD_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection\";
+
         private readonly string DEST_DIR = @"\\10.10.40.98\천안공장\25. 생산 Inform 자료\주언\1.성적서 복사 및 생성\";
 
         public ReportAutomationView()
@@ -125,15 +128,31 @@ namespace CleanPotal
                         if (task.Status.Contains("성공")) continue;
                         task.Status = "진행중...";
 
-                        string sourceFile = Path.Combine(SOURCE_DIR, $"{task.LotNumber}.xlsx");
+                        // 🔥 요청: 1순위(신규경로), 2순위(기존경로) 순차 확인 로직 적용
+                        string sourceFileNew = Path.Combine(NEW_SOURCE_DIR, $"{task.LotNumber}.xlsx");
+                        string sourceFileOld = Path.Combine(OLD_SOURCE_DIR, $"{task.LotNumber}.xlsx");
+                        string targetSourceFile = "";
+
+                        if (File.Exists(sourceFileNew))
+                        {
+                            targetSourceFile = sourceFileNew;
+                        }
+                        else if (File.Exists(sourceFileOld))
+                        {
+                            targetSourceFile = sourceFileOld;
+                        }
+                        else
+                        {
+                            task.Status = "원본 없음";
+                            continue;
+                        }
+
                         string destExcelFile = Path.Combine(DEST_DIR, $"{task.SerialNumber}.xlsx");
                         string destPdfFile = Path.Combine(DEST_DIR, $"{task.SerialNumber}.pdf");
 
-                        if (!File.Exists(sourceFile)) { task.Status = "원본 없음"; continue; }
-
                         try
                         {
-                            File.Copy(sourceFile, destExcelFile, true);
+                            File.Copy(targetSourceFile, destExcelFile, true);
 
                             if (makePdf && excelApp != null)
                             {

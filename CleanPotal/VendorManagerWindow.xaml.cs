@@ -3,10 +3,12 @@ using Microsoft.Win32;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 
 namespace CleanPotal
 {
@@ -16,6 +18,8 @@ namespace CleanPotal
         private ICollectionView _vendorView;
         private string _currentFilter = "전체";
         private bool _isUpdatingUI = false;
+
+        private string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "master_db_config.txt");
 
         public VendorManagerWindow()
         {
@@ -32,6 +36,7 @@ namespace CleanPotal
                 VendorListBox.SelectedIndex = 0;
         }
 
+        // --- 필터 및 검색 로직 ---
         private void FilterTab_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton rb && rb.Content != null)
@@ -39,322 +44,166 @@ namespace CleanPotal
                 _currentFilter = rb.Content.ToString();
                 _vendorView?.Refresh();
                 UpdateSummary();
-
-                if (VendorListBox != null && VendorListBox.SelectedItem == null && VendorListBox.Items.Count > 0)
-                {
-                    VendorListBox.SelectedIndex = 0;
-                }
             }
         }
 
-        private bool VendorFilter(object item)
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (item is VendorModel v)
+            _vendorView?.Refresh();
+            UpdateSummary();
+        }
+
+        private bool VendorFilter(object obj)
+        {
+            if (obj is VendorModel vendor)
             {
-                if (_currentFilter == "전체") return true;
-                string cat = v.Category?.Trim() ?? "";
-                return cat == _currentFilter;
+                bool catMatch = _currentFilter == "전체" || string.Equals(vendor.Category, _currentFilter, StringComparison.OrdinalIgnoreCase);
+                string keyword = SearchBox?.Text?.Trim() ?? "";
+                bool searchMatch = string.IsNullOrEmpty(keyword) || vendor.VendorName.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                return catMatch && searchMatch;
             }
             return false;
         }
 
         private void VendorListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _isUpdatingUI = true;
             if (VendorListBox.SelectedItem is VendorModel selected)
             {
-                TxtVendorName.Text = selected.VendorName;
-
-                string cat = selected.Category?.Trim() ?? "";
-                CmbCategory.SelectedItem = null; // 초기화
-                foreach (ComboBoxItem item in CmbCategory.Items)
-                {
-                    if (item.Content.ToString() == cat)
-                    {
-                        CmbCategory.SelectedItem = item;
-                        break;
-                    }
-                }
-
+                DetailRootPanel.DataContext = selected;
                 DetailGrid.ItemsSource = selected.Addresses;
                 ManagersDataGrid.ItemsSource = selected.Managers;
-            }
-            else
-            {
-                TxtVendorName.Text = string.Empty;
-                if (CmbCategory != null) CmbCategory.SelectedIndex = -1;
-                DetailGrid.ItemsSource = null;
-                ManagersDataGrid.ItemsSource = null;
-            }
-            _isUpdatingUI = false;
-        }
-
-        private void TxtVendorName_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isUpdatingUI) return;
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            selected.VendorName = TxtVendorName.Text;
-            VendorListBox.Items.Refresh();
-            UpdateSummary();
-        }
-
-        private void CmbCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isUpdatingUI) return;
-            if (VendorListBox.SelectedItem is VendorModel selected && CmbCategory.SelectedItem is ComboBoxItem cbi)
-            {
-                string newCategory = cbi.Content?.ToString() ?? "";
-                if (selected.Category != newCategory)
-                {
-                    selected.Category = newCategory;
-                    _vendorView?.Refresh();
-                    UpdateSummary();
-                }
+                TemplatesDataGrid.ItemsSource = selected.Templates;
             }
         }
 
+        // --- 업체 추가/삭제 ---
         private void AddVendor_Click(object sender, RoutedEventArgs e)
         {
-            var baseName = "새 업체";
-            var name = baseName;
-            int suffix = 1;
-            while (Vendors.Any(v => v.VendorName == name))
-                name = $"{baseName} {suffix++}";
-
-            // 전체 탭에서 생성 시 미분류("") 처리, 특정 탭에서 생성 시 해당 탭 이름 할당
-            string defaultCat = _currentFilter == "전체" ? "" : _currentFilter;
-
-            var vendor = new VendorModel
-            {
-                VendorName = name,
-                Category = defaultCat,
-                Addresses = new ObservableCollection<AddressModel>
-                {
-                    new AddressModel { IsMain = true, LocationName = "본사", FullAddress = string.Empty }
-                },
-                Managers = new ObservableCollection<ManagerModel>
-                {
-                    new ManagerModel { ManagerName = string.Empty, ContactNumber = string.Empty }
-                }
-            };
-
-            Vendors.Add(vendor);
-            VendorListBox.SelectedItem = vendor;
+            var newVendor = new VendorModel { VendorName = "새 거래처" };
+            Vendors.Add(newVendor);
+            _vendorView.Refresh();
+            VendorListBox.SelectedItem = newVendor;
             UpdateSummary();
         }
 
         private void DeleteVendor_Click(object sender, RoutedEventArgs e)
         {
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            if (MessageBox.Show($"{selected.VendorName} 업체를 삭제하시겠습니까?", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
-                return;
-
-            Vendors.Remove(selected);
-            if (VendorListBox.Items.Count > 0) VendorListBox.SelectedIndex = 0;
-            UpdateSummary();
-        }
-
-        private void AddAddress_Click(object sender, RoutedEventArgs e)
-        {
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            selected.Addresses.Add(new AddressModel { IsMain = selected.Addresses.Count == 0, LocationName = "사업장", FullAddress = string.Empty });
-            DetailGrid.Items.Refresh();
-            UpdateSummary();
-        }
-
-        private void DeleteAddress_Click(object sender, RoutedEventArgs e)
-        {
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            if (DetailGrid.SelectedItem is not AddressModel target) return;
-            selected.Addresses.Remove(target);
-            if (selected.Addresses.Count == 1) selected.Addresses[0].IsMain = true;
-            DetailGrid.Items.Refresh();
-            UpdateSummary();
-        }
-
-        private void AddManager_Click(object sender, RoutedEventArgs e)
-        {
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            selected.Managers.Add(new ManagerModel { ManagerName = string.Empty, ContactNumber = string.Empty });
-            ManagersDataGrid.Items.Refresh();
-            UpdateSummary();
-        }
-
-        private void DeleteManager_Click(object sender, RoutedEventArgs e)
-        {
-            if (VendorListBox.SelectedItem is not VendorModel selected) return;
-            if (ManagersDataGrid.SelectedItem is not ManagerModel target) return;
-            selected.Managers.Remove(target);
-            ManagersDataGrid.Items.Refresh();
-            UpdateSummary();
-        }
-
-        private void SaveVendor_Click(object sender, RoutedEventArgs e)
-        {
-            NormalizeData();
-            VendorStore.Save(Vendors);
-            UpdateSummary();
-            MessageBox.Show("업체 기준 정보가 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void ImportExcel_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog
+            if (VendorListBox.SelectedItem is VendorModel selected)
             {
-                Title = "업체/주소록 엑셀 업로드",
-                Filter = "Excel Files|*.xlsx",
-                CheckFileExists = true
-            };
+                if (MessageBox.Show($"'{selected.VendorName}' 업체를 정말 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    Vendors.Remove(selected);
+                    _vendorView.Refresh();
+                    UpdateSummary();
+                }
+            }
+        }
 
-            if (dlg.ShowDialog() != true) return;
+        // --- 주소, 담당자, 템플릿 행 제어 ---
+        private void AddAddress_Click(object sender, RoutedEventArgs e) => (VendorListBox.SelectedItem as VendorModel)?.Addresses.Add(new AddressModel { LocationName = "신규" });
+        private void DeleteAddress_Click(object sender, RoutedEventArgs e) { if (DetailGrid.SelectedItem is AddressModel addr) (VendorListBox.SelectedItem as VendorModel)?.Addresses.Remove(addr); }
+        private void AddManager_Click(object sender, RoutedEventArgs e) => (VendorListBox.SelectedItem as VendorModel)?.Managers.Add(new ManagerModel { ManagerName = "이름" });
+        private void DeleteManager_Click(object sender, RoutedEventArgs e) { if (ManagersDataGrid.SelectedItem is ManagerModel mgr) (VendorListBox.SelectedItem as VendorModel)?.Managers.Remove(mgr); }
+
+        private void AddTemplate_Click(object sender, RoutedEventArgs e) => (VendorListBox.SelectedItem as VendorModel)?.Templates.Add(new VendorTemplateModel { ItemCode = "도면명" });
+        private void DeleteTemplate_Click(object sender, RoutedEventArgs e) { if (TemplatesDataGrid.SelectedItem is VendorTemplateModel tpl) (VendorListBox.SelectedItem as VendorModel)?.Templates.Remove(tpl); }
+
+        // --- 파일/폴더 찾기 ---
+        private void BrowseTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is VendorTemplateModel tpl)
+            {
+                var dialog = new OpenFileDialog { Filter = "Excel 파일|*.xltx;*.xlsx" };
+                if (dialog.ShowDialog() == true) tpl.TemplatePath = dialog.FileName;
+            }
+        }
+
+        private void BrowseFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is VendorTemplateModel tpl)
+            {
+                var dialog = new OpenFolderDialog();
+                if (dialog.ShowDialog() == true) tpl.BasePath = dialog.FolderName;
+            }
+        }
+
+        // --- 설정 팝업 제어 ---
+        private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (File.Exists(ConfigFilePath)) TxtMasterDbPath.Text = File.ReadAllText(ConfigFilePath);
+            SettingsOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void BtnCloseSettings_Click(object sender, RoutedEventArgs e) => SettingsOverlay.Visibility = Visibility.Collapsed;
+
+        private void BtnChangeMasterDb_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Filter = "Excel 파일|*.xlsx;*.xlsm" };
+            if (dialog.ShowDialog() == true)
+            {
+                TxtMasterDbPath.Text = dialog.FileName;
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigFilePath)!);
+                File.WriteAllText(ConfigFilePath, dialog.FileName);
+            }
+        }
+
+        // --- 엑셀 마이그레이션 (기존 데이터 일괄 이관) ---
+        private void BtnMigrateExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Title = "기준정보 엑셀 선택", Filter = "Excel 파일|*.xlsx;*.xlsm" };
+            if (dialog.ShowDialog() != true) return;
 
             try
             {
-                using var workbook = new XLWorkbook(dlg.FileName);
-                var worksheet = workbook.Worksheet(1);
-                var rows = worksheet.RangeUsed().RowsUsed().Skip(1);
+                using var wb = new XLWorkbook(dialog.FileName);
+                var ws = wb.Worksheets.FirstOrDefault(x => x.Name == "기준정보");
+                if (ws == null) { MessageBox.Show("'기준정보' 시트를 찾을 수 없습니다."); return; }
 
-                int processedCount = 0;
-
-                foreach (var row in rows)
+                int count = 0;
+                foreach (var row in ws.RowsUsed().Skip(1))
                 {
-                    string vendorName = row.Cell(1).GetString().Trim();
-                    if (string.IsNullOrWhiteSpace(vendorName)) continue;
+                    string use = row.Cell("A").GetString();
+                    string com = row.Cell("B").GetString();
+                    string code = row.Cell("E").GetString();
+                    string tpl = row.Cell("F").GetString();
+                    string dir = row.Cell("G").GetString();
+                    string rule = row.Cell("I").GetString();
 
-                    string locName = row.Cell(2).GetString().Trim();
-                    string address = row.Cell(3).GetString().Trim();
-                    string mgrName = row.Cell(4).GetString().Trim();
-                    string contact = row.Cell(5).GetString().Trim();
+                    if (use != "Y" || string.IsNullOrEmpty(com)) continue;
 
-                    var vendor = Vendors.FirstOrDefault(v => string.Equals(v.VendorName, vendorName, StringComparison.OrdinalIgnoreCase));
-                    if (vendor == null)
+                    var v = Vendors.FirstOrDefault(x => x.VendorName == com);
+                    if (v == null) { v = new VendorModel { VendorName = com }; Vendors.Add(v); }
+
+                    if (!v.Templates.Any(x => x.ItemCode == code))
                     {
-                        vendor = new VendorModel
-                        {
-                            VendorName = vendorName,
-                            Category = "", // 엑셀 등록 시 기본값 없음
-                            Addresses = new ObservableCollection<AddressModel>(),
-                            Managers = new ObservableCollection<ManagerModel>()
-                        };
-                        Vendors.Add(vendor);
+                        v.Templates.Add(new VendorTemplateModel { ItemCode = code, TemplatePath = tpl, BasePath = dir, FileNameRule = rule });
+                        count++;
                     }
-
-                    if (!string.IsNullOrWhiteSpace(address))
-                    {
-                        if (string.IsNullOrWhiteSpace(locName)) locName = "사업장";
-                        bool addrExists = vendor.Addresses.Any(a => string.Equals(a.FullAddress, address, StringComparison.OrdinalIgnoreCase));
-                        if (!addrExists)
-                        {
-                            vendor.Addresses.Add(new AddressModel
-                            {
-                                IsMain = vendor.Addresses.Count == 0,
-                                LocationName = locName,
-                                FullAddress = address
-                            });
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(mgrName) || !string.IsNullOrWhiteSpace(contact))
-                    {
-                        bool mgrExists = vendor.Managers.Any(m => m.ManagerName == mgrName && m.ContactNumber == contact);
-                        if (!mgrExists)
-                        {
-                            vendor.Managers.Add(new ManagerModel
-                            {
-                                ManagerName = mgrName,
-                                ContactNumber = contact
-                            });
-                        }
-                    }
-                    processedCount++;
                 }
-
-                NormalizeData();
                 VendorStore.Save(Vendors);
                 UpdateSummary();
-
-                MessageBox.Show($"엑셀 데이터 일괄 등록이 완료되었습니다.\n총 {processedCount}건의 데이터가 성공적으로 병합되었습니다.", "엑셀 업로드 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"{count}개의 기준정보를 성공적으로 가져왔습니다!");
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"엑셀 파일을 읽는 중 오류가 발생했습니다.\n{ex.Message}", "엑셀 오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            catch (Exception ex) { MessageBox.Show("이관 오류: " + ex.Message); }
         }
 
-        private void NormalizeData()
+        // --- 최종 저장 및 요약 ---
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var vendor in Vendors)
+            try
             {
-                vendor.VendorName = (vendor.VendorName ?? string.Empty).Trim();
-
-                // 기존 '일반' 데이터 청소 로직
-                if (vendor.Category == "일반") vendor.Category = "";
-                else vendor.Category = vendor.Category?.Trim() ?? "";
-
-                var addresses = vendor.Addresses
-                    .Where(a => !string.IsNullOrWhiteSpace(a.LocationName) || !string.IsNullOrWhiteSpace(a.FullAddress))
-                    .Select(a => new AddressModel
-                    {
-                        IsMain = a.IsMain,
-                        LocationName = (a.LocationName ?? string.Empty).Trim(),
-                        FullAddress = (a.FullAddress ?? string.Empty).Trim()
-                    })
-                    .ToList();
-
-                if (addresses.Count == 0)
-                    addresses.Add(new AddressModel { IsMain = true, LocationName = "본사", FullAddress = string.Empty });
-
-                if (!addresses.Any(a => a.IsMain))
-                    addresses[0].IsMain = true;
-                else
-                {
-                    bool firstMain = true;
-                    foreach (var address in addresses.Where(a => a.IsMain))
-                    {
-                        if (firstMain) firstMain = false;
-                        else address.IsMain = false;
-                    }
-                }
-
-                vendor.Addresses = new ObservableCollection<AddressModel>(addresses);
-
-                var managers = vendor.Managers
-                    .Where(m => !string.IsNullOrWhiteSpace(m.ManagerName) || !string.IsNullOrWhiteSpace(m.ContactNumber))
-                    .Select(m => new ManagerModel
-                    {
-                        ManagerName = (m.ManagerName ?? string.Empty).Trim(),
-                        ContactNumber = (m.ContactNumber ?? string.Empty).Trim()
-                    })
-                    .ToList();
-
-                vendor.Managers = new ObservableCollection<ManagerModel>(managers);
+                Keyboard.ClearFocus();
+                VendorStore.Save(Vendors);
+                UpdateSummary();
+                MessageBox.Show("안전하게 저장되었습니다.");
             }
-
-            var cleaned = Vendors.Where(v => !string.IsNullOrWhiteSpace(v.VendorName)).ToList();
-            Vendors = new ObservableCollection<VendorModel>(cleaned);
-
-            _vendorView = CollectionViewSource.GetDefaultView(Vendors);
-            _vendorView.Filter = VendorFilter;
-            VendorListBox.ItemsSource = _vendorView;
-
-            if (VendorListBox.Items.Count > 0 && VendorListBox.SelectedItem == null)
-                VendorListBox.SelectedIndex = 0;
-            else if (VendorListBox.SelectedItem is VendorModel selected)
-            {
-                DetailGrid.ItemsSource = selected.Addresses;
-                ManagersDataGrid.ItemsSource = selected.Managers;
-            }
+            catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); }
         }
 
         private void UpdateSummary()
         {
             if (_vendorView == null || Vendors == null) return;
-
-            int addressCount = Vendors.Sum(v => v.Addresses.Count);
-            int managerCount = Vendors.Sum(v => v.Managers.Count);
-            int visibleCount = _vendorView.Cast<object>().Count();
-
-            TxtSummary.Text = $"전체 {Vendors.Count}개 (현재 탭 {visibleCount}개) · 주소 {addressCount}개 · 담당자 {managerCount}명";
+            TxtSummary.Text = $"전체 {Vendors.Count}개 · 주소 {Vendors.Sum(v => v.Addresses.Count)}개 · 담당자 {Vendors.Sum(v => v.Managers.Count)}명 · 템플릿 {Vendors.Sum(v => v.Templates.Count)}건";
         }
     }
 }
