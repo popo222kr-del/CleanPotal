@@ -9,33 +9,23 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using ClosedXML.Excel;
 
 namespace CleanPotal
 {
-    // =========================================================
-    // 1. 처리 결과 로그 모델
-    // =========================================================
-    public class DispatchCreationLog
-    {
-        public string RowNo { get; set; } = "";
-        public string RegNo { get; set; } = "";
-        public string Result { get; set; } = "대기";
-        public string Message { get; set; } = "";
-    }
-
-    // =========================================================
-    // 2. AETS 프리뷰 데이터 모델
-    // =========================================================
     public class AetsPreviewModel : INotifyPropertyChanged
     {
         private bool _isChecked = true;
         public bool IsChecked { get => _isChecked; set { _isChecked = value; OnPropertyChanged(); } }
 
+        private string _productCode = "";
+        public string ProductCode { get => _productCode; set { _productCode = value; OnPropertyChanged(); } }
+
         private DateTime _outDate = DateTime.Today;
         public DateTime OutDate { get => _outDate; set { _outDate = value; OnPropertyChanged(); } }
 
-        private string _companyName = "AETS";
+        private string _companyName = "";
         public string CompanyName { get => _companyName; set { _companyName = value; OnPropertyChanged(); } }
 
         private string _partName = "";
@@ -50,18 +40,42 @@ namespace CleanPotal
         private string _managerName = "";
         public string ManagerName { get => _managerName; set { _managerName = value; OnPropertyChanged(); } }
 
+        private string _processName = "";
+        public string ProcessName { get => _processName; set { _processName = value; OnPropertyChanged(); } }
+
+        private string _productStatus = "";
+        public string ProductStatus { get => _productStatus; set { _productStatus = value; OnPropertyChanged(); } }
+
+        private string _result = "대기";
+        public string Result { get => _result; set { _result = value; OnPropertyChanged(); } }
+
+        private string _message = "-";
+        public string Message { get => _message; set { _message = value; OnPropertyChanged(); } }
+
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    // =========================================================
-    // 3. 메인 컨트롤 로직
-    // =========================================================
+    public class DispatchHistoryModel
+    {
+        public string CreateDate { get; set; } = "";
+        public string RegNo { get; set; } = "";
+        public string OutDate { get; set; } = "";
+        public string CompanyName { get; set; } = "";
+        public string ProductType { get; set; } = "";
+        public string PartName { get; set; } = "";
+        public string Qty { get; set; } = "";
+        public string ManagerName { get; set; } = "";
+        public string SavePath { get; set; } = "";
+        public string Result { get; set; } = "";
+    }
+
     public partial class DispatchCertificateBatchView : UserControl
     {
-        public ObservableCollection<DispatchCreationLog> Logs { get; } = new();
         public ObservableCollection<AetsPreviewModel> AetsPreviewList { get; } = new();
-        private bool _isAetsMode = false;
+        public ObservableCollection<DispatchHistoryModel> HistoryList { get; } = new();
+        private ICollectionView _historyView;
 
         private string MasterDbPath
         {
@@ -75,55 +89,89 @@ namespace CleanPotal
         public DispatchCertificateBatchView()
         {
             InitializeComponent();
-            LogGrid.ItemsSource = Logs;
             AetsPreviewGrid.ItemsSource = AetsPreviewList;
+            _historyView = CollectionViewSource.GetDefaultView(HistoryList);
+            if (_historyView != null) _historyView.Filter = HistoryFilter;
+            HistoryGrid.ItemsSource = _historyView;
         }
 
-        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        private void UserControl_Loaded(object sender, RoutedEventArgs e) { }
+
+        private void BtnReset_Click(object sender, RoutedEventArgs e)
         {
-            _isAetsMode = RbAets?.IsChecked == true;
-            ApplyModeState();
+            AetsPreviewList.Clear();
+            TxtAetsStatus.Text = "파일을 놓으면 즉시 분석을 시작합니다.";
+            TxtSummaryCompany.Text = "-";
+            TxtSummaryManager.Text = "-";
+            TxtSummaryPartName.Text = "-";
+            TxtSummaryTotalQty.Text = "-"; // 총 수량 초기화
+            TxtSummaryProcess.Text = "-";
+            TxtSummaryStatus.Text = "-";
+            TxtSummaryDate.Text = "-";
         }
 
-        private void Mode_Changed(object sender, RoutedEventArgs e)
+        private void BtnShowHistory_Click(object sender, RoutedEventArgs e) { LoadHistoryData(); HistoryOverlay.Visibility = Visibility.Visible; }
+        private void BtnCloseHistory_Click(object sender, RoutedEventArgs e) => HistoryOverlay.Visibility = Visibility.Collapsed;
+        private void BtnRefreshHistory_Click(object sender, RoutedEventArgs e) => LoadHistoryData();
+        private void TxtHistorySearch_TextChanged(object sender, TextChangedEventArgs e) => _historyView?.Refresh();
+
+        private bool HistoryFilter(object obj)
         {
-            _isAetsMode = RbAets?.IsChecked == true;
-            ApplyModeState();
-            Logs.Clear();
+            if (obj is DispatchHistoryModel h)
+            {
+                string kw = TxtHistorySearch.Text?.Trim() ?? "";
+                if (string.IsNullOrEmpty(kw)) return true;
+                return (h.CompanyName?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true) ||
+                       (h.PartName?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true);
+            }
+            return false;
         }
 
-        private void ApplyModeState()
+        private void LoadHistoryData()
         {
-            if (AetsFilePanel != null) AetsFilePanel.Visibility = _isAetsMode ? Visibility.Visible : Visibility.Collapsed;
-            if (PreviewBorder != null) PreviewBorder.Visibility = _isAetsMode ? Visibility.Visible : Visibility.Collapsed;
+            HistoryList.Clear();
+            if (string.IsNullOrEmpty(MasterDbPath) || !File.Exists(MasterDbPath)) return;
+            try
+            {
+                using var wb = new XLWorkbook(MasterDbPath);
+                var ws = wb.Worksheets.FirstOrDefault(w => w.Name == "생성이력");
+                if (ws == null) return;
+                int last = ws.LastRowUsed()?.RowNumber() ?? 1;
+                for (int r = last; r >= 2; r--)
+                {
+                    HistoryList.Add(new DispatchHistoryModel
+                    {
+                        CreateDate = ws.Cell(r, "A").Value.ToString(),
+                        RegNo = ws.Cell(r, "B").Value.ToString(),
+                        OutDate = ws.Cell(r, "C").Value.ToString(),
+                        CompanyName = ws.Cell(r, "D").Value.ToString(),
+                        ProductType = ws.Cell(r, "E").Value.ToString(),
+                        PartName = ws.Cell(r, "F").Value.ToString(),
+                        Qty = ws.Cell(r, "G").Value.ToString(),
+                        ManagerName = ws.Cell(r, "H").Value.ToString(),
+                        SavePath = ws.Cell(r, "I").Value.ToString(),
+                        Result = ws.Cell(r, "J").Value.ToString()
+                    });
+                }
+            }
+            catch { }
         }
 
-        private void AetsPanel_PreviewDragOver(object sender, DragEventArgs e)
-        {
-            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
-            e.Handled = true;
-        }
+        private void AetsPanel_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
 
         private async void AetsPanel_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                // 🔥 수정 완료: 이제 .csv 파일과 .xlsx 파일을 모두 완벽하게 허용합니다!
-                string path = files.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)) ?? "";
-
+                string path = files.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".xltx", StringComparison.OrdinalIgnoreCase)) ?? "";
                 if (!string.IsNullOrEmpty(path))
                 {
                     TxtAetsStatus.Text = "데이터 분석 중...";
                     await ParseAetsFileAsync(path);
-                    TxtAetsStatus.Text = $"[{Path.GetFileName(path)}] 분석 완료. 아래 표를 확인하세요.";
-                }
-                else
-                {
-                    MessageBox.Show("엑셀(.xlsx) 또는 CSV(.csv) 파일만 지원합니다.", "형식 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    TxtAetsStatus.Text = $"[{Path.GetFileName(path)}] 분석 완료.";
                 }
             }
-            e.Handled = true;
         }
 
         private async Task ParseAetsFileAsync(string aetsPath)
@@ -131,464 +179,259 @@ namespace CleanPotal
             AetsPreviewList.Clear();
             try
             {
-                var parsedItems = await Task.Run(() =>
-                {
-                    // 확장자에 따라 파싱 방식(CSV vs Excel)을 스마트하게 분리합니다.
-                    if (aetsPath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return ParseCsvData(aetsPath);
-                    }
-                    return ParseExcelData(aetsPath);
-                });
+                var data = await Task.Run(() => ParseExcelData(aetsPath));
+                foreach (var item in data.Items) AetsPreviewList.Add(item);
 
-                foreach (var item in parsedItems)
+                TxtSummaryCompany.Text = string.IsNullOrEmpty(data.Company) ? "-" : data.Company;
+                TxtSummaryManager.Text = string.IsNullOrEmpty(data.Manager) ? "-" : data.Manager;
+                TxtSummaryProcess.Text = string.IsNullOrEmpty(data.Process) ? "-" : data.Process;
+                TxtSummaryStatus.Text = string.IsNullOrEmpty(data.Status) ? "-" : data.Status;
+                TxtSummaryDate.Text = data.Date.ToString("yyyy-MM-dd");
+
+                if (data.Items.Count > 0)
                 {
-                    AetsPreviewList.Add(item);
+                    var uniqueParts = data.Items.Select(x => x.PartName).Distinct().ToList();
+                    if (uniqueParts.Count == 1)
+                        TxtSummaryPartName.Text = uniqueParts[0];
+                    else
+                        TxtSummaryPartName.Text = $"{uniqueParts[0]} 외 {uniqueParts.Count - 1}건";
+
+                    // 🔥 총 수량 합산 반영
+                    int totalQty = data.Items.Sum(x => x.Qty);
+                    TxtSummaryTotalQty.Text = $"{totalQty} EA";
                 }
+                else
+                {
+                    TxtSummaryPartName.Text = "-";
+                    TxtSummaryTotalQty.Text = "-";
+                }
+
             }
-            catch (Exception ex) { Dispatcher.Invoke(() => MessageBox.Show("파일 읽기 실패: " + ex.Message)); }
+            catch (Exception ex) { MessageBox.Show("파일 읽기 실패: " + ex.Message); }
         }
 
-        private static List<AetsPreviewModel> ParseCsvData(string path)
-        {
-            DateTime exDate = DateTime.Today;
-            string exMgr = "", exCom = "AETS";
-            var parsedItems = new List<AetsPreviewModel>();
-
-            System.Text.Encoding encoding = System.Text.Encoding.Default;
-            try { encoding = System.Text.Encoding.GetEncoding("euc-kr"); } catch { }
-
-            bool isList = false, isInfo = false;
-            foreach (var line in File.ReadLines(path, encoding))
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                var cells = ParseCsvRow(line);
-                if (cells.Count < 2) continue;
-
-                string cellB = GetCsvCell(cells, 1);
-                string cellC = GetCsvCell(cells, 2);
-                string cellD = GetCsvCell(cells, 3);
-                string cellF = GetCsvCell(cells, 5);
-
-                if (cellB.Contains("반출 정보")) { isInfo = true; isList = false; continue; }
-                if (cellB.Contains("반출 LIST")) { isList = true; isInfo = false; continue; }
-
-                if (isInfo)
-                {
-                    if (cellC.Contains("업체") && !string.IsNullOrWhiteSpace(cellD)) exCom = cellD;
-                    if (cellC.Contains("담당자") && !string.IsNullOrWhiteSpace(cellD)) exMgr = cellD;
-                    if (cellC.Contains("반출 가능일") && !string.IsNullOrWhiteSpace(cellD))
-                    {
-                        var m = Regex.Match(cellD, @"([0-9]{2,4}[-/.][0-9]{1,2}[-/.][0-9]{1,2})");
-                        if (m.Success) DateTime.TryParse(m.Groups[1].Value, out exDate);
-                    }
-                }
-
-                if (isList)
-                {
-                    if (cellB.Contains("Total", StringComparison.OrdinalIgnoreCase) || cellC.Contains("Total", StringComparison.OrdinalIgnoreCase)) { isList = false; continue; }
-                    if (string.IsNullOrEmpty(cellC) || cellC.Contains("Part's Name")) continue;
-
-                    int qty = 1;
-                    if (int.TryParse(cellF, out int parsedQty) && parsedQty > 0) qty = parsedQty;
-
-                    for (int i = 0; i < qty; i++)
-                    {
-                        parsedItems.Add(new AetsPreviewModel
-                        {
-                            PartName = cellC,
-                            ItemCode = cellD,
-                            CompanyName = exCom,
-                            ManagerName = exMgr,
-                            OutDate = exDate
-                        });
-                    }
-                }
-            }
-            return parsedItems;
-        }
-
-        private static string GetCsvCell(List<string> cells, int index)
-        {
-            return cells.Count > index ? cells[index] : "";
-        }
-
-        private static List<string> ParseCsvRow(string line)
-        {
-            var result = new List<string>();
-            var field = new System.Text.StringBuilder();
-            bool inQuotes = false;
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                char ch = line[i];
-                if (ch == '\"')
-                {
-                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
-                    {
-                        field.Append('\"');
-                        i++;
-                        continue;
-                    }
-                    inQuotes = !inQuotes;
-                    continue;
-                }
-
-                if (ch == ',' && !inQuotes)
-                {
-                    result.Add(field.ToString().Trim());
-                    field.Clear();
-                    continue;
-                }
-
-                field.Append(ch);
-            }
-
-            result.Add(field.ToString().Trim());
-            return result;
-        }
-
-        private static List<AetsPreviewModel> ParseExcelData(string path)
+        private static (List<AetsPreviewModel> Items, string Company, string Manager, DateTime Date, string Process, string Status) ParseExcelData(string path)
         {
             using var wb = new XLWorkbook(path);
             var ws = wb.Worksheet(1);
             DateTime exDate = DateTime.Today;
-            string exMgr = "", exCom = "AETS";
-            var parsedItems = new List<AetsPreviewModel>();
+            string exMgr = "", exCom = "", exProc = "", exStat = "";
+            var parsed = new List<AetsPreviewModel>();
+
+            string GetMValue(IXLRow r, params string[] cs) { foreach (var c in cs) { string v = r.Cell(c).Value.ToString().Trim(); if (!string.IsNullOrEmpty(v)) return v; } return ""; }
 
             foreach (var row in ws.RowsUsed())
             {
-                string c3 = row.Cell("C").GetString().Trim();
-                string d3 = row.Cell("D").GetString().Trim();
-                if (c3.Contains("업체")) exCom = d3;
-                if (c3.Contains("담당자")) exMgr = d3;
-                if (c3.Contains("반출 가능일"))
+                string cN = row.Cell("C").Value.ToString().Replace(" ", "");
+                string dV = GetMValue(row, "D", "E", "F", "G", "H");
+                if (cN.Contains("업체")) exCom = dV;
+                if (cN.Contains("담당자")) exMgr = dV;
+                if (cN.Contains("사용공정")) exProc = dV;
+                if (cN.Contains("제품상태")) exStat = dV;
+                if (cN.Contains("반출가능일") || cN.Contains("의뢰일"))
                 {
-                    var m = Regex.Match(d3, @"([0-9]{2,4}[-/.][0-9]{1,2}[-/.][0-9]{1,2})");
+                    var m = Regex.Match(dV, @"([0-9]{2,4}[-/.][0-9]{1,2}[-/.][0-9]{1,2})");
                     if (m.Success) DateTime.TryParse(m.Groups[1].Value, out exDate);
                 }
             }
 
-            bool isList = false;
-            for (int r = 1; r <= ws.LastRowUsed().RowNumber(); r++)
+            bool isL = false;
+            for (int r = 1; r <= (ws.LastRowUsed()?.RowNumber() ?? 1000); r++)
             {
-                string b = ws.Cell(r, "B").GetString();
-                if (b.Contains("반출 LIST")) { isList = true; r++; continue; }
-                if (isList)
+                string bN = ws.Cell(r, "B").Value.ToString().Replace(" ", "").ToUpper();
+                if (bN.Contains("반출LIST") || bN == "NO") { isL = true; continue; }
+                if (isL)
                 {
-                    if (b.Contains("Total", StringComparison.OrdinalIgnoreCase) || ws.Cell(r, "C").GetString().Contains("Total", StringComparison.OrdinalIgnoreCase)) break;
+                    if (bN.Contains("TOTAL") || bN.Contains("합계") || bN.Contains("반출정보")) break;
+                    if (!int.TryParse(ws.Cell(r, "B").Value.ToString(), out _)) continue;
+                    string code = ws.Cell(r, "C").Value.ToString().Trim();
+                    string part = ws.Cell(r, "D").Value.ToString().Trim();
+                    string type = ws.Cell(r, "F").Value.ToString().Trim();
+                    int qty = int.TryParse(ws.Cell(r, "G").Value.ToString(), out int q) ? q : 1;
 
-                    string part = ws.Cell(r, "C").GetString().Trim();
-                    string code = ws.Cell(r, "D").GetString().Trim();
-                    string qtyStr = ws.Cell(r, "F").GetString().Trim();
-
-                    if (string.IsNullOrEmpty(part) && string.IsNullOrEmpty(code)) continue;
-                    if (part == "Part's Name") continue;
-
-                    int qty = 1;
-                    if (int.TryParse(qtyStr, out int parsedQty) && parsedQty > 0) qty = parsedQty;
-
-                    for (int i = 0; i < qty; i++)
+                    if (!string.IsNullOrEmpty(part) || !string.IsNullOrEmpty(code))
                     {
-                        parsedItems.Add(new AetsPreviewModel
-                        {
-                            PartName = part,
-                            ItemCode = code,
-                            CompanyName = exCom,
-                            ManagerName = exMgr,
-                            OutDate = exDate
-                        });
+                        parsed.Add(new AetsPreviewModel { ProductCode = type, PartName = part, ItemCode = code, Qty = qty, CompanyName = exCom, ManagerName = exMgr, ProcessName = exProc, ProductStatus = exStat, OutDate = exDate });
                     }
                 }
             }
-            return parsedItems;
+            return (parsed, exCom, exMgr, exDate, exProc, exStat);
         }
 
         private async void BtnRun_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(MasterDbPath) || !File.Exists(MasterDbPath))
-            {
-                MessageBox.Show("마스터 DB 경로가 설정되지 않았습니다. [업체 관리 -> 설정]에서 먼저 지정해주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            if (string.IsNullOrEmpty(MasterDbPath) || !File.Exists(MasterDbPath)) { MessageBox.Show("마스터 DB 설정이 필요합니다."); return; }
+            var targets = AetsPreviewList.Where(x => x.IsChecked).ToList();
+            if (targets.Count == 0) return;
 
-            BtnRun.IsEnabled = false;
-            BtnRun.Content = "처리 중...";
-            Logs.Clear();
+            BtnRun.IsEnabled = false; BtnRun.Content = "처리 중...";
+            foreach (var t in targets) { t.Result = "처리중..."; t.Message = "대기"; }
 
-            try
-            {
-                DispatchBatchResult result;
-
-                if (_isAetsMode)
-                {
-                    var targets = AetsPreviewList.Where(x => x.IsChecked).ToList();
-                    if (targets.Count == 0) { MessageBox.Show("체크된 항목이 없습니다."); return; }
-                    result = await Task.Run(() => ExecuteAetsBatch(MasterDbPath, targets));
-                }
-                else
-                {
-                    result = await Task.Run(() => ExecuteStandardBatch(MasterDbPath));
-                }
-
-                foreach (var log in result.Logs) Logs.Add(log);
-                MessageBox.Show($"작업 완료! 새로 생성된 파일: {result.TotalCreated}개", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex) { MessageBox.Show($"처리 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error); }
-            finally
-            {
-                BtnRun.IsEnabled = true;
-                BtnRun.Content = "성적서 자동 생성 실행";
-            }
+            try { int count = await Task.Run(() => ExecuteAetsBatch(MasterDbPath, targets)); MessageBox.Show($"작업 완료! 생성된 파일: {count}개"); }
+            catch (Exception ex) { MessageBox.Show("오류: " + ex.Message); }
+            finally { BtnRun.IsEnabled = true; BtnRun.Content = "성적서 자동 생성 실행"; }
         }
 
-        private static DispatchBatchResult ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
+        private static string Clean(string s) { if (string.IsNullOrWhiteSpace(s)) return ""; string iv = new string(Path.GetInvalidFileNameChars()); foreach (char c in iv) s = s.Replace(c.ToString(), "_"); return s.Trim(); }
+
+        private static int ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
         {
             var vendors = VendorStore.Load();
-            using var workbook = new XLWorkbook(masterPath);
-            var wsReg = workbook.Worksheets.FirstOrDefault(w => w.Name == "반출등록");
-            var wsHist = workbook.Worksheets.FirstOrDefault(w => w.Name == "생성이력");
-            var output = new DispatchBatchResult();
-
-            if (wsReg == null || wsHist == null) throw new InvalidOperationException("마스터 DB 시트(반출등록/생성이력)를 찾을 수 없습니다.");
-
-            int totalCreated = 0;
-            var seqTracker = new Dictionary<string, int>();
+            var globalTpls = VendorStore.LoadGlobalTemplates();
+            using var wbMaster = new XLWorkbook(masterPath);
+            var wsReg = wbMaster.Worksheet("반출등록");
+            var wsHist = wbMaster.Worksheet("생성이력");
+            int total = 0;
 
             foreach (var item in items)
             {
-                string drawingNo = item.ItemCode;
-                string templatePath = "";
-                string basePath = "";
-                string fileNameRule = "";
-
                 var vendor = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.CompanyName, StringComparison.OrdinalIgnoreCase) || (!string.IsNullOrEmpty(v.VendorName) && item.CompanyName.Contains(v.VendorName)));
+                var gTpl = globalTpls.FirstOrDefault(t => string.Equals(t.ProductCode?.Trim(), item.ProductCode?.Trim(), StringComparison.OrdinalIgnoreCase));
 
-                if (vendor != null)
-                {
-                    var tpl = vendor.Templates.FirstOrDefault(t => t.IsUsed && string.Equals(t.ItemCode, drawingNo, StringComparison.OrdinalIgnoreCase));
-                    if (tpl != null)
-                    {
-                        templatePath = tpl.TemplatePath;
-                        basePath = tpl.BasePath;
-                        fileNameRule = tpl.FileNameRule;
-                    }
-                }
+                string basePath = vendor?.BasePath ?? "";
+                string tplPath = gTpl?.TemplatePath ?? "";
+                string pType = gTpl?.ProductName ?? "기타세정";
 
-                if (string.IsNullOrWhiteSpace(templatePath) || string.IsNullOrWhiteSpace(basePath))
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = "-", RegNo = "AETS-신규", Result = "실패", Message = $"[{item.PartName}] 업체관리(VendorStore) 템플릿 매칭 실패" });
-                    continue;
-                }
+                if (string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(tplPath) || !File.Exists(tplPath)) { item.Result = "실패"; item.Message = "경로 또는 템플릿 누락"; continue; }
 
-                if (!File.Exists(templatePath))
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = "-", RegNo = "AETS-신규", Result = "실패", Message = $"템플릿 파일 없음: {templatePath}" });
-                    continue;
-                }
+                string safeMgr = Clean(item.ManagerName);
+                string safeProc = Clean(item.ProcessName);
+                string sub = safeMgr + (string.IsNullOrEmpty(safeProc) ? "" : " (" + safeProc + ")");
 
                 string yearFolder = Path.Combine(basePath, $"{item.OutDate:yy}년");
                 string monthFolder = Path.Combine(yearFolder, $"{item.OutDate.Month}월");
                 string dayFolder = Path.Combine(monthFolder, $"{item.OutDate.Day}일");
-                Directory.CreateDirectory(dayFolder);
+                string finalPath = string.IsNullOrEmpty(sub) ? dayFolder : Path.Combine(dayFolder, sub);
 
-                if (!seqTracker.ContainsKey(drawingNo)) seqTracker[drawingNo] = 0;
-                seqTracker[drawingNo]++;
-                int currentSeq = seqTracker[drawingNo];
+                Directory.CreateDirectory(finalPath);
 
-                string newFileName = BuildFileName(fileNameRule, item.OutDate, item.PartName, drawingNo, currentSeq) + ".xltx";
-                string newFilePath = Path.Combine(dayFolder, newFileName);
-
-                if (!File.Exists(newFilePath))
+                if (item.ProductCode?.ToUpper() == "D")
                 {
-                    File.Copy(templatePath, newFilePath);
-                    totalCreated++;
+                    int totalQty = item.Qty;
+                    int groupCount = (int)Math.Ceiling(totalQty / 10.0);
 
-                    int regRow = (wsReg.LastRowUsed()?.RowNumber() ?? 1) + 1;
-                    string newRegNo = $"AETS-{DateTime.Now:MMddHHmm}-{totalCreated:D3}";
+                    for (int g = 1; g <= groupCount; g++)
+                    {
+                        int currentGroupQty = (g == groupCount) ? (totalQty - (g - 1) * 10) : 10;
+                        int startSN = (g - 1) * 10 + 1;
+                        int endSN = startSN + currentGroupQty - 1;
 
-                    wsReg.Cell(regRow, "A").Value = newRegNo;
-                    wsReg.Cell(regRow, "B").Value = item.OutDate;
-                    wsReg.Cell(regRow, "C").Value = item.CompanyName;
-                    wsReg.Cell(regRow, "D").Value = "기타세정";
-                    wsReg.Cell(regRow, "E").Value = item.PartName;
-                    wsReg.Cell(regRow, "F").Value = 1;
-                    wsReg.Cell(regRow, "G").Value = item.ManagerName;
-                    wsReg.Cell(regRow, "H").Value = drawingNo;
-                    wsReg.Cell(regRow, "I").Value = "생성완료";
-                    wsReg.Cell(regRow, "J").Value = dayFolder;
-                    wsReg.Cell(regRow, "K").Value = 1;
+                        string fileName = $"{item.PartName} ({item.ItemCode})_{currentGroupQty}EA_{g}.xlsx";
+                        string fullFilePath = Path.Combine(finalPath, fileName);
 
-                    int histRow = (wsHist.LastRowUsed()?.RowNumber() ?? 1) + 1;
-                    wsHist.Cell(histRow, "A").Value = DateTime.Now;
-                    wsHist.Cell(histRow, "B").Value = newRegNo;
-                    wsHist.Cell(histRow, "C").Value = item.OutDate;
-                    wsHist.Cell(histRow, "D").Value = item.CompanyName;
-                    wsHist.Cell(histRow, "E").Value = "기타세정";
-                    wsHist.Cell(histRow, "F").Value = item.PartName;
-                    wsHist.Cell(histRow, "G").Value = 1;
-                    wsHist.Cell(histRow, "H").Value = item.ManagerName;
-                    wsHist.Cell(histRow, "I").Value = dayFolder;
-                    wsHist.Cell(histRow, "J").Value = "성공";
+                        if (!File.Exists(fullFilePath))
+                        {
+                            File.Copy(tplPath, fullFilePath);
+                            FillPlateReportData(fullFilePath, item, currentGroupQty, startSN, endSN);
 
-                    output.Logs.Add(new DispatchCreationLog { RowNo = "-", RegNo = newRegNo, Result = "성공", Message = $"[{item.PartName}] 서식 생성 및 DB 등록 완료" });
+                            total++;
+                            string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
+                            RegisterToDB(wsReg, wsHist, item, regNo, currentGroupQty, finalPath, pType, total);
+                        }
+                    }
                 }
                 else
                 {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = "-", RegNo = "AETS-중복", Result = "건너뜀", Message = $"이미 파일 존재: {newFileName}" });
-                }
-            }
+                    for (int i = 1; i <= item.Qty; i++)
+                    {
+                        string suffix = item.Qty > 1 ? $"_{i}" : "";
+                        string fileName = $"{item.PartName} ({item.ItemCode}){suffix}.xlsx";
+                        string fullFilePath = Path.Combine(finalPath, fileName);
 
-            workbook.Save();
-            output.TotalCreated = totalCreated;
-            return output;
+                        if (!File.Exists(fullFilePath))
+                        {
+                            File.Copy(tplPath, fullFilePath);
+
+                            FillReportData(fullFilePath, item);
+
+                            total++;
+                            string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
+                            RegisterToDB(wsReg, wsHist, item, regNo, 1, finalPath, pType, total);
+                        }
+                    }
+                }
+                item.Result = "성공";
+                item.Message = $"{item.Qty}개 생성 및 데이터 매핑 완료";
+            }
+            wbMaster.Save();
+            return total;
         }
 
-        private static DispatchBatchResult ExecuteStandardBatch(string workbookPath)
+        private static void RegisterToDB(IXLWorksheet wsReg, IXLWorksheet wsHist, AetsPreviewModel item, string regNo, int qty, string path, string pType, int total)
         {
-            var vendors = VendorStore.Load();
-            using var workbook = new XLWorkbook(workbookPath);
-            var wsReg = workbook.Worksheets.FirstOrDefault(w => w.Name == "반출등록");
-            var wsHist = workbook.Worksheets.FirstOrDefault(w => w.Name == "생성이력");
+            int rIdx = (wsReg.LastRowUsed()?.RowNumber() ?? 1) + 1;
+            wsReg.Cell(rIdx, "A").Value = regNo; wsReg.Cell(rIdx, "B").Value = item.OutDate;
+            wsReg.Cell(rIdx, "C").Value = item.CompanyName; wsReg.Cell(rIdx, "D").Value = pType;
+            wsReg.Cell(rIdx, "E").Value = item.PartName; wsReg.Cell(rIdx, "F").Value = qty;
+            wsReg.Cell(rIdx, "G").Value = item.ManagerName; wsReg.Cell(rIdx, "H").Value = item.ItemCode;
+            wsReg.Cell(rIdx, "I").Value = "생성완료"; wsReg.Cell(rIdx, "J").Value = path;
 
-            if (wsReg == null || wsHist == null) throw new InvalidOperationException("시트 이름을 찾을 수 없습니다. (반출등록/생성이력 확인)");
+            int hIdx = (wsHist.LastRowUsed()?.RowNumber() ?? 1) + 1;
+            wsHist.Cell(hIdx, "A").Value = DateTime.Now; wsHist.Cell(hIdx, "B").Value = regNo;
+            wsHist.Cell(hIdx, "C").Value = item.OutDate; wsHist.Cell(hIdx, "D").Value = item.CompanyName;
+            wsHist.Cell(hIdx, "E").Value = pType; wsHist.Cell(hIdx, "F").Value = item.PartName;
+            wsHist.Cell(hIdx, "G").Value = qty; wsHist.Cell(hIdx, "H").Value = item.ManagerName;
+            wsHist.Cell(hIdx, "I").Value = path; wsHist.Cell(hIdx, "J").Value = "성공";
+        }
 
-            int totalCreated = 0;
-            int lastRow = wsReg.LastRowUsed()?.RowNumber() ?? 1;
-            var output = new DispatchBatchResult();
-
-            for (int targetRow = 2; targetRow <= lastRow; targetRow++)
+        private static void FillPlateReportData(string filePath, AetsPreviewModel item, int groupQty, int startSN, int endSN)
+        {
+            try
             {
-                string regNo = wsReg.Cell(targetRow, "A").GetString().Trim();
-                string statusValue = wsReg.Cell(targetRow, "I").GetString().Trim();
-                string companyName = wsReg.Cell(targetRow, "C").GetString().Trim();
-                string itemName = wsReg.Cell(targetRow, "E").GetString().Trim();
-                string drawingNo = wsReg.Cell(targetRow, "H").GetString().Trim();
-                string productType = wsReg.Cell(targetRow, "D").GetString().Trim();
-                string managerName = wsReg.Cell(targetRow, "G").GetString().Trim();
-                long qty = ParseLong(wsReg.Cell(targetRow, "F").GetString());
+                using var wb = new XLWorkbook(filePath);
+                var ws = wb.Worksheet(1);
 
-                if (statusValue == "생성완료" || string.IsNullOrWhiteSpace(companyName) || string.IsNullOrWhiteSpace(itemName) || qty <= 0 || string.IsNullOrWhiteSpace(drawingNo))
+                foreach (var row in ws.RowsUsed())
                 {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "건너뜀", Message = "필수값 없음 또는 생성완료" });
-                    continue;
-                }
-
-                if (!TryGetDate(wsReg.Cell(targetRow, "B").Value, out DateTime outDate))
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "건너뜀", Message = "반출일 형식 오류" });
-                    continue;
-                }
-
-                string templatePath = "";
-                string basePath = "";
-                string fileNameRule = "";
-
-                var vendor = vendors.FirstOrDefault(v => string.Equals(v.VendorName, companyName, StringComparison.OrdinalIgnoreCase) || (!string.IsNullOrEmpty(v.VendorName) && companyName.Contains(v.VendorName)));
-                if (vendor != null)
-                {
-                    var tpl = vendor.Templates.FirstOrDefault(t => t.IsUsed && string.Equals(t.ItemCode, drawingNo, StringComparison.OrdinalIgnoreCase));
-                    if (tpl != null)
+                    for (int c = 1; c <= 20; c++)
                     {
-                        templatePath = tpl.TemplatePath;
-                        basePath = tpl.BasePath;
-                        fileNameRule = tpl.FileNameRule;
+                        string cellText = row.Cell(c).Value.ToString().Replace(" ", "");
+
+                        if (cellText.Contains("Customer")) row.Cell("D").Value = item.CompanyName;
+                        if (cellText.Contains("품목코드")) row.Cell("D").Value = item.ItemCode;
+                        if (cellText.Contains("PartName")) row.Cell("D").Value = item.PartName;
+                        if (cellText.Contains("제품상태")) row.Cell("L").Value = item.ProductStatus;
+                        if (cellText.Contains("Process")) row.Cell("L").Value = item.ProcessName;
+                        if (cellText.Contains("Remark")) row.Cell("D").Value = $"{groupQty} EA";
+
+                        if (cellText.Contains("Weight(g)") || cellText.Contains("Particle"))
+                        {
+                            int startRow = row.RowNumber();
+                            for (int i = 0; i < groupQty; i++)
+                            {
+                                ws.Cell(startRow + i, "C").Value = $"{item.ItemCode}-{startSN + i}";
+                            }
+                        }
                     }
                 }
-
-                if (string.IsNullOrWhiteSpace(templatePath) || string.IsNullOrWhiteSpace(basePath))
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "건너뜀", Message = "업체관리(VendorStore) 템플릿 매칭 실패" });
-                    continue;
-                }
-
-                if (!File.Exists(templatePath))
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "실패", Message = $"템플릿 파일 없음: {templatePath}" });
-                    continue;
-                }
-
-                string yearFolder = Path.Combine(basePath, $"{outDate:yy}년");
-                string monthFolder = Path.Combine(yearFolder, $"{outDate.Month}월");
-                string dayFolder = Path.Combine(monthFolder, $"{outDate.Day}일");
-                Directory.CreateDirectory(dayFolder);
-
-                string extName = ".xltx";
-                int createdCount = 0;
-
-                for (int i = 1; i <= qty; i++)
-                {
-                    string newFileName = BuildFileName(fileNameRule, outDate, itemName, drawingNo, i) + extName;
-                    string newFilePath = Path.Combine(dayFolder, newFileName);
-
-                    if (!File.Exists(newFilePath))
-                    {
-                        File.Copy(templatePath, newFilePath);
-                        createdCount++;
-                    }
-                }
-
-                if (createdCount > 0)
-                {
-                    wsReg.Cell(targetRow, "I").Value = "생성완료";
-                    wsReg.Cell(targetRow, "J").Value = dayFolder;
-                    wsReg.Cell(targetRow, "K").Value = createdCount;
-
-                    int histRow = (wsHist.LastRowUsed()?.RowNumber() ?? 1) + 1;
-                    wsHist.Cell(histRow, "A").Value = DateTime.Now;
-                    wsHist.Cell(histRow, "B").Value = regNo;
-                    wsHist.Cell(histRow, "C").Value = outDate;
-                    wsHist.Cell(histRow, "D").Value = companyName;
-                    wsHist.Cell(histRow, "E").Value = productType;
-                    wsHist.Cell(histRow, "F").Value = itemName;
-                    wsHist.Cell(histRow, "G").Value = qty;
-                    wsHist.Cell(histRow, "H").Value = managerName;
-                    wsHist.Cell(histRow, "I").Value = dayFolder;
-                    wsHist.Cell(histRow, "J").Value = "성공";
-
-                    totalCreated += createdCount;
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "성공", Message = $"{createdCount}개 생성" });
-                }
-                else
-                {
-                    output.Logs.Add(new DispatchCreationLog { RowNo = targetRow.ToString(), RegNo = regNo, Result = "건너뜀", Message = "신규 생성 파일 없음" });
-                }
+                wb.Save();
             }
-
-            workbook.Save();
-            output.TotalCreated = totalCreated;
-            return output;
+            catch { }
         }
 
-        private static bool TryGetDate(object raw, out DateTime result)
+        private static void FillReportData(string filePath, AetsPreviewModel item)
         {
-            if (raw is DateTime dt) { result = dt; return true; }
-            string text = raw?.ToString()?.Trim() ?? "";
-            return DateTime.TryParse(text, CultureInfo.CurrentCulture, DateTimeStyles.None, out result)
-                || DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
-        }
+            try
+            {
+                using var wb = new XLWorkbook(filePath);
+                var ws = wb.Worksheet(1);
 
-        private static long ParseLong(string value)
-        {
-            if (long.TryParse(value, out long parsed)) return parsed;
-            if (double.TryParse(value, out double parsedDouble)) return Convert.ToInt64(parsedDouble);
-            return 0;
-        }
+                foreach (var row in ws.RowsUsed())
+                {
+                    for (int c = 1; c <= 20; c++)
+                    {
+                        string cellText = row.Cell(c).Value.ToString().Replace(" ", "");
 
-        private static string BuildFileName(string ruleText, DateTime outDate, string itemName, string drawingNo, int seqNo)
-        {
-            string result = ruleText;
-            result = result.Replace("반출일", outDate.ToString("yyyyMMdd"));
-            result = result.Replace("품목명", itemName);
-            result = result.Replace("도면명", drawingNo);
-            result = result.Replace("순번", seqNo.ToString());
-            return result;
+                        if (cellText.Contains("Customer")) row.Cell("D").Value = item.CompanyName;
+                        if (cellText.Contains("품목코드")) row.Cell("D").Value = item.ItemCode;
+                        if (cellText.Contains("PartName")) row.Cell("D").Value = item.PartName;
+                        if (cellText.Contains("제품상태")) row.Cell("L").Value = item.ProductStatus;
+                        if (cellText.Contains("Process")) row.Cell("L").Value = item.ProcessName;
+                    }
+                }
+                wb.Save();
+            }
+            catch { }
         }
-    }
-
-    internal class DispatchBatchResult
-    {
-        public int TotalCreated { get; set; }
-        public Collection<DispatchCreationLog> Logs { get; } = new();
     }
 }

@@ -15,6 +15,8 @@ namespace CleanPotal
             PropertyNameCaseInsensitive = true
         };
 
+        private static string GlobalTemplatesFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "global_templates.json");
+
         public static ObservableCollection<VendorModel> Load()
         {
             try
@@ -25,32 +27,18 @@ namespace CleanPotal
                     Save(seeded);
                     return seeded;
                 }
-
                 string json = File.ReadAllText(AppPaths.VendorsFilePath);
                 var items = JsonSerializer.Deserialize<List<VendorModel>>(json, JsonOptions);
-                if (items == null || items.Count == 0)
-                {
-                    var seeded = CreateSeedData();
-                    Save(seeded);
-                    return seeded;
-                }
-
+                if (items == null || items.Count == 0) return CreateSeedData();
                 return new ObservableCollection<VendorModel>(items.Select(CloneVendor));
             }
-            catch
-            {
-                return CreateSeedData();
-            }
+            catch { return CreateSeedData(); }
         }
 
         public static void Save(IEnumerable<VendorModel> vendors)
         {
             Directory.CreateDirectory(AppPaths.DataRoot);
-            var normalized = vendors
-                .Select(CloneVendor)
-                .OrderBy(v => v.VendorName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
+            var normalized = vendors.Select(CloneVendor).OrderBy(v => v.VendorName, StringComparer.OrdinalIgnoreCase).ToList();
             string json = JsonSerializer.Serialize(normalized, JsonOptions);
             File.WriteAllText(AppPaths.VendorsFilePath, json);
         }
@@ -61,70 +49,77 @@ namespace CleanPotal
             return Load().FirstOrDefault(v => string.Equals(v.VendorName?.Trim(), vendorName.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
+        public static ObservableCollection<GlobalTemplateModel> LoadGlobalTemplates()
+        {
+            try
+            {
+                ObservableCollection<GlobalTemplateModel> templates;
+                if (!File.Exists(GlobalTemplatesFilePath))
+                {
+                    templates = CreateDefaultGlobalTemplates();
+                }
+                else
+                {
+                    string json = File.ReadAllText(GlobalTemplatesFilePath);
+                    var items = JsonSerializer.Deserialize<List<GlobalTemplateModel>>(json, JsonOptions);
+                    templates = items == null || items.Count == 0 ? CreateDefaultGlobalTemplates() : new ObservableCollection<GlobalTemplateModel>(items);
+                }
+
+                // 🔥 [강제 동기화] 기존 파일에 D 항목이 없으면 무조건 리스트에 추가하고 파일까지 즉시 갱신
+                if (!templates.Any(t => t.ProductCode?.ToUpper() == "D"))
+                {
+                    templates.Add(new GlobalTemplateModel { ProductCode = "D", ProductName = "PLATE, DISK" });
+                    SaveGlobalTemplates(templates);
+                }
+
+                return templates;
+            }
+            catch { return CreateDefaultGlobalTemplates(); }
+        }
+
+        public static void SaveGlobalTemplates(IEnumerable<GlobalTemplateModel> templates)
+        {
+            Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"));
+            string json = JsonSerializer.Serialize(templates, JsonOptions);
+            File.WriteAllText(GlobalTemplatesFilePath, json);
+        }
+
+        private static ObservableCollection<GlobalTemplateModel> CreateDefaultGlobalTemplates()
+        {
+            return new ObservableCollection<GlobalTemplateModel>
+            {
+                new GlobalTemplateModel { ProductCode = "U", ProductName = "OUTER" },
+                new GlobalTemplateModel { ProductCode = "I", ProductName = "INNER" },
+                new GlobalTemplateModel { ProductCode = "B", ProductName = "BOAT" },
+                new GlobalTemplateModel { ProductCode = "S", ProductName = "SiC BOAT" },
+                new GlobalTemplateModel { ProductCode = "P", ProductName = "PEDESTAL" },
+                new GlobalTemplateModel { ProductCode = "A", ProductName = "ACC" },
+                new GlobalTemplateModel { ProductCode = "D", ProductName = "PLATE, DISK" }
+            };
+        }
+
         private static ObservableCollection<VendorModel> CreateSeedData()
         {
             return new ObservableCollection<VendorModel>
             {
                 new VendorModel
                 {
-                    VendorName = "우암",
-                    Category = "",
-                    Addresses = new ObservableCollection<AddressModel>
-                    {
-                        new AddressModel { IsMain = true, LocationName = "본사", FullAddress = "경기 안성시 미양면 강덕1길 138-4" }
-                    },
-                    Managers = new ObservableCollection<ManagerModel>
-                    {
-                        new ManagerModel { ManagerName = "최남용", ContactNumber = "010-9008-3089" }
-                    },
-                    Templates = new ObservableCollection<VendorTemplateModel>()
-                },
-                new VendorModel
-                {
-                    VendorName = "영신",
-                    Category = "",
-                    Addresses = new ObservableCollection<AddressModel>
-                    {
-                        new AddressModel { IsMain = true, LocationName = "본사", FullAddress = "충북 진천군 광혜원면 용소1길 10" }
-                    },
-                    Managers = new ObservableCollection<ManagerModel>
-                    {
-                        new ManagerModel { ManagerName = "정성수", ContactNumber = "010-2375-1930" }
-                    },
-                    Templates = new ObservableCollection<VendorTemplateModel>()
+                    VendorName = "우암", Category = "", BasePath = "",
+                    Addresses = new ObservableCollection<AddressModel> { new AddressModel { IsMain = true, LocationName = "본사", FullAddress = "경기 안성시 미양면 강덕1길 138-4" } },
+                    Managers = new ObservableCollection<ManagerModel> { new ManagerModel { ManagerName = "최남용", ContactNumber = "010-9008-3089" } }
                 }
             };
         }
 
         private static VendorModel CloneVendor(VendorModel source)
         {
-            string cat = source.Category?.Trim() ?? "";
-            if (cat == "일반") cat = "";
-
             return new VendorModel
             {
                 VendorName = source.VendorName?.Trim() ?? string.Empty,
-                Category = cat,
-                Addresses = new ObservableCollection<AddressModel>(source.Addresses.Select(a => new AddressModel
-                {
-                    IsMain = a.IsMain,
-                    LocationName = a.LocationName?.Trim() ?? string.Empty,
-                    FullAddress = a.FullAddress?.Trim() ?? string.Empty
-                })),
-                Managers = new ObservableCollection<ManagerModel>(source.Managers.Select(m => new ManagerModel
-                {
-                    ManagerName = m.ManagerName?.Trim() ?? string.Empty,
-                    ContactNumber = m.ContactNumber?.Trim() ?? string.Empty
-                })),
-                // 🔥 템플릿 복제 추가
-                Templates = new ObservableCollection<VendorTemplateModel>((source.Templates ?? new()).Select(t => new VendorTemplateModel
-                {
-                    IsUsed = t.IsUsed,
-                    ItemCode = t.ItemCode?.Trim() ?? string.Empty,
-                    TemplatePath = t.TemplatePath?.Trim() ?? string.Empty,
-                    BasePath = t.BasePath?.Trim() ?? string.Empty,
-                    FileNameRule = t.FileNameRule?.Trim() ?? string.Empty
-                }))
+                Category = source.Category?.Trim() == "일반" ? "" : (source.Category?.Trim() ?? ""),
+                BasePath = source.BasePath?.Trim() ?? string.Empty,
+                Addresses = new ObservableCollection<AddressModel>(source.Addresses.Select(a => new AddressModel { IsMain = a.IsMain, LocationName = a.LocationName?.Trim() ?? "", FullAddress = a.FullAddress?.Trim() ?? "" })),
+                Managers = new ObservableCollection<ManagerModel>(source.Managers.Select(m => new ManagerModel { ManagerName = m.ManagerName?.Trim() ?? "", ContactNumber = m.ContactNumber?.Trim() ?? "" }))
             };
         }
     }

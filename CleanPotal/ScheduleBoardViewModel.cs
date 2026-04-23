@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
         private void SeedEquipments()
         {
-            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC02-1 (POLY/대대배치)", "MSC02-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)" };
+            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC01-1 (POLY/대대배치)", "MSC01-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)" };
             for (int i = 0; i < names.Length; i++) Equipments.Add(new EquipmentLine { Index = i, DisplayName = names[i] });
         }
 
