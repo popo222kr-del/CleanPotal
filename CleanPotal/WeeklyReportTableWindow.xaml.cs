@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -11,6 +11,11 @@ namespace CleanPotal
     public partial class WeeklyReportTableWindow : Window
     {
         private WeeklyReportModel _report;
+        private double _currentZoom = 1.0;
+        private const double MinZoom = 0.7;
+        private const double MaxZoom = 2.5;
+        private const double ZoomStep = 0.1;
+        private const double PresentationZoom = 1.5;
 
         public WeeklyReportTableWindow(WeeklyReportModel report)
         {
@@ -18,9 +23,78 @@ namespace CleanPotal
             _report = report;
             TxtTitle.Text = $"{report.Title} 주간보고 상세";
             ReportDataGrid.ItemsSource = report.Blocks;
+            UpdateZoomStatus();
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e) => this.Close();
+
+        // 🔥 폰트 확대/축소
+        private void BtnZoomIn_Click(object sender, RoutedEventArgs e) => ApplyZoom(_currentZoom + ZoomStep);
+        private void BtnZoomOut_Click(object sender, RoutedEventArgs e) => ApplyZoom(_currentZoom - ZoomStep);
+        private void BtnZoomReset_Click(object sender, RoutedEventArgs e) => ApplyZoom(1.0);
+        private void BtnPresentationZoom_Click(object sender, RoutedEventArgs e) => ApplyZoom(PresentationZoom);
+
+        // 🔥 단축키: Ctrl+0 리셋, Ctrl+± 확대/축소, Ctrl+마우스휠은 PreviewMouseWheel로
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (e.Key == Key.D0 || e.Key == Key.NumPad0)
+                {
+                    ApplyZoom(1.0);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.OemPlus || e.Key == Key.Add)
+                {
+                    ApplyZoom(_currentZoom + ZoomStep);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.OemMinus || e.Key == Key.Subtract)
+                {
+                    ApplyZoom(_currentZoom - ZoomStep);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Escape)
+            {
+                this.Close();
+            }
+            else if (e.Key == Key.F5)
+            {
+                // 상세 창에서 F5 = 발표용 확대 토글
+                ApplyZoom(Math.Abs(_currentZoom - PresentationZoom) < 0.001 ? 1.0 : PresentationZoom);
+                e.Handled = true;
+            }
+        }
+
+        protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ApplyZoom(_currentZoom + (e.Delta > 0 ? ZoomStep : -ZoomStep));
+                e.Handled = true;
+                return;
+            }
+            base.OnPreviewMouseWheel(e);
+        }
+
+        private void ApplyZoom(double value)
+        {
+            _currentZoom = Math.Clamp(value, MinZoom, MaxZoom);
+            if (ContentScaleTransform != null)
+            {
+                ContentScaleTransform.ScaleX = _currentZoom;
+                ContentScaleTransform.ScaleY = _currentZoom;
+            }
+            UpdateZoomStatus();
+        }
+
+        private void UpdateZoomStatus()
+        {
+            int percent = (int)Math.Round(_currentZoom * 100);
+            if (TxtZoomStatus != null) TxtZoomStatus.Text = $"확대: {percent}%  (Ctrl + 휠 / Ctrl + 0)";
+            if (BtnZoomReset != null) BtnZoomReset.Content = $"{percent}%";
+        }
 
         private void Attachment_Click(object sender, MouseButtonEventArgs e)
         {
@@ -28,7 +102,14 @@ namespace CleanPotal
             {
                 if (File.Exists(att.AbsolutePath))
                 {
-                    Process.Start(new ProcessStartInfo(att.AbsolutePath) { UseShellExecute = true });
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(att.AbsolutePath) { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("파일을 열 수 없습니다: " + ex.Message, "오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
                 else
                 {
@@ -74,13 +155,16 @@ namespace CleanPotal
                     {
                         ws.Cell(row, 1).Value = b.Number;
                         ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        ws.Cell(row, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
                         ws.Cell(row, 2).Value = $"[{b.Status}]\n{b.Category}";
                         ws.Cell(row, 2).Style.Alignment.WrapText = true;
                         ws.Cell(row, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        ws.Cell(row, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
                         ws.Cell(row, 3).Value = b.FormattedContent;
                         ws.Cell(row, 3).Style.Alignment.WrapText = true;
+                        ws.Cell(row, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
 
                         row++;
                     }
@@ -92,17 +176,24 @@ namespace CleanPotal
                         dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                     }
 
+                    // 🔥 열 너비 개선 - No.는 고정, 나머지는 내용에 맞춰 조정
                     ws.Column(1).Width = 6;
-                    ws.Column(2).Width = 25;
-                    ws.Column(3).Width = 90;
+                    ws.Column(2).Width = 28;
+                    ws.Column(3).Width = 100;
+
+                    // 🔥 전체 행 자동 높이 조정 (긴 내용 잘림 방지)
+                    ws.Rows().AdjustToContents();
 
                     workbook.SaveAs(saveDialog.FileName);
-                    if (MessageBox.Show("엑셀이 저장되었습니다. 열어보시겠습니까?", "완료", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    if (MessageBox.Show("엑셀이 저장되었습니다. 열어보시겠습니까?", "완료", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                     {
                         Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
                     }
                 }
-                catch (Exception ex) { MessageBox.Show("엑셀 저장 실패: " + ex.Message); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("엑셀 저장 실패: " + ex.Message, "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
     }

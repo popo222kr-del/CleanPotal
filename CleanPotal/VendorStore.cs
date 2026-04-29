@@ -9,10 +9,14 @@ namespace CleanPotal
 {
     internal static class VendorStore
     {
+        // 🔥 [버그 해결 1] 한글 및 네트워크 경로(\\) 특수문자를 엄격하게 변환하지 않고 원형 그대로 저장/파싱하여 파일 깨짐 원천 차단
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
         };
 
         private static string GlobalTemplatesFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "global_templates.json");
@@ -32,7 +36,10 @@ namespace CleanPotal
                 if (items == null || items.Count == 0) return CreateSeedData();
                 return new ObservableCollection<VendorModel>(items.Select(CloneVendor));
             }
-            catch { return CreateSeedData(); }
+            catch
+            {
+                return CreateSeedData();
+            }
         }
 
         public static void Save(IEnumerable<VendorModel> vendors)
@@ -65,7 +72,7 @@ namespace CleanPotal
                     templates = items == null || items.Count == 0 ? CreateDefaultGlobalTemplates() : new ObservableCollection<GlobalTemplateModel>(items);
                 }
 
-                // 🔥 [강제 동기화] 기존 파일에 D 항목이 없으면 무조건 리스트에 추가하고 파일까지 즉시 갱신
+                // 기존 파일에 D 항목이 없으면 무조건 리스트에 추가하고 파일까지 즉시 갱신
                 if (!templates.Any(t => t.ProductCode?.ToUpper() == "D"))
                 {
                     templates.Add(new GlobalTemplateModel { ProductCode = "D", ProductName = "PLATE, DISK" });
@@ -74,7 +81,11 @@ namespace CleanPotal
 
                 return templates;
             }
-            catch { return CreateDefaultGlobalTemplates(); }
+            catch
+            {
+                // 에러 발생 시 데이터가 날아가는 것을 방지하기 위해, 가능한 한 기본 폼만 반환하고 기존 파일은 덮어쓰지 않음
+                return CreateDefaultGlobalTemplates();
+            }
         }
 
         public static void SaveGlobalTemplates(IEnumerable<GlobalTemplateModel> templates)
@@ -113,13 +124,17 @@ namespace CleanPotal
 
         private static VendorModel CloneVendor(VendorModel source)
         {
+            // 🔥 [버그 해결 2] 주소나 담당자가 없을 경우(null) Select 함수가 터지면서 데이터를 싹 날려버리던 치명적 버그 수정
+            var safeAddresses = source.Addresses ?? new ObservableCollection<AddressModel>();
+            var safeManagers = source.Managers ?? new ObservableCollection<ManagerModel>();
+
             return new VendorModel
             {
                 VendorName = source.VendorName?.Trim() ?? string.Empty,
                 Category = source.Category?.Trim() == "일반" ? "" : (source.Category?.Trim() ?? ""),
                 BasePath = source.BasePath?.Trim() ?? string.Empty,
-                Addresses = new ObservableCollection<AddressModel>(source.Addresses.Select(a => new AddressModel { IsMain = a.IsMain, LocationName = a.LocationName?.Trim() ?? "", FullAddress = a.FullAddress?.Trim() ?? "" })),
-                Managers = new ObservableCollection<ManagerModel>(source.Managers.Select(m => new ManagerModel { ManagerName = m.ManagerName?.Trim() ?? "", ContactNumber = m.ContactNumber?.Trim() ?? "" }))
+                Addresses = new ObservableCollection<AddressModel>(safeAddresses.Select(a => new AddressModel { IsMain = a.IsMain, LocationName = a.LocationName?.Trim() ?? "", FullAddress = a.FullAddress?.Trim() ?? "" })),
+                Managers = new ObservableCollection<ManagerModel>(safeManagers.Select(m => new ManagerModel { ManagerName = m.ManagerName?.Trim() ?? "", ContactNumber = m.ContactNumber?.Trim() ?? "" }))
             };
         }
     }

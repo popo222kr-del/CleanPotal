@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -27,10 +28,10 @@ namespace CleanPotal
         public DateTime? RequestDate { get => _requestDate; set { _requestDate = value; OnPropertyChanged(); } }
 
         private DateTime? _dueDate;
-        public DateTime? DueDate { get => _dueDate; set { _dueDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(IsDelayed)); } }
+        public DateTime? DueDate { get => _dueDate; set { _dueDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(IsDelayed)); OnPropertyChanged(nameof(StatusForeground)); OnPropertyChanged(nameof(StatusBackground)); } }
 
         private string _status = "진행";
-        public string Status { get => _status; set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(IsDelayed)); } }
+        public string Status { get => _status; set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(IsDelayed)); OnPropertyChanged(nameof(StatusForeground)); OnPropertyChanged(nameof(StatusBackground)); } }
 
         private string _category = "";
         public string Category { get => _category; set { _category = value; OnPropertyChanged(); } }
@@ -46,13 +47,11 @@ namespace CleanPotal
             {
                 _requestDetail = value;
                 OnPropertyChanged();
-                // 🔥 XAML 뷰에서 카테고리 태그와 본문을 분리해서 보여주기 위해 업데이트 트리거
                 OnPropertyChanged(nameof(RequestContentTypeTag));
                 OnPropertyChanged(nameof(RequestDetailText));
             }
         }
 
-        // 🔥 가독성 개선: "[소모품]" 등의 대괄호 텍스트만 추출
         public string RequestContentTypeTag
         {
             get
@@ -64,7 +63,6 @@ namespace CleanPotal
             }
         }
 
-        // 🔥 가독성 개선: 대괄호 텍스트를 제외한 실제 본문만 추출
         public string RequestDetailText
         {
             get
@@ -89,16 +87,17 @@ namespace CleanPotal
         public string Assignee { get => _assignee; set { _assignee = value; OnPropertyChanged(); } }
 
         private string _requestMemo = "";
-        public string RequestMemo { get => _requestMemo; set { _requestMemo = value; OnPropertyChanged(); OnPropertyChanged(nameof(RequestFirstImagePath)); OnPropertyChanged(nameof(HasRequestImage)); } }
+        public string RequestMemo { get => _requestMemo; set { _requestMemo = value; OnPropertyChanged(); OnPropertyChanged(nameof(RequestImagePaths)); } }
 
         private string _actionMemo = "";
-        public string ActionMemo { get => _actionMemo; set { _actionMemo = value; OnPropertyChanged(); OnPropertyChanged(nameof(ActionFirstImagePath)); OnPropertyChanged(nameof(HasActionImage)); } }
+        public string ActionMemo { get => _actionMemo; set { _actionMemo = value; OnPropertyChanged(); OnPropertyChanged(nameof(ActionImagePaths)); } }
 
         public string DurationText
         {
             get
             {
                 if (Status == "완료") return "완료";
+                if (Status == "보류") return "보류"; // 🔥 보류 상태 명시
                 if (!DueDate.HasValue) return "-";
 
                 int days = (DueDate.Value.Date - DateTime.Today).Days;
@@ -108,34 +107,78 @@ namespace CleanPotal
             }
         }
 
-        public bool IsDelayed => Status != "완료" && DueDate.HasValue && (DueDate.Value.Date - DateTime.Today).Days < 0;
-
-        private string ExtractFirstImage(string memoText)
+        // 🎨 상태 표시용 색상 (Foreground/Background)
+        public string StatusForeground
         {
-            if (string.IsNullOrWhiteSpace(memoText)) return "";
-            int start = memoText.IndexOf("[[PRODREQ_IMAGES]]", StringComparison.Ordinal);
-            int end = memoText.IndexOf("[[/PRODREQ_IMAGES]]", StringComparison.Ordinal);
-            if (start < 0 || end < 0 || end <= start) return "";
-
-            string block = memoText.Substring(start + 18, end - (start + 18));
-            var lines = block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
+            get
             {
-                string trimmed = line.Trim();
-                if (!string.IsNullOrWhiteSpace(trimmed))
-                {
-                    string root = Path.Combine(AppPaths.DataRoot, "prodreq_images");
-                    return Path.GetFullPath(Path.Combine(root, trimmed));
-                }
+                if (Status == "완료") return "#475569";
+                if (Status == "보류") return "#B45309";
+                if (IsDelayed) return "#DC2626";
+                if (DueDate.HasValue && (DueDate.Value.Date - DateTime.Today).Days == 0) return "#D97706";
+                return "#15803D";
             }
-            return "";
         }
 
-        public string RequestFirstImagePath => ExtractFirstImage(RequestMemo);
-        public bool HasRequestImage => !string.IsNullOrEmpty(RequestFirstImagePath);
+        public string StatusBackground
+        {
+            get
+            {
+                if (Status == "완료") return "#F1F5F9";
+                if (Status == "보류") return "#FEF3C7";
+                if (IsDelayed) return "#FEE2E2";
+                if (DueDate.HasValue && (DueDate.Value.Date - DateTime.Today).Days == 0) return "#FFEDD5";
+                return "#DCFCE7";
+            }
+        }
 
-        public string ActionFirstImagePath => ExtractFirstImage(ActionMemo);
-        public bool HasActionImage => !string.IsNullOrEmpty(ActionFirstImagePath);
+        public bool IsDelayed => Status != "완료" && DueDate.HasValue && (DueDate.Value.Date - DateTime.Today).Days < 0;
+
+        public ObservableCollection<string> RequestImagePaths
+        {
+            get
+            {
+                var paths = new ObservableCollection<string>();
+                if (string.IsNullOrWhiteSpace(RequestMemo)) return paths;
+                int start = RequestMemo.IndexOf("[[PRODREQ_IMAGES]]", StringComparison.Ordinal);
+                int end = RequestMemo.IndexOf("[[/PRODREQ_IMAGES]]", StringComparison.Ordinal);
+                if (start < 0 || end < 0 || end <= start) return paths;
+
+                string block = RequestMemo.Substring(start + 18, end - (start + 18));
+                var lines = block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string root = Path.Combine(AppPaths.DataRoot, "prodreq_images");
+
+                foreach (var line in lines)
+                {
+                    string trimmed = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed)) paths.Add(Path.GetFullPath(Path.Combine(root, trimmed)));
+                }
+                return paths;
+            }
+        }
+
+        public ObservableCollection<string> ActionImagePaths
+        {
+            get
+            {
+                var paths = new ObservableCollection<string>();
+                if (string.IsNullOrWhiteSpace(ActionMemo)) return paths;
+                int start = ActionMemo.IndexOf("[[PRODREQ_IMAGES]]", StringComparison.Ordinal);
+                int end = ActionMemo.IndexOf("[[/PRODREQ_IMAGES]]", StringComparison.Ordinal);
+                if (start < 0 || end < 0 || end <= start) return paths;
+
+                string block = ActionMemo.Substring(start + 18, end - (start + 18));
+                var lines = block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string root = Path.Combine(AppPaths.DataRoot, "prodreq_images");
+
+                foreach (var line in lines)
+                {
+                    string trimmed = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed)) paths.Add(Path.GetFullPath(Path.Combine(root, trimmed)));
+                }
+                return paths;
+            }
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -148,11 +191,9 @@ namespace CleanPotal
         private static readonly string[] AllowedImageExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp" };
 
         public ObservableCollection<ProdReqItem> RequestList { get; set; } = new();
-
         public ObservableCollection<string> ReqLocations { get; set; } = new() { "METAL", "N-METAL", "레이저실", "기타" };
         public ObservableCollection<string> ReqSubLocations { get; set; } = new();
         public ObservableCollection<string> ReqContentTypes { get; set; } = new() { "소모품", "수리", "내용", "기타" };
-
         public ObservableCollection<string> ActionStatusOptions { get; } = new() { "진행", "보류", "완료" };
 
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
@@ -161,6 +202,9 @@ namespace CleanPotal
 
         private bool _isRegisterModalOpen;
         public bool IsRegisterModalOpen { get => _isRegisterModalOpen; set { _isRegisterModalOpen = value; OnPropertyChanged(); } }
+
+        private bool _isActionModalOpen;
+        public bool IsActionModalOpen { get => _isActionModalOpen; set { _isActionModalOpen = value; OnPropertyChanged(); } }
 
         public string EditLocation { get { return _editLocation; } set { _editLocation = value; OnPropertyChanged(); UpdateSubLocations(); } }
         private string _editLocation = "METAL";
@@ -176,56 +220,32 @@ namespace CleanPotal
         private string _editRequestDetail = "";
 
         private ProdReqItem? _currentEditItem;
-        private bool _isActionModalOpen;
-        public bool IsActionModalOpen { get => _isActionModalOpen; set { _isActionModalOpen = value; OnPropertyChanged(); } }
-
         public string ReadCategoryLoc => _currentEditItem != null ? $"[{_currentEditItem.Category}] {_currentEditItem.Location}" : "";
         public string ReadDates => _currentEditItem != null ? $"요청일: {_currentEditItem.RequestDate:yyyy-MM-dd}" : "";
         public string ReadRequester => _currentEditItem != null ? $"요청자: {_currentEditItem.Requester}" : "";
-        public string ReadRequestDetail => _currentEditItem?.RequestDetail ?? "";
-        public ObservableCollection<string> ReadRequestImages { get; } = new();
+
         public string EditableRequestDetail { get => _editableRequestDetail; set { _editableRequestDetail = value; OnPropertyChanged(); } }
         private string _editableRequestDetail = "";
-        public bool CanEditRequestInfo { get => _canEditRequestInfo; set { _canEditRequestInfo = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsRequestInfoReadOnly)); } }
-        private bool _canEditRequestInfo = false;
-        public bool IsRequestInfoReadOnly => !CanEditRequestInfo;
-
-        public string ActionStatus
-        {
-            get => _actionStatus;
-            set
-            {
-                _actionStatus = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ActionDateDisplay));
-            }
-        }
-        private string _actionStatus = "진행";
-
-        public DateTime? ActionDueDate { get => _actionDueDate; set { _actionDueDate = value; OnPropertyChanged(); } }
-        private DateTime? _actionDueDate;
-
-        public string ActionDateDisplay
-        {
-            get
-            {
-                if (ActionStatus == "완료") return DateTime.Today.ToString("yyyy-MM-dd");
-                return _currentEditItem?.ActionDate?.ToString("yyyy-MM-dd") ?? "-";
-            }
-        }
-
-        public string ActionAssignee { get => _actionAssignee; set { _actionAssignee = value; OnPropertyChanged(); } }
-        private string _actionAssignee = "";
         public string ActionDetail { get => _actionDetail; set { _actionDetail = value; OnPropertyChanged(); } }
         private string _actionDetail = "";
+        public string ActionAssignee { get => _actionAssignee; set { _actionAssignee = value; OnPropertyChanged(); } }
+        private string _actionAssignee = "";
+        public string ActionStatus { get => _actionStatus; set { _actionStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(ActionDateDisplay)); } }
+        private string _actionStatus = "진행";
+        public DateTime? ActionDueDate { get => _actionDueDate; set { _actionDueDate = value; OnPropertyChanged(); } }
+        private DateTime? _actionDueDate;
+        public string ActionDateDisplay { get { if (ActionStatus == "완료") return DateTime.Today.ToString("yyyy-MM-dd"); return _currentEditItem?.ActionDate?.ToString("yyyy-MM-dd") ?? "-"; } }
 
+        private bool _canEditRequestInfo = false;
+        public bool CanEditRequestInfo { get => _canEditRequestInfo; set { _canEditRequestInfo = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsRequestInfoReadOnly)); } }
+        public bool IsRequestInfoReadOnly => !CanEditRequestInfo;
 
         public ProdReqView()
         {
             InitializeComponent();
             DataContext = this;
-            ReqGrid.ItemsSource = RequestList;
             LoadDataFromDB();
+            ApplyFilters();
             UpdateSubLocations();
             EditRequester = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
             HookManageCheckedEvents();
@@ -234,23 +254,50 @@ namespace CleanPotal
         private void LoadDataFromDB()
         {
             RequestList.Clear();
-            try
-            {
-                DatabaseHelper.CreateProdReqTable();
-                var items = DatabaseHelper.GetAllProdReqs();
-                foreach (var item in items)
-                {
-                    RequestList.Add(item);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"DB 데이터를 불러오지 못했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            try { DatabaseHelper.CreateProdReqTable(); foreach (var item in DatabaseHelper.GetAllProdReqs()) RequestList.Add(item); } catch { }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        private void FilterTab_Checked(object sender, RoutedEventArgs e) => ApplyFilters();
+
+        private void ApplyFilters()
+        {
+            bool showAll = TabAll?.IsChecked == true;
+            bool showInProg = TabInProgress?.IsChecked == true;
+            bool showPending = TabPending?.IsChecked == true;
+
+            var activeView = CollectionViewSource.GetDefaultView(RequestList);
+            activeView.Filter = obj =>
+            {
+                if (obj is ProdReqItem item && item.Status != "완료")
+                {
+                    if (showAll) return true;
+                    if (showInProg && item.Status == "진행") return true;
+                    if (showPending && item.Status == "보류") return true;
+                }
+                return false;
+            };
+            if (ReqGrid != null) ReqGrid.ItemsSource = activeView;
+            activeView.Refresh();
+
+            var historyView = new CollectionViewSource { Source = RequestList }.View;
+            historyView.Filter = obj => (obj as ProdReqItem)?.Status == "완료";
+            if (HistoryGrid != null) HistoryGrid.ItemsSource = historyView;
+            historyView.Refresh();
+
+            UpdateTabCounts(); // 🎨 탭 카운트 뱃지 갱신
+        }
+
+        // 🎨 탭별 건수를 계산하여 뱃지에 반영
+        private void UpdateTabCounts()
+        {
+            int inProg = RequestList.Count(x => x.Status == "진행");
+            int pending = RequestList.Count(x => x.Status == "보류");
+            int total = inProg + pending; // "진행 및 보류 중인 요청"의 합계
+
+            if (CountAll != null) CountAll.Text = total.ToString();
+            if (CountInProgress != null) CountInProgress.Text = inProg.ToString();
+            if (CountPending != null) CountPending.Text = pending.ToString();
+        }
 
         private void UpdateSubLocations()
         {
@@ -277,42 +324,81 @@ namespace CleanPotal
             if (e.OldItems != null) foreach (ProdReqItem item in e.OldItems) item.PropertyChanged -= RequestItem_PropertyChanged;
             if (e.NewItems != null) foreach (ProdReqItem item in e.NewItems) item.PropertyChanged += RequestItem_PropertyChanged;
             UpdateManageColumnVisibility();
+            UpdateTabCounts(); // 🎨 항목 추가/삭제 시 카운트 갱신
         }
 
         private void RequestItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ProdReqItem.ManageChecked)) UpdateManageColumnVisibility();
+            if (e.PropertyName == nameof(ProdReqItem.Status)) UpdateTabCounts(); // 🎨 상태 변경 시 카운트 갱신
         }
 
         private void UpdateManageColumnVisibility()
         {
             bool show = RequestList.Any(x => x.ManageChecked);
-            if (ManageColumn != null) ManageColumn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (ReqGrid_ManageColumn != null) ReqGrid_ManageColumn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (HistoryGrid_ManageColumn != null) HistoryGrid_ManageColumn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void BtnToggleTop_Click(object sender, RoutedEventArgs e)
+        {
+            // 🎨 BtnToggleTop 체크 = 상단(진행 목록) 접기
+            if (BtnToggleTop.IsChecked == true)
+            {
+                BtnToggleBottom.IsChecked = false;
+                TopRow.Height = new GridLength(0);
+                BottomRow.Height = new GridLength(1, GridUnitType.Star);
+                if (ToggleTopText != null) ToggleTopText.Text = "진행 목록 펼치기";
+                if (ToggleTopIcon != null) ToggleTopIcon.Text = "▼";
+                if (ToggleBottomText != null) ToggleBottomText.Text = "조치 완료 접기";
+                if (ToggleBottomIcon != null) ToggleBottomIcon.Text = "▼";
+            }
+            else
+            {
+                ResetLayout();
+            }
+        }
+
+        private void BtnToggleBottom_Click(object sender, RoutedEventArgs e)
+        {
+            // 🎨 BtnToggleBottom 체크 = 하단(조치 완료) 접기
+            if (BtnToggleBottom.IsChecked == true)
+            {
+                BtnToggleTop.IsChecked = false;
+                BottomRow.Height = new GridLength(0);
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                if (ToggleBottomText != null) ToggleBottomText.Text = "조치 완료 펼치기";
+                if (ToggleBottomIcon != null) ToggleBottomIcon.Text = "▲";
+                if (ToggleTopText != null) ToggleTopText.Text = "진행 목록 접기";
+                if (ToggleTopIcon != null) ToggleTopIcon.Text = "▲";
+            }
+            else
+            {
+                ResetLayout();
+            }
+        }
+
+        private void ResetLayout()
+        {
+            // 🎨 기본 비율 60:40 (상단 우선)
+            TopRow.Height = new GridLength(6, GridUnitType.Star);
+            BottomRow.Height = new GridLength(4, GridUnitType.Star);
+            if (ToggleTopText != null) ToggleTopText.Text = "진행 목록 접기";
+            if (ToggleTopIcon != null) ToggleTopIcon.Text = "▲";
+            if (ToggleBottomText != null) ToggleBottomText.Text = "조치 완료 접기";
+            if (ToggleBottomIcon != null) ToggleBottomIcon.Text = "▼";
         }
 
         private void ArchiveDelete_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is ProdReqItem item)
             {
-                if (item.Status != "완료")
+                string msg = item.Status == "완료" ? "완료된 항목을 엑셀에 보관하고 삭제하시겠습니까?" : "진행 중인 요청입니다. 정말로 삭제하시겠습니까?";
+                if (MessageBox.Show(msg, "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
-                    MessageBox.Show("완료 처리된 항목만 삭제(엑셀 보관)할 수 있습니다.", "보관 불가", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    item.ManageChecked = false;
-                    return;
-                }
-
-                if (MessageBox.Show("선택한 완료 항목을 리스트에서 지우고 엑셀 서식파일(.xltx)에 영구 보관하시겠습니까?", "삭제 및 보관", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        ArchiveToExcel(new List<ProdReqItem> { item });
-                        DatabaseHelper.DeleteProdReq(item.Id);
-                        RequestList.Remove(item);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"엑셀 저장 및 삭제 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    if (item.Status == "완료") ArchiveToExcel(new List<ProdReqItem> { item });
+                    DatabaseHelper.DeleteProdReq(item.Id);
+                    RequestList.Remove(item);
                 }
             }
         }
@@ -320,41 +406,23 @@ namespace CleanPotal
         private void ArchiveToExcel(List<ProdReqItem> items)
         {
             string path = Path.Combine(AppPaths.DataRoot, "생산팀_조치이력.xltx");
-
             using var wb = File.Exists(path) ? new XLWorkbook(path) : new XLWorkbook();
             var ws = wb.Worksheets.FirstOrDefault(x => x.Name == "조치이력") ?? wb.AddWorksheet("조치이력");
-
             if (ws.LastRowUsed() == null)
             {
-                ws.Cell(1, 1).Value = "보관일시"; ws.Cell(1, 2).Value = "요청일"; ws.Cell(1, 3).Value = "예정일";
-                ws.Cell(1, 4).Value = "구분"; ws.Cell(1, 5).Value = "세부위치"; ws.Cell(1, 6).Value = "요청사항";
-                ws.Cell(1, 7).Value = "요청자"; ws.Cell(1, 8).Value = "조치일"; ws.Cell(1, 9).Value = "조치내용";
-                ws.Cell(1, 10).Value = "담당자";
-                ws.Range(1, 1, 1, 10).Style.Font.Bold = true; ws.Range(1, 1, 1, 10).Style.Fill.BackgroundColor = XLColor.LightGray;
-                ws.Range(1, 1, 1, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(1, 1).Value = "보관일시"; ws.Cell(1, 2).Value = "요청일"; ws.Cell(1, 3).Value = "예정일"; ws.Cell(1, 4).Value = "구분"; ws.Cell(1, 5).Value = "세부위치"; ws.Cell(1, 6).Value = "요청사항"; ws.Cell(1, 7).Value = "요청자"; ws.Cell(1, 8).Value = "조치일"; ws.Cell(1, 9).Value = "조치내용"; ws.Cell(1, 10).Value = "담당자";
+                ws.Range(1, 1, 1, 10).Style.Font.Bold = true; ws.Range(1, 1, 1, 10).Style.Fill.BackgroundColor = XLColor.LightGray; ws.Range(1, 1, 1, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             }
-
             int row = (ws.LastRowUsed()?.RowNumber() ?? 1) + 1;
             foreach (var item in items)
             {
-                ws.Cell(row, 1).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                ws.Cell(row, 2).Value = item.RequestDate?.ToString("yyyy-MM-dd") ?? "";
-                ws.Cell(row, 3).Value = item.DueDate?.ToString("yyyy-MM-dd") ?? "";
-                ws.Cell(row, 4).Value = item.Category;
-                ws.Cell(row, 5).Value = item.Location;
-                ws.Cell(row, 6).Value = item.RequestDetail;
-                ws.Cell(row, 7).Value = item.Requester;
-                ws.Cell(row, 8).Value = item.ActionDate?.ToString("yyyy-MM-dd") ?? "";
-                ws.Cell(row, 9).Value = item.ActionDetail;
-                ws.Cell(row, 10).Value = item.Assignee;
+                ws.Cell(row, 1).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"); ws.Cell(row, 2).Value = item.RequestDate?.ToString("yyyy-MM-dd") ?? ""; ws.Cell(row, 3).Value = item.DueDate?.ToString("yyyy-MM-dd") ?? ""; ws.Cell(row, 4).Value = item.Category; ws.Cell(row, 5).Value = item.Location; ws.Cell(row, 6).Value = item.RequestDetail; ws.Cell(row, 7).Value = item.Requester; ws.Cell(row, 8).Value = item.ActionDate?.ToString("yyyy-MM-dd") ?? ""; ws.Cell(row, 9).Value = item.ActionDetail; ws.Cell(row, 10).Value = item.Assignee;
                 row++;
             }
-
             ws.Columns().AdjustToContents();
             wb.SaveAs(path);
         }
 
-        // 🔥 메인 윈도우에서 호출 가능하도록 public 함수로 변경 및 로직 수정
         public void OpenRegisterModal()
         {
             BtnResetRegister_Click(null, null);
@@ -362,76 +430,31 @@ namespace CleanPotal
         }
 
         private void CloseRegisterModal_Click(object sender, RoutedEventArgs e) => IsRegisterModalOpen = false;
-
-        private void BtnResetRegister_Click(object? sender, RoutedEventArgs? e)
-        {
-            EditLocation = "METAL"; EditContentType = "소모품";
-            EditRequestDate = DateTime.Today;
-            EditRequester = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
-            EditRequestDetail = ""; RegisterModalAttachmentPaths.Clear();
-        }
+        private void BtnResetRegister_Click(object? sender, RoutedEventArgs? e) { EditLocation = "METAL"; EditContentType = "소모품"; EditRequestDate = DateTime.Today; EditRequester = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음"; EditRequestDetail = ""; RegisterModalAttachmentPaths.Clear(); }
 
         private void BtnSaveRegister_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(EditRequestDetail))
-            {
-                MessageBox.Show("상세 요청사항을 입력해 주세요.", "입력 누락", MessageBoxButton.OK, MessageBoxImage.Warning); return;
-            }
-
-            var newItem = new ProdReqItem
-            {
-                Id = Guid.NewGuid(),
-                RequestDate = EditRequestDate ?? DateTime.Today,
-                DueDate = null,
-                Status = "진행",
-                Category = EditLocation,
-                Location = EditSubLocation,
-                RequestDetail = $"[{EditContentType}] {EditRequestDetail}",
-                Requester = EditRequester,
-                Assignee = "",
-                RequestMemo = BuildMemo("", RegisterModalAttachmentPaths),
-                ActionMemo = "",
-                ManageChecked = false
-            };
-
-            try
-            {
-                DatabaseHelper.InsertProdReq(newItem);
-                RequestList.Insert(0, newItem);
-                IsRegisterModalOpen = false;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"DB 저장 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            if (string.IsNullOrWhiteSpace(EditRequestDetail)) { MessageBox.Show("상세 요청사항을 입력해 주세요.", "입력 누락", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+            var newItem = new ProdReqItem { Id = Guid.NewGuid(), RequestDate = EditRequestDate ?? DateTime.Today, Status = "진행", Category = EditLocation, Location = EditSubLocation, RequestDetail = $"[{EditContentType}] {EditRequestDetail}", Requester = EditRequester, RequestMemo = BuildMemo(RegisterModalAttachmentPaths) };
+            DatabaseHelper.InsertProdReq(newItem); RequestList.Insert(0, newItem); IsRegisterModalOpen = false;
         }
 
         private void ReqGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (ReqGrid.SelectedItem is ProdReqItem item)
+            if ((sender as DataGrid)?.SelectedItem is ProdReqItem item)
             {
                 _currentEditItem = item;
+                OnPropertyChanged(nameof(ReadCategoryLoc)); OnPropertyChanged(nameof(ReadDates)); OnPropertyChanged(nameof(ReadRequester));
 
-                OnPropertyChanged(nameof(ReadCategoryLoc)); OnPropertyChanged(nameof(ReadDates));
-                OnPropertyChanged(nameof(ReadRequester)); OnPropertyChanged(nameof(ReadRequestDetail));
-
-                ReadRequestImages.Clear();
-                foreach (var path in ExtractPathsFromMemo(item.RequestMemo)) ReadRequestImages.Add(path);
-                RequestEditAttachmentPaths.Clear();
-                foreach (var path in ExtractPathsFromMemo(item.RequestMemo)) RequestEditAttachmentPaths.Add(path);
                 EditableRequestDetail = item.RequestDetail;
-                CanEditRequestInfo = SessionManager.IsLoggedIn &&
-                                     !string.IsNullOrWhiteSpace(item.Requester) &&
-                                     string.Equals(item.Requester.Trim(), SessionManager.CurrentRealName?.Trim(), StringComparison.OrdinalIgnoreCase);
-
+                ActionDetail = item.ActionDetail;
                 ActionStatus = item.Status;
                 ActionDueDate = item.DueDate ?? DateTime.Today.AddDays(1);
-                ActionAssignee = string.IsNullOrWhiteSpace(item.Assignee) && SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : item.Assignee;
-                ActionDetail = item.ActionDetail;
+                ActionAssignee = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : (item.Assignee ?? "");
+                CanEditRequestInfo = SessionManager.IsLoggedIn && string.Equals(item.Requester, SessionManager.CurrentRealName, StringComparison.OrdinalIgnoreCase);
 
-                ActionModalAttachmentPaths.Clear();
-                foreach (var path in ExtractPathsFromMemo(item.ActionMemo)) ActionModalAttachmentPaths.Add(path);
-
+                RequestEditAttachmentPaths.Clear(); foreach (var p in ExtractPaths(item.RequestMemo)) RequestEditAttachmentPaths.Add(p);
+                ActionModalAttachmentPaths.Clear(); foreach (var p in ExtractPaths(item.ActionMemo)) ActionModalAttachmentPaths.Add(p);
                 IsActionModalOpen = true;
             }
         }
@@ -441,102 +464,66 @@ namespace CleanPotal
         private void BtnSaveAction_Click(object sender, RoutedEventArgs e)
         {
             if (_currentEditItem == null) return;
-            if (string.IsNullOrWhiteSpace(EditableRequestDetail))
-            {
-                MessageBox.Show("요청사항은 비워둘 수 없습니다.", "입력 누락", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            if (CanEditRequestInfo) { _currentEditItem.RequestDetail = EditableRequestDetail; _currentEditItem.RequestMemo = BuildMemo(RequestEditAttachmentPaths); }
 
-            _currentEditItem.Status = ActionStatus;
-            _currentEditItem.DueDate = ActionDueDate;
-            if (CanEditRequestInfo)
-            {
-                _currentEditItem.RequestDetail = EditableRequestDetail.Trim();
-                _currentEditItem.RequestMemo = BuildMemo("", RequestEditAttachmentPaths);
-            }
+            // 🔥 B안: 담당자는 현재 로그인 사용자로 무조건 자동 기록 (감사 추적)
+            string finalAssignee = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : (_currentEditItem.Assignee ?? "");
 
-            if (ActionStatus == "완료")
-            {
-                _currentEditItem.ActionDate = DateTime.Today;
-            }
-            else
-            {
-                _currentEditItem.ActionDate = null;
-            }
-
-            _currentEditItem.Assignee = ActionAssignee;
-            _currentEditItem.ActionDetail = ActionDetail;
-            _currentEditItem.ActionMemo = BuildMemo("", ActionModalAttachmentPaths);
-
-            try
-            {
-                DatabaseHelper.UpdateProdReq(_currentEditItem);
-                IsActionModalOpen = false;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"DB 업데이트 중 오류가 발생했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _currentEditItem.Status = ActionStatus; _currentEditItem.DueDate = ActionDueDate; _currentEditItem.Assignee = finalAssignee; _currentEditItem.ActionDetail = ActionDetail; _currentEditItem.ActionMemo = BuildMemo(ActionModalAttachmentPaths);
+            if (ActionStatus == "완료") _currentEditItem.ActionDate = DateTime.Today; else _currentEditItem.ActionDate = null;
+            DatabaseHelper.UpdateProdReq(_currentEditItem); IsActionModalOpen = false; ApplyFilters();
         }
 
-        private void GridThumbnail_Click(object sender, MouseButtonEventArgs e) { if (sender is FrameworkElement element && element.DataContext is ProdReqItem item && item.HasRequestImage) { ShowImagePopup(item.RequestFirstImagePath); e.Handled = true; } }
-        private void GridActionThumbnail_Click(object sender, MouseButtonEventArgs e) { if (sender is FrameworkElement element && element.DataContext is ProdReqItem item && item.HasActionImage) { ShowImagePopup(item.ActionFirstImagePath); e.Handled = true; } }
-        private void ModalThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) { string root = Path.Combine(AppPaths.DataRoot, "prodreq_images"); ShowImagePopup(Path.GetFullPath(Path.Combine(root, path))); e.Handled = true; } }
+        private void GridThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) ShowImagePopup(p); }
+        private void GridActionThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) ShowImagePopup(p); }
+        private void ModalThumbnail_Click(object sender, MouseButtonEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) ShowImagePopup(p); }
+        private void ShowImagePopup(string path) { if (!File.Exists(path)) return; var win = new Window { Width = 1000, Height = 800, WindowStartupLocation = WindowStartupLocation.CenterScreen }; var img = new Image { Source = new BitmapImage(new Uri(path)), Stretch = Stretch.Uniform, Margin = new Thickness(20) }; win.Content = img; win.ShowDialog(); }
 
-        private void ShowImagePopup(string imagePath)
+        private List<string> ExtractPaths(string memo) { var res = new List<string>(); if (string.IsNullOrEmpty(memo)) return res; int s = memo.IndexOf(ImageBlockStart); int e = memo.IndexOf(ImageBlockEnd); if (s < 0 || e < 0) return res; var block = memo.Substring(s + 18, e - (s + 18)); return block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Select(x => Path.GetFullPath(Path.Combine(AppPaths.DataRoot, "prodreq_images", x.Trim()))).ToList(); }
+        private string BuildMemo(IEnumerable<string> paths) { if (!paths.Any()) return ""; var sb = new StringBuilder(); sb.AppendLine(ImageBlockStart); foreach (var p in paths) sb.AppendLine(Path.GetFileName(p)); sb.Append(ImageBlockEnd); return sb.ToString(); }
+
+        private bool IsImageFile(string path) => AllowedImageExtensions.Contains(Path.GetExtension(path).ToLower());
+
+        private string SaveImage(string src)
         {
-            try
+            string root = Path.Combine(AppPaths.DataRoot, "prodreq_images");
+            Directory.CreateDirectory(root);
+            string fn = Guid.NewGuid() + Path.GetExtension(src);
+            string dst = Path.Combine(root, fn);
+            File.Copy(src, dst, true);
+            return dst;
+        }
+
+        private string SaveClipboard()
+        {
+            string root = Path.Combine(AppPaths.DataRoot, "prodreq_images");
+            Directory.CreateDirectory(root);
+            string fn = Guid.NewGuid() + ".png";
+            string dst = Path.Combine(root, fn);
+            using (var fs = new FileStream(dst, FileMode.Create))
             {
-                var window = new Window { Title = "이미지 뷰어", Width = 1000, Height = 800, WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = Window.GetWindow(this), Background = new SolidColorBrush(Color.FromRgb(24, 24, 27)) };
-                var img = new Image { Source = new BitmapImage(new Uri(imagePath)), Stretch = Stretch.Uniform, Margin = new Thickness(20) };
-                window.Content = img; window.ShowDialog();
+                var enc = new PngBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(Clipboard.GetImage()));
+                enc.Save(fs);
             }
-            catch (Exception ex) { MessageBox.Show($"이미지를 불러올 수 없습니다.\n{ex.Message}", "오류"); }
+            return dst;
         }
 
-        private List<string> ExtractPathsFromMemo(string memo)
-        {
-            var res = new List<string>(); if (string.IsNullOrWhiteSpace(memo)) return res;
-            int start = memo.IndexOf(ImageBlockStart, StringComparison.Ordinal); int end = memo.IndexOf(ImageBlockEnd, StringComparison.Ordinal);
-            if (start < 0 || end < 0) return res;
-            string block = memo.Substring(start + 18, end - (start + 18));
-            foreach (var line in block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)) { if (!string.IsNullOrWhiteSpace(line.Trim())) res.Add(line.Trim()); }
-            return res;
-        }
+        private void RegisterModalMemo_Drop(object sender, DragEventArgs e) { if (e.Data.GetData(DataFormats.FileDrop) is string[] files) foreach (var f in files.Where(IsImageFile)) RegisterModalAttachmentPaths.Add(SaveImage(f)); }
+        private void RegisterModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) RegisterModalAttachmentPaths.Add(SaveClipboard()); }
+        private void RegisterDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) RegisterModalAttachmentPaths.Remove(p); }
+        private void ActionModalMemo_Drop(object sender, DragEventArgs e) { if (e.Data.GetData(DataFormats.FileDrop) is string[] files) foreach (var f in files.Where(IsImageFile)) ActionModalAttachmentPaths.Add(SaveImage(f)); }
+        private void ActionModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) ActionModalAttachmentPaths.Add(SaveClipboard()); }
+        private void ActionDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) ActionModalAttachmentPaths.Remove(p); }
+        private void RequestEditMemo_Drop(object sender, DragEventArgs e) { if (e.Data.GetData(DataFormats.FileDrop) is string[] files) foreach (var f in files.Where(IsImageFile)) RequestEditAttachmentPaths.Add(SaveImage(f)); }
+        private void RequestEditMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) RequestEditAttachmentPaths.Add(SaveClipboard()); }
+        private void RequestEditDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string p) RequestEditAttachmentPaths.Remove(p); }
 
-        private static bool HasImageFiles(IDataObject data) { if (!data.GetDataPresent(DataFormats.FileDrop)) return false; var files = data.GetData(DataFormats.FileDrop) as string[]; return files != null && files.Any(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase))); }
-        private static string GetImageRootDirectory() { string dir = Path.Combine(AppPaths.DataRoot, "prodreq_images"); Directory.CreateDirectory(dir); return dir; }
-        private static string BuildMemo(string text, IEnumerable<string> paths) { var cleanPaths = paths.Where(x => !string.IsNullOrWhiteSpace(x)).ToList(); if (cleanPaths.Count == 0) return text; var sb = new StringBuilder(text); sb.AppendLine(); sb.AppendLine(ImageBlockStart); foreach (var p in cleanPaths) sb.AppendLine(p); sb.Append(ImageBlockEnd); return sb.ToString(); }
+        private void RegisterModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Handled = true; }
+        private void ActionModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Handled = true; }
+        private void RequestEditMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Handled = true; }
 
-        private static List<string> SaveDroppedImages(Guid id, IEnumerable<string> files)
-        {
-            string root = GetImageRootDirectory(); string itemDir = Path.Combine(root, id.ToString("N")); Directory.CreateDirectory(itemDir);
-            var saved = new List<string>(); foreach (var f in files) { string dest = Path.Combine(itemDir, $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}{Path.GetExtension(f)}"); File.Copy(f, dest, true); saved.Add(Path.GetRelativePath(root, dest)); }
-            return saved;
-        }
-
-        private static List<string> SaveClipboardImages(Guid id)
-        {
-            var saved = new List<string>(); if (!Clipboard.ContainsImage()) return saved; var img = Clipboard.GetImage(); if (img == null) return saved;
-            string root = GetImageRootDirectory(); string itemDir = Path.Combine(root, id.ToString("N")); Directory.CreateDirectory(itemDir);
-            string dest = Path.Combine(itemDir, $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.png");
-            using (var fs = new FileStream(dest, FileMode.Create)) { var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(img)); enc.Save(fs); }
-            saved.Add(Path.GetRelativePath(root, dest)); return saved;
-        }
-
-        private void RegisterModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
-        private void RegisterModalMemo_Drop(object sender, DragEventArgs e) { if (e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(Guid.NewGuid(), files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); } e.Handled = true; }
-        private void RegisterModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) { var saved = SaveClipboardImages(Guid.NewGuid()); foreach (var s in saved) RegisterModalAttachmentPaths.Add(s); e.Handled = true; } }
-        private void RegisterDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) RegisterModalAttachmentPaths.Remove(path); }
-
-        private void RequestEditMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
-        private void RequestEditMemo_Drop(object sender, DragEventArgs e) { if (_currentEditItem != null && e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(_currentEditItem.Id, files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) RequestEditAttachmentPaths.Add(s); } e.Handled = true; }
-        private void RequestEditMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage() && _currentEditItem != null) { var saved = SaveClipboardImages(_currentEditItem.Id); foreach (var s in saved) RequestEditAttachmentPaths.Add(s); e.Handled = true; } }
-        private void RequestEditDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) RequestEditAttachmentPaths.Remove(path); }
-
-        private void ActionModalMemo_PreviewDragOver(object sender, DragEventArgs e) { e.Effects = HasImageFiles(e.Data) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
-        private void ActionModalMemo_Drop(object sender, DragEventArgs e) { if (_currentEditItem != null && e.Data.GetData(DataFormats.FileDrop) is string[] files) { var saved = SaveDroppedImages(_currentEditItem.Id, files.Where(f => AllowedImageExtensions.Any(x => f.EndsWith(x, StringComparison.OrdinalIgnoreCase)))); foreach (var s in saved) ActionModalAttachmentPaths.Add(s); } e.Handled = true; }
-        private void ActionModalMemo_PreviewKeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage() && _currentEditItem != null) { var saved = SaveClipboardImages(_currentEditItem.Id); foreach (var s in saved) ActionModalAttachmentPaths.Add(s); e.Handled = true; } }
-        private void ActionDeleteAttachment_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is string path) ActionModalAttachmentPaths.Remove(path); }
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

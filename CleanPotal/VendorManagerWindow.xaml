@@ -24,86 +24,76 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                                <Setter TargetName="border" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1E3A8A"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="SecondaryButton" TargetType="Button">
             <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#F1F5F9"/>
                             </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-            <Setter Property="Foreground" Value="#EF4444"/>
-            <Setter Property="BorderBrush" Value="#FCA5A5"/>
+            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="BorderBrush" Value="#FECACA"/>
+            <Setter Property="Background" Value="#FEF2F2"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FEF2F2"/>
-                    <Setter Property="BorderBrush" Value="#F87171"/>
+                    <Setter Property="Background" Value="#FEE2E2"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="PillTabStyle" TargetType="RadioButton">
+
+        <Style x:Key="SegmentedTabStyle" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#64748B"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,6"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="16" Padding="14,6" Margin="0,0,6,0">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="20" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1E293B"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ModernListBoxItem" TargetType="ListBoxItem">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="12,10" Margin="8,2">
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
-                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                                <Setter Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -111,235 +101,305 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="ModernScrollBar" TargetType="ScrollBar">
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Margin" Value="0,2,2,2"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollBar">
-                        <Grid Background="Transparent">
-                            <Track x:Name="PART_Track" IsDirectionReversed="true">
-                                <Track.Thumb>
-                                    <Thumb>
-                                        <Thumb.Template>
-                                            <ControlTemplate TargetType="Thumb">
-                                                <Border Background="#CBD5E1" CornerRadius="4"/>
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                            </Track>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E2E8F0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="RowHeight" Value="44"/>
-            <Setter Property="VerticalAlignment" Value="Top"/>
-        </Style>
+
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F1F5F9"/>
             <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Height" Value="42"/>
-            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="GridTextBlock" TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                    <Setter Property="Foreground" Value="#1E3A8A"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-
-        <Border Grid.Column="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
-            <Grid Margin="16,24,16,16">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0" Margin="0,0,0,20">
-                    <TextBlock Text="거래처 관리" FontSize="20" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                    <Button Content="⚙️ 설정" Focusable="False" HorizontalAlignment="Right" Style="{StaticResource SecondaryButton}" Height="32" Click="BtnOpenSettings_Click"/>
-                </Grid>
-                <Border Grid.Row="1" Background="#F1F5F9" CornerRadius="6" Margin="8,0,8,16" Padding="12,8">
-                    <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" TextChanged="SearchBox_TextChanged"/>
-                </Border>
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="8,0,8,16">
-                    <RadioButton Content="전체" IsChecked="True" Checked="FilterTab_Checked" Style="{StaticResource PillTabStyle}"/>
-                    <RadioButton Content="삼성" Checked="FilterTab_Checked" Style="{StaticResource PillTabStyle}"/>
-                    <RadioButton Content="SEMES" Checked="FilterTab_Checked" Style="{StaticResource PillTabStyle}"/>
-                    <RadioButton Content="QTZ" Checked="FilterTab_Checked" Style="{StaticResource PillTabStyle}"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="업체 기준 정보 관리" FontSize="22" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,16,0"/>
+                    <TextBlock x:Name="TxtSummary" Text="로딩 중..." VerticalAlignment="Center" Foreground="#64748B" FontWeight="SemiBold"/>
                 </StackPanel>
-                <ListBox x:Name="VendorListBox" Grid.Row="3" Background="Transparent" BorderThickness="0" SelectionChanged="VendorListBox_SelectionChanged" ItemContainerStyle="{StaticResource ModernListBoxItem}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding VendorName}" FontSize="14"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                <Button Grid.Row="4" Content="새 업체 등록" Focusable="False" Height="44" Style="{StaticResource PrimaryButton}" Margin="8,16,8,0" Click="AddVendor_Click"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="⚙️ 전역 설정 (마스터 DB / 템플릿)" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" Click="BtnOpenSettings_Click"/>
+                    <Button Content="저장하기" Style="{StaticResource PrimaryButton}" Width="120" Click="BtnSave_Click"/>
+                </StackPanel>
             </Grid>
         </Border>
 
-        <Grid Grid.Column="1" Margin="32" x:Name="DetailRootPanel">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="20,16" Margin="0,0,0,24">
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Margin="0,0,24,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="16"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="업체명" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,4" Background="White" Margin="0,0,24,0">
-                            <TextBox Text="{Binding VendorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Width="200" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+                    <Border Grid.Row="0" Padding="16,16,16,0">
+                        <Border Background="#F1F5F9" CornerRadius="8" Padding="12,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="🔍" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" TextChanged="SearchBox_TextChanged" Foreground="#0F172A" VerticalContentAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="업체명 검색..." Foreground="#94A3B8" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style></TextBlock>
+                            </Grid>
                         </Border>
-                        <TextBlock Text="분류" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="White" Padding="4,0">
-                            <ComboBox SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Width="120" Height="32" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center">
-                                <ComboBoxItem Content="일반"/>
-                                <ComboBoxItem Content="삼성"/>
-                                <ComboBoxItem Content="SEMES"/>
-                                <ComboBoxItem Content="QTZ"/>
-                            </ComboBox>
-                        </Border>
-                    </StackPanel>
-                    <Button Grid.Row="0" Grid.Column="1" Content="이 업체 삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="34" VerticalAlignment="Center" Click="DeleteVendor_Click"/>
-                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="기본 저장 폴더" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,4" Background="#F8FAFC" Width="550" Margin="0,0,8,0">
-                            <TextBox Text="{Binding BasePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Foreground="#334155" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
-                        </Border>
-                        <Button Content="경로 찾기" Focusable="False" Width="80" Height="32" Style="{StaticResource SecondaryButton}" Click="BrowseFolder_Click"/>
-                    </StackPanel>
+                    </Border>
+                    <Border Grid.Row="1" Padding="16,12,16,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <RadioButton Content="전체" Style="{StaticResource SegmentedTabStyle}" IsChecked="True" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="일반" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="SEMES" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                            <RadioButton Content="QTZ" Style="{StaticResource SegmentedTabStyle}" Checked="FilterTab_Checked"/>
+                        </StackPanel>
+                    </Border>
+                    <ListBox x:Name="VendorListBox" Grid.Row="2" Background="Transparent" BorderThickness="0" Margin="0,8" SelectionChanged="VendorListBox_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="16,12"/>
+                                <Setter Property="Margin" Value="8,2"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#F1F5F9"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding VendorName}" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                                        <TextBlock Foreground="#64748B" FontSize="12"><Run Text="분류: "/><Run Text="{Binding Category, TargetNullValue='미지정', FallbackValue='미지정'}" FontWeight="SemiBold"/></TextBlock>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="#F1F5F9" CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                                        <TextBlock Text="▶" Foreground="#94A3B8" FontSize="10"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2" Content="+ 새 거래처" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Margin="16" Click="AddVendor_Click"/>
                 </Grid>
             </Border>
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,16,0">
-                <StackPanel>
-                    <Grid Margin="0,0,0,32">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                            <TextBlock Text="주소지 및 공장 정보" FontSize="16" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="추가" Focusable="False" Style="{StaticResource SecondaryButton}" Height="30" Margin="0,0,8,0" Click="AddAddress_Click"/>
-                                <Button Content="삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="30" Click="DeleteAddress_Click"/>
+
+            <Border Grid.Column="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="32">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="DetailRootPanel">
+                        <Grid Margin="0,0,0,32">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="기본 정보" FontSize="18" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,16"/>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,16">
+                                        <TextBlock Text="업체명" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <Border Background="#F8FAFC" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="6">
+                                            <TextBox Text="{Binding VendorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="15" FontWeight="Bold" Foreground="#0F172A"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,16">
+                                        <TextBlock Text="분류" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <ComboBox Width="120" HorizontalAlignment="Left" Foreground="#1E293B" BorderBrush="#D1D5DB" 
+                                                  SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  SelectedValuePath="Content">
+                                            <ComboBoxItem Content="일반"/>
+                                            <ComboBoxItem Content="SEMES"/>
+                                            <ComboBoxItem Content="QTZ"/>
+                                            <ComboBoxItem Content="기타"/>
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3">
+                                        <TextBlock Text="기본 네트워크 경로 (베이스 폴더)" Foreground="#64748B" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="#F8FAFC" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="6">
+                                                <TextBox Text="{Binding BasePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="12,10"/>
+                                            </Border>
+                                            <Button Grid.Column="1" Content="찾기" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Padding="16,0" Click="BrowseFolder_Click"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
+                            <Button Grid.Column="1" Content="이 업체 삭제" Style="{StaticResource DangerButton}" VerticalAlignment="Top" Click="DeleteVendor_Click"/>
                         </Grid>
-                        <DataGrid x:Name="DetailGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}">
-                            <DataGrid.Resources>
-                                <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridCheckBoxColumn Header="본사" Binding="{Binding IsMain, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="60">
-                                    <DataGridCheckBoxColumn.ElementStyle>
-                                        <Style TargetType="CheckBox">
-                                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                                            <Setter Property="VerticalAlignment" Value="Center"/>
-                                        </Style>
-                                    </DataGridCheckBoxColumn.ElementStyle>
-                                </DataGridCheckBoxColumn>
-                                <DataGridTextColumn Header="구분" Binding="{Binding LocationName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140" ElementStyle="{StaticResource GridTextBlock}"/>
-                                <DataGridTextColumn Header="전체 주소" Binding="{Binding FullAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" ElementStyle="{StaticResource GridTextBlock}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                    <Grid Margin="0,0,0,32">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                            <TextBlock Text="담당자 연락처" FontSize="16" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="추가" Focusable="False" Style="{StaticResource SecondaryButton}" Height="30" Margin="0,0,8,0" Click="AddManager_Click"/>
-                                <Button Content="삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="30" Click="DeleteManager_Click"/>
-                            </StackPanel>
-                        </Grid>
-                        <DataGrid x:Name="ManagersDataGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}">
-                            <DataGrid.Resources>
-                                <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="성함" Binding="{Binding ManagerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160" ElementStyle="{StaticResource GridTextBlock}"/>
-                                <DataGridTextColumn Header="연락처" Binding="{Binding ContactNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" ElementStyle="{StaticResource GridTextBlock}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </StackPanel>
-            </ScrollViewer>
-            <Grid Grid.Row="2" Margin="0,16,0,0">
-                <TextBlock x:Name="TxtSummary" VerticalAlignment="Center" Foreground="#64748B"/>
-                <Button Content="전체 데이터 저장" Focusable="False" Height="46" Width="200" HorizontalAlignment="Right" Style="{StaticResource PrimaryButton}" Background="#10B981" Click="BtnSave_Click"/>
-            </Grid>
+
+                        <Border Height="1" Background="#E2E8F0" Margin="0,0,0,32"/>
+                        <StackPanel Margin="0,0,0,32">
+                            <Grid Margin="0,0,0,16">
+                                <TextBlock Text="사업장 주소 관리" FontSize="18" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                <Button Content="+ 주소 추가" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Click="AddAddress_Click"/>
+                            </Grid>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                                <DataGrid x:Name="DetailGrid" AutoGenerateColumns="False" CanUserAddRows="False" Background="White" BorderThickness="0" HeadersVisibility="Column" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9" VirtualizingPanel.ScrollUnit="Pixel" VerticalAlignment="Top">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="대표" Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <RadioButton IsChecked="{Binding IsMain, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="구분(명칭)" Width="100">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding LocationName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="전체 주소" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding FullAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="삭제" Width="70">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="삭제" Focusable="False" Height="26" Margin="4" Style="{StaticResource DangerButton}" Padding="0" Click="DeleteAddress_Click"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel>
+                            <Grid Margin="0,0,0,16">
+                                <TextBlock Text="담당자 연락처 관리" FontSize="18" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                <Button Content="+ 담당자 추가" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Click="AddManager_Click"/>
+                            </Grid>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                                <DataGrid x:Name="ManagersDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" Background="White" BorderThickness="0" HeadersVisibility="Column" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9" VirtualizingPanel.ScrollUnit="Pixel" VerticalAlignment="Top">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="이름" Width="100">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding ManagerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="연락처" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding ContactNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="삭제" Width="70">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="삭제" Focusable="False" Height="26" Margin="4" Style="{StaticResource DangerButton}" Padding="0" Click="DeleteManager_Click"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
         </Grid>
 
-        <Border x:Name="SettingsOverlay" Grid.ColumnSpan="2" Background="#CC0F172A" Visibility="Collapsed" Panel.ZIndex="1000">
-            <Border Background="White" Width="950" VerticalAlignment="Center" CornerRadius="12" Padding="32" BorderBrush="#E2E8F0" BorderThickness="1">
+        <Border x:Name="SettingsOverlay" Grid.RowSpan="2" Background="#800F172A" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="12" Width="600" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="32">
                 <StackPanel>
-                    <TextBlock Text="시스템 환경 및 전역 템플릿 설정" FontSize="22" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,24"/>
-                    <TextBlock Text="마스터 DB 파일 경로" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,8"/>
+                    <TextBlock Text="⚙️ 전역 설정 관리" FontSize="20" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,24"/>
+                    <TextBlock Text="마스터 데이터베이스 경로" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,8"/>
+
                     <Grid Margin="0,0,0,24">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="#F8FAFC">
-                            <TextBox x:Name="TxtMasterDbPath" Height="36" VerticalContentAlignment="Center" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="12,0"/>
+                        <Border Background="#F8FAFC" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="6">
+                            <TextBox x:Name="TxtMasterDbPath" Background="Transparent" BorderThickness="0" Padding="10" IsReadOnly="True" Foreground="#64748B"/>
                         </Border>
-                        <Button Grid.Column="1" Content="경로 변경" Focusable="False" Width="80" Margin="8,0,0,0" Style="{StaticResource SecondaryButton}" Click="BtnChangeMasterDb_Click"/>
+                        <Button Grid.Column="1" Content="변경" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Padding="16,0" Click="BtnChangeMasterDb_Click"/>
                     </Grid>
-                    <TextBlock Text="공통 성적서 템플릿 매핑 (제품 구분별)" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
-                    <DataGrid x:Name="GlobalTemplatesGrid" Style="{StaticResource ModernDataGridStyle}" Height="550" Margin="0,0,0,24">
-                        <DataGrid.Resources>
-                            <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
-                        </DataGrid.Resources>
+
+                    <TextBlock Text="글로벌 출고증 템플릿 맵핑" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,8"/>
+                    <DataGrid x:Name="GlobalTemplatesGrid" AutoGenerateColumns="False" CanUserAddRows="False" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" HeadersVisibility="Column" GridLinesVisibility="Horizontal" Margin="0,0,0,32" MaxHeight="300" VirtualizingPanel.ScrollUnit="Pixel">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="구분(Key)" Binding="{Binding ProductCode}" Width="100" IsReadOnly="True">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource GridTextBlock}">
-                                        <Setter Property="FontWeight" Value="ExtraBold"/>
-                                        <Setter Property="Foreground" Value="#2563EB"/>
-                                        <Setter Property="HorizontalAlignment" Value="Center"/>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="품목명" Binding="{Binding ProductName}" Width="200" IsReadOnly="True" ElementStyle="{StaticResource GridTextBlock}"/>
-                            <DataGridTemplateColumn Header="서식 파일 연결 (.xltx, .xlsx)" Width="*">
+                            <DataGridTextColumn Header="제품 코드" Binding="{Binding ProductCode}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="120" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="서식 파일 경로 (xltx)" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid Margin="4,0">

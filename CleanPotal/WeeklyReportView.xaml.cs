@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -49,6 +50,34 @@ namespace CleanPotal
         public string FileName => Path.GetFileName(FilePath);
         public bool IsImage => IsImagePath(FilePath);
 
+        // 🔥 파일 종류별 이모지 아이콘 (PPT, Excel, Word, PDF 등)
+        public string FileIcon => GetFileIcon(FilePath);
+
+        // 🔥 대문자 확장자 라벨 (XLSX, PPTX, PDF 등)
+        public string FileTypeLabel => GetFileTypeLabel(FilePath);
+
+        // 🔥 썸네일 표시용: 이미지 확장자 + 파일 실제 존재 여부까지 체크
+        // (파일이 없으면 아이콘으로 폴백하기 위함)
+        public bool IsDisplayableImage
+        {
+            get
+            {
+                if (!IsImage) return false;
+                if (string.IsNullOrWhiteSpace(FilePath)) return false;
+                if (File.Exists(FilePath)) return true;
+                try
+                {
+                    string candidateInCurrent = Path.Combine(AppPaths.DataRoot, "weekly_attachments", Path.GetFileName(FilePath));
+                    if (File.Exists(candidateInCurrent)) return true;
+
+                    string candidateInLegacy = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "weekly_attachments", Path.GetFileName(FilePath));
+                    if (File.Exists(candidateInLegacy)) return true;
+                }
+                catch { }
+                return false;
+            }
+        }
+
         public string AbsolutePath
         {
             get
@@ -72,6 +101,25 @@ namespace CleanPotal
         {
             string ext = Path.GetExtension(path).ToLowerInvariant();
             return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".webp";
+        }
+
+        private static string GetFileIcon(string path)
+        {
+            string ext = Path.GetExtension(path).ToLowerInvariant();
+            return ext switch
+            {
+                ".ppt" or ".pptx" => "📊",
+                ".xls" or ".xlsx" => "📗",
+                ".doc" or ".docx" => "📘",
+                ".pdf" => "📕",
+                _ => "📄"
+            };
+        }
+
+        private static string GetFileTypeLabel(string path)
+        {
+            string ext = Path.GetExtension(path).ToLowerInvariant().TrimStart('.');
+            return string.IsNullOrEmpty(ext) ? "FILE" : ext.ToUpper();
         }
     }
 
@@ -162,8 +210,8 @@ namespace CleanPotal
         private ObservableCollection<WeeklyAttachmentModel>? _subscribedMemoAttachments;
         private bool _isDirty = false;
         private bool _isNavigating = false; // 프로그램 충돌(뻗음)을 막아주는 생명줄
-        private double _currentZoom = 1.0;
         private WeeklyBlockModel? _draggedItem;
+
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
         private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "weekly_attachments");
 
@@ -182,17 +230,6 @@ namespace CleanPotal
             var tableWin = new WeeklyReportTableWindow(_draftReport);
             tableWin.Owner = Window.GetWindow(this);
             tableWin.Show();
-        }
-
-        private void RootLayout_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (Keyboard.Modifiers == ModifierKeys.Control) { if (e.Delta > 0) ApplyZoom(0.1); else ApplyZoom(-0.1); e.Handled = true; }
-        }
-
-        private void ApplyZoom(double delta)
-        {
-            _currentZoom = Math.Clamp(_currentZoom + delta, 0.5, 3.0);
-            if (MainScaleTransform != null) { MainScaleTransform.ScaleX = _currentZoom; MainScaleTransform.ScaleY = _currentZoom; }
         }
 
         // 🔥 오류 원인해결: XAML에 바인딩된 검색/필터 이벤트 정의
@@ -276,11 +313,35 @@ namespace CleanPotal
             // 🔥 검색이나 필터 중 드래그 시 뻗는 현상 완벽 방어
             if (!string.IsNullOrEmpty(SearchBox.Text) || ToggleInProgress?.IsChecked == true || TogglePending?.IsChecked == true || ToggleClosed?.IsChecked == true) return;
 
+            // 🔥 ComboBox, TextBox, Button 등 대화형 컨트롤 위에서는 드래그 시작하지 않음
+            // (이게 없으면 ComboBox 클릭 시 드래그가 시작되면서 드롭다운이 즉시 닫힘)
+            if (e.OriginalSource is DependencyObject source)
+            {
+                if (FindAncestor<ComboBox>(source) != null ||
+                    FindAncestor<TextBox>(source) != null ||
+                    FindAncestor<Button>(source) != null ||
+                    FindAncestor<ToggleButton>(source) != null)
+                {
+                    return;
+                }
+            }
+
             if (e.LeftButton == MouseButtonState.Pressed && sender is FrameworkElement element)
             {
                 _draggedItem = element.Tag as WeeklyBlockModel;
                 if (_draggedItem != null) DragDrop.DoDragDrop(element, _draggedItem, DragDropEffects.Move);
             }
+        }
+
+        // 🔥 시각 트리(Visual Tree)에서 특정 타입의 조상을 찾는 헬퍼
+        private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            while (current != null)
+            {
+                if (current is T match) return match;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
         }
 
         private void Card_Drop(object sender, DragEventArgs e)

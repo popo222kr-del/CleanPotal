@@ -18,6 +18,7 @@ namespace CleanPotal
         private ReportAutomationView? _reportAutomationView;
         private DispatchCertificateBatchView? _dispatchCertificateBatchView;
         private ProdReqView? _prodReqView;
+        private PersonalMemoView? _personalMemoView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -168,8 +169,9 @@ namespace CleanPotal
             if (_isSidebarOpen) return;
             _isSidebarOpen = true;
             BtnToggleSidebar.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
-            AnimateSidebarWidth(260);
+            AnimateSidebarWidth(240);
             RestoreActiveExpander();
+            ToggleSectionHeaders(Visibility.Visible); // 🎨 섹션 헤더 표시
         }
 
         private void CloseSidebar()
@@ -183,6 +185,15 @@ namespace CleanPotal
             ExpanderAttendance.IsExpanded = false; ExpanderProduction.IsExpanded = false;
             ExpanderOffice.IsExpanded = false; ExpanderEtc.IsExpanded = false;
             _isUpdatingNav = false;
+            ToggleSectionHeaders(Visibility.Collapsed); // 🎨 접을 땐 섹션 헤더 숨김
+        }
+
+        // 🎨 섹션 헤더(MAIN/WORKSPACE/TOOLS) Visibility 일괄 제어
+        private void ToggleSectionHeaders(Visibility visibility)
+        {
+            if (SectionHeaderMain != null) SectionHeaderMain.Visibility = visibility;
+            if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
+            if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
         }
 
         private void AnimateSidebarWidth(double toWidth)
@@ -235,6 +246,7 @@ namespace CleanPotal
 
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
         private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
+        private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
         private void BtnCommandVendor_Click(object sender, RoutedEventArgs e) { if (!AuthManager.CheckAuth(PermissionType.Vendors)) return; new VendorManagerWindow { Owner = this }.ShowDialog(); }
 
         private void ManagePortalLinks_Click(object sender, RoutedEventArgs e)
@@ -351,6 +363,16 @@ namespace CleanPotal
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
+        private void ShowPersonalMemo()
+        {
+            _currentViewName = "PersonalMemo";
+            if (_personalMemoView == null) _personalMemoView = new PersonalMemoView();
+            MainContent.Content = _personalMemoView;
+            ApplySectionMeta("개인 메모장", "개인 업무 메모를 작성하고 관리합니다.");
+            UpdateNavSelection("PersonalMemo");
+            HideAllHeaderButtons();
+        }
+
         private void ShowPersonalTask()
         {
             _currentViewName = "PersonalTask";
@@ -397,6 +419,7 @@ namespace CleanPotal
 
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
+            BtnNavPersonalMemo.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
 
@@ -411,6 +434,7 @@ namespace CleanPotal
                 case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
                 case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
+                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;
