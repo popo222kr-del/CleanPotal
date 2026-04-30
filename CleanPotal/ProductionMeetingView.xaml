@@ -271,8 +271,13 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Width="48" Height="48" Margin="0,0,8,0">
-                                        <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonDown="AttachmentPreview_Click" Background="#E2E8F0">
+                                    <Grid Width="48" Height="48" Margin="0,0,8,0"
+                                          AllowDrop="True"
+                                          MouseLeftButtonDown="MainAttachmentItem_MouseDown"
+                                          MouseMove="MainAttachmentItem_MouseMove"
+                                          DragOver="MainAttachmentItem_DragOver"
+                                          Drop="MainAttachmentItem_Drop">
+                                        <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#E2E8F0"/>
@@ -317,279 +322,108 @@
         </Grid>
 
         <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
-            <Grid>
+            <Grid x:Name="MemoArea" Margin="20,28,20,20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- ── 탭 헤더 ── -->
-                <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                    <Grid Height="44">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                <!-- 제목 -->
+                <TextBlock Grid.Row="0" Text="추가 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
 
-                        <!-- 회의 메모 탭 -->
-                        <Border x:Name="TabBorderMeetingMemo" Grid.Column="0" BorderBrush="#2563EB" BorderThickness="0,0,0,2">
-                            <Button x:Name="BtnTabMeetingMemo" Background="Transparent" BorderThickness="0" Height="44" Cursor="Hand" Click="BtnTabMeetingMemo_Click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="Transparent">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                                <TextBlock x:Name="TxtTabMeetingMemo" Text="회의 메모" FontSize="13" FontWeight="SemiBold" Foreground="#2563EB"/>
-                            </Button>
-                        </Border>
-
-                        <!-- 개인 메모장 탭 -->
-                        <Border x:Name="TabBorderPersonalNote" Grid.Column="1" BorderBrush="Transparent" BorderThickness="0,0,0,2">
-                            <Button x:Name="BtnTabPersonalNote" Background="Transparent" BorderThickness="0" Height="44" Cursor="Hand" Click="BtnTabPersonalNote_Click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="Transparent">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                                <TextBlock x:Name="TxtTabPersonalNote" Text="개인 메모장" FontSize="13" FontWeight="SemiBold" Foreground="#94A3B8"/>
-                            </Button>
-                        </Border>
-                    </Grid>
+                <!-- 🎨 RichTextBox 본문 -->
+                <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+                    <RichTextBox x:Name="MemoRichEditor" Tag="Memo"
+                                 BorderThickness="0" Background="Transparent"
+                                 Padding="16,12" FontSize="14" Foreground="#1E293B"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                 AcceptsTab="True" AllowDrop="True"
+                                 GotKeyboardFocus="AnyRichTextBox_GotFocus"
+                                 LostKeyboardFocus="AnyRichTextBox_LostFocus"
+                                 PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
+                                 PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 Drop="AnyRichTextBox_Drop"
+                                 TextChanged="MemoRichEditor_TextChanged"
+                                 SpellCheck.IsEnabled="False">
+                        <RichTextBox.Resources>
+                            <Style TargetType="Paragraph">
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                            </Style>
+                        </RichTextBox.Resources>
+                    </RichTextBox>
                 </Border>
 
-                <!-- ── 회의 메모 패널 (기존 기능 유지) ── -->
-                <Grid x:Name="MemoArea" Grid.Row="1" Margin="20,12,20,20" Visibility="Visible">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- RichTextBox 본문 -->
-                    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
-                        <RichTextBox x:Name="MemoRichEditor" Tag="Memo"
-                                     BorderThickness="0" Background="Transparent"
-                                     Padding="16,12" FontSize="14" Foreground="#1E293B"
-                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                     AcceptsTab="True" AllowDrop="True"
-                                     GotKeyboardFocus="AnyRichTextBox_GotFocus"
-                                     LostKeyboardFocus="AnyRichTextBox_LostFocus"
-                                     PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
-                                     PreviewDragOver="AnyRichTextBox_PreviewDragOver"
-                                     Drop="AnyRichTextBox_Drop"
-                                     TextChanged="MemoRichEditor_TextChanged"
-                                     SpellCheck.IsEnabled="False">
-                            <RichTextBox.Resources>
-                                <Style TargetType="Paragraph">
-                                    <Setter Property="Margin" Value="0,0,0,4"/>
-                                </Style>
-                            </RichTextBox.Resources>
-                        </RichTextBox>
-                    </Border>
-
-                    <!-- 첨부 영역 -->
-                    <Border Grid.Row="1" Height="100" Margin="0,10,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10" AllowDrop="True" PreviewDragOver="MemoAttachmentPanel_PreviewDragOver" Drop="MemoAttachmentPanel_Drop" PreviewKeyDown="MemoAttachmentPanel_PreviewKeyDown" Focusable="True">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,6">
-                                <TextBlock Text="별도 첨부 (이미지/파일)" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center"/>
-                                <Button Content="+" Height="20" Width="20" HorizontalAlignment="Right" Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand" FontWeight="Bold" Click="BtnAddMemoAttachment_Click">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="10"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                            </Grid>
-                            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="52">
-                                <ItemsControl x:Name="MemoAttachmentsControl" ItemsSource="{Binding MemoAttachments}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Width="48" Height="48" Margin="0,0,8,0">
-                                                <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonDown="AttachmentPreview_Click" Background="#E2E8F0">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#E2E8F0"/>
+                <!-- 첨부 영역 -->
+                <Border Grid.Row="2" Height="100" Margin="0,10,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10" AllowDrop="True" PreviewDragOver="MemoAttachmentPanel_PreviewDragOver" Drop="MemoAttachmentPanel_Drop" PreviewKeyDown="MemoAttachmentPanel_PreviewKeyDown" Focusable="True">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="별도 첨부 (이미지/파일)" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <Button Content="+" Height="20" Width="20" HorizontalAlignment="Right" Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand" FontWeight="Bold" Click="BtnAddMemoAttachment_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="10"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="52">
+                            <ItemsControl x:Name="MemoAttachmentsControl" ItemsSource="{Binding MemoAttachments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="48" Height="48" Margin="0,0,8,0"
+                                              AllowDrop="True"
+                                              MouseLeftButtonDown="MemoAttachmentItem_MouseDown"
+                                              MouseMove="MemoAttachmentItem_MouseMove"
+                                              DragOver="MemoAttachmentItem_DragOver"
+                                              Drop="MemoAttachmentItem_Drop">
+                                            <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#E2E8F0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsImage}" Value="True">
+                                                                <Setter Property="Background">
+                                                                    <Setter.Value>
+                                                                        <ImageBrush ImageSource="{Binding FilePath}" Stretch="UniformToFill"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding FileName}" Foreground="#334155" FontSize="8" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="3">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Visible"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                    <Setter Property="Background">
-                                                                        <Setter.Value>
-                                                                            <ImageBrush ImageSource="{Binding FilePath}" Stretch="UniformToFill"/>
-                                                                        </Setter.Value>
-                                                                    </Setter>
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </Border.Style>
-                                                    <TextBlock Text="{Binding FileName}" Foreground="#334155" FontSize="8" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="3">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Border>
-                                                <Button Content="✕" Width="14" Height="14" Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Cursor="Hand" Tag="{Binding}" Click="BtnRemoveMemoAttachment_Click">
-                                                    <Button.Resources>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="CornerRadius" Value="7"/>
-                                                        </Style>
-                                                    </Button.Resources>
-                                                </Button>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <!-- ── 개인 메모장 패널 (신규) ── -->
-                <Grid x:Name="PanelPersonalNote" Grid.Row="1" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="186"/>
-                        <RowDefinition Height="1"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- 헤더: 사용자 정보 + 새 메모 버튼 -->
-                    <Grid Grid.Row="0" Margin="14,14,14,8">
-                        <TextBlock x:Name="TxtPersonalNoteUserHeader" Text="" FontSize="11" Foreground="#64748B" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnNewPersonalNote" Content="+ 새 메모" Height="30" Padding="12,0" HorizontalAlignment="Right"
-                                Background="#2563EB" Foreground="White" BorderThickness="0"
-                                FontWeight="SemiBold" FontSize="12" Cursor="Hand"
-                                Click="BtnNewPersonalNote_Click">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="8"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-                    </Grid>
-
-                    <!-- 메모 목록 -->
-                    <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Margin="14,0,14,8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl x:Name="PersonalNoteListControl" Margin="6,4">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
-                                                Cursor="Hand" Padding="0" Click="PersonalNoteItem_Click" Tag="{Binding}">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="8,6" Margin="0,1">
-                                                        <ContentPresenter/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
-                                                        </Trigger>
-                                                        <DataTrigger Binding="{Binding IsSelectedInList}" Value="True">
-                                                            <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
-                                                        </DataTrigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{Binding DisplayTitle}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Preview}" FontSize="10" Foreground="#64748B" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding ShortDate}" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Top" Margin="6,0,0,0"/>
-                                            </Grid>
-                                        </Button>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                            <Button Content="✕" Width="14" Height="14" Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Cursor="Hand" Tag="{Binding}" Click="BtnRemoveMemoAttachment_Click">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="7"/>
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+                                        </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
-                    </Border>
-
-                    <!-- 구분선 -->
-                    <Border Grid.Row="2" Background="#E2E8F0" Margin="14,0"/>
-
-                    <!-- 에디터 영역 -->
-                    <Grid Grid.Row="3">
-                        <!-- 빈 상태 안내 -->
-                        <Border x:Name="PersonalNoteEmptyState" Background="Transparent" Visibility="Visible">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="📝" FontSize="32" HorizontalAlignment="Center" Foreground="#CBD5E1"/>
-                                <TextBlock Text="메모를 선택하세요" FontSize="13" FontWeight="SemiBold"
-                                           Foreground="#64748B" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                <TextBlock Text="위에서 메모를 선택하거나&#xA;새 메모 버튼을 클릭하세요"
-                                           FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center"
-                                           Margin="0,4,0,0" TextAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- 편집 패널 -->
-                        <Grid x:Name="PersonalNoteEditorPanel" Visibility="Collapsed" Margin="14,10,14,14">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- 제목 + 삭제 버튼 -->
-                            <Grid Grid.Row="0" Margin="0,0,0,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" x:Name="TxtPersonalNoteTitle"
-                                         Background="Transparent" BorderThickness="0"
-                                         FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A"
-                                         Padding="0" TextChanged="PersonalNoteEditorContent_TextChanged"/>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock x:Name="TxtPersonalNoteSaveStatus" Text="" FontSize="10"
-                                               Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0,4,0"/>
-                                    <Button Content="삭제" Height="24" Padding="8,0"
-                                            Background="#FEE2E2" Foreground="#B91C1C" BorderBrush="#FCA5A5" BorderThickness="1"
-                                            FontSize="11" FontWeight="Bold" Cursor="Hand"
-                                            Click="BtnDeletePersonalNote_Click">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="6"/>
-                                            </Style>
-                                        </Button.Resources>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- 수정 날짜 -->
-                            <TextBlock Grid.Row="1" x:Name="TxtPersonalNoteUpdatedAt" Text=""
-                                       FontSize="10" Foreground="#94A3B8" Margin="0,0,0,8"/>
-
-                            <!-- 본문 -->
-                            <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-                                <TextBox x:Name="TxtPersonalNoteContent"
-                                         Background="Transparent" BorderThickness="0"
-                                         Padding="12" FontSize="13" Foreground="#1E293B"
-                                         TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
-                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                         SpellCheck.IsEnabled="False"
-                                         TextChanged="PersonalNoteEditorContent_TextChanged"/>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </Grid>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 

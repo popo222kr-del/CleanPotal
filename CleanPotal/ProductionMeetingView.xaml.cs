@@ -19,7 +19,6 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using System.Xml;
 
 namespace CleanPotal
@@ -358,6 +357,20 @@ namespace CleanPotal
         private ObservableCollection<ProductionMeetingBlockModel>? _subscribedBlocks;
         private ObservableCollection<ProductionMeetingAttachmentModel>? _subscribedMemoAttachments;
 
+        // 인라인 이미지 드래그-이동 상태
+        private InlineUIContainer? _movingImageContainer;
+        private string _movingImagePath = "";
+        private Point _imageDragStartPoint;
+        private bool _imageDragStarted = false;
+
+        // 메모 첨부 드래그-정렬 상태
+        private ProductionMeetingAttachmentModel? _memoDragSource;
+        private Point _memoDragStartPoint;
+
+        // 메인 첨부 드래그-정렬 상태
+        private ProductionMeetingAttachmentModel? _mainDragSource;
+        private Point _mainDragStartPoint;
+
         private bool _isDirty = false;
         private bool _isNavigating = false;
 
@@ -575,11 +588,11 @@ namespace CleanPotal
                     {
                         if (iuc.Child is Image img)
                         {
-                            // 클릭 시 원본 보기
                             img.Cursor = Cursors.Hand;
                             img.MouseLeftButtonDown -= ImageInline_MouseLeftButtonDown;
-                            img.MouseLeftButtonDown += ImageInline_MouseLeftButtonDown;
-                            // 우클릭 메뉴
+                            img.MouseMove -= ImageInline_MouseMove;
+                            img.MouseLeftButtonUp -= ImageInline_MouseLeftButtonUp;
+                            AttachImageDragAndClick(img);
                             if (img.ContextMenu == null) AttachImageContextMenu(img);
                         }
                         else if (iuc.Child is Border fileBorder && fileBorder.Tag is string filePath)
@@ -596,9 +609,59 @@ namespace CleanPotal
             }
         }
 
+        // ── 인라인 이미지 드래그-이동 + 클릭 열기 ──────────────────────────────
+
+        private void AttachImageDragAndClick(Image img)
+        {
+            img.MouseLeftButtonDown += ImageInline_MouseLeftButtonDown;
+            img.MouseMove += ImageInline_MouseMove;
+            img.MouseLeftButtonUp += ImageInline_MouseLeftButtonUp;
+        }
+
         private void ImageInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Image img && img.Tag is string p) ShowImagePopup(p);
+            if (sender is not Image img) return;
+            _imageDragStartPoint = e.GetPosition(img);
+            _imageDragStarted = false;
+
+            if (img.Parent is InlineUIContainer iuc)
+            {
+                _movingImageContainer = iuc;
+                _movingImagePath = img.Tag as string ?? "";
+            }
+            img.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void ImageInline_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not Image img) return;
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            if (_movingImageContainer == null) return;
+
+            var pos = e.GetPosition(img);
+            if (!_imageDragStarted &&
+                (Math.Abs(pos.X - _imageDragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                 Math.Abs(pos.Y - _imageDragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance))
+            {
+                _imageDragStarted = true;
+                img.ReleaseMouseCapture();
+                var data = new DataObject("MoveInlineImage", _movingImagePath);
+                DragDrop.DoDragDrop(img, data, DragDropEffects.Move);
+            }
+        }
+
+        private void ImageInline_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Image img) return;
+            img.ReleaseMouseCapture();
+            if (!_imageDragStarted && _movingImageContainer != null)
+            {
+                // 드래그 없이 떼었으면 → 원본 보기
+                if (img.Tag is string p) ShowImagePopup(p);
+            }
+            _movingImageContainer = null;
+            _imageDragStarted = false;
         }
 
         private void FileInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -1206,9 +1269,9 @@ namespace CleanPotal
         // 드래그앤드롭 통합 처리 (모든 RichTextBox 공통)
         private void AnyRichTextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent("MoveInlineImage"))
             {
-                e.Effects = DragDropEffects.Copy;
+                e.Effects = e.Data.GetDataPresent("MoveInlineImage") ? DragDropEffects.Move : DragDropEffects.Copy;
                 e.Handled = true;
             }
         }
@@ -1216,6 +1279,33 @@ namespace CleanPotal
         private void AnyRichTextBox_Drop(object sender, DragEventArgs e)
         {
             if (sender is not RichTextBox rtb) return;
+
+            // 인라인 이미지 이동
+            if (e.Data.GetDataPresent("MoveInlineImage") && _movingImageContainer != null)
+            {
+                try
+                {
+                    var dropPos = rtb.GetPositionFromPoint(e.GetPosition(rtb), true);
+                    if (dropPos != null)
+                    {
+                        // 원래 위치에서 제거
+                        if (_movingImageContainer.Parent is Paragraph oldPara)
+                            oldPara.Inlines.Remove(_movingImageContainer);
+
+                        // 새 위치에 삽입
+                        rtb.CaretPosition = dropPos;
+                        _activeRichEditor = rtb;
+                        InsertImageIntoActiveEditor(_movingImagePath);
+                    }
+                }
+                catch { }
+                _movingImageContainer = null;
+                _movingImagePath = "";
+                _imageDragStarted = false;
+                e.Handled = true;
+                return;
+            }
+
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
 
@@ -1414,10 +1504,7 @@ namespace CleanPotal
                     Cursor = Cursors.Hand,
                     Tag = persistedPath
                 };
-                img.MouseLeftButtonDown += (_, __) =>
-                {
-                    if (img.Tag is string p) ShowImagePopup(p);
-                };
+                AttachImageDragAndClick(img);
 
                 // 🔥 이미지 우클릭 메뉴 - 크기 조절
                 AttachImageContextMenu(img);
@@ -1985,6 +2072,98 @@ namespace CleanPotal
             UpdateOverviewStats();
         }
 
+        // ── 메인 첨부 드래그-정렬 ──────────────────────────────────────────────
+
+        private void MainAttachmentItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is ProductionMeetingAttachmentModel att)
+            {
+                _mainDragSource = att;
+                _mainDragStartPoint = e.GetPosition(fe);
+            }
+        }
+
+        private void MainAttachmentItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _mainDragSource == null) return;
+            if (sender is not FrameworkElement fe) return;
+            var pos = e.GetPosition(fe);
+            if (Math.Abs(pos.X - _mainDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _mainDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+            var data = new DataObject("AttachmentReorder", _mainDragSource);
+            DragDrop.DoDragDrop(fe, data, DragDropEffects.Move);
+        }
+
+        private void MainAttachmentItem_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent("AttachmentReorder") ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MainAttachmentItem_Drop(object sender, DragEventArgs e)
+        {
+            if (_draftReport == null || _mainDragSource == null) return;
+            if (!e.Data.GetDataPresent("AttachmentReorder")) return;
+            if (sender is not FrameworkElement fe || fe.DataContext is not ProductionMeetingAttachmentModel target) return;
+            if (ReferenceEquals(_mainDragSource, target)) return;
+
+            var list = _draftReport.MainAttachments;
+            int fromIdx = list.IndexOf(_mainDragSource);
+            int toIdx = list.IndexOf(target);
+            if (fromIdx < 0 || toIdx < 0) return;
+            list.Move(fromIdx, toIdx);
+            _isDirty = true;
+            _mainDragSource = null;
+            e.Handled = true;
+        }
+
+        // ── 메모 첨부 드래그-정렬 ──────────────────────────────────────────────
+
+        private void MemoAttachmentItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is ProductionMeetingAttachmentModel att)
+            {
+                _memoDragSource = att;
+                _memoDragStartPoint = e.GetPosition(fe);
+            }
+        }
+
+        private void MemoAttachmentItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _memoDragSource == null) return;
+            if (sender is not FrameworkElement fe) return;
+            var pos = e.GetPosition(fe);
+            if (Math.Abs(pos.X - _memoDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _memoDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+            var data = new DataObject("AttachmentReorder", _memoDragSource);
+            DragDrop.DoDragDrop(fe, data, DragDropEffects.Move);
+        }
+
+        private void MemoAttachmentItem_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent("AttachmentReorder") ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MemoAttachmentItem_Drop(object sender, DragEventArgs e)
+        {
+            if (_draftReport == null || _memoDragSource == null) return;
+            if (!e.Data.GetDataPresent("AttachmentReorder")) return;
+            if (sender is not FrameworkElement fe || fe.DataContext is not ProductionMeetingAttachmentModel target) return;
+            if (ReferenceEquals(_memoDragSource, target)) return;
+
+            var list = _draftReport.MemoAttachments;
+            int fromIdx = list.IndexOf(_memoDragSource);
+            int toIdx = list.IndexOf(target);
+            if (fromIdx < 0 || toIdx < 0) return;
+            list.Move(fromIdx, toIdx);
+            _isDirty = true;
+            _memoDragSource = null;
+            e.Handled = true;
+        }
+
         private static void EnsureAttachmentStorageDirectory()
         {
             if (!Directory.Exists(AttachmentStorageRoot))
@@ -2257,307 +2436,5 @@ namespace CleanPotal
             return new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
         }
 
-        // ============================================================
-        // 개인 메모장 (Personal Notepad) - 탭 전환 및 CRUD
-        // ============================================================
-
-        private readonly List<PersonalNote> _personalNotes = new();
-        private PersonalNote? _selectedPersonalNote;
-        private DispatcherTimer? _personalNoteAutoSaveTimer;
-        private bool _suppressPersonalNoteEvents = false;
-        private string _personalNoteUserId = "";
-        private string _personalNoteUserName = "";
-
-        private static string PersonalNotesStorageRoot => Path.Combine(AppPaths.DataRoot, "personal_notes");
-
-        private void InitializePersonalNoteSystem()
-        {
-            _personalNoteUserId = SessionManager.IsLoggedIn ? (SessionManager.CurrentUsername ?? "").Trim() : "";
-            _personalNoteUserName = SessionManager.IsLoggedIn ? (SessionManager.CurrentRealName ?? "") : "";
-
-            TxtPersonalNoteUserHeader.Text = string.IsNullOrWhiteSpace(_personalNoteUserName)
-                ? "(로그인 필요)"
-                : $"{_personalNoteUserName}({_personalNoteUserId})";
-
-            _personalNoteAutoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
-            _personalNoteAutoSaveTimer.Tick += (_, __) =>
-            {
-                _personalNoteAutoSaveTimer.Stop();
-                SaveSelectedPersonalNote(showStatus: true);
-            };
-
-            if (!string.IsNullOrWhiteSpace(_personalNoteUserId))
-            {
-                LoadPersonalNotesFromDisk();
-                RefreshPersonalNoteList();
-                if (_personalNotes.Count > 0) SelectPersonalNote(_personalNotes[0]);
-            }
-        }
-
-        // ─── 탭 전환 ───────────────────────────────────────────────
-
-        private void BtnTabMeetingMemo_Click(object sender, RoutedEventArgs e) => ActivateMeetingMemoTab();
-        private void BtnTabPersonalNote_Click(object sender, RoutedEventArgs e) => ActivatePersonalNoteTab();
-
-        private void ActivateMeetingMemoTab()
-        {
-            MemoArea.Visibility = Visibility.Visible;
-            PanelPersonalNote.Visibility = Visibility.Collapsed;
-
-            TabBorderMeetingMemo.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
-            TabBorderPersonalNote.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            TxtTabMeetingMemo.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
-            TxtTabPersonalNote.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8"));
-        }
-
-        private void ActivatePersonalNoteTab()
-        {
-            MemoArea.Visibility = Visibility.Collapsed;
-            PanelPersonalNote.Visibility = Visibility.Visible;
-
-            TabBorderMeetingMemo.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            TabBorderPersonalNote.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
-            TxtTabMeetingMemo.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8"));
-            TxtTabPersonalNote.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
-
-            // 탭 처음 열릴 때 초기화 (한 번만)
-            if (!_personalNoteTabInitialized)
-            {
-                _personalNoteTabInitialized = true;
-                InitializePersonalNoteSystem();
-            }
-        }
-
-        private bool _personalNoteTabInitialized = false;
-
-        // ─── 파일 입출력 ───────────────────────────────────────────
-
-        private static string SanitizePersonalNoteUserId(string userId)
-        {
-            if (string.IsNullOrWhiteSpace(userId)) return "_unknown";
-            var invalid = Path.GetInvalidFileNameChars();
-            var sb = new System.Text.StringBuilder();
-            foreach (var ch in userId.Trim())
-                sb.Append(invalid.Contains(ch) || ch == ' ' ? '_' : ch);
-            return sb.ToString();
-        }
-
-        private string GetPersonalNoteFilePath()
-        {
-            string safeId = SanitizePersonalNoteUserId(_personalNoteUserId);
-            return Path.Combine(PersonalNotesStorageRoot, $"{safeId}.json");
-        }
-
-        private void LoadPersonalNotesFromDisk()
-        {
-            _personalNotes.Clear();
-            try
-            {
-                string path = GetPersonalNoteFilePath();
-                if (!System.IO.File.Exists(path)) return;
-
-                string json = System.IO.File.ReadAllText(path, System.Text.Encoding.UTF8);
-                if (string.IsNullOrWhiteSpace(json)) return;
-
-                var loaded = JsonSerializer.Deserialize<List<PersonalNote>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (loaded == null) return;
-
-                foreach (var n in loaded.Where(n => !n.IsDeleted).OrderByDescending(n => n.UpdatedAt))
-                {
-                    n.UserId = _personalNoteUserId;
-                    _personalNotes.Add(n);
-                }
-            }
-            catch { }
-        }
-
-        private void SavePersonalNotesToDisk()
-        {
-            if (string.IsNullOrWhiteSpace(_personalNoteUserId)) return;
-            try
-            {
-                Directory.CreateDirectory(PersonalNotesStorageRoot);
-                string path = GetPersonalNoteFilePath();
-
-                List<PersonalNote> merged = new();
-                if (System.IO.File.Exists(path))
-                {
-                    try
-                    {
-                        var existing = JsonSerializer.Deserialize<List<PersonalNote>>(
-                            System.IO.File.ReadAllText(path, System.Text.Encoding.UTF8),
-                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if (existing != null) merged.AddRange(existing.Where(e => e.IsDeleted));
-                    }
-                    catch { }
-                }
-                merged.AddRange(_personalNotes);
-
-                string jsonOut = JsonSerializer.Serialize(merged, new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                });
-
-                string tmp = path + ".tmp";
-                System.IO.File.WriteAllText(tmp, jsonOut, new System.Text.UTF8Encoding(false));
-                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-                System.IO.File.Move(tmp, path);
-            }
-            catch (Exception ex)
-            {
-                TxtPersonalNoteSaveStatus.Text = "저장 실패";
-                MessageBox.Show("개인 메모 저장 중 오류:\n" + ex.Message, "개인 메모장", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        // ─── 목록 갱신 ─────────────────────────────────────────────
-
-        private void RefreshPersonalNoteList()
-        {
-            PersonalNoteListControl.ItemsSource = null;
-            PersonalNoteListControl.ItemsSource = _personalNotes
-                .OrderByDescending(n => n.UpdatedAt)
-                .ToList();
-        }
-
-        // ─── 메모 선택 ─────────────────────────────────────────────
-
-        private void PersonalNoteItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Tag is PersonalNote note)
-            {
-                if (_personalNoteAutoSaveTimer?.IsEnabled == true)
-                {
-                    _personalNoteAutoSaveTimer.Stop();
-                    SaveSelectedPersonalNote(showStatus: false);
-                }
-                SelectPersonalNote(note);
-            }
-        }
-
-        private void SelectPersonalNote(PersonalNote note)
-        {
-            if (_selectedPersonalNote != null) _selectedPersonalNote.IsSelectedInList = false;
-            _selectedPersonalNote = note;
-            _selectedPersonalNote.IsSelectedInList = true;
-
-            _suppressPersonalNoteEvents = true;
-            try
-            {
-                TxtPersonalNoteTitle.Text = note.Title;
-                TxtPersonalNoteContent.Text = note.Content;
-                TxtPersonalNoteUpdatedAt.Text = $"수정일 {note.UpdatedAt:yyyy-MM-dd HH:mm}  ·  작성자 {_personalNoteUserName}";
-                TxtPersonalNoteSaveStatus.Text = "";
-            }
-            finally
-            {
-                _suppressPersonalNoteEvents = false;
-            }
-
-            PersonalNoteEmptyState.Visibility = Visibility.Collapsed;
-            PersonalNoteEditorPanel.Visibility = Visibility.Visible;
-            RefreshPersonalNoteList();
-        }
-
-        // ─── 새 메모 생성 ──────────────────────────────────────────
-
-        private void BtnNewPersonalNote_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(_personalNoteUserId))
-            {
-                MessageBox.Show("로그인이 필요합니다.", "개인 메모장", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            if (_personalNoteAutoSaveTimer?.IsEnabled == true)
-            {
-                _personalNoteAutoSaveTimer.Stop();
-                SaveSelectedPersonalNote(showStatus: false);
-            }
-
-            string baseTitle = "새 메모";
-            string title = baseTitle;
-            int counter = 1;
-            while (_personalNotes.Any(n => string.Equals(n.Title?.Trim(), title, StringComparison.Ordinal)))
-                title = $"{baseTitle} {counter++}";
-
-            var newNote = new PersonalNote
-            {
-                NoteId = Guid.NewGuid().ToString("N"),
-                UserId = _personalNoteUserId,
-                Title = title,
-                Content = "",
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                IsDeleted = false
-            };
-
-            _personalNotes.Insert(0, newNote);
-            SavePersonalNotesToDisk();
-            RefreshPersonalNoteList();
-            SelectPersonalNote(newNote);
-            TxtPersonalNoteTitle.Focus();
-            TxtPersonalNoteTitle.SelectAll();
-        }
-
-        // ─── 에디터 변경 → 자동 저장 ──────────────────────────────
-
-        private void PersonalNoteEditorContent_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_suppressPersonalNoteEvents || _selectedPersonalNote == null) return;
-            _selectedPersonalNote.Title = TxtPersonalNoteTitle.Text;
-            _selectedPersonalNote.Content = TxtPersonalNoteContent.Text;
-            TxtPersonalNoteSaveStatus.Text = "저장 중...";
-
-            _personalNoteAutoSaveTimer?.Stop();
-            _personalNoteAutoSaveTimer?.Start();
-        }
-
-        private void SaveSelectedPersonalNote(bool showStatus)
-        {
-            if (_selectedPersonalNote == null || string.IsNullOrWhiteSpace(_personalNoteUserId)) return;
-
-            _selectedPersonalNote.UpdatedAt = DateTime.Now;
-            SavePersonalNotesToDisk();
-            TxtPersonalNoteUpdatedAt.Text = $"수정일 {_selectedPersonalNote.UpdatedAt:yyyy-MM-dd HH:mm}  ·  작성자 {_personalNoteUserName}";
-
-            _personalNotes.Sort((a, b) => b.UpdatedAt.CompareTo(a.UpdatedAt));
-            RefreshPersonalNoteList();
-
-            if (showStatus) TxtPersonalNoteSaveStatus.Text = $"저장됨 · {DateTime.Now:HH:mm:ss}";
-        }
-
-        // ─── 메모 삭제 ─────────────────────────────────────────────
-
-        private void BtnDeletePersonalNote_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedPersonalNote == null) return;
-
-            var result = MessageBox.Show(
-                $"\"{_selectedPersonalNote.DisplayTitle}\" 메모를 삭제하시겠습니까?",
-                "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (result != MessageBoxResult.Yes) return;
-
-            _personalNoteAutoSaveTimer?.Stop();
-            _selectedPersonalNote.IsDeleted = true;
-            _selectedPersonalNote.UpdatedAt = DateTime.Now;
-            _personalNotes.Remove(_selectedPersonalNote);
-            SavePersonalNotesToDisk();
-            _selectedPersonalNote = null;
-            RefreshPersonalNoteList();
-
-            if (_personalNotes.Count > 0)
-            {
-                SelectPersonalNote(_personalNotes[0]);
-            }
-            else
-            {
-                PersonalNoteEmptyState.Visibility = Visibility.Visible;
-                PersonalNoteEditorPanel.Visibility = Visibility.Collapsed;
-                TxtPersonalNoteTitle.Text = "";
-                TxtPersonalNoteContent.Text = "";
-            }
-        }
     }
 }
