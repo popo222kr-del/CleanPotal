@@ -19,6 +19,7 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using System.Xml;
 
 namespace CleanPotal
@@ -2254,6 +2255,309 @@ namespace CleanPotal
         {
             var invalid = Path.GetInvalidFileNameChars();
             return new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        }
+
+        // ============================================================
+        // 개인 메모장 (Personal Notepad) - 탭 전환 및 CRUD
+        // ============================================================
+
+        private readonly List<PersonalNote> _personalNotes = new();
+        private PersonalNote? _selectedPersonalNote;
+        private DispatcherTimer? _personalNoteAutoSaveTimer;
+        private bool _suppressPersonalNoteEvents = false;
+        private string _personalNoteUserId = "";
+        private string _personalNoteUserName = "";
+
+        private static string PersonalNotesStorageRoot => Path.Combine(AppPaths.DataRoot, "personal_notes");
+
+        private void InitializePersonalNoteSystem()
+        {
+            _personalNoteUserId = SessionManager.IsLoggedIn ? (SessionManager.CurrentUsername ?? "").Trim() : "";
+            _personalNoteUserName = SessionManager.IsLoggedIn ? (SessionManager.CurrentRealName ?? "") : "";
+
+            TxtPersonalNoteUserHeader.Text = string.IsNullOrWhiteSpace(_personalNoteUserName)
+                ? "(로그인 필요)"
+                : $"{_personalNoteUserName}({_personalNoteUserId})";
+
+            _personalNoteAutoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+            _personalNoteAutoSaveTimer.Tick += (_, __) =>
+            {
+                _personalNoteAutoSaveTimer.Stop();
+                SaveSelectedPersonalNote(showStatus: true);
+            };
+
+            if (!string.IsNullOrWhiteSpace(_personalNoteUserId))
+            {
+                LoadPersonalNotesFromDisk();
+                RefreshPersonalNoteList();
+                if (_personalNotes.Count > 0) SelectPersonalNote(_personalNotes[0]);
+            }
+        }
+
+        // ─── 탭 전환 ───────────────────────────────────────────────
+
+        private void BtnTabMeetingMemo_Click(object sender, RoutedEventArgs e) => ActivateMeetingMemoTab();
+        private void BtnTabPersonalNote_Click(object sender, RoutedEventArgs e) => ActivatePersonalNoteTab();
+
+        private void ActivateMeetingMemoTab()
+        {
+            MemoArea.Visibility = Visibility.Visible;
+            PanelPersonalNote.Visibility = Visibility.Collapsed;
+
+            TabBorderMeetingMemo.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+            TabBorderPersonalNote.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            TxtTabMeetingMemo.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+            TxtTabPersonalNote.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8"));
+        }
+
+        private void ActivatePersonalNoteTab()
+        {
+            MemoArea.Visibility = Visibility.Collapsed;
+            PanelPersonalNote.Visibility = Visibility.Visible;
+
+            TabBorderMeetingMemo.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            TabBorderPersonalNote.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+            TxtTabMeetingMemo.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8"));
+            TxtTabPersonalNote.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+
+            // 탭 처음 열릴 때 초기화 (한 번만)
+            if (!_personalNoteTabInitialized)
+            {
+                _personalNoteTabInitialized = true;
+                InitializePersonalNoteSystem();
+            }
+        }
+
+        private bool _personalNoteTabInitialized = false;
+
+        // ─── 파일 입출력 ───────────────────────────────────────────
+
+        private static string SanitizePersonalNoteUserId(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId)) return "_unknown";
+            var invalid = Path.GetInvalidFileNameChars();
+            var sb = new System.Text.StringBuilder();
+            foreach (var ch in userId.Trim())
+                sb.Append(invalid.Contains(ch) || ch == ' ' ? '_' : ch);
+            return sb.ToString();
+        }
+
+        private string GetPersonalNoteFilePath()
+        {
+            string safeId = SanitizePersonalNoteUserId(_personalNoteUserId);
+            return Path.Combine(PersonalNotesStorageRoot, $"{safeId}.json");
+        }
+
+        private void LoadPersonalNotesFromDisk()
+        {
+            _personalNotes.Clear();
+            try
+            {
+                string path = GetPersonalNoteFilePath();
+                if (!System.IO.File.Exists(path)) return;
+
+                string json = System.IO.File.ReadAllText(path, System.Text.Encoding.UTF8);
+                if (string.IsNullOrWhiteSpace(json)) return;
+
+                var loaded = JsonSerializer.Deserialize<List<PersonalNote>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (loaded == null) return;
+
+                foreach (var n in loaded.Where(n => !n.IsDeleted).OrderByDescending(n => n.UpdatedAt))
+                {
+                    n.UserId = _personalNoteUserId;
+                    _personalNotes.Add(n);
+                }
+            }
+            catch { }
+        }
+
+        private void SavePersonalNotesToDisk()
+        {
+            if (string.IsNullOrWhiteSpace(_personalNoteUserId)) return;
+            try
+            {
+                Directory.CreateDirectory(PersonalNotesStorageRoot);
+                string path = GetPersonalNoteFilePath();
+
+                List<PersonalNote> merged = new();
+                if (System.IO.File.Exists(path))
+                {
+                    try
+                    {
+                        var existing = JsonSerializer.Deserialize<List<PersonalNote>>(
+                            System.IO.File.ReadAllText(path, System.Text.Encoding.UTF8),
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (existing != null) merged.AddRange(existing.Where(e => e.IsDeleted));
+                    }
+                    catch { }
+                }
+                merged.AddRange(_personalNotes);
+
+                string jsonOut = JsonSerializer.Serialize(merged, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
+
+                string tmp = path + ".tmp";
+                System.IO.File.WriteAllText(tmp, jsonOut, new System.Text.UTF8Encoding(false));
+                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+                System.IO.File.Move(tmp, path);
+            }
+            catch (Exception ex)
+            {
+                TxtPersonalNoteSaveStatus.Text = "저장 실패";
+                MessageBox.Show("개인 메모 저장 중 오류:\n" + ex.Message, "개인 메모장", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        // ─── 목록 갱신 ─────────────────────────────────────────────
+
+        private void RefreshPersonalNoteList()
+        {
+            PersonalNoteListControl.ItemsSource = null;
+            PersonalNoteListControl.ItemsSource = _personalNotes
+                .OrderByDescending(n => n.UpdatedAt)
+                .ToList();
+        }
+
+        // ─── 메모 선택 ─────────────────────────────────────────────
+
+        private void PersonalNoteItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is PersonalNote note)
+            {
+                if (_personalNoteAutoSaveTimer?.IsEnabled == true)
+                {
+                    _personalNoteAutoSaveTimer.Stop();
+                    SaveSelectedPersonalNote(showStatus: false);
+                }
+                SelectPersonalNote(note);
+            }
+        }
+
+        private void SelectPersonalNote(PersonalNote note)
+        {
+            if (_selectedPersonalNote != null) _selectedPersonalNote.IsSelectedInList = false;
+            _selectedPersonalNote = note;
+            _selectedPersonalNote.IsSelectedInList = true;
+
+            _suppressPersonalNoteEvents = true;
+            try
+            {
+                TxtPersonalNoteTitle.Text = note.Title;
+                TxtPersonalNoteContent.Text = note.Content;
+                TxtPersonalNoteUpdatedAt.Text = $"수정일 {note.UpdatedAt:yyyy-MM-dd HH:mm}  ·  작성자 {_personalNoteUserName}";
+                TxtPersonalNoteSaveStatus.Text = "";
+            }
+            finally
+            {
+                _suppressPersonalNoteEvents = false;
+            }
+
+            PersonalNoteEmptyState.Visibility = Visibility.Collapsed;
+            PersonalNoteEditorPanel.Visibility = Visibility.Visible;
+            RefreshPersonalNoteList();
+        }
+
+        // ─── 새 메모 생성 ──────────────────────────────────────────
+
+        private void BtnNewPersonalNote_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_personalNoteUserId))
+            {
+                MessageBox.Show("로그인이 필요합니다.", "개인 메모장", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (_personalNoteAutoSaveTimer?.IsEnabled == true)
+            {
+                _personalNoteAutoSaveTimer.Stop();
+                SaveSelectedPersonalNote(showStatus: false);
+            }
+
+            string baseTitle = "새 메모";
+            string title = baseTitle;
+            int counter = 1;
+            while (_personalNotes.Any(n => string.Equals(n.Title?.Trim(), title, StringComparison.Ordinal)))
+                title = $"{baseTitle} {counter++}";
+
+            var newNote = new PersonalNote
+            {
+                NoteId = Guid.NewGuid().ToString("N"),
+                UserId = _personalNoteUserId,
+                Title = title,
+                Content = "",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+                IsDeleted = false
+            };
+
+            _personalNotes.Insert(0, newNote);
+            SavePersonalNotesToDisk();
+            RefreshPersonalNoteList();
+            SelectPersonalNote(newNote);
+            TxtPersonalNoteTitle.Focus();
+            TxtPersonalNoteTitle.SelectAll();
+        }
+
+        // ─── 에디터 변경 → 자동 저장 ──────────────────────────────
+
+        private void PersonalNoteEditorContent_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressPersonalNoteEvents || _selectedPersonalNote == null) return;
+            _selectedPersonalNote.Title = TxtPersonalNoteTitle.Text;
+            _selectedPersonalNote.Content = TxtPersonalNoteContent.Text;
+            TxtPersonalNoteSaveStatus.Text = "저장 중...";
+
+            _personalNoteAutoSaveTimer?.Stop();
+            _personalNoteAutoSaveTimer?.Start();
+        }
+
+        private void SaveSelectedPersonalNote(bool showStatus)
+        {
+            if (_selectedPersonalNote == null || string.IsNullOrWhiteSpace(_personalNoteUserId)) return;
+
+            _selectedPersonalNote.UpdatedAt = DateTime.Now;
+            SavePersonalNotesToDisk();
+            TxtPersonalNoteUpdatedAt.Text = $"수정일 {_selectedPersonalNote.UpdatedAt:yyyy-MM-dd HH:mm}  ·  작성자 {_personalNoteUserName}";
+
+            _personalNotes.Sort((a, b) => b.UpdatedAt.CompareTo(a.UpdatedAt));
+            RefreshPersonalNoteList();
+
+            if (showStatus) TxtPersonalNoteSaveStatus.Text = $"저장됨 · {DateTime.Now:HH:mm:ss}";
+        }
+
+        // ─── 메모 삭제 ─────────────────────────────────────────────
+
+        private void BtnDeletePersonalNote_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPersonalNote == null) return;
+
+            var result = MessageBox.Show(
+                $"\"{_selectedPersonalNote.DisplayTitle}\" 메모를 삭제하시겠습니까?",
+                "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes) return;
+
+            _personalNoteAutoSaveTimer?.Stop();
+            _selectedPersonalNote.IsDeleted = true;
+            _selectedPersonalNote.UpdatedAt = DateTime.Now;
+            _personalNotes.Remove(_selectedPersonalNote);
+            SavePersonalNotesToDisk();
+            _selectedPersonalNote = null;
+            RefreshPersonalNoteList();
+
+            if (_personalNotes.Count > 0)
+            {
+                SelectPersonalNote(_personalNotes[0]);
+            }
+            else
+            {
+                PersonalNoteEmptyState.Visibility = Visibility.Visible;
+                PersonalNoteEditorPanel.Visibility = Visibility.Collapsed;
+                TxtPersonalNoteTitle.Text = "";
+                TxtPersonalNoteContent.Text = "";
+            }
         }
     }
 }
