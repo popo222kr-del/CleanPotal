@@ -64,6 +64,9 @@ namespace CleanPotal
 
             // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
             CreateProdReqTable();
+
+            // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
+            FieldInspection.Repositories.FieldInspectionRepository.InitializeTables();
         }
 
         public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);

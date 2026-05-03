@@ -1,0 +1,199 @@
+<UserControl x:Class="CleanPotal.FieldChecklistView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F8FAFC">
+
+    <UserControl.Resources>
+        <Style x:Key="SectionCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="StatCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="6,0"/>
+        </Style>
+
+        <Style x:Key="TabHeaderStyle" TargetType="TabItem">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border x:Name="under" Height="3" CornerRadius="2" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="Transparent" Margin="6,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                                <Setter TargetName="under" Property="Background" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GhostButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F8FAFC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2563EB"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 상단 안내 배너 -->
+        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Background="#EFF6FF" BorderBrush="#BFDBFE">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🛠️" FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="현장 점검 (NFC / QR 체크시트)" FontSize="16" FontWeight="Bold" Foreground="#1E3A8A"/>
+                    <TextBlock Text="작업자는 현장에서 NFC 태그 또는 QR 코드를 스캔해 모바일 웹 체크시트를 작성하고, 관리자는 이 화면에서 등록·조회·출력합니다."
+                               FontSize="12" Foreground="#1E40AF" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 탭 영역 -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+            <TabItem Header="점검 현황 대시보드" Style="{StaticResource TabHeaderStyle}">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="전체 점검 대상" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="StatTotalText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="점검 완료" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="StatDoneText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#10B981" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="미점검" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="StatPendingText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#F59E0B" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="3" Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="이상 발생" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="StatAbnormalText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#EF4444" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Margin="6,12,6,0">
+                        <StackPanel>
+                            <TextBlock Text="대시보드 상세 (위치별 진행률 / 최근 점검 / 이상 발생)"
+                                       FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <TextBlock Text="이 영역은 다음 단계에서 위치별 진행률 ProgressBar 와 최근 점검·이상 발생 목록으로 채워집니다."
+                                       FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="NFC / QR 관리" Style="{StaticResource TabHeaderStyle}">
+                <Border Style="{StaticResource SectionCardStyle}" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBlock Text="NFC 태그 / QR 코드 등록"
+                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
+                        <TextBlock Text="좌측에 위치 목록, 우측에 선택 위치의 태그·QR 미리보기·발급/재발급 버튼이 배치될 영역입니다. 다음 단계에서 구현됩니다."
+                                   FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="새 위치 등록" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="False" Margin="0,0,8,0"/>
+                            <Button Content="새 태그 발급" Style="{StaticResource GhostButtonStyle}" IsEnabled="False" Margin="0,0,8,0"/>
+                            <Button Content="QR 출력" Style="{StaticResource GhostButtonStyle}" IsEnabled="False"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="체크시트 관리" Style="{StaticResource TabHeaderStyle}">
+                <Border Style="{StaticResource SectionCardStyle}" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBlock Text="위치별 체크시트 / 항목 관리"
+                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
+                        <TextBlock Text="체크시트 마스터 + 항목(OK/NG, 예/아니오, 수치, 텍스트) CRUD 화면이 들어갈 영역입니다."
+                                   FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <TabItem Header="점검 기록 조회" Style="{StaticResource TabHeaderStyle}">
+                <Border Style="{StaticResource SectionCardStyle}" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBlock Text="점검 기록 조회 / 출력 / 엑셀 내보내기"
+                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
+                        <TextBlock Text="기간 / 위치 / 작업자 / 상태 / 이상 여부 필터와 결과 그리드, 행 더블클릭 시 상세 모달이 들어갈 영역입니다."
+                                   FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
