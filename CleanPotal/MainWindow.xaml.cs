@@ -19,6 +19,7 @@ namespace CleanPotal
         private DispatchCertificateBatchView? _dispatchCertificateBatchView;
         private ProdReqView? _prodReqView;
         private PersonalMemoView? _personalMemoView;
+        private FieldChecklistView? _fieldChecklistView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -183,6 +184,7 @@ namespace CleanPotal
 
             _isUpdatingNav = true;
             ExpanderAttendance.IsExpanded = false; ExpanderProduction.IsExpanded = false;
+            ExpanderFieldInspection.IsExpanded = false;
             ExpanderOffice.IsExpanded = false; ExpanderEtc.IsExpanded = false;
             _isUpdatingNav = false;
             ToggleSectionHeaders(Visibility.Collapsed); // 🎨 접을 땐 섹션 헤더 숨김
@@ -210,6 +212,7 @@ namespace CleanPotal
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
+            else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
@@ -217,6 +220,7 @@ namespace CleanPotal
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask") OpenWeeklyReport_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
+        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
         private void OpenHandover(object sender, RoutedEventArgs e) { OpenSidebar(); ShowHandover(); }
@@ -247,6 +251,7 @@ namespace CleanPotal
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
         private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
+        private void OpenFieldChecklist_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldChecklist(); }
         private void BtnCommandVendor_Click(object sender, RoutedEventArgs e) { if (!AuthManager.CheckAuth(PermissionType.Vendors)) return; new VendorManagerWindow { Owner = this }.ShowDialog(); }
 
         private void ManagePortalLinks_Click(object sender, RoutedEventArgs e)
@@ -385,6 +390,17 @@ namespace CleanPotal
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
+        private void ShowFieldChecklist()
+        {
+            _currentViewName = "FieldChecklist";
+            ApplySectionMeta("현장 점검 - 체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
+            UpdateNavSelection("FieldChecklist");
+            if (_fieldChecklistView == null) _fieldChecklistView = new FieldChecklistView();
+            else _fieldChecklistView.RefreshDashboardCounters();
+            MainContent.Content = _fieldChecklistView;
+            HideAllHeaderButtons();
+        }
+
         private void ShowDispatchCert()
         {
             _currentViewName = "DispatchCert";
@@ -419,9 +435,10 @@ namespace CleanPotal
 
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
-            BtnNavPersonalMemo.Style = subNormal;
+            BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
+            ExpanderFieldInspection.Style = expNormal;
 
             switch (viewName)
             {
@@ -435,6 +452,7 @@ namespace CleanPotal
                 case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
                 case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
+                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;
