@@ -158,19 +158,109 @@
             </TabItem>
 
             <TabItem Header="NFC / QR 관리" Style="{StaticResource TabHeaderStyle}">
-                <Border Style="{StaticResource SectionCardStyle}" Margin="0,12,0,0">
-                    <StackPanel>
-                        <TextBlock Text="NFC 태그 / QR 코드 등록"
-                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
-                        <TextBlock Text="좌측에 위치 목록, 우측에 선택 위치의 태그·QR 미리보기·발급/재발급 버튼이 배치될 영역입니다. 다음 단계에서 구현됩니다."
-                                   FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <Button Content="새 위치 등록" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="False" Margin="0,0,8,0"/>
-                            <Button Content="새 태그 발급" Style="{StaticResource GhostButtonStyle}" IsEnabled="False" Margin="0,0,8,0"/>
-                            <Button Content="QR 출력" Style="{StaticResource GhostButtonStyle}" IsEnabled="False"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 좌측: 위치 목록 -->
+                    <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Margin="0,0,6,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="위치 목록" FontSize="14" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LocCountText" Text="(0)" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+
+                            <DataGrid x:Name="LocationsGrid" Grid.Row="1"
+                                      AutoGenerateColumns="False" CanUserAddRows="False"
+                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                      RowHeight="32" FontSize="12"
+                                      SelectionMode="Single"
+                                      SelectionChanged="LocationsGrid_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="코드" Binding="{Binding Code}" Width="100"/>
+                                    <DataGridTextColumn Header="위치명" Binding="{Binding Name}" Width="*"/>
+                                    <DataGridTextColumn Header="구역" Binding="{Binding Zone}" Width="80"/>
+                                    <DataGridCheckBoxColumn Header="활성" Binding="{Binding IsActive}" Width="50" IsReadOnly="True"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="+ 새 위치" Style="{StaticResource PrimaryButtonStyle}" Click="BtnAddLocation_Click" Margin="0,0,6,0"/>
+                                <Button Content="수정" Style="{StaticResource GhostButtonStyle}" Click="BtnEditLocation_Click" Margin="0,0,6,0"/>
+                                <Button Content="삭제" Style="{StaticResource GhostButtonStyle}" Click="BtnDeleteLocation_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- 우측: 선택 위치의 태그 / QR -->
+                    <Border Grid.Column="1" Style="{StaticResource SectionCardStyle}" Margin="6,0,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                <TextBlock x:Name="TagSectionTitle" Text="태그 / QR 코드" FontSize="14" FontWeight="Bold" Foreground="#0F172A"/>
+                                <TextBlock x:Name="TagSectionSubtitle" Text="좌측에서 위치를 선택하세요." FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="240"/>
+                                </Grid.ColumnDefinitions>
+
+                                <DataGrid x:Name="TagsGrid" Grid.Column="0"
+                                          AutoGenerateColumns="False" CanUserAddRows="False"
+                                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                          RowHeight="30" FontSize="12"
+                                          SelectionMode="Single"
+                                          SelectionChanged="TagsGrid_SelectionChanged"
+                                          Margin="0,0,8,0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="태그 ID" Binding="{Binding TagId}" Width="*" IsReadOnly="True"/>
+                                        <DataGridTextColumn Header="유형" Binding="{Binding TagType}" Width="60"/>
+                                        <DataGridCheckBoxColumn Header="활성" Binding="{Binding IsActive}" Width="50" IsReadOnly="True"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Border Grid.Column="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8">
+                                    <StackPanel>
+                                        <TextBlock Text="QR 미리보기" FontSize="12" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,6"/>
+                                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Width="220" Height="220">
+                                            <Image x:Name="QrPreviewImage" Stretch="Uniform" Margin="6"/>
+                                        </Border>
+                                        <TextBlock x:Name="QrUrlText" Text="" FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="+ 새 태그 발급" Style="{StaticResource PrimaryButtonStyle}" Click="BtnIssueTag_Click" Margin="0,0,6,0"/>
+                                <Button Content="활성 토글" Style="{StaticResource GhostButtonStyle}" Click="BtnToggleTagActive_Click" Margin="0,0,6,0"/>
+                                <Button Content="토큰 재발급" Style="{StaticResource GhostButtonStyle}" Click="BtnReissueToken_Click" Margin="0,0,6,0"/>
+                                <Button Content="태그 삭제" Style="{StaticResource GhostButtonStyle}" Click="BtnDeleteTag_Click"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="QR PNG 저장" Style="{StaticResource GhostButtonStyle}" Click="BtnSaveQr_Click" Margin="0,0,6,0"/>
+                                <Button Content="URL 복사" Style="{StaticResource GhostButtonStyle}" Click="BtnCopyUrl_Click" Margin="0,0,6,0"/>
+                                <Button Content="서버 주소 설정" Style="{StaticResource GhostButtonStyle}" Click="BtnServerSettings_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
             </TabItem>
 
             <TabItem Header="체크시트 관리" Style="{StaticResource TabHeaderStyle}">
