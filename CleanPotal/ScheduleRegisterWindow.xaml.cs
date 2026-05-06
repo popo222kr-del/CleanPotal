@@ -20,6 +20,8 @@ namespace CleanPotal
 
             DpShiftStart.SelectedDate = DateTime.Today;
             DpShiftEnd.SelectedDate = DateTime.Today;
+            DpTeamEventStart.SelectedDate = DateTime.Today;
+            DpTeamEventEnd.SelectedDate = DateTime.Today;
             DpEduStart.SelectedDate = DateTime.Today;
             DpEduEnd.SelectedDate = DateTime.Today;
 
@@ -45,9 +47,10 @@ namespace CleanPotal
                 CmbShiftName.IsEnabled = true;
             }
 
-            // 교육 일정 등록은 "일정 권한"이 체크된 사용자만 가능
+            // 세정 일정 등록 및 교육 일정 등록은 "일정 권한"이 체크된 사용자만 가능
             if (hasSchedulePermission)
             {
+                TabTeamEvent.Visibility = Visibility.Visible;
                 TabEdu.Visibility = Visibility.Visible;
                 var teams = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.TeamName))
                                      .Select(u => u.TeamName).Distinct().ToList();
@@ -56,12 +59,14 @@ namespace CleanPotal
             }
             else
             {
+                TabTeamEvent.Visibility = Visibility.Collapsed;
                 TabEdu.Visibility = Visibility.Collapsed;
             }
 
             BtnSave.IsEnabled = false;
             MainTab.SelectionChanged += (_, __) => RefreshPreview();
             DpShiftEnd.SelectedDateChanged += (_, __) => RefreshPreview();
+            DpTeamEventEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
             CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
@@ -93,6 +98,19 @@ namespace CleanPotal
                 RefreshPreview();
             }
         }
+
+        private void DpTeamEventStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DpTeamEventStart.SelectedDate.HasValue)
+            {
+                DpTeamEventEnd.SelectedDate = DpTeamEventStart.SelectedDate;
+                RefreshPreview();
+            }
+        }
+
+        private void DpTeamEventEnd_SelectedDateChanged(object sender, SelectionChangedEventArgs e) => RefreshPreview();
+
+        private void TxtTeamEventTitle_TextChanged(object sender, TextChangedEventArgs e) => RefreshPreview();
 
         private void DpEduStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -138,7 +156,23 @@ namespace CleanPotal
 
         private void RefreshPreview()
         {
-            if (TxtShiftPreview == null || TxtEduPreview == null) return;
+            if (TxtShiftPreview == null || TxtEduPreview == null || TxtTeamEventPreview == null) return;
+
+            if (DpTeamEventStart.SelectedDate.HasValue && DpTeamEventEnd.SelectedDate.HasValue)
+            {
+                DateTime start = DpTeamEventStart.SelectedDate.Value.Date;
+                DateTime end = DpTeamEventEnd.SelectedDate.Value.Date;
+                string title = TxtTeamEventTitle.Text.Trim();
+                if (start > end)
+                    TxtTeamEventPreview.Text = "시작일이 종료일보다 늦습니다.";
+                else
+                {
+                    int total = (end - start).Days + 1;
+                    TxtTeamEventPreview.Text = string.IsNullOrEmpty(title)
+                        ? $"선택 {total}일간 달력에 표시됩니다."
+                        : $"[{title}] {start:MM/dd}~{end:MM/dd} ({total}일간 달력 첫 줄에 표시)";
+                }
+            }
 
             if (DpShiftStart.SelectedDate.HasValue && DpShiftEnd.SelectedDate.HasValue)
             {
@@ -183,13 +217,16 @@ namespace CleanPotal
         {
             try
             {
-                if (!_isHolidayLoaded)
+                string selectedTabHeader = (MainTab.SelectedItem as TabItem)?.Header?.ToString() ?? "";
+
+                bool needsHoliday = selectedTabHeader == "근태/휴가 등록" || selectedTabHeader == "교육 일정 등록";
+                if (needsHoliday && !_isHolidayLoaded)
                 {
                     MessageBox.Show("공휴일 데이터를 불러오는 중입니다. 잠시 후 다시 저장해주세요.", "잠시만 기다려주세요", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                if (MainTab.SelectedIndex == 0) // 근태/휴가 다중 등록
+                if (selectedTabHeader == "근태/휴가 등록") // 근태/휴가 다중 등록
                 {
                     string selection = CmbShiftName.SelectedItem?.ToString() ?? "";
                     string name = selection.Contains("]") ? selection.Substring(selection.IndexOf(']') + 1).Trim() : selection;
@@ -242,6 +279,37 @@ namespace CleanPotal
                     }
 
                     MessageBox.Show($"주말/공휴일을 제외하고 총 {registeredCount}일의 일정이 성공적으로 등록되었습니다.", "등록 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (selectedTabHeader == "세정 일정 등록") // 세정 팀 일정 등록
+                {
+                    string title = TxtTeamEventTitle.Text.Trim();
+
+                    if (string.IsNullOrEmpty(title) || !DpTeamEventStart.SelectedDate.HasValue || !DpTeamEventEnd.SelectedDate.HasValue)
+                    {
+                        MessageBox.Show("일정 제목과 기간을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    DateTime startDate = DpTeamEventStart.SelectedDate.Value.Date;
+                    DateTime endDate = DpTeamEventEnd.SelectedDate.Value.Date;
+
+                    if (startDate > endDate)
+                    {
+                        MessageBox.Show("시작일이 종료일보다 늦을 수 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var teamEvent = new TeamEventModel
+                    {
+                        Title = title,
+                        StartDate = startDate,
+                        EndDate = endDate,
+                        CreatedBy = SessionManager.CurrentRealName
+                    };
+                    DatabaseHelper.InsertTeamEvent(teamEvent);
+
+                    int days = (endDate - startDate).Days + 1;
+                    MessageBox.Show($"[{title}] 일정이 {days}일간 등록되었습니다.", "등록 완료", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else // 교육 일정 등록
                 {

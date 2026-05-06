@@ -83,4 +83,13 @@ namespace CleanPotal
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
     }
+
+    public class TeamEventModel
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string CreatedBy { get; set; } = "";
+    }
 }

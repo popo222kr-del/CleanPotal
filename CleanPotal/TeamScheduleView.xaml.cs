@@ -47,10 +47,11 @@ namespace CleanPotal
 
             var shifts = DatabaseHelper.GetShiftSchedulesInRange(startDate, endDate);
             var edus = DatabaseHelper.GetEducationPlansInRange(startDate, endDate);
+            var teamEvents = DatabaseHelper.GetTeamEventsInRange(startDate, endDate);
             var allUsers = AuthDatabaseHelper.GetAllUsers();
 
             // 1) 먼저 휴일 정보 없이 즉시 렌더링(화면 멈춤 방지)
-            var initialDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, new Dictionary<string, string>());
+            var initialDays = BuildDayModels(targetDate, startDate, shifts, edus, teamEvents, allUsers, new Dictionary<string, string>());
             if (buildVersion != _calendarBuildVersion) return;
             CalendarItemsControl.ItemsSource = initialDays;
 
@@ -66,7 +67,7 @@ namespace CleanPotal
             }
 
             if (buildVersion != _calendarBuildVersion) return;
-            var finalDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, holidayMap);
+            var finalDays = BuildDayModels(targetDate, startDate, shifts, edus, teamEvents, allUsers, holidayMap);
             CalendarItemsControl.ItemsSource = finalDays;
         }
 
@@ -75,6 +76,7 @@ namespace CleanPotal
             DateTime startDate,
             List<ShiftScheduleModel> shifts,
             List<EducationPlanModel> edus,
+            List<TeamEventModel> teamEvents,
             List<UserModel> allUsers,
             Dictionary<string, string> holidayMap)
         {
@@ -101,44 +103,27 @@ namespace CleanPotal
                 var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "야간").ToList();
                 var rawOffShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && (s.ShiftType.Contains("휴무") || s.ShiftType.Contains("연차") || s.ShiftType.Contains("반차"))).ToList();
                 var dayEdus = edus.Where(e => e.StartDate.Date <= cellDate.Date && e.EndDate.Date >= cellDate.Date).ToList();
+                var dayTeamEvents = teamEvents.Where(ev => ev.StartDate.Date <= cellDate.Date && ev.EndDate.Date >= cellDate.Date).ToList();
 
-                // 1. 주간 근무 뱃지
-                if (dayShifts.Count > 0)
+                // 1. 세정 일정 뱃지 (맨 위에 표시)
+                foreach (var ev in dayTeamEvents)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = dayShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift" }).ToList();
+                    _badgeDetails[key] = new List<ScheduleDetailItem> { new ScheduleDetailItem { Id = ev.Id, Name = ev.CreatedBy, Type = ev.Title, SourceType = "TeamEvent" } };
 
                     dayModel.Badges.Add(new ScheduleBadge
                     {
-                        Text = $"주간: {dayShifts.Count}",
-                        TooltipText = string.Join("\n", dayShifts.Select(s => s.MemberName)),
-                        BackgroundBrush = new SolidColorBrush(Color.FromRgb(254, 243, 199)),
-                        TextBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)),
+                        Text = ev.Title,
+                        TooltipText = $"{ev.Title} ({ev.StartDate:MM/dd}~{ev.EndDate:MM/dd})",
+                        BackgroundBrush = new SolidColorBrush(Color.FromRgb(204, 251, 241)),
+                        TextBrush = new SolidColorBrush(Color.FromRgb(15, 118, 110)),
                         FontWeight = FontWeights.Bold,
                         RecordType = "Group",
                         GroupMembers = key
                     });
                 }
 
-                // 2. 야간 근무 뱃지
-                if (nightShifts.Count > 0)
-                {
-                    string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = nightShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift" }).ToList();
-
-                    dayModel.Badges.Add(new ScheduleBadge
-                    {
-                        Text = $"야간: {nightShifts.Count}",
-                        TooltipText = string.Join("\n", nightShifts.Select(s => s.MemberName)),
-                        BackgroundBrush = new SolidColorBrush(Color.FromRgb(224, 231, 255)),
-                        TextBrush = new SolidColorBrush(Color.FromRgb(67, 56, 202)),
-                        FontWeight = FontWeights.Bold,
-                        RecordType = "Group",
-                        GroupMembers = key
-                    });
-                }
-
-                // 3. 분할 휴무 뱃지
+                // 2. 분할 휴무 뱃지
                 if (rawOffShifts.Count > 0)
                 {
                     var dayOffShifts = new List<ShiftScheduleModel>();
@@ -285,8 +270,9 @@ namespace CleanPotal
             {
                 bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
                 bool isMine = item.Name == SessionManager.CurrentRealName;
+                bool isTeamEvent = item.SourceType == "TeamEvent";
 
-                if (!isMaster && !isMine)
+                if (!isMaster && (!isMine || isTeamEvent))
                 {
                     MessageBox.Show("본인이 등록한 일정만 삭제하거나 수정할 수 있습니다.", "권한 없음", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -298,6 +284,7 @@ namespace CleanPotal
                 {
                     if (item.SourceType == "Shift") DatabaseHelper.DeleteShiftSchedule(item.Id);
                     else if (item.SourceType == "Edu") DatabaseHelper.DeleteEducationPlan(item.Id);
+                    else if (item.SourceType == "TeamEvent") DatabaseHelper.DeleteTeamEvent(item.Id);
 
                     ModalOverlay.Visibility = Visibility.Collapsed;
                     _ = BuildCalendarAsync(_currentDate);

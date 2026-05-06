@@ -301,6 +301,40 @@
                 </StackPanel>
             </TabItem>
 
+            <TabItem x:Name="TabTeamEvent" Header="세정 일정 등록" FontSize="15">
+                <StackPanel Margin="0,20,0,0">
+                    <TextBlock Text="일정 제목" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox x:Name="TxtTeamEventTitle" Style="{StaticResource InputTextStyle}" Margin="0,0,0,20" TextChanged="TxtTeamEventTitle_TextChanged"/>
+
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="시작일" Style="{StaticResource FieldLabelStyle}"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpTeamEventStart" Style="{StaticResource InputDateStyle}" BorderThickness="0" SelectedDateChanged="DpTeamEventStart_SelectedDateChanged"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="종료일" Style="{StaticResource FieldLabelStyle}"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpTeamEventEnd" Style="{StaticResource InputDateStyle}" BorderThickness="0" SelectedDateChanged="DpTeamEventEnd_SelectedDateChanged"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Background="#F8FAFC" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="💡 적용 미리보기" FontSize="12" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="TxtTeamEventPreview" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </TabItem>
+
             <TabItem x:Name="TabEdu" Header="교육 일정 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <Grid Margin="0,0,0,20">

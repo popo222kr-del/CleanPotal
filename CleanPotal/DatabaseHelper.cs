@@ -227,7 +227,47 @@ namespace CleanPotal
                         EduMethod TEXT
                     )";
                 connection.Execute(createEduTable);
+
+                string createTeamEventTable = @"
+                    CREATE TABLE IF NOT EXISTS TeamEvent (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Title TEXT NOT NULL,
+                        StartDate TEXT NOT NULL,
+                        EndDate TEXT NOT NULL,
+                        CreatedBy TEXT
+                    )";
+                connection.Execute(createTeamEventTable);
             }
+        }
+
+        public static void InsertTeamEvent(TeamEventModel item)
+        {
+            using (var db = GetConnection())
+            {
+                string sql = @"INSERT INTO TeamEvent (Title, StartDate, EndDate, CreatedBy)
+                               VALUES (@Title, @StartDate, @EndDate, @CreatedBy)";
+                db.Execute(sql, new
+                {
+                    item.Title,
+                    StartDate = item.StartDate.ToString("yyyy-MM-dd"),
+                    EndDate = item.EndDate.ToString("yyyy-MM-dd"),
+                    item.CreatedBy
+                });
+            }
+        }
+
+        public static List<TeamEventModel> GetTeamEventsInRange(DateTime start, DateTime end)
+        {
+            using (var db = GetConnection())
+            {
+                string sql = "SELECT * FROM TeamEvent WHERE StartDate <= @End AND EndDate >= @Start ORDER BY StartDate ASC";
+                return db.Query<TeamEventModel>(sql, new { Start = start.ToString("yyyy-MM-dd"), End = end.ToString("yyyy-MM-dd") }).ToList();
+            }
+        }
+
+        public static void DeleteTeamEvent(int id)
+        {
+            using (var db = GetConnection()) db.Execute("DELETE FROM TeamEvent WHERE Id = @Id", new { Id = id });
         }
 
         public static void UpsertShiftSchedule(ShiftScheduleModel item)
