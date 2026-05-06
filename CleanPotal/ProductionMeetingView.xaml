@@ -271,8 +271,13 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Width="48" Height="48" Margin="0,0,8,0">
-                                        <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonDown="AttachmentPreview_Click" Background="#E2E8F0">
+                                    <Grid Width="48" Height="48" Margin="0,0,8,0"
+                                          AllowDrop="True"
+                                          MouseLeftButtonDown="MainAttachmentItem_MouseDown"
+                                          MouseMove="MainAttachmentItem_MouseMove"
+                                          DragOver="MainAttachmentItem_DragOver"
+                                          Drop="MainAttachmentItem_Drop">
+                                        <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#E2E8F0"/>
@@ -327,7 +332,7 @@
                 <!-- 제목 -->
                 <TextBlock Grid.Row="0" Text="추가 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
 
-                <!-- 🎨 RichTextBox 본문 (툴바는 화면 상단의 공유 플로팅 툴바 사용) -->
+                <!-- 🎨 RichTextBox 본문 -->
                 <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                     <RichTextBox x:Name="MemoRichEditor" Tag="Memo"
                                  BorderThickness="0" Background="Transparent"
@@ -349,7 +354,7 @@
                     </RichTextBox>
                 </Border>
 
-                <!-- 첨부 영역 (별도 첨부 - 본문 외 따로 보관할 파일용) -->
+                <!-- 첨부 영역 -->
                 <Border Grid.Row="2" Height="100" Margin="0,10,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10" AllowDrop="True" PreviewDragOver="MemoAttachmentPanel_PreviewDragOver" Drop="MemoAttachmentPanel_Drop" PreviewKeyDown="MemoAttachmentPanel_PreviewKeyDown" Focusable="True">
                     <StackPanel>
                         <Grid Margin="0,0,0,6">
@@ -362,7 +367,6 @@
                                 </Button.Resources>
                             </Button>
                         </Grid>
-
                         <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="52">
                             <ItemsControl x:Name="MemoAttachmentsControl" ItemsSource="{Binding MemoAttachments}">
                                 <ItemsControl.ItemsPanel>
@@ -372,8 +376,13 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Width="48" Height="48" Margin="0,0,8,0">
-                                            <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonDown="AttachmentPreview_Click" Background="#E2E8F0">
+                                        <Grid Width="48" Height="48" Margin="0,0,8,0"
+                                              AllowDrop="True"
+                                              MouseLeftButtonDown="MemoAttachmentItem_MouseDown"
+                                              MouseMove="MemoAttachmentItem_MouseMove"
+                                              DragOver="MemoAttachmentItem_DragOver"
+                                              Drop="MemoAttachmentItem_Drop">
+                                            <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#E2E8F0"/>
@@ -466,14 +475,14 @@
                     <Grid Grid.Row="0" Margin="0,0,0,20">
                         <TextBlock x:Name="TxtModalTitle" Text="주간보고 인쇄/보고용 표" FontSize="22" FontWeight="Bold" Foreground="#0F172A"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="엑셀 다운로드" Height="36" Padding="16,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,12,0" Cursor="Hand" Click="BtnExportExcel_Click">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="8"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                                <Button Content="닫기" Height="36" Padding="16,0" Background="#F1F5F9" Foreground="#334155" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="BtnCloseTable_Click">
+                            <Button Content="엑셀 다운로드" Height="36" Padding="16,0" Background="#10B981" Foreground="White" FontWeight="Bold" BorderThickness="0" Margin="0,0,12,0" Cursor="Hand" Click="BtnExportExcel_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                            <Button Content="닫기" Height="36" Padding="16,0" Background="#F1F5F9" Foreground="#334155" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="BtnCloseTable_Click">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8"/>

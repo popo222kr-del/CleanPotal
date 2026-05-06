@@ -576,6 +576,29 @@
             <Border Background="White" CornerRadius="12" MaxWidth="650" Padding="30" VerticalAlignment="Center">
                 <StackPanel>
                     <TextBlock Text="새 요청 등록" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="구분" Style="{StaticResource FormLabelStyle}"/>
+                            <Border Style="{StaticResource InputWrapperStyle}" Margin="0,0,0,0">
+                                <ComboBox ItemsSource="{Binding ReqLocations}" SelectedItem="{Binding EditLocation, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" FontSize="14" Padding="6,0" VerticalContentAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="세부 위치" Style="{StaticResource FormLabelStyle}"/>
+                            <Border Style="{StaticResource InputWrapperStyle}" Margin="0,0,0,0">
+                                <ComboBox ItemsSource="{Binding ReqSubLocations}" SelectedItem="{Binding EditSubLocation, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" FontSize="14" Padding="6,0" VerticalContentAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="요청 분류" Style="{StaticResource FormLabelStyle}"/>
+                    <Border Style="{StaticResource InputWrapperStyle}" Margin="0,0,0,20">
+                        <ComboBox ItemsSource="{Binding ReqContentTypes}" SelectedItem="{Binding EditContentType, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" FontSize="14" Padding="6,0" VerticalContentAlignment="Center"/>
+                    </Border>
                     <TextBlock Text="상세 요청사항" Style="{StaticResource FormLabelStyle}"/>
                     <Border Style="{StaticResource InputWrapperStyle}" Height="120" Margin="0,0,0,20">
                         <TextBox Style="{StaticResource MultiLineTextBoxStyle}" Text="{Binding EditRequestDetail, UpdateSourceTrigger=PropertyChanged}"/>

@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -32,9 +32,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.105.0" />
-    <PackageReference Include="Dapper" Version="2.1.72" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="ClosedXML" Version="0.95.0" />
+    <PackageReference Include="ClosedXML.Parser" Version="2.0.0" />
+    <PackageReference Include="Dapper" Version="2.0.123" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="System.Data.SQLite" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>

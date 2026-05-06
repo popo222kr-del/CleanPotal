@@ -91,18 +91,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 상단 안내 배너 -->
-        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Background="#EFF6FF" BorderBrush="#BFDBFE">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🛠️" FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                <StackPanel>
-                    <TextBlock Text="현장 점검 (NFC / QR 체크시트)" FontSize="16" FontWeight="Bold" Foreground="#1E3A8A"/>
-                    <TextBlock Text="작업자는 현장에서 NFC 태그 또는 QR 코드를 스캔해 모바일 웹 체크시트를 작성하고, 관리자는 이 화면에서 등록·조회·출력합니다."
-                               FontSize="12" Foreground="#1E40AF" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
         <!-- 탭 영역 -->
         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
             <TabItem Header="점검 현황 대시보드" Style="{StaticResource TabHeaderStyle}">

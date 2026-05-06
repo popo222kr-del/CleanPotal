@@ -357,6 +357,20 @@ namespace CleanPotal
         private ObservableCollection<ProductionMeetingBlockModel>? _subscribedBlocks;
         private ObservableCollection<ProductionMeetingAttachmentModel>? _subscribedMemoAttachments;
 
+        // 인라인 이미지 드래그-이동 상태
+        private InlineUIContainer? _movingImageContainer;
+        private string _movingImagePath = "";
+        private Point _imageDragStartPoint;
+        private bool _imageDragStarted = false;
+
+        // 메모 첨부 드래그-정렬 상태
+        private ProductionMeetingAttachmentModel? _memoDragSource;
+        private Point _memoDragStartPoint;
+
+        // 메인 첨부 드래그-정렬 상태
+        private ProductionMeetingAttachmentModel? _mainDragSource;
+        private Point _mainDragStartPoint;
+
         private bool _isDirty = false;
         private bool _isNavigating = false;
 
@@ -574,11 +588,11 @@ namespace CleanPotal
                     {
                         if (iuc.Child is Image img)
                         {
-                            // 클릭 시 원본 보기
                             img.Cursor = Cursors.Hand;
                             img.MouseLeftButtonDown -= ImageInline_MouseLeftButtonDown;
-                            img.MouseLeftButtonDown += ImageInline_MouseLeftButtonDown;
-                            // 우클릭 메뉴
+                            img.MouseMove -= ImageInline_MouseMove;
+                            img.MouseLeftButtonUp -= ImageInline_MouseLeftButtonUp;
+                            AttachImageDragAndClick(img);
                             if (img.ContextMenu == null) AttachImageContextMenu(img);
                         }
                         else if (iuc.Child is Border fileBorder && fileBorder.Tag is string filePath)
@@ -595,9 +609,59 @@ namespace CleanPotal
             }
         }
 
+        // ── 인라인 이미지 드래그-이동 + 클릭 열기 ──────────────────────────────
+
+        private void AttachImageDragAndClick(Image img)
+        {
+            img.MouseLeftButtonDown += ImageInline_MouseLeftButtonDown;
+            img.MouseMove += ImageInline_MouseMove;
+            img.MouseLeftButtonUp += ImageInline_MouseLeftButtonUp;
+        }
+
         private void ImageInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Image img && img.Tag is string p) ShowImagePopup(p);
+            if (sender is not Image img) return;
+            _imageDragStartPoint = e.GetPosition(img);
+            _imageDragStarted = false;
+
+            if (img.Parent is InlineUIContainer iuc)
+            {
+                _movingImageContainer = iuc;
+                _movingImagePath = img.Tag as string ?? "";
+            }
+            img.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void ImageInline_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not Image img) return;
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            if (_movingImageContainer == null) return;
+
+            var pos = e.GetPosition(img);
+            if (!_imageDragStarted &&
+                (Math.Abs(pos.X - _imageDragStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                 Math.Abs(pos.Y - _imageDragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance))
+            {
+                _imageDragStarted = true;
+                img.ReleaseMouseCapture();
+                var data = new DataObject("MoveInlineImage", _movingImagePath);
+                DragDrop.DoDragDrop(img, data, DragDropEffects.Move);
+            }
+        }
+
+        private void ImageInline_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Image img) return;
+            img.ReleaseMouseCapture();
+            if (!_imageDragStarted && _movingImageContainer != null)
+            {
+                // 드래그 없이 떼었으면 → 원본 보기
+                if (img.Tag is string p) ShowImagePopup(p);
+            }
+            _movingImageContainer = null;
+            _imageDragStarted = false;
         }
 
         private void FileInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -1205,9 +1269,9 @@ namespace CleanPotal
         // 드래그앤드롭 통합 처리 (모든 RichTextBox 공통)
         private void AnyRichTextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent("MoveInlineImage"))
             {
-                e.Effects = DragDropEffects.Copy;
+                e.Effects = e.Data.GetDataPresent("MoveInlineImage") ? DragDropEffects.Move : DragDropEffects.Copy;
                 e.Handled = true;
             }
         }
@@ -1215,6 +1279,33 @@ namespace CleanPotal
         private void AnyRichTextBox_Drop(object sender, DragEventArgs e)
         {
             if (sender is not RichTextBox rtb) return;
+
+            // 인라인 이미지 이동
+            if (e.Data.GetDataPresent("MoveInlineImage") && _movingImageContainer != null)
+            {
+                try
+                {
+                    var dropPos = rtb.GetPositionFromPoint(e.GetPosition(rtb), true);
+                    if (dropPos != null)
+                    {
+                        // 원래 위치에서 제거
+                        if (_movingImageContainer.Parent is Paragraph oldPara)
+                            oldPara.Inlines.Remove(_movingImageContainer);
+
+                        // 새 위치에 삽입
+                        rtb.CaretPosition = dropPos;
+                        _activeRichEditor = rtb;
+                        InsertImageIntoActiveEditor(_movingImagePath);
+                    }
+                }
+                catch { }
+                _movingImageContainer = null;
+                _movingImagePath = "";
+                _imageDragStarted = false;
+                e.Handled = true;
+                return;
+            }
+
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
 
@@ -1413,10 +1504,7 @@ namespace CleanPotal
                     Cursor = Cursors.Hand,
                     Tag = persistedPath
                 };
-                img.MouseLeftButtonDown += (_, __) =>
-                {
-                    if (img.Tag is string p) ShowImagePopup(p);
-                };
+                AttachImageDragAndClick(img);
 
                 // 🔥 이미지 우클릭 메뉴 - 크기 조절
                 AttachImageContextMenu(img);
@@ -1984,6 +2072,98 @@ namespace CleanPotal
             UpdateOverviewStats();
         }
 
+        // ── 메인 첨부 드래그-정렬 ──────────────────────────────────────────────
+
+        private void MainAttachmentItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is ProductionMeetingAttachmentModel att)
+            {
+                _mainDragSource = att;
+                _mainDragStartPoint = e.GetPosition(fe);
+            }
+        }
+
+        private void MainAttachmentItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _mainDragSource == null) return;
+            if (sender is not FrameworkElement fe) return;
+            var pos = e.GetPosition(fe);
+            if (Math.Abs(pos.X - _mainDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _mainDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+            var data = new DataObject("AttachmentReorder", _mainDragSource);
+            DragDrop.DoDragDrop(fe, data, DragDropEffects.Move);
+        }
+
+        private void MainAttachmentItem_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent("AttachmentReorder") ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MainAttachmentItem_Drop(object sender, DragEventArgs e)
+        {
+            if (_draftReport == null || _mainDragSource == null) return;
+            if (!e.Data.GetDataPresent("AttachmentReorder")) return;
+            if (sender is not FrameworkElement fe || fe.DataContext is not ProductionMeetingAttachmentModel target) return;
+            if (ReferenceEquals(_mainDragSource, target)) return;
+
+            var list = _draftReport.MainAttachments;
+            int fromIdx = list.IndexOf(_mainDragSource);
+            int toIdx = list.IndexOf(target);
+            if (fromIdx < 0 || toIdx < 0) return;
+            list.Move(fromIdx, toIdx);
+            _isDirty = true;
+            _mainDragSource = null;
+            e.Handled = true;
+        }
+
+        // ── 메모 첨부 드래그-정렬 ──────────────────────────────────────────────
+
+        private void MemoAttachmentItem_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is ProductionMeetingAttachmentModel att)
+            {
+                _memoDragSource = att;
+                _memoDragStartPoint = e.GetPosition(fe);
+            }
+        }
+
+        private void MemoAttachmentItem_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _memoDragSource == null) return;
+            if (sender is not FrameworkElement fe) return;
+            var pos = e.GetPosition(fe);
+            if (Math.Abs(pos.X - _memoDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _memoDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+            var data = new DataObject("AttachmentReorder", _memoDragSource);
+            DragDrop.DoDragDrop(fe, data, DragDropEffects.Move);
+        }
+
+        private void MemoAttachmentItem_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent("AttachmentReorder") ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MemoAttachmentItem_Drop(object sender, DragEventArgs e)
+        {
+            if (_draftReport == null || _memoDragSource == null) return;
+            if (!e.Data.GetDataPresent("AttachmentReorder")) return;
+            if (sender is not FrameworkElement fe || fe.DataContext is not ProductionMeetingAttachmentModel target) return;
+            if (ReferenceEquals(_memoDragSource, target)) return;
+
+            var list = _draftReport.MemoAttachments;
+            int fromIdx = list.IndexOf(_memoDragSource);
+            int toIdx = list.IndexOf(target);
+            if (fromIdx < 0 || toIdx < 0) return;
+            list.Move(fromIdx, toIdx);
+            _isDirty = true;
+            _memoDragSource = null;
+            e.Handled = true;
+        }
+
         private static void EnsureAttachmentStorageDirectory()
         {
             if (!Directory.Exists(AttachmentStorageRoot))
@@ -2255,5 +2435,6 @@ namespace CleanPotal
             var invalid = Path.GetInvalidFileNameChars();
             return new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
         }
+
     }
 }
