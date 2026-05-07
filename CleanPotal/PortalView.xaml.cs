@@ -61,7 +61,7 @@ namespace CleanPotal
                                     else
                                     {
                                         string ext = Path.GetExtension(item.path).ToLower();
-                                        if (ext == ".xls" || ext == ".xlsx" || ext == ".csv") item.type = "excel";
+                                        if (ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".xlsb" || ext == ".csv") item.type = "excel";
                                         else if (ext == ".pdf") item.type = "pdf";
                                         else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif") item.type = "image";
                                         else if (string.IsNullOrEmpty(ext) || Directory.Exists(item.path)) item.type = "folder";
