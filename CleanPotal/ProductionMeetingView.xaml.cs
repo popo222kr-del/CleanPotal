@@ -373,6 +373,8 @@ namespace CleanPotal
 
         private bool _isDirty = false;
         private bool _isNavigating = false;
+        private ListBox? _activeHistoryListBox;
+        private double _zoomLevel = 1.0;
 
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
         private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "production_meeting_attachments");
@@ -795,8 +797,16 @@ namespace CleanPotal
                     Category = block.Category,
                     Status = block.Status,
                     Content = block.Content,
-                    FollowUp = block.FollowUp
+                    FollowUp = block.FollowUp,
+                    ContentRich = block.ContentRich,
+                    FollowUpRich = block.FollowUpRich,
+                    Kind = block.Kind,
+                    Heading = block.Heading,
+                    IsCollapsed = block.IsCollapsed,
+                    ProgressPercent = block.ProgressPercent,
+                    Importance = block.Importance
                 };
+                foreach (var ci in block.ChecklistItems) clonedBlock.ChecklistItems.Add(new ChecklistItem { IsDone = ci.IsDone, Text = ci.Text });
                 foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                 _currentReport.Blocks.Add(clonedBlock);
             }
@@ -839,6 +849,16 @@ namespace CleanPotal
                         return;
                     }
                 }
+
+                // 다른 달 ListBox의 선택 해제 (단일 선택 보장)
+                if (_activeHistoryListBox != null && _activeHistoryListBox != lb)
+                {
+                    _isNavigating = true;
+                    _activeHistoryListBox.SelectedItem = null;
+                    _isNavigating = false;
+                }
+                _activeHistoryListBox = lb;
+
                 SetCurrentReport(selected);
             }
         }
@@ -1805,8 +1825,70 @@ namespace CleanPotal
             _isDirty = true;
         }
 
-        public void ShowReportTable() => BtnShowTable_Click(this, new RoutedEventArgs());
-        private void BtnCloseTable_Click(object sender, RoutedEventArgs e) => TableModalOverlay.Visibility = Visibility.Collapsed;
+        // ==========================================
+        // 검색 기능
+        // ==========================================
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tb)
+                ApplySearchFilter(tb.Text);
+        }
+
+        private void ApplySearchFilter(string query)
+        {
+            var q = query.Trim().ToLower();
+            if (string.IsNullOrEmpty(q))
+            {
+                GroupedHistoryControl.ItemsSource = GroupedHistory;
+                return;
+            }
+
+            var filtered = GroupedHistory
+                .Select(g => new ProductionMeetingGroupModel
+                {
+                    MonthTitle = g.MonthTitle,
+                    Reports = new ObservableCollection<ProductionMeetingReportModel>(
+                        g.Reports.Where(r =>
+                            r.Title.ToLower().Contains(q) ||
+                            r.ShortTitle.ToLower().Contains(q) ||
+                            r.MainContent.ToLower().Contains(q) ||
+                            r.Memo.ToLower().Contains(q) ||
+                            r.Blocks.Any(b =>
+                                b.Category.ToLower().Contains(q) ||
+                                b.Content.ToLower().Contains(q)
+                            )
+                        )
+                    )
+                })
+                .Where(g => g.Reports.Count > 0)
+                .ToList();
+
+            GroupedHistoryControl.ItemsSource = filtered;
+        }
+
+        // ==========================================
+        // 화면 확대/축소
+        // ==========================================
+        private void ZoomIn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_zoomLevel >= 2.0) return;
+            _zoomLevel = Math.Round(_zoomLevel + 0.1, 1);
+            ApplyZoom();
+        }
+
+        private void ZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            if (_zoomLevel <= 0.5) return;
+            _zoomLevel = Math.Round(_zoomLevel - 0.1, 1);
+            ApplyZoom();
+        }
+
+        private void ApplyZoom()
+        {
+            MainScaleTransform.ScaleX = _zoomLevel;
+            MainScaleTransform.ScaleY = _zoomLevel;
+            TxtZoomLevel.Text = $"{(int)(_zoomLevel * 100)}%";
+        }
 
         // ==========================================
         // 🔥 생산미팅 엑셀 자동 생성 및 내보내기 (템플릿 불필요)
@@ -1926,16 +2008,6 @@ namespace CleanPotal
             {
                 MessageBox.Show($"엑셀 자동 생성에 실패했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void BtnShowTable_Click(object sender, RoutedEventArgs e)
-        {
-            if (_draftReport == null) return;
-            TxtModalTitle.Text = $"{_draftReport.Title} 주간보고";
-            ReportDataGrid.ItemsSource = null;
-            RenumberBlocks(_draftReport);
-            ReportDataGrid.ItemsSource = _draftReport.Blocks;
-            TableModalOverlay.Visibility = Visibility.Visible;
         }
 
         private void BtnAddAttachment_Click(object sender, RoutedEventArgs e)
@@ -2281,6 +2353,8 @@ namespace CleanPotal
                             DateRange = report.DateRange ?? "",
                             Memo = report.Memo ?? "",
                             MemoRich = report.MemoRich ?? "",
+                            MainContent = report.MainContent ?? "",
+                            MainContentRich = report.MainContentRich ?? "",
                             Attendees = report.Attendees ?? "",
                             Summary = report.Summary ?? ""
                         };
