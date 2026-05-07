@@ -138,7 +138,7 @@
                         <StackPanel>
                             <TextBlock Text="대시보드 상세 (위치별 진행률 / 최근 점검 / 이상 발생)"
                                        FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
-                            <TextBlock Text="이 영역은 다음 단계에서 위치별 진행률 ProgressBar 와 최근 점검·이상 발생 목록으로 채워집니다."
+                            <TextBlock Text="위치별 진행률 ProgressBar 와 최근 점검·이상 발생 목록."
                                        FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
@@ -150,7 +150,7 @@
                     <StackPanel>
                         <TextBlock Text="NFC 태그 / QR 코드 등록"
                                    FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
-                        <TextBlock Text="좌측에 위치 목록, 우측에 선택 위치의 태그·QR 미리보기·발급/재발급 버튼이 배치될 영역입니다. 다음 단계에서 구현됩니다."
+                        <TextBlock Text="좌측에 위치 목록, 우측에 선택 위치의 태그·QR 미리보기·발급/재발급 버튼 배치."
                                    FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                             <Button Content="새 위치 등록" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="False" Margin="0,0,8,0"/>
@@ -166,7 +166,7 @@
                     <StackPanel>
                         <TextBlock Text="위치별 체크시트 / 항목 관리"
                                    FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
-                        <TextBlock Text="체크시트 마스터 + 항목(OK/NG, 예/아니오, 수치, 텍스트) CRUD 화면이 들어갈 영역입니다."
+                        <TextBlock Text="체크시트 마스터 + 항목(OK/NG, 예/아니오, 수치, 텍스트) CRUD 화면 영역"
                                    FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
@@ -177,7 +177,7 @@
                     <StackPanel>
                         <TextBlock Text="점검 기록 조회 / 출력 / 엑셀 내보내기"
                                    FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
-                        <TextBlock Text="기간 / 위치 / 작업자 / 상태 / 이상 여부 필터와 결과 그리드, 행 더블클릭 시 상세 모달이 들어갈 영역입니다."
+                        <TextBlock Text="기간 / 위치 / 작업자 / 상태 / 이상 여부 필터와 결과 그리드, 행 더블클릭 시 상세 모달 영역."
                                    FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
