@@ -2392,14 +2392,40 @@ namespace CleanPotal
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
-        private void LoadFromStorage()
+        private static List<PersistedGroup>? TryReadStorageFile(string path)
         {
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var json = File.ReadAllText(StoragePath);
-                var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-                if (data == null) return;
+                if (!File.Exists(path)) return null;
+                var json = File.ReadAllText(path);
+                if (string.IsNullOrWhiteSpace(json)) return null;
+                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
+            }
+            catch { return null; }
+        }
+
+        private void LoadFromStorage()
+        {
+            List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
+
+            // 메인 파일 손상/누락 시 백업 1~10에서 자동 복구 시도
+            if (data == null)
+            {
+                for (int i = 1; i <= 10; i++)
+                {
+                    var backup = TryReadStorageFile($"{StoragePath}.bak{i}");
+                    if (backup != null)
+                    {
+                        data = backup;
+                        try { File.Copy($"{StoragePath}.bak{i}", StoragePath, true); } catch { }
+                        break;
+                    }
+                }
+            }
+            if (data == null) return;
+
+            try
+            {
 
                 string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
@@ -2476,6 +2502,23 @@ namespace CleanPotal
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
+
+                // 🔒 저장 전 회전식 백업: production_meetings.json.bak1 ~ bak10 (최근 10회 보존)
+                if (File.Exists(StoragePath))
+                {
+                    try
+                    {
+                        for (int i = 9; i >= 1; i--)
+                        {
+                            string from = $"{StoragePath}.bak{i}";
+                            string to = $"{StoragePath}.bak{i + 1}";
+                            if (File.Exists(from)) File.Copy(from, to, true);
+                        }
+                        File.Copy(StoragePath, $"{StoragePath}.bak1", true);
+                    }
+                    catch { /* 백업 실패는 무시하고 저장 진행 */ }
+                }
+
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {
                     MonthTitle = g.MonthTitle,
@@ -2512,7 +2555,11 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
 
-                File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                // 원자적 쓰기: 임시 파일에 먼저 쓰고 교체 (쓰기 도중 크래시로 인한 손상 방지)
+                string tempPath = StoragePath + ".tmp";
+                File.WriteAllText(tempPath, JsonSerializer.Serialize(data, JsonOptions));
+                if (File.Exists(StoragePath)) File.Replace(tempPath, StoragePath, null);
+                else File.Move(tempPath, StoragePath);
             }
             catch { }
         }
