@@ -398,6 +398,8 @@ namespace CleanPotal
                 DateRange = original.DateRange,
                 Memo = original.Memo,
                 MemoRich = original.MemoRich,
+                MainContent = original.MainContent,
+                MainContentRich = original.MainContentRich,
                 Attendees = original.Attendees,
                 Summary = original.Summary
             };
