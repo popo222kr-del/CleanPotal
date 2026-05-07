@@ -471,31 +471,31 @@ namespace CleanPotal
                         using var xr = XmlReader.Create(sr);
                         if (XamlReader.Load(xr) is FlowDocument doc)
                         {
-                            doc.PageWidth = double.PositiveInfinity;
+                            doc.PageWidth = 99999;
                             MemoRichEditor.Document = doc;
                         }
                         else
                         {
-                            var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = double.PositiveInfinity };
+                            var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = 99999 };
                             MemoRichEditor.Document = fallback;
                         }
                     }
                     catch
                     {
-                        var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = double.PositiveInfinity };
+                        var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = 99999 };
                         MemoRichEditor.Document = fallback;
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.Memo))
                 {
-                    var doc = new FlowDocument { PageWidth = double.PositiveInfinity };
+                    var doc = new FlowDocument { PageWidth = 99999 };
                     foreach (var line in report.Memo.Replace("\r\n", "\n").Split('\n'))
                         doc.Blocks.Add(new Paragraph(new Run(line)));
                     MemoRichEditor.Document = doc;
                 }
                 else
                 {
-                    MemoRichEditor.Document = new FlowDocument { PageWidth = double.PositiveInfinity };
+                    MemoRichEditor.Document = new FlowDocument { PageWidth = 99999 };
                 }
             }
             finally
@@ -552,31 +552,31 @@ namespace CleanPotal
                         using var xr = XmlReader.Create(sr);
                         if (XamlReader.Load(xr) is FlowDocument doc)
                         {
-                            doc.PageWidth = double.PositiveInfinity;
+                            doc.PageWidth = 99999;
                             MainContentRichEditor.Document = doc;
                         }
                         else
                         {
-                            var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = double.PositiveInfinity };
+                            var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = 99999 };
                             MainContentRichEditor.Document = fallback;
                         }
                     }
                     catch
                     {
-                        var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = double.PositiveInfinity };
+                        var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = 99999 };
                         MainContentRichEditor.Document = fallback;
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.MainContent))
                 {
-                    var doc = new FlowDocument { PageWidth = double.PositiveInfinity };
+                    var doc = new FlowDocument { PageWidth = 99999 };
                     foreach (var line in report.MainContent.Replace("\r\n", "\n").Split('\n'))
                         doc.Blocks.Add(new Paragraph(new Run(line)));
                     MainContentRichEditor.Document = doc;
                 }
                 else
                 {
-                    MainContentRichEditor.Document = new FlowDocument { PageWidth = double.PositiveInfinity };
+                    MainContentRichEditor.Document = new FlowDocument { PageWidth = 99999 };
                 }
             }
             finally
