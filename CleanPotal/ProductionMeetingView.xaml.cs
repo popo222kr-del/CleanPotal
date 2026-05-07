@@ -64,6 +64,7 @@ namespace CleanPotal
     {
         public string MonthTitle { get; set; } = "";
         public ObservableCollection<ProductionMeetingReportModel> Reports { get; set; } = new();
+        public bool IsCurrentMonth { get; set; } = false;
     }
 
     public class ProductionMeetingReportModel : INotifyPropertyChanged
@@ -462,30 +463,39 @@ namespace CleanPotal
             _suppressMemoTextChanged = true;
             try
             {
-                MemoRichEditor.Document = new FlowDocument();
                 if (!string.IsNullOrWhiteSpace(report.MemoRich))
                 {
                     try
                     {
                         using var sr = new StringReader(report.MemoRich);
                         using var xr = XmlReader.Create(sr);
-                        if (XamlReader.Load(xr) is FlowDocument doc) MemoRichEditor.Document = doc;
+                        if (XamlReader.Load(xr) is FlowDocument doc)
+                        {
+                            doc.PageWidth = double.PositiveInfinity;
+                            MemoRichEditor.Document = doc;
+                        }
+                        else
+                        {
+                            var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = double.PositiveInfinity };
+                            MemoRichEditor.Document = fallback;
+                        }
                     }
                     catch
                     {
-                        // 깨진 경우 평문으로 fallback
-                        MemoRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.Memo ?? "")));
+                        var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = double.PositiveInfinity };
+                        MemoRichEditor.Document = fallback;
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.Memo))
                 {
-                    // 기존 평문 메모는 단락별로 끊어서 표시
-                    var doc = new FlowDocument();
+                    var doc = new FlowDocument { PageWidth = double.PositiveInfinity };
                     foreach (var line in report.Memo.Replace("\r\n", "\n").Split('\n'))
-                    {
                         doc.Blocks.Add(new Paragraph(new Run(line)));
-                    }
                     MemoRichEditor.Document = doc;
+                }
+                else
+                {
+                    MemoRichEditor.Document = new FlowDocument { PageWidth = double.PositiveInfinity };
                 }
             }
             finally
@@ -534,28 +544,39 @@ namespace CleanPotal
             _suppressMainContentTextChanged = true;
             try
             {
-                MainContentRichEditor.Document = new FlowDocument();
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
                     try
                     {
                         using var sr = new StringReader(report.MainContentRich);
                         using var xr = XmlReader.Create(sr);
-                        if (XamlReader.Load(xr) is FlowDocument doc) MainContentRichEditor.Document = doc;
+                        if (XamlReader.Load(xr) is FlowDocument doc)
+                        {
+                            doc.PageWidth = double.PositiveInfinity;
+                            MainContentRichEditor.Document = doc;
+                        }
+                        else
+                        {
+                            var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = double.PositiveInfinity };
+                            MainContentRichEditor.Document = fallback;
+                        }
                     }
                     catch
                     {
-                        MainContentRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.MainContent ?? "")));
+                        var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = double.PositiveInfinity };
+                        MainContentRichEditor.Document = fallback;
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.MainContent))
                 {
-                    var doc = new FlowDocument();
+                    var doc = new FlowDocument { PageWidth = double.PositiveInfinity };
                     foreach (var line in report.MainContent.Replace("\r\n", "\n").Split('\n'))
-                    {
                         doc.Blocks.Add(new Paragraph(new Run(line)));
-                    }
                     MainContentRichEditor.Document = doc;
+                }
+                else
+                {
+                    MainContentRichEditor.Document = new FlowDocument { PageWidth = double.PositiveInfinity };
                 }
             }
             finally
@@ -774,6 +795,50 @@ namespace CleanPotal
 
         public void SaveReportChanges() => BtnSaveContent_Click(this, new RoutedEventArgs());
 
+        private void AutoSaveCurrentReport()
+        {
+            if (_currentReport == null || _draftReport == null) return;
+            CommitActiveEditorChanges();
+            SyncMemoFromRichEditor();
+            SyncMainContentFromRichEditor();
+
+            _currentReport.Memo = _draftReport.Memo;
+            _currentReport.MemoRich = _draftReport.MemoRich;
+            _currentReport.MainContent = _draftReport.MainContent;
+            _currentReport.MainContentRich = _draftReport.MainContentRich;
+            _currentReport.Attendees = _draftReport.Attendees;
+            _currentReport.Summary = _draftReport.Summary;
+            _currentReport.Blocks.Clear();
+            foreach (var block in _draftReport.Blocks)
+            {
+                var clonedBlock = new ProductionMeetingBlockModel
+                {
+                    Number = block.Number,
+                    Category = block.Category,
+                    Status = block.Status,
+                    Content = block.Content,
+                    FollowUp = block.FollowUp,
+                    ContentRich = block.ContentRich,
+                    FollowUpRich = block.FollowUpRich,
+                    Kind = block.Kind,
+                    Heading = block.Heading,
+                    IsCollapsed = block.IsCollapsed,
+                    ProgressPercent = block.ProgressPercent,
+                    Importance = block.Importance
+                };
+                foreach (var ci in block.ChecklistItems) clonedBlock.ChecklistItems.Add(new ChecklistItem { IsDone = ci.IsDone, Text = ci.Text });
+                foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
+                _currentReport.Blocks.Add(clonedBlock);
+            }
+            _currentReport.MemoAttachments.Clear();
+            foreach (var att in _draftReport.MemoAttachments) _currentReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
+            _currentReport.MainAttachments.Clear();
+            foreach (var att in _draftReport.MainAttachments) _currentReport.MainAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
+
+            _isDirty = false;
+            SaveToStorage();
+        }
+
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
             if (_currentReport == null || _draftReport == null) return;
@@ -840,14 +905,8 @@ namespace CleanPotal
             {
                 if (_isDirty)
                 {
-                    var result = MessageBox.Show("저장되지 않은 변경사항이 있습니다. 무시하고 이동하시겠습니까?\n(아니오를 누르면 현재 화면에 머무릅니다)", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    if (result == MessageBoxResult.No)
-                    {
-                        _isNavigating = true;
-                        lb.SelectedItem = _currentReport;
-                        _isNavigating = false;
-                        return;
-                    }
+                    // 다른 보고서로 이동 시 자동 저장
+                    AutoSaveCurrentReport();
                 }
 
                 // 다른 달 ListBox의 선택 해제 (단일 선택 보장)
@@ -879,11 +938,7 @@ namespace CleanPotal
 
         private void BtnCreateNewReport_Click(object sender, RoutedEventArgs e)
         {
-            if (_isDirty)
-            {
-                var result = MessageBox.Show("작성 중인 내용이 있습니다. 저장하지 않고 새 보고서를 만드시겠습니까?", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (result == MessageBoxResult.No) return;
-            }
+            if (_isDirty) AutoSaveCurrentReport();
 
             DpMeetingDate.SelectedDate = DateTime.Today;
             CreateReportModal.Visibility = Visibility.Visible;
@@ -905,10 +960,15 @@ namespace CleanPotal
             }
 
             string monthGroupTitle = $"{selectedDate:yyyy년 M월}";
+            string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
             var group = GroupedHistory.FirstOrDefault(g => g.MonthTitle == monthGroupTitle);
             if (group == null)
             {
-                group = new ProductionMeetingGroupModel { MonthTitle = monthGroupTitle };
+                group = new ProductionMeetingGroupModel
+                {
+                    MonthTitle = monthGroupTitle,
+                    IsCurrentMonth = (monthGroupTitle == currentMonthTitle)
+                };
                 GroupedHistory.Add(group);
                 var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
                 GroupedHistory.Clear();
@@ -2339,10 +2399,15 @@ namespace CleanPotal
                 var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
                 if (data == null) return;
 
+                string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
                 foreach (var group in data)
                 {
-                    var mappedGroup = new ProductionMeetingGroupModel { MonthTitle = group.MonthTitle ?? "" };
+                    var mappedGroup = new ProductionMeetingGroupModel
+                    {
+                        MonthTitle = group.MonthTitle ?? "",
+                        IsCurrentMonth = (group.MonthTitle == currentMonthTitle)
+                    };
                     foreach (var report in group.Reports ?? new())
                     {
                         var mappedReport = new ProductionMeetingReportModel
@@ -2388,6 +2453,12 @@ namespace CleanPotal
                         {
                             if (!string.IsNullOrWhiteSpace(att.FilePath))
                                 mappedReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
+                        }
+
+                        foreach (var att in report.MainAttachments ?? new())
+                        {
+                            if (!string.IsNullOrWhiteSpace(att.FilePath))
+                                mappedReport.MainAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                         }
 
                         mappedGroup.Reports.Add(mappedReport);
