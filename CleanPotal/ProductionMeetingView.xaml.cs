@@ -470,15 +470,9 @@ namespace CleanPotal
 
                 if (!string.IsNullOrWhiteSpace(report.MemoRich))
                 {
-                    try
+                    if (!TryLoadRichContent(doc, report.MemoRich))
                     {
-                        var range = new TextRange(doc.ContentStart, doc.ContentEnd);
-                        using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(report.MemoRich));
-                        range.Load(ms, System.Windows.DataFormats.Xaml);
-                    }
-                    catch
-                    {
-                        // MemoRich 로드 실패 시 평문 fallback
+                        // 모든 로드 실패 시 평문 fallback
                         doc.Blocks.Clear();
                         foreach (var line in (report.Memo ?? "").Replace("\r\n", "\n").Split('\n'))
                             doc.Blocks.Add(new Paragraph(new Run(line)));
@@ -538,13 +532,7 @@ namespace CleanPotal
 
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
-                    try
-                    {
-                        var range = new TextRange(doc.ContentStart, doc.ContentEnd);
-                        using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(report.MainContentRich));
-                        range.Load(ms, System.Windows.DataFormats.Xaml);
-                    }
-                    catch
+                    if (!TryLoadRichContent(doc, report.MainContentRich))
                     {
                         doc.Blocks.Clear();
                         foreach (var line in (report.MainContent ?? "").Replace("\r\n", "\n").Split('\n'))
@@ -562,6 +550,42 @@ namespace CleanPotal
                 _suppressMainContentTextChanged = false;
             }
             ReattachInteractiveElements(MainContentRichEditor);
+        }
+
+        // 신/구 포맷 모두 지원하는 RichContent 로드 헬퍼
+        // 신 포맷: TextRange.Save(DataFormats.Xaml) → Section 루트
+        // 구 포맷: XamlWriter.Save(FlowDocument) → FlowDocument 루트
+        private bool TryLoadRichContent(FlowDocument doc, string richXaml)
+        {
+            // 1단계: 신 포맷(DataFormats.Xaml, Section 루트) 시도
+            try
+            {
+                var range = new TextRange(doc.ContentStart, doc.ContentEnd);
+                using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(richXaml));
+                range.Load(ms, System.Windows.DataFormats.Xaml);
+                return true;
+            }
+            catch { }
+
+            // 2단계: 구 포맷(XamlWriter, FlowDocument 루트) 시도
+            try
+            {
+                using var sr = new StringReader(richXaml);
+                using var xr = XmlReader.Create(sr);
+                if (XamlReader.Load(xr) is FlowDocument loaded)
+                {
+                    doc.Blocks.Clear();
+                    foreach (var block in loaded.Blocks.ToList())
+                    {
+                        loaded.Blocks.Remove(block);
+                        doc.Blocks.Add(block);
+                    }
+                    return true;
+                }
+            }
+            catch { }
+
+            return false;
         }
 
         // 🔥 RichTextBox 안 모든 Image와 파일 박스에 다시 ContextMenu 등 부착
