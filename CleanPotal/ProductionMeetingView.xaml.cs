@@ -463,39 +463,29 @@ namespace CleanPotal
             _suppressMemoTextChanged = true;
             try
             {
+                var doc = new FlowDocument { PageWidth = 99999 };
+                MemoRichEditor.Document = doc;
+
                 if (!string.IsNullOrWhiteSpace(report.MemoRich))
                 {
                     try
                     {
-                        using var sr = new StringReader(report.MemoRich);
-                        using var xr = XmlReader.Create(sr);
-                        if (XamlReader.Load(xr) is FlowDocument doc)
-                        {
-                            doc.PageWidth = 99999;
-                            MemoRichEditor.Document = doc;
-                        }
-                        else
-                        {
-                            var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = 99999 };
-                            MemoRichEditor.Document = fallback;
-                        }
+                        var range = new TextRange(doc.ContentStart, doc.ContentEnd);
+                        using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(report.MemoRich));
+                        range.Load(ms, System.Windows.DataFormats.Xaml);
                     }
                     catch
                     {
-                        var fallback = new FlowDocument(new Paragraph(new Run(report.Memo ?? ""))) { PageWidth = 99999 };
-                        MemoRichEditor.Document = fallback;
+                        // MemoRich 로드 실패 시 평문 fallback
+                        doc.Blocks.Clear();
+                        foreach (var line in (report.Memo ?? "").Replace("\r\n", "\n").Split('\n'))
+                            doc.Blocks.Add(new Paragraph(new Run(line)));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.Memo))
                 {
-                    var doc = new FlowDocument { PageWidth = 99999 };
                     foreach (var line in report.Memo.Replace("\r\n", "\n").Split('\n'))
                         doc.Blocks.Add(new Paragraph(new Run(line)));
-                    MemoRichEditor.Document = doc;
-                }
-                else
-                {
-                    MemoRichEditor.Document = new FlowDocument { PageWidth = 99999 };
                 }
             }
             finally
@@ -505,23 +495,20 @@ namespace CleanPotal
             ReattachInteractiveElements(MemoRichEditor);
         }
 
-        // 🔥 RichTextBox → 모델: FlowDocument를 XAML 문자열로 직렬화 + 평문도 함께 보관
+        // 🔥 RichTextBox → 모델: TextRange.Save(DataFormats.Xaml) 방식으로 안전하게 직렬화
         private void SyncMemoFromRichEditor()
         {
             if (MemoRichEditor == null || _draftReport == null) return;
 
-            // FlowDocument를 XAML 문자열로 저장
             try
             {
-                var doc = MemoRichEditor.Document;
-                var sb = new System.Text.StringBuilder();
-                using var xw = XmlWriter.Create(sb, new XmlWriterSettings { OmitXmlDeclaration = true });
-                XamlWriter.Save(doc, xw);
-                _draftReport.MemoRich = sb.ToString();
+                var range = new TextRange(MemoRichEditor.Document.ContentStart, MemoRichEditor.Document.ContentEnd);
+                using var ms = new System.IO.MemoryStream();
+                range.Save(ms, System.Windows.DataFormats.Xaml);
+                _draftReport.MemoRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             }
             catch { _draftReport.MemoRich = ""; }
 
-            // 평문 추출 (검색/엑셀에서 활용되도록 호환성 유지)
             try
             {
                 var range = new TextRange(MemoRichEditor.Document.ContentStart, MemoRichEditor.Document.ContentEnd);
@@ -544,39 +531,28 @@ namespace CleanPotal
             _suppressMainContentTextChanged = true;
             try
             {
+                var doc = new FlowDocument { PageWidth = 99999 };
+                MainContentRichEditor.Document = doc;
+
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
                     try
                     {
-                        using var sr = new StringReader(report.MainContentRich);
-                        using var xr = XmlReader.Create(sr);
-                        if (XamlReader.Load(xr) is FlowDocument doc)
-                        {
-                            doc.PageWidth = 99999;
-                            MainContentRichEditor.Document = doc;
-                        }
-                        else
-                        {
-                            var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = 99999 };
-                            MainContentRichEditor.Document = fallback;
-                        }
+                        var range = new TextRange(doc.ContentStart, doc.ContentEnd);
+                        using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(report.MainContentRich));
+                        range.Load(ms, System.Windows.DataFormats.Xaml);
                     }
                     catch
                     {
-                        var fallback = new FlowDocument(new Paragraph(new Run(report.MainContent ?? ""))) { PageWidth = 99999 };
-                        MainContentRichEditor.Document = fallback;
+                        doc.Blocks.Clear();
+                        foreach (var line in (report.MainContent ?? "").Replace("\r\n", "\n").Split('\n'))
+                            doc.Blocks.Add(new Paragraph(new Run(line)));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.MainContent))
                 {
-                    var doc = new FlowDocument { PageWidth = 99999 };
                     foreach (var line in report.MainContent.Replace("\r\n", "\n").Split('\n'))
                         doc.Blocks.Add(new Paragraph(new Run(line)));
-                    MainContentRichEditor.Document = doc;
-                }
-                else
-                {
-                    MainContentRichEditor.Document = new FlowDocument { PageWidth = 99999 };
                 }
             }
             finally
@@ -730,10 +706,10 @@ namespace CleanPotal
 
             try
             {
-                var sb = new System.Text.StringBuilder();
-                using var xw = XmlWriter.Create(sb, new XmlWriterSettings { OmitXmlDeclaration = true });
-                XamlWriter.Save(MainContentRichEditor.Document, xw);
-                _draftReport.MainContentRich = sb.ToString();
+                var range = new TextRange(MainContentRichEditor.Document.ContentStart, MainContentRichEditor.Document.ContentEnd);
+                using var ms = new System.IO.MemoryStream();
+                range.Save(ms, System.Windows.DataFormats.Xaml);
+                _draftReport.MainContentRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             }
             catch { _draftReport.MainContentRich = ""; }
 
