@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="세정팀 업무 통합 관리 시스템" Height="900" Width="1600"
+        Icon="/Images/bono.ico"
         WindowStartupLocation="CenterScreen"
         Background="#F3F4F6"
         TextOptions.TextFormattingMode="Display"
