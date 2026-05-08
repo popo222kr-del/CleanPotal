@@ -59,11 +59,19 @@ namespace CleanPotal
 
         private static void CreateDesktopShortcutIfMissing()
         {
+            const string regKey = @"Software\CleanPotal";
+            const string regValue = "DesktopShortcutCreated";
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(regKey);
+                if (key?.GetValue(regValue) != null) return; // 이미 한 번 생성했으면 다시 안 만듦
+            }
+            catch { return; }
+
             try
             {
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string shortcutPath = System.IO.Path.Combine(desktopPath, "CleanPotal.lnk");
-                if (System.IO.File.Exists(shortcutPath)) return;
 
                 string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
                 if (string.IsNullOrEmpty(exePath)) return;
@@ -76,6 +84,9 @@ namespace CleanPotal
                 shortcut.WorkingDirectory = System.IO.Path.GetDirectoryName(exePath);
                 shortcut.Description = "CleanPotal";
                 shortcut.Save();
+
+                using var writeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(regKey);
+                writeKey?.SetValue(regValue, "1");
             }
             catch { }
         }
