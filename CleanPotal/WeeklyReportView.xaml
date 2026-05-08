@@ -146,7 +146,7 @@
                     <ItemsControl x:Name="GroupedHistoryControl" Margin="8,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Expander Header="{Binding MonthTitle}" IsExpanded="True" Style="{StaticResource MonthExpanderStyle}">
+                                <Expander Header="{Binding MonthTitle}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Style="{StaticResource MonthExpanderStyle}" Expanded="MonthExpander_Expanded">
                                     <Expander.HeaderTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding}" FontSize="14" FontWeight="Bold" Foreground="#475569"/>
