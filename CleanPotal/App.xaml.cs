@@ -90,9 +90,6 @@ namespace CleanPotal
                 shortcut.WorkingDirectory = System.IO.Path.GetDirectoryName(exePath);
                 shortcut.Description = "CleanPotal";
                 shortcut.Save();
-
-                using var writeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(regKey);
-                writeKey?.SetValue(regValue, "1");
             }
             catch { }
         }
