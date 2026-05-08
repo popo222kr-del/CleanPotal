@@ -12,11 +12,11 @@ namespace CleanPotal
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // 🔥 앱 실행 시 자동 로그인 정보가 있는지 확인
+            // 저장된 자동 로그인 정보가 있으면 체크박스를 켜고 자동 로그인 진행
             var (savedId, savedPw) = SessionManager.LoadAutoLogin();
             if (!string.IsNullOrEmpty(savedId) && !string.IsNullOrEmpty(savedPw))
             {
-                // 사용자에게 '자동 로그인 중'임을 알리기 위해 아주 짧은 대기 (0.5초)
+                ChkAutoLogin.IsChecked = true;
                 await System.Threading.Tasks.Task.Delay(500);
                 DoLogin(savedId, savedPw, true);
             }
@@ -50,8 +50,9 @@ namespace CleanPotal
                 SessionManager.CanManageVendors = user.CanManageVendors;
                 SessionManager.CanManageSchedule = user.CanManageSchedule;
 
-                // 🔥 자동 로그인 체크 시 정보 저장
+                // 자동 로그인 체크 시 저장, 해제 시 기존 저장 정보 삭제
                 if (ChkAutoLogin.IsChecked == true) SessionManager.SaveAutoLogin(id, pw);
+                else SessionManager.Logout();
 
                 MainWindow mainWin = new MainWindow();
                 mainWin.Show();
