@@ -225,12 +225,16 @@ namespace CleanPotal
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
         private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "weekly_attachments");
 
+        private DispatcherTimer? _autoReloadTimer;
+        private DateTime _lastFileModified = DateTime.MinValue;
+
         public WeeklyReportView()
         {
             InitializeComponent();
             GroupedHistoryControl.ItemsSource = GroupedHistory;
             InitCreateModal();
             LoadFromStorage();
+            StartAutoReload();
         }
 
         // 🔥 새 창(Window) 호출 로직. 모달 대신 WeeklyReportTableWindow를 띄움
@@ -463,6 +467,46 @@ namespace CleanPotal
             if (e.OldItems != null) foreach (WeeklyBlockModel item in e.OldItems) item.PropertyChanged -= Block_PropertyChanged;
             if (_draftReport != null) RenumberBlocks(_draftReport);
             UpdateOverviewStats();
+        }
+
+        private void StartAutoReload()
+        {
+            _autoReloadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+            _autoReloadTimer.Tick += AutoReloadTimer_Tick;
+            _autoReloadTimer.Start();
+        }
+
+        private void AutoReloadTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_isDirty) return;
+            try
+            {
+                if (!File.Exists(StoragePath)) return;
+                var lastModified = File.GetLastWriteTime(StoragePath);
+                if (lastModified <= _lastFileModified) return;
+
+                string? currentReportId = _currentReport?.Id;
+                LoadFromStorage();
+
+                if (currentReportId != null)
+                {
+                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
+                    if (restored != null)
+                    {
+                        SetCurrentReport(restored);
+                        Dispatcher.InvokeAsync(() =>
+                        {
+                            _isNavigating = true;
+                            foreach (var lb in FindVisualChildren<ListBox>(GroupedHistoryControl))
+                            {
+                                if (lb.Items.Contains(restored)) { lb.SelectedItem = restored; break; }
+                            }
+                            _isNavigating = false;
+                        }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    }
+                }
+            }
+            catch { }
         }
 
         public void SaveReportChanges() => BtnSaveContent_Click(this, new RoutedEventArgs());
@@ -1051,6 +1095,7 @@ namespace CleanPotal
             try
             {
                 if (!File.Exists(StoragePath)) return;
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
                 var json = File.ReadAllText(StoragePath);
                 var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
                 if (data == null) return;
@@ -1102,6 +1147,7 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
                 File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
             }
             catch { }
         }
