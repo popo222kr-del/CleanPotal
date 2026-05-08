@@ -386,7 +386,6 @@ namespace CleanPotal
             MainContent.Content = _productionMeetingView;
             UpdateNavSelection("PersonalTask");
             HideAllHeaderButtons();
-            BtnCommandNotice.Content = "보고용 표 보기"; BtnCommandNotice.Visibility = Visibility.Visible;
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
@@ -411,7 +410,7 @@ namespace CleanPotal
             HideAllHeaderButtons();
         }
 
-        private void BtnCommandNotice_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenNoticeModal(); else if (MainContent.Content is WeeklyReportView wr) wr.ShowReportTable(); else if (MainContent.Content is ProductionMeetingView pm) pm.ShowReportTable(); }
+        private void BtnCommandNotice_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenNoticeModal(); else if (MainContent.Content is WeeklyReportView wr) wr.ShowReportTable(); }
         private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); else if (MainContent.Content is ProductionMeetingView pm) pm.SaveReportChanges(); }
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
