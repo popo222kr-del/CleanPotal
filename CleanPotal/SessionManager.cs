@@ -67,6 +67,11 @@ namespace CleanPotal
             if (File.Exists(TokenPath)) File.Delete(TokenPath);
         }
 
+        public static void ClearSavedLogin()
+        {
+            if (File.Exists(TokenPath)) File.Delete(TokenPath);
+        }
+
         public static void SaveAutoLogin(string id, string pw)
         {
             try
