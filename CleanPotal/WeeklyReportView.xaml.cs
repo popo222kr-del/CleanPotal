@@ -21,10 +21,20 @@ using System.Windows.Media.Imaging;
 
 namespace CleanPotal
 {
-    public class WeeklyGroupModel
+    public class WeeklyGroupModel : INotifyPropertyChanged
     {
         public string MonthTitle { get; set; } = "";
         public ObservableCollection<WeeklyReportModel> Reports { get; set; } = new();
+
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class WeeklyReportModel : INotifyPropertyChanged
@@ -215,12 +225,16 @@ namespace CleanPotal
         private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".pdf", ".xlsx", ".xls", ".doc", ".docx", ".ppt", ".pptx" };
         private static readonly string AttachmentStorageRoot = Path.Combine(AppPaths.DataRoot, "weekly_attachments");
 
+        private DispatcherTimer? _autoReloadTimer;
+        private DateTime _lastFileModified = DateTime.MinValue;
+
         public WeeklyReportView()
         {
             InitializeComponent();
             GroupedHistoryControl.ItemsSource = GroupedHistory;
             InitCreateModal();
             LoadFromStorage();
+            StartAutoReload();
         }
 
         // 🔥 새 창(Window) 호출 로직. 모달 대신 WeeklyReportTableWindow를 띄움
@@ -400,6 +414,13 @@ namespace CleanPotal
             if (ToggleInProgress != null) ToggleInProgress.IsChecked = false;
             if (TogglePending != null) TogglePending.IsChecked = false;
             if (ToggleClosed != null) ToggleClosed.IsChecked = false;
+
+            // 선택된 보고서가 속한 월만 펼치고 나머지는 접음
+            var ownerGroup = GroupedHistory.FirstOrDefault(g => g.Reports.Contains(report));
+            if (ownerGroup != null)
+                foreach (var g in GroupedHistory)
+                    g.IsExpanded = (g == ownerGroup);
+
             _isNavigating = false;
 
             ApplyFilters();
@@ -448,6 +469,46 @@ namespace CleanPotal
             UpdateOverviewStats();
         }
 
+        private void StartAutoReload()
+        {
+            _autoReloadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+            _autoReloadTimer.Tick += AutoReloadTimer_Tick;
+            _autoReloadTimer.Start();
+        }
+
+        private void AutoReloadTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_isDirty) return;
+            try
+            {
+                if (!File.Exists(StoragePath)) return;
+                var lastModified = File.GetLastWriteTime(StoragePath);
+                if (lastModified <= _lastFileModified) return;
+
+                string? currentReportId = _currentReport?.Id;
+                LoadFromStorage();
+
+                if (currentReportId != null)
+                {
+                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
+                    if (restored != null)
+                    {
+                        SetCurrentReport(restored);
+                        Dispatcher.InvokeAsync(() =>
+                        {
+                            _isNavigating = true;
+                            foreach (var lb in FindVisualChildren<ListBox>(GroupedHistoryControl))
+                            {
+                                if (lb.Items.Contains(restored)) { lb.SelectedItem = restored; break; }
+                            }
+                            _isNavigating = false;
+                        }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    }
+                }
+            }
+            catch { }
+        }
+
         public void SaveReportChanges() => BtnSaveContent_Click(this, new RoutedEventArgs());
 
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
@@ -491,18 +552,59 @@ namespace CleanPotal
             if (_isNavigating) return;
             if (sender is ListBox lb && lb.SelectedItem is WeeklyReportModel selected)
             {
+                ClearOtherListBoxSelections(lb);
+
                 if (_isDirty)
                 {
                     var result = MessageBox.Show("저장되지 않은 변경사항이 있습니다. 무시하고 이동하시겠습니까?\n(아니오를 누르면 현재 화면에 머무릅니다)", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (result == MessageBoxResult.No)
                     {
                         _isNavigating = true;
-                        lb.SelectedItem = _currentReport;
+                        lb.SelectedItem = null;
+                        foreach (var listBox in FindVisualChildren<ListBox>(GroupedHistoryControl))
+                        {
+                            if (listBox.Items.Contains(_currentReport))
+                            {
+                                listBox.SelectedItem = _currentReport;
+                                break;
+                            }
+                        }
                         _isNavigating = false;
                         return;
                     }
                 }
                 SetCurrentReport(selected);
+            }
+        }
+
+        private void MonthExpander_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (_isNavigating) return;
+            if (sender is Expander expander && expander.DataContext is WeeklyGroupModel expandedGroup)
+            {
+                _isNavigating = true;
+                foreach (var group in GroupedHistory)
+                    if (group != expandedGroup) group.IsExpanded = false;
+                _isNavigating = false;
+            }
+        }
+
+        private void ClearOtherListBoxSelections(ListBox except)
+        {
+            _isNavigating = true;
+            foreach (var lb in FindVisualChildren<ListBox>(GroupedHistoryControl))
+                if (lb != except) lb.SelectedItem = null;
+            _isNavigating = false;
+        }
+
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) yield break;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T t) yield return t;
+                foreach (var item in FindVisualChildren<T>(child)) yield return item;
             }
         }
 
@@ -972,7 +1074,7 @@ namespace CleanPotal
                 .Select(g =>
                 {
                     var validReports = g.Reports.Where(r => !string.IsNullOrWhiteSpace(r.Title)).OrderByDescending(r => r.Title).ToList();
-                    var group = new WeeklyGroupModel { MonthTitle = g.MonthTitle };
+                    var group = new WeeklyGroupModel { MonthTitle = g.MonthTitle, IsExpanded = g.IsExpanded };
                     foreach (var report in validReports) group.Reports.Add(report);
                     return group;
                 })
@@ -982,6 +1084,10 @@ namespace CleanPotal
 
             GroupedHistory.Clear();
             foreach (var group in normalized) GroupedHistory.Add(group);
+
+            // 아무것도 펼쳐진 게 없으면 최신(첫 번째) 월만 펼침
+            if (GroupedHistory.Count > 0 && !GroupedHistory.Any(g => g.IsExpanded))
+                GroupedHistory[0].IsExpanded = true;
         }
 
         private void LoadFromStorage()
@@ -989,6 +1095,7 @@ namespace CleanPotal
             try
             {
                 if (!File.Exists(StoragePath)) return;
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
                 var json = File.ReadAllText(StoragePath);
                 var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
                 if (data == null) return;
@@ -1040,6 +1147,7 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
                 File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
             }
             catch { }
         }

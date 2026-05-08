@@ -39,7 +39,7 @@
                 </Border>
             </StackPanel>
 
-            <CheckBox x:Name="ChkAutoLogin" Grid.Row="3" Content="자동 로그인" FontSize="13" Foreground="#64748B" Margin="2,0,0,20" IsChecked="True"/>
+            <CheckBox x:Name="ChkAutoLogin" Grid.Row="3" Content="자동 로그인" FontSize="13" Foreground="#64748B" Margin="2,0,0,20" IsChecked="False"/>
 
             <Button Grid.Row="4" x:Name="BtnLogin" Height="50" Margin="0,0,0,25" Click="BtnLogin_Click" Cursor="Hand">
                 <Button.Template>
