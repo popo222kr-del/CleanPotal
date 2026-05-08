@@ -693,5 +693,29 @@
         </Border>
         </Grid>
         </ScrollViewer>
+
+        <!-- 줌 컨트롤 바 -->
+        <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Height="36">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0">
+                <Button Content="−" Width="26" Height="26" Click="ZoomOut_Click" FontSize="14" FontWeight="Bold"
+                        Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                <TextBlock x:Name="TxtZoomLevel" Text="100%" FontSize="12" FontWeight="SemiBold" Foreground="#475569"
+                           VerticalAlignment="Center" Margin="10,0" MinWidth="36" TextAlignment="Center"/>
+                <Button Content="+" Width="26" Height="26" Click="ZoomIn_Click" FontSize="14" FontWeight="Bold"
+                        Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

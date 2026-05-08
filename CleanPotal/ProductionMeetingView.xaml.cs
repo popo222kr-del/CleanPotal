@@ -1951,6 +1951,30 @@ namespace CleanPotal
             TxtZoomLevel.Text = $"{(int)(_zoomLevel * 100)}%";
         }
 
+        private void BtnCloseTable_Click(object sender, RoutedEventArgs e)
+        {
+            TableModalOverlay.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
+        public void TryRefresh()
+        {
+            if (_isDirty) return;
+            try
+            {
+                if (!File.Exists(StoragePath)) return;
+                var lastModified = File.GetLastWriteTime(StoragePath);
+                if (lastModified <= _lastFileModified) return;
+                string? currentReportId = _currentReport?.Id;
+                LoadFromStorage();
+                if (currentReportId != null)
+                {
+                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
+                    if (restored != null) SetCurrentReport(restored);
+                }
+            }
+            catch { }
+        }
+
         // ==========================================
         // 🔥 생산미팅 엑셀 자동 생성 및 내보내기 (템플릿 불필요)
         // ==========================================
@@ -2401,6 +2425,17 @@ namespace CleanPotal
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
+        private static List<PersistedGroup>? TryReadStorageFile(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return null;
+                var json = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
+            }
+            catch { return null; }
+        }
+
         private void LoadFromStorage()
         {
             List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
@@ -2423,10 +2458,8 @@ namespace CleanPotal
 
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var json = File.ReadAllText(StoragePath);
-                var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-                if (data == null) return;
+                if (File.Exists(StoragePath))
+                    _lastFileModified = File.GetLastWriteTime(StoragePath);
 
                 string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
