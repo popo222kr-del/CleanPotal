@@ -73,6 +73,12 @@ namespace CleanPotal
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string shortcutPath = System.IO.Path.Combine(desktopPath, "CleanPotal.lnk");
 
+                using var writeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\CleanPotal");
+                writeKey?.SetValue("DesktopShortcutCreated", "1");
+
+                // ClickOnce가 이미 바로가기를 만든 경우 중복 생성 안 함
+                if (System.IO.File.Exists(shortcutPath)) return;
+
                 string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
                 if (string.IsNullOrEmpty(exePath)) return;
 
