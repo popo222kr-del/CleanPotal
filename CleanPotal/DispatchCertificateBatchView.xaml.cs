@@ -127,7 +127,7 @@ namespace CleanPotal
             return false;
         }
 
-        private void LoadHistoryData()
+        public void LoadHistoryData()
         {
             HistoryList.Clear();
             if (string.IsNullOrEmpty(MasterDbPath) || !File.Exists(MasterDbPath)) return;
