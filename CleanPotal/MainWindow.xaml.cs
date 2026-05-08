@@ -76,6 +76,7 @@ namespace CleanPotal
 
         private void PollingTimer_Tick(object? sender, EventArgs e)
         {
+            // ProdReq 배지/토스트 알림 (백그라운드 체크)
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
@@ -105,6 +106,17 @@ namespace CleanPotal
                 }
                 catch { }
             });
+
+            // 현재 화면 자동 갱신 (HandoverView·ScheduleBoardView는 AutoSyncManager가 처리, WeeklyReportView는 자체 타이머가 처리)
+            switch (MainContent.Content)
+            {
+                case ProdReqView pv:            pv.TryRefresh(); break;
+                case TeamScheduleView tsv:      tsv.TryRefresh(); break;
+                case ProductionMeetingView pm:   pm.TryRefresh(); break;
+                case PersonalMemoView memo:     memo.TryRefresh(); break;
+                case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
+                case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
+            }
         }
 
         private void UpdateBadge()

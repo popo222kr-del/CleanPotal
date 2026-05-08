@@ -33,6 +33,8 @@ namespace CleanPotal
             _ = BuildCalendarAsync(_currentDate);
         }
 
+        public void TryRefresh() => _ = BuildCalendarAsync(_currentDate);
+
         private async System.Threading.Tasks.Task BuildCalendarAsync(DateTime targetDate)
         {
             // 달력이 그려질 때마다 메인 윈도우의 텍스트(예: 2026년 4월)를 바꿔라! 라고 신호를 쏩니다.

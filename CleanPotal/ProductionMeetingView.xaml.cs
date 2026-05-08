@@ -373,6 +373,7 @@ namespace CleanPotal
 
         private bool _isDirty = false;
         private bool _isNavigating = false;
+        private DateTime _lastFileModified = DateTime.MinValue;
         private ListBox? _activeHistoryListBox;
         private double _zoomLevel = 1.0;
 
@@ -2330,11 +2331,31 @@ namespace CleanPotal
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
+        public void TryRefresh()
+        {
+            if (_isDirty) return;
+            try
+            {
+                if (!File.Exists(StoragePath)) return;
+                var lastModified = File.GetLastWriteTime(StoragePath);
+                if (lastModified <= _lastFileModified) return;
+                string? currentReportId = _currentReport?.Id;
+                LoadFromStorage();
+                if (currentReportId != null)
+                {
+                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
+                    if (restored != null) SetCurrentReport(restored);
+                }
+            }
+            catch { }
+        }
+
         private void LoadFromStorage()
         {
             try
             {
                 if (!File.Exists(StoragePath)) return;
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
                 var json = File.ReadAllText(StoragePath);
                 var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
                 if (data == null) return;
@@ -2440,6 +2461,7 @@ namespace CleanPotal
                 }).ToList();
 
                 File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = File.GetLastWriteTime(StoragePath);
             }
             catch { }
         }

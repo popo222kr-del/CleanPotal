@@ -251,6 +251,8 @@ namespace CleanPotal
             HookManageCheckedEvents();
         }
 
+        public void TryRefresh() { LoadDataFromDB(); ApplyFilters(); }
+
         private void LoadDataFromDB()
         {
             RequestList.Clear();
