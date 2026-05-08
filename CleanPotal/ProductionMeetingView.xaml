@@ -691,5 +691,7 @@
                 </Button>
             </StackPanel>
         </Border>
+        </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>
