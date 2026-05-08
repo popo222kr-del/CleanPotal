@@ -32,6 +32,8 @@ namespace CleanPotal
 
             base.OnStartup(e);
 
+            CreateDesktopShortcutIfMissing();
+
             // 1. 계정 DB 초기화 (없으면 users.db 생성 및 admin 계정 자동 추가)
             AuthDatabaseHelper.InitializeDatabase();
 
@@ -53,6 +55,29 @@ namespace CleanPotal
             _isPrimaryInstance = false;
 
             base.OnExit(e);
+        }
+
+        private static void CreateDesktopShortcutIfMissing()
+        {
+            try
+            {
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                string shortcutPath = System.IO.Path.Combine(desktopPath, "CleanPotal.lnk");
+                if (System.IO.File.Exists(shortcutPath)) return;
+
+                string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+                if (string.IsNullOrEmpty(exePath)) return;
+
+                Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) return;
+                dynamic shell = Activator.CreateInstance(shellType)!;
+                dynamic shortcut = shell.CreateShortcut(shortcutPath);
+                shortcut.TargetPath = exePath;
+                shortcut.WorkingDirectory = System.IO.Path.GetDirectoryName(exePath);
+                shortcut.Description = "CleanPotal";
+                shortcut.Save();
+            }
+            catch { }
         }
 
         private static void ActivateExistingInstance()
