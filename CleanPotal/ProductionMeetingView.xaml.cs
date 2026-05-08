@@ -374,6 +374,7 @@ namespace CleanPotal
 
         private bool _isDirty = false;
         private bool _isNavigating = false;
+        private DateTime _lastFileModified = DateTime.MinValue;
         private ListBox? _activeHistoryListBox;
         private double _zoomLevel = 1.0;
 
@@ -918,8 +919,6 @@ namespace CleanPotal
                     _activeHistoryListBox.SelectedItem = null;
                     _isNavigating = false;
                 }
-                _activeHistoryListBox = lb;
-
                 SetCurrentReport(selected);
             }
         }
@@ -2072,6 +2071,16 @@ namespace CleanPotal
             }
         }
 
+        private void BtnShowTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (_draftReport == null) return;
+            TxtModalTitle.Text = $"{_draftReport.Title} 주간보고";
+            ReportDataGrid.ItemsSource = null;
+            RenumberBlocks(_draftReport);
+            ReportDataGrid.ItemsSource = _draftReport.Blocks;
+            TableModalOverlay.Visibility = Visibility.Visible;
+        }
+
         private void BtnAddAttachment_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button { Tag: ProductionMeetingBlockModel block }) return;
@@ -2392,18 +2401,6 @@ namespace CleanPotal
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
-        private static List<PersistedGroup>? TryReadStorageFile(string path)
-        {
-            try
-            {
-                if (!File.Exists(path)) return null;
-                var json = File.ReadAllText(path);
-                if (string.IsNullOrWhiteSpace(json)) return null;
-                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-            }
-            catch { return null; }
-        }
-
         private void LoadFromStorage()
         {
             List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
@@ -2426,6 +2423,10 @@ namespace CleanPotal
 
             try
             {
+                if (!File.Exists(StoragePath)) return;
+                var json = File.ReadAllText(StoragePath);
+                var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
+                if (data == null) return;
 
                 string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
@@ -2555,11 +2556,7 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
 
-                // 원자적 쓰기: 임시 파일에 먼저 쓰고 교체 (쓰기 도중 크래시로 인한 손상 방지)
-                string tempPath = StoragePath + ".tmp";
-                File.WriteAllText(tempPath, JsonSerializer.Serialize(data, JsonOptions));
-                if (File.Exists(StoragePath)) File.Replace(tempPath, StoragePath, null);
-                else File.Move(tempPath, StoragePath);
+                File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
             }
             catch { }
         }

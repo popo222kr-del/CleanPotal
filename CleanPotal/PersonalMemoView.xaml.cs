@@ -179,6 +179,12 @@ namespace CleanPotal
             return Path.Combine(PersonalNotesRoot, $"{safeId}.json");
         }
 
+        public void TryRefresh()
+        {
+            try { LoadNotesFromDisk(); }
+            catch { }
+        }
+
         private void LoadNotesFromDisk()
         {
             _allNotes.Clear();
