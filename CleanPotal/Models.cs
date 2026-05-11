@@ -83,4 +83,23 @@ namespace CleanPotal
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
     }
+
+    public class EduDashboardRow
+    {
+        public int EduId { get; set; }
+        public string MemberName { get; set; } = "";
+        public string Username { get; set; } = "";
+        public string TeamName { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Status { get; set; } = "";
+        public int Progress { get; set; }
+        public string EduMethod { get; set; } = "";
+
+        public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
+        public string EndDateStr => EndDate.ToString("yyyy-MM-dd");
+        public string ProgressStr => $"{Progress}%";
+    }
 }
