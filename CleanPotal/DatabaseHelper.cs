@@ -227,7 +227,15 @@ namespace CleanPotal
                         EduMethod TEXT
                     )";
                 connection.Execute(createEduTable);
+                try { connection.Execute("ALTER TABLE EducationPlan ADD COLUMN AttachmentPath TEXT;"); } catch { }
             }
+        }
+
+        public static void UpdateEducationPlanAttachment(int id, string? path)
+        {
+            using (var db = GetConnection())
+                db.Execute("UPDATE EducationPlan SET AttachmentPath = @Path WHERE Id = @Id",
+                    new { Path = path ?? "", Id = id });
         }
 
         public static void UpsertShiftSchedule(ShiftScheduleModel item)

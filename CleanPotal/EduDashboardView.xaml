@@ -385,6 +385,32 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
+
+                <!-- 첨부파일 컬럼 -->
+                <DataGridTemplateColumn Header="첨부파일" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border x:Name="attachBd" CornerRadius="6" Padding="8,4"
+                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                    Background="#F1F5F9"
+                                    MouseLeftButtonUp="AttachBtn_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBlock x:Name="attachTxt" Text="{Binding AttachmentLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="#94A3B8" VerticalAlignment="Center"
+                                               MaxWidth="72" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding HasAttachment}" Value="True">
+                                    <Setter TargetName="attachBd" Property="Background" Value="#EFF6FF"/>
+                                    <Setter TargetName="attachTxt" Property="Foreground" Value="#2563EB"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 

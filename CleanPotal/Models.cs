@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 
 namespace CleanPotal
 {
@@ -82,6 +83,7 @@ namespace CleanPotal
         public string Status { get; set; } = "";
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
+        public string AttachmentPath { get; set; } = "";
     }
 
     public class EduDashboardRow : INotifyPropertyChanged
@@ -104,6 +106,15 @@ namespace CleanPotal
 
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
+
+        private string _attachmentPath = "";
+        public string AttachmentPath
+        {
+            get => _attachmentPath;
+            set { _attachmentPath = value ?? ""; OnPropertyChanged(); OnPropertyChanged(nameof(HasAttachment)); OnPropertyChanged(nameof(AttachmentLabel)); }
+        }
+        public bool HasAttachment => !string.IsNullOrEmpty(_attachmentPath);
+        public string AttachmentLabel => HasAttachment ? Path.GetFileName(_attachmentPath) : "첨부";
 
         public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
         public string EndDateStr => EndDate.ToString("yyyy-MM-dd");

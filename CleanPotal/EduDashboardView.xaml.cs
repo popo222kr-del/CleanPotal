@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using Microsoft.Win32;
 
 namespace CleanPotal
 {
@@ -55,7 +58,8 @@ namespace CleanPotal
                         EndDate = e.EndDate,
                         Status = e.Status ?? "",
                         Progress = e.Progress,
-                        EduMethod = e.EduMethod ?? ""
+                        EduMethod = e.EduMethod ?? "",
+                        AttachmentPath = e.AttachmentPath ?? ""
                     };
                 })
                 .OrderBy(r => r.MemberName)
@@ -105,6 +109,57 @@ namespace CleanPotal
         }
 
         private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
+
+        private void AttachBtn_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement el) return;
+            if (el.DataContext is not EduDashboardRow row) return;
+
+            if (row.HasAttachment && File.Exists(row.AttachmentPath))
+            {
+                var menu = new ContextMenu { PlacementTarget = el };
+
+                var openItem = new MenuItem { Header = "파일 열기" };
+                openItem.Click += (_, _) => Process.Start(new ProcessStartInfo(row.AttachmentPath) { UseShellExecute = true });
+
+                var changeItem = new MenuItem { Header = "파일 변경" };
+                changeItem.Click += (_, _) => PickAndSaveAttachment(row);
+
+                var removeItem = new MenuItem { Header = "첨부 제거" };
+                removeItem.Click += (_, _) =>
+                {
+                    row.AttachmentPath = "";
+                    DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, "");
+                };
+
+                menu.Items.Add(openItem);
+                menu.Items.Add(changeItem);
+                menu.Items.Add(new Separator());
+                menu.Items.Add(removeItem);
+
+                el.ContextMenu = menu;
+                menu.IsOpen = true;
+            }
+            else
+            {
+                PickAndSaveAttachment(row);
+            }
+            e.Handled = true;
+        }
+
+        private void PickAndSaveAttachment(EduDashboardRow row)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "첨부파일 선택",
+                Filter = "모든 파일 (*.*)|*.*|PDF (*.pdf)|*.pdf|이미지 (*.png;*.jpg)|*.png;*.jpg"
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                row.AttachmentPath = dlg.FileName;
+                DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, dlg.FileName);
+            }
+        }
 
         private void StatusPill_Click(object sender, MouseButtonEventArgs e)
         {
