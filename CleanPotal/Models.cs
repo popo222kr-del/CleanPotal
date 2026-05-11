@@ -99,21 +99,30 @@ namespace CleanPotal
         public string Status
         {
             get => _status;
-            set { _status = value; OnPropertyChanged(); }
+            set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressPercent)); OnPropertyChanged(nameof(ProgressStr)); }
         }
 
-        private int _progress;
-        public int Progress
-        {
-            get => _progress;
-            set { _progress = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressStr)); }
-        }
-
+        public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
 
         public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
         public string EndDateStr => EndDate.ToString("yyyy-MM-dd");
-        public string ProgressStr => $"{Progress}%";
+
+        public int ProgressPercent
+        {
+            get
+            {
+                if (Status == "완료") return 100;
+                if (Status == "취소" || Status == "대기") return 0;
+                var start = StartDate.Date;
+                var end = EndDate.Date;
+                if (end <= start) return DateTime.Today >= end ? 100 : 0;
+                var p = (int)Math.Round((DateTime.Today - start).TotalDays / (end - start).TotalDays * 100.0, MidpointRounding.AwayFromZero);
+                return p < 0 ? 0 : (p > 100 ? 100 : p);
+            }
+        }
+
+        public string ProgressStr => $"{ProgressPercent}%";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)

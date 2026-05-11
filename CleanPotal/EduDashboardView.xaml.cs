@@ -162,15 +162,7 @@ namespace CleanPotal
                     string newStatus = (string)item.Tag;
                     if (newStatus == row.Status) return;
                     row.Status = newStatus;
-                    if (newStatus == "완료")
-                    {
-                        row.Progress = 100;
-                        DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus, 100);
-                    }
-                    else
-                    {
-                        DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
-                    }
+                    DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
                     UpdateStatusCards();
                     ApplyFilter();
                 };
