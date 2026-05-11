@@ -144,13 +144,50 @@
 
         <!-- ── 필터 바 ── -->
         <Grid Grid.Row="1" Margin="28,12,28,0">
-            <!-- 왼쪽: 상태 필터 + 전체 건수 -->
+            <!-- 왼쪽: pill 필터 버튼 + 전체 건수 -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="상태 필터:" FontSize="12" Foreground="#64748B" FontWeight="SemiBold"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <ComboBox x:Name="StatusFilter" Width="130" Height="28"
-                          FontSize="12" SelectionChanged="StatusFilter_SelectionChanged"/>
-                <Border Background="#EFF6FF" CornerRadius="6" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center">
+                <ListBox x:Name="StatusFilter"
+                         SelectionMode="Single"
+                         Background="Transparent" BorderThickness="0"
+                         SelectionChanged="StatusFilter_SelectionChanged">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="pill" CornerRadius="20" Padding="14,6"
+                                                Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
+                                                Cursor="Hand" Margin="0,0,6,0">
+                                            <TextBlock x:Name="label" Text="{TemplateBinding Content}"
+                                                       FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="#64748B" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E293B"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#1E293B"/>
+                                                <Setter TargetName="label" Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                    <Condition Property="IsSelected" Value="False"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter TargetName="pill" Property="Background" Value="#F1F5F9"/>
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+                <Border Background="#EFF6FF" CornerRadius="6" Padding="10,5" Margin="8,0,0,0" VerticalAlignment="Center">
                     <TextBlock x:Name="TotalBadge" Text="전체 0건" FontSize="12" Foreground="#2563EB" FontWeight="SemiBold"/>
                 </Border>
             </StackPanel>
