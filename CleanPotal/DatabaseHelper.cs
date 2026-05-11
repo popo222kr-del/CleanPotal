@@ -320,6 +320,12 @@ namespace CleanPotal
             using (var db = GetConnection()) db.Execute("DELETE FROM EducationPlan WHERE Id = @Id", new { Id = id });
         }
 
+        public static void UpdateEducationPlanStatus(int id, string status)
+        {
+            using (var db = GetConnection())
+                db.Execute("UPDATE EducationPlan SET Status = @Status WHERE Id = @Id", new { Status = status, Id = id });
+        }
+
         // ==========================================================
         // 🔥 생산팀 요청사항 (ProdReq) 전용 DB 연동 메서드 (Dapper 최적화)
         // ==========================================================

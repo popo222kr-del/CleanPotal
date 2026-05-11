@@ -114,20 +114,39 @@
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,8">
-            <Button Content="선택 삭제" Width="90" Height="32" Background="White" BorderBrush="#FECACA" Foreground="#EF4444" FontWeight="Bold" Click="BtnDeleteUser_Click">
+        <!-- 검색 / 필터 / 삭제 바 -->
+        <Grid Grid.Row="2" Margin="0,12,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="검색:" FontSize="12" Foreground="#64748B" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBox Grid.Column="2" x:Name="TxtSearch" Height="32" Padding="8,0"
+                     VerticalContentAlignment="Center" BorderBrush="#CBD5E1"
+                     TextChanged="TxtSearch_TextChanged"/>
+            <ComboBox Grid.Column="4" x:Name="CmbTeamFilter" Height="32" FontSize="12"
+                      SelectionChanged="CmbTeamFilter_SelectionChanged"/>
+
+            <Button Grid.Column="6" Content="선택 삭제" Width="90" Height="32"
+                    Background="White" BorderBrush="#FECACA" Foreground="#EF4444" FontWeight="Bold"
+                    Click="BtnDeleteUser_Click">
                 <Button.Resources>
-                    <Style TargetType="Border">
-                        <Setter Property="CornerRadius" Value="6"/>
-                    </Style>
+                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
                 </Button.Resources>
             </Button>
-        </StackPanel>
+        </Grid>
 
-        <DataGrid x:Name="UsersGrid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" 
-                  SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column" 
-                  Background="White" BorderBrush="#E2E8F0" BorderThickness="1" RowHeight="32" 
-                  SelectionChanged="UsersGrid_SelectionChanged">
+        <DataGrid x:Name="UsersGrid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column"
+                  Background="White" BorderBrush="#E2E8F0" BorderThickness="1" RowHeight="32"
+                  SelectionChanged="UsersGrid_SelectionChanged"
+                  CanUserSortColumns="True">
             <DataGrid.ColumnHeaderStyle>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#F8FAFC"/>

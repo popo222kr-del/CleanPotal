@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace CleanPotal
 {
     public partial class UserManagementWindow : Window
     {
         private ObservableCollection<UserModel> _users;
+        private ICollectionView _view;
 
         public UserManagementWindow()
         {
@@ -20,8 +23,32 @@ namespace CleanPotal
         {
             var userList = AuthDatabaseHelper.GetAllUsers();
             _users = new ObservableCollection<UserModel>(userList);
-            UsersGrid.ItemsSource = _users;
+            _view = CollectionViewSource.GetDefaultView(_users);
+            _view.Filter = FilterUser;
+            UsersGrid.ItemsSource = _view;
+
+            var teams = new[] { "전체 팀" }.Concat(_users.Select(u => u.TeamName).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t)).ToList();
+            CmbTeamFilter.ItemsSource = teams;
+            CmbTeamFilter.SelectedIndex = 0;
         }
+
+        private bool FilterUser(object obj)
+        {
+            if (obj is not UserModel u) return false;
+            string keyword = TxtSearch?.Text?.Trim() ?? "";
+            string team = CmbTeamFilter?.SelectedItem as string ?? "전체 팀";
+
+            bool nameMatch = string.IsNullOrEmpty(keyword)
+                || u.RealName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || u.Username.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+            bool teamMatch = team == "전체 팀" || u.TeamName == team;
+
+            return nameMatch && teamMatch;
+        }
+
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => _view?.Refresh();
+
+        private void CmbTeamFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
 
         private void UsersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

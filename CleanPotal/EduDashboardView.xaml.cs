@@ -101,5 +101,15 @@ namespace CleanPotal
         }
 
         private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => ApplyFilter();
+
+        private void StatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox combo && combo.DataContext is EduDashboardRow row
+                && combo.SelectedItem is string newStatus && newStatus != e.RemovedItems.OfType<string>().FirstOrDefault())
+            {
+                DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
+                UpdateStatusCards();
+            }
+        }
     }
 }

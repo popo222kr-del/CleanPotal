@@ -83,4 +83,34 @@ namespace CleanPotal
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
     }
+
+    public class EduDashboardRow : INotifyPropertyChanged
+    {
+        public int EduId { get; set; }
+        public string MemberName { get; set; } = "";
+        public string Username { get; set; } = "";
+        public string TeamName { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+
+        private string _status = "";
+        public string Status
+        {
+            get => _status;
+            set { _status = value; OnPropertyChanged(); }
+        }
+
+        public int Progress { get; set; }
+        public string EduMethod { get; set; } = "";
+
+        public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
+        public string EndDateStr => EndDate.ToString("yyyy-MM-dd");
+        public string ProgressStr => $"{Progress}%";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }
