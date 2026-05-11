@@ -262,46 +262,54 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <!-- 상태 컬럼: 인라인 ComboBox -->
-                <DataGridTemplateColumn Header="상태" Width="110" SortMemberPath="Status">
+                <!-- 상태 컬럼: Notion 스타일 pill -->
+                <DataGridTemplateColumn Header="상태" Width="120" SortMemberPath="Status">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <ComboBox ItemsSource="{StaticResource StatusOptions}"
-                                      SelectedItem="{Binding Status, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectionChanged="StatusComboBox_SelectionChanged"
-                                      Height="26" FontSize="11" FontWeight="SemiBold"
-                                      VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                      Padding="6,0" Margin="6,0" BorderThickness="1">
-                                <ComboBox.Style>
-                                    <Style TargetType="ComboBox">
-                                        <Setter Property="Background" Value="#FEF3C7"/>
-                                        <Setter Property="Foreground" Value="#D97706"/>
-                                        <Setter Property="BorderBrush" Value="#FDE68A"/>
+                            <Border x:Name="pillBd" CornerRadius="12" Padding="10,4"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="8,0" Cursor="Hand" MouseLeftButtonUp="StatusPill_Click"
+                                    Background="#FEF3C7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="pillDot" Width="7" Height="7"
+                                             VerticalAlignment="Center" Margin="0,0,5,0"
+                                             Fill="#D97706"/>
+                                    <TextBlock x:Name="pillTxt" Text="{Binding Status}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="#D97706" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border.Style>
+                                    <Style TargetType="Border">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Status}" Value="신청완료">
-                                                <Setter Property="Background" Value="#CCFBF1"/>
-                                                <Setter Property="Foreground" Value="#0F766E"/>
-                                                <Setter Property="BorderBrush" Value="#99F6E4"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="진행">
-                                                <Setter Property="Background" Value="#DBEAFE"/>
-                                                <Setter Property="Foreground" Value="#2563EB"/>
-                                                <Setter Property="BorderBrush" Value="#BFDBFE"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="완료">
-                                                <Setter Property="Background" Value="#D1FAE5"/>
-                                                <Setter Property="Foreground" Value="#065F46"/>
-                                                <Setter Property="BorderBrush" Value="#A7F3D0"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Status}" Value="취소">
-                                                <Setter Property="Background" Value="#FEE2E2"/>
-                                                <Setter Property="Foreground" Value="#DC2626"/>
-                                                <Setter Property="BorderBrush" Value="#FCA5A5"/>
-                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                            </Trigger>
                                         </Style.Triggers>
                                     </Style>
-                                </ComboBox.Style>
-                            </ComboBox>
+                                </Border.Style>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="신청완료">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#CCFBF1"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#0D9488"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#0D9488"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="진행">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#DBEAFE"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#2563EB"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#2563EB"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="완료">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#D1FAE5"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#059669"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#059669"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="취소">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#FEE2E2"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#DC2626"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#DC2626"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

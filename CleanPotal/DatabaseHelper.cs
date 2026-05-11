@@ -326,6 +326,13 @@ namespace CleanPotal
                 db.Execute("UPDATE EducationPlan SET Status = @Status WHERE Id = @Id", new { Status = status, Id = id });
         }
 
+        public static List<EducationPlanModel> GetEducationPlansByMember(string memberName)
+        {
+            using (var db = GetConnection())
+                return db.Query<EducationPlanModel>("SELECT * FROM EducationPlan WHERE MemberName = @Name ORDER BY StartDate DESC",
+                    new { Name = memberName }).ToList();
+        }
+
         // ==========================================================
         // 🔥 생산팀 요청사항 (ProdReq) 전용 DB 연동 메서드 (Dapper 최적화)
         // ==========================================================

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace CleanPotal
 {
@@ -102,14 +103,74 @@ namespace CleanPotal
 
         private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => ApplyFilter();
 
-        private void StatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void StatusPill_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is ComboBox combo && combo.DataContext is EduDashboardRow row
-                && combo.SelectedItem is string newStatus && newStatus != e.RemovedItems.OfType<string>().FirstOrDefault())
+            if (sender is not FrameworkElement pill) return;
+            if (pill.DataContext is not EduDashboardRow row) return;
+
+            var menu = new ContextMenu { PlacementTarget = pill };
+
+            var statuses = new[] { "대기", "신청완료", "진행", "완료", "취소" };
+            var colors = new Dictionary<string, (string bg, string fg)>
             {
-                DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
-                UpdateStatusCards();
+                ["대기"]    = ("#FEF3C7", "#D97706"),
+                ["신청완료"] = ("#CCFBF1", "#0D9488"),
+                ["진행"]    = ("#DBEAFE", "#2563EB"),
+                ["완료"]    = ("#D1FAE5", "#059669"),
+                ["취소"]    = ("#FEE2E2", "#DC2626"),
+            };
+
+            foreach (var s in statuses)
+            {
+                var (bg, fg) = colors[s];
+                var item = new MenuItem
+                {
+                    Header = new Border
+                    {
+                        CornerRadius = new System.Windows.CornerRadius(10),
+                        Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom(bg)!,
+                        Padding = new Thickness(10, 3, 10, 3),
+                        Child = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Children =
+                            {
+                                new System.Windows.Shapes.Ellipse
+                                {
+                                    Width = 7, Height = 7,
+                                    Fill = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom(fg)!,
+                                    Margin = new Thickness(0,0,5,0),
+                                    VerticalAlignment = VerticalAlignment.Center
+                                },
+                                new TextBlock
+                                {
+                                    Text = s, FontSize = 12, FontWeight = FontWeights.SemiBold,
+                                    Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom(fg)!,
+                                    VerticalAlignment = VerticalAlignment.Center
+                                }
+                            }
+                        }
+                    },
+                    Tag = s
+                };
+
+                if (s == row.Status)
+                    item.IsChecked = true;
+
+                item.Click += (_, _) =>
+                {
+                    string newStatus = (string)item.Tag;
+                    if (newStatus == row.Status) return;
+                    row.Status = newStatus;
+                    DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
+                    UpdateStatusCards();
+                };
+                menu.Items.Add(item);
             }
+
+            pill.ContextMenu = menu;
+            menu.IsOpen = true;
+            e.Handled = true;
         }
     }
 }
