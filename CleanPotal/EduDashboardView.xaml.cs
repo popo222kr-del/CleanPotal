@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 
 namespace CleanPotal
@@ -11,6 +13,7 @@ namespace CleanPotal
     {
         private int _selectedYear = DateTime.Today.Year;
         private List<EduDashboardRow> _allRows = new();
+        private ICollectionView? _view;
 
         private static readonly string[] StatusOrder = { "전체", "대기", "신청완료", "진행", "완료", "취소" };
 
@@ -59,8 +62,18 @@ namespace CleanPotal
                 .ThenBy(r => r.StartDate)
                 .ToList();
 
+            _view = CollectionViewSource.GetDefaultView(_allRows);
+            _view.Filter = FilterRow;
+            EduDataGrid.ItemsSource = _view;
+
             UpdateStatusCards();
-            ApplyFilter();
+        }
+
+        private bool FilterRow(object obj)
+        {
+            if (obj is not EduDashboardRow row) return false;
+            string selected = StatusFilter?.SelectedItem as string ?? "전체";
+            return selected == "전체" || row.Status == selected;
         }
 
         // ── 상태 카드 숫자 갱신 ────────────────────────────────────────
@@ -74,16 +87,6 @@ namespace CleanPotal
             CountInProgress.Text = _allRows.Count(r => r.Status == "진행").ToString();
             CountDone.Text = _allRows.Count(r => r.Status == "완료").ToString();
             TotalBadge.Text = $"전체 {total}건";
-        }
-
-        // ── 필터 적용 ──────────────────────────────────────────────────
-        private void ApplyFilter()
-        {
-            string selected = StatusFilter.SelectedItem as string ?? "전체";
-            var filtered = selected == "전체"
-                ? _allRows
-                : _allRows.Where(r => r.Status == selected).ToList();
-            EduDataGrid.ItemsSource = filtered;
         }
 
         // ── 이벤트 ────────────────────────────────────────────────────
@@ -101,7 +104,7 @@ namespace CleanPotal
             LoadData();
         }
 
-        private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => ApplyFilter();
+        private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
 
         private void StatusPill_Click(object sender, MouseButtonEventArgs e)
         {
@@ -164,7 +167,7 @@ namespace CleanPotal
                     row.Status = newStatus;
                     DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
                     UpdateStatusCards();
-                    ApplyFilter();
+                    _view?.Refresh();
                 };
                 menu.Items.Add(item);
             }
