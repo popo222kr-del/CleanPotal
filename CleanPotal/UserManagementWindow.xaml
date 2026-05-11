@@ -7,6 +7,7 @@
 
     <Window.Resources>
 
+        <!-- ── 목록 아이템 ── -->
         <Style x:Key="UserItemStyle" TargetType="ListBoxItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Padding" Value="0"/>
@@ -31,21 +32,95 @@
             </Setter>
         </Style>
 
+        <!-- ── 라벨 ── -->
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="#64748B"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,3"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
 
+        <!-- ── 텍스트 입력 (라운드 + 포커스 하이라이트) ── -->
         <Style x:Key="FormField" TargetType="TextBox">
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Padding" Value="8,0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="CaretBrush" Value="#2563EB"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" Background="White"
+                                BorderBrush="#E2E8F0" BorderThickness="1.5"
+                                CornerRadius="7">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="10,0" VerticalAlignment="Center"
+                                          Focusable="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="bd" Property="Background" Value="#FAFBFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
+        <!-- ── 권한 카드형 체크박스 ── -->
+        <Style x:Key="PermCheck" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="outer" Background="#F8FAFC"
+                                BorderBrush="#E2E8F0" BorderThickness="1.5"
+                                CornerRadius="8" Padding="14,10">
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="box" Width="17" Height="17" CornerRadius="4"
+                                        Background="White" BorderBrush="#CBD5E1" BorderThickness="1.5"
+                                        VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <TextBlock x:Name="mark" Text="✓" FontSize="10" FontWeight="Bold"
+                                               Foreground="White" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" Visibility="Collapsed"/>
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="13"/>
+                                            <Setter Property="Foreground" Value="#374151"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="outer" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="outer" Property="BorderBrush" Value="#93C5FD"/>
+                                <Setter TargetName="box" Property="Background" Value="#2563EB"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="mark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="outer" Property="BorderBrush" Value="#93C5FD"/>
+                                <Setter TargetName="outer" Property="Background" Value="#F0F9FF"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── 버튼 ── -->
         <Style x:Key="BtnPrimary" TargetType="Button">
             <Setter Property="Background" Value="#2563EB"/>
             <Setter Property="Foreground" Value="White"/>
@@ -57,7 +132,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -79,7 +154,7 @@
             <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -88,7 +163,7 @@
                         <Border x:Name="bd" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -101,6 +176,7 @@
             </Setter>
         </Style>
 
+        <!-- ── 탭 ── -->
         <Style x:Key="ModernTab" TargetType="TabItem">
             <Setter Property="Padding" Value="18,10"/>
             <Setter Property="FontSize" Value="13"/>
@@ -149,7 +225,6 @@
                     <RowDefinition Height="56"/>
                 </Grid.RowDefinitions>
 
-                <!-- Header + 정렬 버튼 -->
                 <Border Grid.Row="0" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,0">
                     <Grid VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
@@ -179,18 +254,15 @@
                     </Grid>
                 </Border>
 
-                <!-- 검색 -->
                 <Border Grid.Row="1" Padding="12,8" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                     <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White" Padding="8,0">
                         <TextBox x:Name="TxtSearch" BorderThickness="0" Background="Transparent"
                                  FontSize="12" Foreground="#475569" Height="28"
                                  VerticalContentAlignment="Center"
-                                 TextChanged="TxtSearch_TextChanged"
-                                 Tag="이름 또는 사번 검색..."/>
+                                 TextChanged="TxtSearch_TextChanged"/>
                     </Border>
                 </Border>
 
-                <!-- User List -->
                 <ListBox x:Name="UserListBox" Grid.Row="2"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -229,7 +301,6 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- Add Button -->
                 <Border Grid.Row="3" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
                     <Button Content="+ 신규 사용자 추가" Style="{StaticResource BtnPrimary}"
                             Height="36" Click="BtnNewUser_Click"/>
@@ -259,19 +330,19 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 상단 헤더 바 -->
+                <!-- 헤더 바 -->
                 <Border Grid.Row="0" Background="White"
-                        BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="24,0">
+                        BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="28,0">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock x:Name="DetailName" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
-                            <Border x:Name="DetailTeamBadge" CornerRadius="4" Background="#EFF6FF"
-                                    Padding="8,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                            <Border x:Name="DetailTeamBadge" CornerRadius="20" Background="#EFF6FF"
+                                    Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="DetailTeam" FontSize="11" Foreground="#2563EB" FontWeight="SemiBold"/>
                             </Border>
-                            <Border x:Name="NewModeBadge" CornerRadius="4" Background="#FEF3C7"
-                                    Padding="8,3" Margin="8,0,0,0" VerticalAlignment="Center"
+                            <Border x:Name="NewModeBadge" CornerRadius="20" Background="#FEF3C7"
+                                    Padding="10,4" Margin="8,0,0,0" VerticalAlignment="Center"
                                     Visibility="Collapsed">
                                 <TextBlock Text="신규 등록" FontSize="11" Foreground="#D97706" FontWeight="SemiBold"/>
                             </Border>
@@ -286,93 +357,119 @@
 
                 <!-- TabControl -->
                 <TabControl Grid.Row="1" x:Name="MainTabControl"
-                            Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0" Padding="0">
+                            Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="0" Padding="0">
                     <TabControl.Resources>
                         <Style TargetType="TabPanel"><Setter Property="Background" Value="White"/></Style>
                     </TabControl.Resources>
 
-                    <!-- Tab 1: 계정 정보 -->
+                    <!-- ── Tab 1: 계정 정보 ── -->
                     <TabItem Header="계정 정보" Style="{StaticResource ModernTab}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F8FAFC">
-                            <StackPanel Margin="28,22,28,22">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F1F5F9">
+                            <StackPanel Margin="28,20,28,28">
 
-                                <Grid Margin="0,0,0,12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                        <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                        <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                        <ColumnDefinition/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="사번(아이디)" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewId" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="비밀번호" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewPw" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="4">
-                                        <TextBlock Text="이름" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewName" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="6">
-                                        <TextBlock Text="직위" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewTitle" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid Margin="0,0,0,22">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                        <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                        <ColumnDefinition/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="소속팀" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewTeam" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="메일주소" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewEmail" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="4">
-                                        <TextBlock Text="전화번호" Style="{StaticResource FieldLabel}"/>
-                                        <TextBox x:Name="TxtNewPhone" Style="{StaticResource FormField}"/>
-                                    </StackPanel>
-                                </Grid>
-
-                                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                                        CornerRadius="8" Padding="16,12" Margin="0,0,0,22">
+                                <!-- 기본 정보 카드 -->
+                                <Border Background="White" CornerRadius="12"
+                                        BorderBrush="#E2E8F0" BorderThickness="1"
+                                        Padding="22,18" Margin="0,0,0,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="1"/>
+                                    </Border.Effect>
                                     <StackPanel>
-                                        <TextBlock Text="메뉴 접근 권한" FontSize="12" FontWeight="Bold"
-                                                   Foreground="#334155" Margin="0,0,0,8"/>
-                                        <StackPanel Orientation="Horizontal">
-                                            <CheckBox x:Name="ChkManageFiles" Content="파일 관리자"
-                                                      FontSize="13" Foreground="#475569" Margin="0,0,20,0" VerticalContentAlignment="Center"/>
-                                            <CheckBox x:Name="ChkManageNotices" Content="공지사항 관리"
-                                                      FontSize="13" Foreground="#475569" Margin="0,0,20,0" VerticalContentAlignment="Center"/>
-                                            <CheckBox x:Name="ChkManageVendors" Content="업체 관리"
-                                                      FontSize="13" Foreground="#475569" Margin="0,0,20,0" VerticalContentAlignment="Center"/>
-                                            <CheckBox x:Name="ChkManageSchedule" Content="일정/교육 관리"
-                                                      FontSize="13" Foreground="#475569" VerticalContentAlignment="Center"/>
+                                        <!-- 섹션 헤더 -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                            <Border Width="3" Height="14" Background="#2563EB" CornerRadius="2" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="기본 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                                         </StackPanel>
+
+                                        <!-- 행 1: 사번 / 비밀번호 / 이름 / 직위 -->
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="사번 (아이디)" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewId" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="비밀번호" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewPw" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Text="이름" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewName" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="6">
+                                                <TextBlock Text="직위" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewTitle" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- 행 2: 소속팀 / 메일 / 전화번호 -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="소속팀" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewTeam" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="메일주소" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewEmail" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Text="전화번호" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewPhone" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
 
+                                <!-- 메뉴 접근 권한 카드 -->
+                                <Border Background="White" CornerRadius="12"
+                                        BorderBrush="#E2E8F0" BorderThickness="1"
+                                        Padding="22,18" Margin="0,0,0,20">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="1"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <Border Width="3" Height="14" Background="#7C3AED" CornerRadius="2" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="메뉴 접근 권한" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <UniformGrid Rows="1" Columns="4">
+                                            <CheckBox x:Name="ChkManageFiles" Content="파일 관리자"
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                            <CheckBox x:Name="ChkManageNotices" Content="공지사항 관리"
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                            <CheckBox x:Name="ChkManageVendors" Content="업체 관리"
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                            <CheckBox x:Name="ChkManageSchedule" Content="일정/교육 관리"
+                                                      Style="{StaticResource PermCheck}"/>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 하단 버튼 -->
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Content="취소" Style="{StaticResource BtnSecondary}"
-                                            Width="80" Height="34" Margin="0,0,8,0" Click="BtnCancel_Click"/>
+                                            Width="88" Height="36" Margin="0,0,8,0" Click="BtnCancel_Click"/>
                                     <Button Content="저장" Style="{StaticResource BtnPrimary}"
-                                            Width="80" Height="34" Click="BtnSave_Click"/>
+                                            Width="88" Height="36" Click="BtnSave_Click"/>
                                 </StackPanel>
 
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
 
-                    <!-- Tab 2: 교육 이력 -->
+                    <!-- ── Tab 2: 교육 이력 ── -->
                     <TabItem Header="교육 이력" Style="{StaticResource ModernTab}">
-                        <Grid Margin="28,16,28,16">
+                        <Grid Margin="28,16,28,20">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
@@ -389,33 +486,114 @@
                                            FontSize="13" Foreground="#94A3B8"
                                            HorizontalAlignment="Center" Margin="0,10,0,0"/>
                             </StackPanel>
-                            <DataGrid x:Name="EduHistoryGrid" Grid.Row="1"
-                                      AutoGenerateColumns="False" IsReadOnly="True"
-                                      SelectionMode="Single" SelectionUnit="FullRow"
-                                      Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                                      RowHeight="30" HeadersVisibility="Column"
-                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      AlternatingRowBackground="#FAFAFA" CanUserSortColumns="True">
-                                <DataGrid.ColumnHeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="#F8FAFC"/>
-                                        <Setter Property="Foreground" Value="#475569"/>
-                                        <Setter Property="FontWeight" Value="Bold"/>
-                                        <Setter Property="FontSize" Value="12"/>
-                                        <Setter Property="Padding" Value="10,6"/>
-                                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                    </Style>
-                                </DataGrid.ColumnHeaderStyle>
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*"/>
-                                    <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="100"/>
-                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="100"/>
-                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="80"/>
-                                    <DataGridTextColumn Header="진행률" Binding="{Binding Progress, StringFormat={}{0}%}" Width="70"/>
-                                    <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="90"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Border Grid.Row="1" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1"
+                                    Background="White">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="1"/>
+                                </Border.Effect>
+                                <DataGrid x:Name="EduHistoryGrid"
+                                          AutoGenerateColumns="False" IsReadOnly="True"
+                                          SelectionMode="Single" SelectionUnit="FullRow"
+                                          Background="Transparent" BorderThickness="0"
+                                          RowHeight="34" HeadersVisibility="Column"
+                                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                                          AlternatingRowBackground="#FAFAFA" CanUserSortColumns="True">
+                                    <DataGrid.ColumnHeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="#F8FAFC"/>
+                                            <Setter Property="Foreground" Value="#475569"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="FontSize" Value="12"/>
+                                            <Setter Property="Padding" Value="12,7"/>
+                                            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                        </Style>
+                                    </DataGrid.ColumnHeaderStyle>
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Padding" Value="12,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="100">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Padding" Value="12,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="100">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Padding" Value="12,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="상태" Width="90">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border x:Name="sBd" CornerRadius="10" Padding="8,3"
+                                                            HorizontalAlignment="Left" Margin="8,0"
+                                                            Background="#FEF3C7">
+                                                        <TextBlock x:Name="sTxt" Text="{Binding Status}"
+                                                                   FontSize="11" FontWeight="SemiBold"
+                                                                   Foreground="#D97706" VerticalAlignment="Center"/>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="신청완료">
+                                                                <Setter TargetName="sBd" Property="Background" Value="#CCFBF1"/>
+                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#0D9488"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="진행">
+                                                                <Setter TargetName="sBd" Property="Background" Value="#DBEAFE"/>
+                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#2563EB"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="완료">
+                                                                <Setter TargetName="sBd" Property="Background" Value="#D1FAE5"/>
+                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#059669"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="취소">
+                                                                <Setter TargetName="sBd" Property="Background" Value="#FEE2E2"/>
+                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#DC2626"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="진행률" Binding="{Binding Progress, StringFormat={}{0}%}" Width="70">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Padding" Value="12,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="90">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Padding" Value="12,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
                         </Grid>
                     </TabItem>
 
