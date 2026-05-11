@@ -271,7 +271,7 @@
                                       SelectionChanged="StatusComboBox_SelectionChanged"
                                       Height="26" FontSize="11" FontWeight="SemiBold"
                                       VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                                      Padding="6,0" Margin="6,0" BorderThickness="1" CornerRadius="4">
+                                      Padding="6,0" Margin="6,0" BorderThickness="1">
                                 <ComboBox.Style>
                                     <Style TargetType="ComboBox">
                                         <Setter Property="Background" Value="#FEF3C7"/>
