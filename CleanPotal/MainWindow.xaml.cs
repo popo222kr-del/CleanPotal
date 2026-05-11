@@ -20,6 +20,7 @@ namespace CleanPotal
         private ProdReqView? _prodReqView;
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
+        private EduDashboardView? _eduDashboardView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -61,6 +62,7 @@ namespace CleanPotal
             this.Loaded += (s, e) => {
                 ShowPortal();
                 InitializePollingTimer();
+                ApplyAdminMenuVisibility();
             };
         }
 
@@ -116,6 +118,7 @@ namespace CleanPotal
                 case PersonalMemoView memo:     memo.TryRefresh(); break;
                 case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
+                case EduDashboardView ed: ed.TryRefresh(); break;
             }
         }
 
@@ -198,8 +201,18 @@ namespace CleanPotal
             ExpanderAttendance.IsExpanded = false; ExpanderProduction.IsExpanded = false;
             ExpanderFieldInspection.IsExpanded = false;
             ExpanderOffice.IsExpanded = false; ExpanderEtc.IsExpanded = false;
+            ExpanderAdmin.IsExpanded = false;
             _isUpdatingNav = false;
             ToggleSectionHeaders(Visibility.Collapsed); // 🎨 접을 땐 섹션 헤더 숨김
+        }
+
+        // 관리자 전용 메뉴 표시 여부 적용
+        private void ApplyAdminMenuVisibility()
+        {
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            var adminVis = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+            if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = adminVis;
+            if (ExpanderAdmin != null) ExpanderAdmin.Visibility = adminVis;
         }
 
         // 🎨 섹션 헤더(MAIN/WORKSPACE/TOOLS) Visibility 일괄 제어
@@ -208,6 +221,10 @@ namespace CleanPotal
             if (SectionHeaderMain != null) SectionHeaderMain.Visibility = visibility;
             if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
             if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
+            // ADMIN 헤더는 관리자 계정일 때만 표시
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            if (SectionHeaderAdmin != null && isAdmin)
+                SectionHeaderAdmin.Visibility = visibility;
         }
 
         private void AnimateSidebarWidth(double toWidth)
@@ -225,6 +242,7 @@ namespace CleanPotal
             else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
+            else if (_currentViewName == "EduDashboard") ExpanderAdmin.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
@@ -233,6 +251,7 @@ namespace CleanPotal
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask") OpenWeeklyReport_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
         private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
+        private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
         private void OpenHandover(object sender, RoutedEventArgs e) { OpenSidebar(); ShowHandover(); }
@@ -258,6 +277,41 @@ namespace CleanPotal
                 return false;
             }
             return true;
+        }
+
+        private bool CanOpenAdminFeature()
+        {
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            if (!isAdmin)
+            {
+                MessageBox.Show("해당 기능은 관리자만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return false;
+            }
+            return true;
+        }
+
+        private void OpenEduDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenAdminFeature()) return;
+            ShowEduDashboard();
+        }
+
+        private void ShowEduDashboard()
+        {
+            _currentViewName = "EduDashboard";
+            ApplySectionMeta("교육 현황 대시보드", "연도별 교육 계획 현황과 이수 진행률을 확인합니다.");
+            UpdateNavSelection("EduDashboard");
+            if (_eduDashboardView == null) _eduDashboardView = new EduDashboardView();
+            else _eduDashboardView.TryRefresh();
+            MainContent.Content = _eduDashboardView;
+            HideAllHeaderButtons();
+        }
+
+        private void OpenUserManagement_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CanOpenAdminFeature()) return;
+            new UserManagementWindow { Owner = this }.ShowDialog();
         }
 
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }

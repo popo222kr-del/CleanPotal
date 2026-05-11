@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CleanPotal
 {
@@ -12,6 +13,9 @@ namespace CleanPotal
         public string Password { get; set; } = "";
         public string RealName { get; set; } = "";
         public string TeamName { get; set; } = "";
+
+        [JsonIgnore]
+        public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
 
         public string JobTitle { get; set; } = "";
         public string Email { get; set; } = "";
