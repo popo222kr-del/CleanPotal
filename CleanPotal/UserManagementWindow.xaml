@@ -381,12 +381,13 @@
                                             <TextBlock Text="기본 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                                         </StackPanel>
 
-                                        <!-- 행 1: 사번 / 비밀번호 / 이름 / 직위 -->
+                                        <!-- 행 1: 사번 / 비밀번호 / 이름 / 직위 / 소속팀 -->
                                         <Grid Margin="0,0,0,12">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
                                                 <ColumnDefinition/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
@@ -405,18 +406,23 @@
                                                 <TextBlock Text="직위" Style="{StaticResource FieldLabel}"/>
                                                 <TextBox x:Name="TxtNewTitle" Style="{StaticResource FormField}"/>
                                             </StackPanel>
+                                            <StackPanel Grid.Column="8">
+                                                <TextBlock Text="소속팀" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtNewTeam" Style="{StaticResource FormField}"/>
+                                            </StackPanel>
                                         </Grid>
 
-                                        <!-- 행 2: 소속팀 / 메일 / 전화번호 -->
+                                        <!-- 행 2: 입사일 / 메일주소 / 전화번호 -->
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
-                                                <ColumnDefinition/><ColumnDefinition Width="12"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
                                                 <ColumnDefinition/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="소속팀" Style="{StaticResource FieldLabel}"/>
-                                                <TextBox x:Name="TxtNewTeam" Style="{StaticResource FormField}"/>
+                                                <TextBlock Text="입사일" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="TxtHireDate" Style="{StaticResource FormField}"
+                                                         ToolTip="예: 2012-05-29"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="메일주소" Style="{StaticResource FieldLabel}"/>

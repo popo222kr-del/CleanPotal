@@ -224,7 +224,11 @@
                   RowHeight="36" HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
                   AlternatingRowBackground="#FAFAFA"
-                  CanUserSortColumns="True">
+                  CanUserSortColumns="True"
+                  AllowDrop="True"
+                  DragOver="EduDataGrid_DragOver"
+                  Drop="EduDataGrid_Drop"
+                  PreviewKeyDown="EduDataGrid_PreviewKeyDown">
 
             <DataGrid.ColumnHeaderStyle>
                 <Style TargetType="DataGridColumnHeader">
@@ -265,7 +269,26 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
+                <DataGridTextColumn Header="입사일" Binding="{Binding HireDate}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#94A3B8"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
                 <DataGridTextColumn Header="소속팀" Binding="{Binding TeamName}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="80">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Padding" Value="10,0"/>

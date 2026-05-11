@@ -119,6 +119,7 @@ namespace CleanPotal
             TxtNewName.Text = user.RealName;
             TxtNewTitle.Text = user.JobTitle;
             TxtNewTeam.Text = user.TeamName;
+            TxtHireDate.Text = user.HireDate;
             TxtNewEmail.Text = user.Email;
             TxtNewPhone.Text = user.PhoneNumber;
 
@@ -180,6 +181,7 @@ namespace CleanPotal
                     Username = id, Password = pw, RealName = name,
                     TeamName = TxtNewTeam.Text.Trim(),
                     JobTitle = TxtNewTitle.Text.Trim(),
+                    HireDate = TxtHireDate.Text.Trim(),
                     Email = TxtNewEmail.Text.Trim(),
                     PhoneNumber = TxtNewPhone.Text.Trim(),
                     CanManageFiles = ChkManageFiles.IsChecked == true,
@@ -222,6 +224,7 @@ namespace CleanPotal
                 _selectedUser.RealName = name;
                 _selectedUser.TeamName = TxtNewTeam.Text.Trim();
                 _selectedUser.JobTitle = TxtNewTitle.Text.Trim();
+                _selectedUser.HireDate = TxtHireDate.Text.Trim();
                 _selectedUser.Email = TxtNewEmail.Text.Trim();
                 _selectedUser.PhoneNumber = TxtNewPhone.Text.Trim();
                 _selectedUser.CanManageFiles = ChkManageFiles.IsChecked == true;
@@ -280,7 +283,7 @@ namespace CleanPotal
         private void ClearInputFields()
         {
             TxtNewId.Clear(); TxtNewPw.Clear(); TxtNewName.Clear();
-            TxtNewTitle.Clear(); TxtNewTeam.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
+            TxtNewTitle.Clear(); TxtNewTeam.Clear(); TxtHireDate.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
             ChkManageFiles.IsChecked = false; ChkManageNotices.IsChecked = false;
             ChkManageVendors.IsChecked = false; ChkManageSchedule.IsChecked = false;
         }

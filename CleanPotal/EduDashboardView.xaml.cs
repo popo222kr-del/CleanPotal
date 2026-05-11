@@ -51,6 +51,7 @@ namespace CleanPotal
                         EduId = e.Id,
                         MemberName = e.MemberName,
                         Username = user?.Username ?? "-",
+                        HireDate = user?.HireDate ?? "",
                         TeamName = user?.TeamName ?? "-",
                         JobTitle = user?.JobTitle ?? "-",
                         CourseName = e.CourseName,
@@ -109,6 +110,54 @@ namespace CleanPotal
         }
 
         private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
+
+        private void EduDataGrid_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void EduDataGrid_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files.Length == 0) return;
+
+            var row = GetRowAtDropPoint(e.GetPosition(EduDataGrid));
+            if (row == null) return;
+
+            row.AttachmentPath = files[0];
+            DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, files[0]);
+        }
+
+        private void EduDataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control) return;
+            if (!Clipboard.ContainsFileDropList()) return;
+
+            var files = Clipboard.GetFileDropList();
+            if (files.Count == 0) return;
+
+            var row = EduDataGrid.SelectedItem as EduDashboardRow;
+            if (row == null) return;
+
+            row.AttachmentPath = files[0]!;
+            DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, files[0]!);
+            e.Handled = true;
+        }
+
+        private EduDashboardRow? GetRowAtDropPoint(Point point)
+        {
+            var hit = System.Windows.Media.VisualTreeHelper.HitTest(EduDataGrid, point);
+            if (hit == null) return null;
+            var dep = hit.VisualHit as System.Windows.DependencyObject;
+            while (dep != null)
+            {
+                if (dep is DataGridRow dgRow) return dgRow.Item as EduDashboardRow;
+                dep = System.Windows.Media.VisualTreeHelper.GetParent(dep);
+            }
+            return null;
+        }
 
         private void AttachBtn_Click(object sender, MouseButtonEventArgs e)
         {

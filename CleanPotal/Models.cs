@@ -91,6 +91,7 @@ namespace CleanPotal
         public int EduId { get; set; }
         public string MemberName { get; set; } = "";
         public string Username { get; set; } = "";
+        public string HireDate { get; set; } = "";
         public string TeamName { get; set; } = "";
         public string JobTitle { get; set; } = "";
         public string CourseName { get; set; } = "";

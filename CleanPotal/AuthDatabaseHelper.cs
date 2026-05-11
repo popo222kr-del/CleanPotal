@@ -26,6 +26,7 @@ namespace CleanPotal
         public bool CanManageVendors { get; set; } = false;
         // 🔥 신규: 교육/일정 관리 권한
         public bool CanManageSchedule { get; set; } = false;
+        public string HireDate { get; set; } = "";
     }
 
     public static class AuthDatabaseHelper
