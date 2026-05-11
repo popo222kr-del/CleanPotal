@@ -92,6 +92,21 @@ namespace CleanPotal
         public string MemberName { get; set; } = "";
         public string Username { get; set; } = "";
         public string HireDate { get; set; } = "";
+        public string CareerStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(HireDate) || !DateTime.TryParse(HireDate, out var hire)) return "-";
+                var today = DateTime.Today;
+                int years = today.Year - hire.Year;
+                int months = today.Month - hire.Month;
+                if (months < 0) { years--; months += 12; }
+                if (years < 0) return "-";
+                if (years == 0) return $"{months}개월";
+                if (months == 0) return $"{years}년";
+                return $"{years}년 {months}개월";
+            }
+        }
         public string TeamName { get; set; } = "";
         public string JobTitle { get; set; } = "";
         public string CourseName { get; set; } = "";

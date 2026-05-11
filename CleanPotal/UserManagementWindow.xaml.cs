@@ -47,6 +47,25 @@ namespace CleanPotal
 
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
+        private void TxtHireDate_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TxtCareer != null)
+                TxtCareer.Text = CalcCareerStr(TxtHireDate.Text.Trim());
+        }
+
+        private static string CalcCareerStr(string hireDate)
+        {
+            if (string.IsNullOrEmpty(hireDate) || !DateTime.TryParse(hireDate, out var hire)) return "-";
+            var today = DateTime.Today;
+            int years = today.Year - hire.Year;
+            int months = today.Month - hire.Month;
+            if (months < 0) { years--; months += 12; }
+            if (years < 0) return "-";
+            if (years == 0) return $"{months}개월";
+            if (months == 0) return $"{years}년";
+            return $"{years}년 {months}개월";
+        }
+
         private void BtnSortName_Click(object sender, RoutedEventArgs e)
         {
             _sortByName = true;
@@ -120,6 +139,7 @@ namespace CleanPotal
             TxtNewTitle.Text = user.JobTitle;
             TxtNewTeam.Text = user.TeamName;
             TxtHireDate.Text = user.HireDate;
+            TxtCareer.Text = CalcCareerStr(user.HireDate);
             TxtNewEmail.Text = user.Email;
             TxtNewPhone.Text = user.PhoneNumber;
 
