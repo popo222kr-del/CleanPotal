@@ -320,10 +320,17 @@ namespace CleanPotal
             using (var db = GetConnection()) db.Execute("DELETE FROM EducationPlan WHERE Id = @Id", new { Id = id });
         }
 
-        public static void UpdateEducationPlanStatus(int id, string status)
+        public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)
         {
             using (var db = GetConnection())
-                db.Execute("UPDATE EducationPlan SET Status = @Status WHERE Id = @Id", new { Status = status, Id = id });
+            {
+                if (progress.HasValue)
+                    db.Execute("UPDATE EducationPlan SET Status = @Status, Progress = @Progress WHERE Id = @Id",
+                        new { Status = status, Progress = progress.Value, Id = id });
+                else
+                    db.Execute("UPDATE EducationPlan SET Status = @Status WHERE Id = @Id",
+                        new { Status = status, Id = id });
+            }
         }
 
         public static List<EducationPlanModel> GetEducationPlansByMember(string memberName)

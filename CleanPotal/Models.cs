@@ -102,7 +102,13 @@ namespace CleanPotal
             set { _status = value; OnPropertyChanged(); }
         }
 
-        public int Progress { get; set; }
+        private int _progress;
+        public int Progress
+        {
+            get => _progress;
+            set { _progress = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressStr)); }
+        }
+
         public string EduMethod { get; set; } = "";
 
         public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
