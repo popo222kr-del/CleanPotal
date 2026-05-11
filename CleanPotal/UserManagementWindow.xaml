@@ -551,25 +551,25 @@
                                                         <TextBlock x:Name="sTxt" Text="{Binding Status}"
                                                                    FontSize="11" FontWeight="SemiBold"
                                                                    Foreground="#D97706" VerticalAlignment="Center"/>
-                                                        <DataTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding Status}" Value="신청완료">
-                                                                <Setter TargetName="sBd" Property="Background" Value="#CCFBF1"/>
-                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#0D9488"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="진행">
-                                                                <Setter TargetName="sBd" Property="Background" Value="#DBEAFE"/>
-                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#2563EB"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="완료">
-                                                                <Setter TargetName="sBd" Property="Background" Value="#D1FAE5"/>
-                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#059669"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="취소">
-                                                                <Setter TargetName="sBd" Property="Background" Value="#FEE2E2"/>
-                                                                <Setter TargetName="sTxt" Property="Foreground" Value="#DC2626"/>
-                                                            </DataTrigger>
-                                                        </DataTemplate.Triggers>
                                                     </Border>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="신청완료">
+                                                            <Setter TargetName="sBd" Property="Background" Value="#CCFBF1"/>
+                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#0D9488"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="진행">
+                                                            <Setter TargetName="sBd" Property="Background" Value="#DBEAFE"/>
+                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#2563EB"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="완료">
+                                                            <Setter TargetName="sBd" Property="Background" Value="#D1FAE5"/>
+                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#059669"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="취소">
+                                                            <Setter TargetName="sBd" Property="Background" Value="#FEE2E2"/>
+                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#DC2626"/>
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
