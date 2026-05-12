@@ -120,7 +120,6 @@ namespace CleanPotal
                 case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
                 case EduDashboardView ed: ed.TryRefresh(); break;
-                case WorkAssignmentView wa: wa.TryRefresh(); break;
             }
         }
 

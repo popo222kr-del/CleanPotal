@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 
 namespace CleanPotal
 {
     public partial class ScheduleRegisterWindow : Window
     {
         private List<UserModel> _allUsers = new List<UserModel>();
-        private List<string> _eduNamesList = new List<string>();
-        private ICollectionView? _eduNamesView;
+        private List<UserModel> _filteredEduUsers = new List<UserModel>();
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
@@ -74,35 +71,18 @@ namespace CleanPotal
             {
                 TabEdu.Visibility = Visibility.Visible;
 
-                // Office → 김팀 → 장팀 → 주간팀 → 나머지 순 정렬
                 var teamOrder = new[] { "Office", "김팀", "장팀", "주간팀" };
-                _eduNamesList = _allUsers
+                var teams = _allUsers
                     .Where(u => !string.IsNullOrWhiteSpace(u.RealName))
-                    .OrderBy(u => { int i = Array.IndexOf(teamOrder, u.TeamName); return i < 0 ? 99 : i; })
-                    .ThenBy(u => u.RealName)
-                    .Select(u => $"[{u.TeamName}] {u.RealName}")
+                    .Select(u => u.TeamName)
+                    .Distinct()
+                    .OrderBy(t => { int i = Array.IndexOf(teamOrder, t); return i < 0 ? 99 : i; })
                     .ToList();
+                teams.Insert(0, "전체");
+                CmbEduTeam.ItemsSource = teams;
+                CmbEduTeam.SelectedIndex = 0;
 
-                _eduNamesView = CollectionViewSource.GetDefaultView(_eduNamesList);
-                CmbEduName.ItemsSource = _eduNamesView;
-                if (_eduNamesList.Count > 0) CmbEduName.SelectedIndex = 0;
-
-                // 검색 필터링: 템플릿 로드 후 내부 TextBox에 이벤트 연결
-                CmbEduName.Loaded += (_, _) =>
-                {
-                    if (CmbEduName.Template?.FindName("PART_EditableTextBox", CmbEduName) is TextBox tb)
-                    {
-                        tb.TextChanged += (__, ___) =>
-                        {
-                            string kw = tb.Text ?? "";
-                            _eduNamesView!.Filter = o =>
-                                string.IsNullOrEmpty(kw) ||
-                                o.ToString()!.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0;
-                            _eduNamesView.Refresh();
-                            if (CmbEduName.Items.Count > 0) CmbEduName.IsDropDownOpen = true;
-                        };
-                    }
-                };
+                RefreshEduNameList();
             }
             else
             {
@@ -115,6 +95,9 @@ namespace CleanPotal
             DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
             CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
+            RbMethodCollective.Checked += (_, __) => RefreshPreview();
+            RbMethodELearning.Checked += (_, __) => RefreshPreview();
+            RbMethodVideo.Checked += (_, __) => RefreshPreview();
 
             // 창이 열릴 때 백그라운드에서 공휴일 데이터를 로드
             this.Loaded += async (s, e) =>
@@ -133,6 +116,25 @@ namespace CleanPotal
             };
 
             RefreshPreview();
+        }
+
+        private void CmbEduTeam_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RefreshEduNameList();
+            RefreshPreview();
+        }
+
+        private void RefreshEduNameList()
+        {
+            string selectedTeam = CmbEduTeam.SelectedItem?.ToString() ?? "전체";
+            _filteredEduUsers = _allUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) &&
+                            (selectedTeam == "전체" || u.TeamName == selectedTeam))
+                .OrderBy(u => u.RealName)
+                .ToList();
+
+            CmbEduName.ItemsSource = _filteredEduUsers.Select(u => u.RealName).ToList();
+            if (CmbEduName.Items.Count > 0) CmbEduName.SelectedIndex = 0;
         }
 
         private void DpShiftStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -283,15 +285,16 @@ namespace CleanPotal
                 }
                 else // 교육 일정 등록
                 {
-                    string rawSel = CmbEduName.SelectedItem?.ToString() ?? CmbEduName.Text ?? "";
-                    string name = rawSel.Contains("]") ? rawSel.Substring(rawSel.IndexOf(']') + 1).Trim() : rawSel;
+                    string name = CmbEduName.SelectedItem?.ToString() ?? "";
                     string course = TxtEduCourse.Text.Trim();
-                    string method = TxtEduMethod.Text.Trim();
+                    string method = RbMethodELearning.IsChecked == true ? "이러닝"
+                                  : RbMethodVideo.IsChecked == true ? "화상"
+                                  : "집합";
 
-                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(course) || string.IsNullOrEmpty(method) ||
+                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(course) ||
                         !DpEduStart.SelectedDate.HasValue || !DpEduEnd.SelectedDate.HasValue)
                     {
-                        MessageBox.Show("대상자, 교육명, 기간, 교육 내용을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("대상자, 교육명, 기간을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -319,7 +322,8 @@ namespace CleanPotal
 
                     // 🔥 2. 누락되었던 로직: 스케줄 보드(ShiftScheduleModel)에도 '교육'으로 자동 동시 등록
                     int shiftRegisteredCount = 0;
-                    string teamGroup = _allUsers.FirstOrDefault(u => u.RealName == name)?.TeamName ?? "";
+                    string teamGroup = _filteredEduUsers.FirstOrDefault(u => u.RealName == name)?.TeamName
+                                       ?? _allUsers.FirstOrDefault(u => u.RealName == name)?.TeamName ?? "";
 
                     for (DateTime dt = startDate; dt <= endDate; dt = dt.AddDays(1))
                     {

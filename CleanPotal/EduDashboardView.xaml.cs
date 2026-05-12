@@ -55,6 +55,7 @@ namespace CleanPotal
                         EduId = e.Id,
                         MemberName = e.MemberName,
                         Username = user?.Username ?? "-",
+                        EmployeeNumber = user?.EmployeeNumber ?? user?.Username ?? "-",
                         HireDate = user?.HireDate ?? "",
                         TeamName = user?.TeamName ?? "-",
                         JobTitle = user?.JobTitle ?? "-",

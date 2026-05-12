@@ -303,13 +303,22 @@
 
             <TabItem x:Name="TabEdu" Header="교육 일정 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
-                    <StackPanel Margin="0,0,0,20">
-                        <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
-                        <ComboBox x:Name="CmbEduName"
-                                  IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"
-                                  Height="42" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1"
-                                  Padding="10,0" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="팀 선택" Style="{StaticResource FieldLabelStyle}"/>
+                            <ComboBox x:Name="CmbEduTeam" Style="{StaticResource InputComboStyle}"
+                                      SelectionChanged="CmbEduTeam_SelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
+                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"/>
+                        </StackPanel>
+                    </Grid>
 
                     <TextBlock Text="교육/프로젝트명" Style="{StaticResource FieldLabelStyle}"/>
                     <TextBox x:Name="TxtEduCourse" Style="{StaticResource InputTextStyle}" Margin="0,0,0,20"/>
@@ -334,8 +343,77 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="교육 내용 및 방식" Style="{StaticResource FieldLabelStyle}"/>
-                    <TextBox x:Name="TxtEduMethod" Style="{StaticResource InputTextStyle}" Margin="0,0,0,20"/>
+                    <TextBlock Text="교육 방식" Style="{StaticResource FieldLabelStyle}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                        <RadioButton x:Name="RbMethodCollective" Content="집합" GroupName="EduMethod"
+                                     IsChecked="True" Margin="0,0,8,0">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="Bd" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                                            CornerRadius="6" Padding="20,10" Cursor="Hand">
+                                        <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                                   FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0F172A"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#0F172A"/>
+                                            <Setter TargetName="Txt" Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+                        <RadioButton x:Name="RbMethodELearning" Content="이러닝" GroupName="EduMethod"
+                                     Margin="0,0,8,0">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="Bd" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                                            CornerRadius="6" Padding="20,10" Cursor="Hand">
+                                        <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                                   FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0F172A"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#0F172A"/>
+                                            <Setter TargetName="Txt" Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+                        <RadioButton x:Name="RbMethodVideo" Content="화상" GroupName="EduMethod">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="Bd" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                                            CornerRadius="6" Padding="20,10" Cursor="Hand">
+                                        <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                                   FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0F172A"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#0F172A"/>
+                                            <Setter TargetName="Txt" Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+                    </StackPanel>
 
                     <Border Background="#F8FAFC" BorderBrush="#F1F5F9" BorderThickness="1" CornerRadius="8" Padding="16,14">
                         <StackPanel>

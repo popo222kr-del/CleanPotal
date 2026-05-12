@@ -310,7 +310,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="사번" Binding="{Binding Username}" Width="80">
+                <DataGridTextColumn Header="사번" Binding="{Binding EmployeeNumber}" Width="80">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="#94A3B8"/>
