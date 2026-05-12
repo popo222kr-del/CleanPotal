@@ -393,6 +393,7 @@
                         <Expander x:Name="ExpanderAdmin" Header="관리자 영역" Tag="&#xE72E;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderAdmin_Expanded" Visibility="Collapsed">
                             <StackPanel>
                                 <Button x:Name="BtnNavEduDashboard" Content="교육 현황 대시보드" Style="{StaticResource ErpSubButtonStyle}" Click="OpenEduDashboard_Click"/>
+                                <Button x:Name="BtnNavWorkAssignment" Content="개인별 업무 분장표" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWorkAssignment_Click"/>
                                 <Button x:Name="BtnNavUserManagement" Content="사용자 계정 관리" Style="{StaticResource ErpSubButtonStyle}" Click="OpenUserManagement_Click"/>
                             </StackPanel>
                         </Expander>

@@ -179,15 +179,19 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
                 <!-- 연도 선택기 -->
-                <Button x:Name="BtnPrevYear" Content="◄"
-                        Style="{StaticResource YearNavBtn}"
-                        Click="BtnPrevYear_Click"/>
+                <Button x:Name="BtnPrevYear" Style="{StaticResource YearNavBtn}" Click="BtnPrevYear_Click">
+                    <Path Data="M 5,0 L 0,4 L 5,8" Stroke="#64748B" StrokeThickness="1.5"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
                 <TextBlock x:Name="YearText" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
                            Width="52" TextAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="BtnNextYear" Content="►"
-                        Style="{StaticResource YearNavBtn}"
-                        Margin="0,0,14,0"
-                        Click="BtnNextYear_Click"/>
+                <Button x:Name="BtnNextYear" Style="{StaticResource YearNavBtn}"
+                        Margin="0,0,14,0" Click="BtnNextYear_Click">
+                    <Path Data="M 0,0 L 5,4 L 0,8" Stroke="#64748B" StrokeThickness="1.5"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
 
                 <!-- 상태 pill 필터 -->
                 <ListBox x:Name="StatusFilter"

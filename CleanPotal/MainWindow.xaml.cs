@@ -21,6 +21,7 @@ namespace CleanPotal
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
         private EduDashboardView? _eduDashboardView;
+        private WorkAssignmentView? _workAssignmentView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -119,6 +120,7 @@ namespace CleanPotal
                 case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
                 case EduDashboardView ed: ed.TryRefresh(); break;
+                case WorkAssignmentView wa: wa.TryRefresh(); break;
             }
         }
 
@@ -242,7 +244,7 @@ namespace CleanPotal
             else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
-            else if (_currentViewName == "EduDashboard") ExpanderAdmin.IsExpanded = true;
+            else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderAdmin.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
@@ -297,6 +299,13 @@ namespace CleanPotal
             ShowEduDashboard();
         }
 
+        private void OpenWorkAssignment_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenAdminFeature()) return;
+            ShowWorkAssignment();
+        }
+
         private void ShowEduDashboard()
         {
             _currentViewName = "EduDashboard";
@@ -305,6 +314,17 @@ namespace CleanPotal
             if (_eduDashboardView == null) _eduDashboardView = new EduDashboardView();
             else _eduDashboardView.TryRefresh();
             MainContent.Content = _eduDashboardView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowWorkAssignment()
+        {
+            _currentViewName = "WorkAssignment";
+            ApplySectionMeta("개인별 업무 분장표", "팀원별 업무 내용, 기본 교육 기록, 기관 계정을 관리합니다.");
+            UpdateNavSelection("WorkAssignment");
+            if (_workAssignmentView == null) _workAssignmentView = new WorkAssignmentView();
+            else _workAssignmentView.TryRefresh();
+            MainContent.Content = _workAssignmentView;
             HideAllHeaderButtons();
         }
 
@@ -501,6 +521,7 @@ namespace CleanPotal
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal;
+            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal;
@@ -518,6 +539,7 @@ namespace CleanPotal
                 case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
                 case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
                 case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderAdmin.Style = expActive; if (_isSidebarOpen) ExpanderAdmin.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;

@@ -86,6 +86,84 @@ namespace CleanPotal
         public string AttachmentPath { get; set; } = "";
     }
 
+    public class WorkAssignmentMember : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+        public string RealName { get; set; } = "";
+        public string TeamName { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string HireDate { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+
+        public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
+
+        public string CareerStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(HireDate) || !DateTime.TryParse(HireDate, out var hire)) return "-";
+                var today = DateTime.Today;
+                int years = today.Year - hire.Year;
+                int months = today.Month - hire.Month;
+                if (months < 0) { years--; months += 12; }
+                if (years < 0) return "-";
+                if (years == 0) return $"{months}개월";
+                if (months == 0) return $"{years}년";
+                return $"{years}년 {months}개월";
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class EduBasicItem : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+
+        private string _eduName = "";
+        public string EduName { get => _eduName; set { _eduName = value; OnPropertyChanged(); } }
+
+        private string _eduDate = "";
+        public string EduDate { get => _eduDate; set { _eduDate = value; OnPropertyChanged(); } }
+
+        private string _instructor = "";
+        public string Instructor { get => _instructor; set { _instructor = value; OnPropertyChanged(); } }
+
+        private string _note = "";
+        public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class AccountItem : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+
+        private string _serviceName = "";
+        public string ServiceName { get => _serviceName; set { _serviceName = value; OnPropertyChanged(); } }
+
+        private string _accountId = "";
+        public string AccountId { get => _accountId; set { _accountId = value; OnPropertyChanged(); } }
+
+        private string _accountPassword = "";
+        public string AccountPassword { get => _accountPassword; set { _accountPassword = value; OnPropertyChanged(); } }
+
+        private string _note = "";
+        public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     public class EduDashboardRow : INotifyPropertyChanged
     {
         public int EduId { get; set; }

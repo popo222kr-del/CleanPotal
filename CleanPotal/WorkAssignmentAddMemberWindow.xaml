@@ -1,0 +1,90 @@
+<Window x:Class="CleanPotal.WorkAssignmentAddMemberWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="인원 추가" Height="420" Width="340"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8FAFC">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="인원 선택" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+
+        <!-- 검색 -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Margin="0,0,0,10" Padding="10,6">
+            <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" FontSize="13"
+                     TextChanged="SearchBox_TextChanged">
+                <TextBox.Style>
+                    <Style TargetType="TextBox">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <VisualBrush Stretch="None" AlignmentX="Left">
+                                            <VisualBrush.Visual>
+                                                <TextBlock Text="이름 또는 팀명으로 검색..." Foreground="#94A3B8" FontSize="13"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
+        </Border>
+
+        <!-- 리스트 -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+            <ListBox x:Name="UserList" Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     MouseDoubleClick="UserList_MouseDoubleClick">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Padding="4,4">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A">
+                                <Run Text="{Binding RealName}"/>
+                            </TextBlock>
+                            <TextBlock FontSize="11" Foreground="#94A3B8">
+                                <Run Text="{Binding TeamName}"/>
+                                <Run Text=" · "/>
+                                <Run Text="{Binding Username}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- 버튼 -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="취소" Width="80" Height="32" Margin="0,0,8,0"
+                    Background="#F1F5F9" Foreground="#475569" FontSize="13"
+                    BorderThickness="0" Cursor="Hand" Click="BtnCancel_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="7" Padding="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <Button Content="추가" Width="80" Height="32"
+                    Background="#2563EB" Foreground="White" FontSize="13"
+                    BorderThickness="0" Cursor="Hand" Click="BtnConfirm_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="7" Padding="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

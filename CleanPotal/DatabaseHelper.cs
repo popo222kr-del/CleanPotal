@@ -61,6 +61,7 @@ namespace CleanPotal
             }
 
             InitializeScheduleTables();
+            InitializeWorkAssignmentTables();
 
             // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
             CreateProdReqTable();
@@ -346,6 +347,93 @@ namespace CleanPotal
             using (var db = GetConnection())
                 return db.Query<EducationPlanModel>("SELECT * FROM EducationPlan WHERE MemberName = @Name ORDER BY StartDate DESC",
                     new { Name = memberName }).ToList();
+        }
+
+        // ==========================================================
+        // 개인별 업무 분장표 (WorkAssignment)
+        // ==========================================================
+
+        public static void InitializeWorkAssignmentTables()
+        {
+            using (var db = GetConnection())
+            {
+                db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentMembers (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT NOT NULL UNIQUE
+                )");
+                db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentEduBasic (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT NOT NULL,
+                    EduName TEXT,
+                    EduDate TEXT,
+                    Instructor TEXT,
+                    Note TEXT
+                )");
+                db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentAccounts (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT NOT NULL,
+                    ServiceName TEXT,
+                    AccountId TEXT,
+                    AccountPassword TEXT,
+                    Note TEXT
+                )");
+            }
+        }
+
+        public static List<string> GetWorkAssignmentUsernames()
+        {
+            using (var db = GetConnection())
+                return db.Query<string>("SELECT Username FROM WorkAssignmentMembers ORDER BY rowid").ToList();
+        }
+
+        public static void AddWorkAssignmentMember(string username)
+        {
+            using (var db = GetConnection())
+                db.Execute("INSERT OR IGNORE INTO WorkAssignmentMembers (Username) VALUES (@Username)", new { Username = username });
+        }
+
+        public static void RemoveWorkAssignmentMember(string username)
+        {
+            using (var db = GetConnection())
+            {
+                db.Execute("DELETE FROM WorkAssignmentMembers WHERE Username = @Username", new { Username = username });
+                db.Execute("DELETE FROM WorkAssignmentEduBasic WHERE Username = @Username", new { Username = username });
+                db.Execute("DELETE FROM WorkAssignmentAccounts WHERE Username = @Username", new { Username = username });
+            }
+        }
+
+        public static List<EduBasicItem> GetEduBasicItems(string username)
+        {
+            using (var db = GetConnection())
+                return db.Query<EduBasicItem>("SELECT * FROM WorkAssignmentEduBasic WHERE Username = @Username ORDER BY Id", new { Username = username }).ToList();
+        }
+
+        public static void SaveEduBasicItems(string username, IEnumerable<EduBasicItem> items)
+        {
+            using (var db = GetConnection())
+            {
+                db.Execute("DELETE FROM WorkAssignmentEduBasic WHERE Username = @Username", new { Username = username });
+                foreach (var item in items)
+                    db.Execute("INSERT INTO WorkAssignmentEduBasic (Username, EduName, EduDate, Instructor, Note) VALUES (@Username, @EduName, @EduDate, @Instructor, @Note)",
+                        new { Username = username, item.EduName, item.EduDate, item.Instructor, item.Note });
+            }
+        }
+
+        public static List<AccountItem> GetAccountItems(string username)
+        {
+            using (var db = GetConnection())
+                return db.Query<AccountItem>("SELECT * FROM WorkAssignmentAccounts WHERE Username = @Username ORDER BY Id", new { Username = username }).ToList();
+        }
+
+        public static void SaveAccountItems(string username, IEnumerable<AccountItem> items)
+        {
+            using (var db = GetConnection())
+            {
+                db.Execute("DELETE FROM WorkAssignmentAccounts WHERE Username = @Username", new { Username = username });
+                foreach (var item in items)
+                    db.Execute("INSERT INTO WorkAssignmentAccounts (Username, ServiceName, AccountId, AccountPassword, Note) VALUES (@Username, @ServiceName, @AccountId, @AccountPassword, @Note)",
+                        new { Username = username, item.ServiceName, item.AccountId, item.AccountPassword, item.Note });
+            }
         }
 
         // ==========================================================
