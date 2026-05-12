@@ -22,6 +22,7 @@
         <!-- 읽기전용 값 텍스트 -->
         <Style x:Key="FieldValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#0F172A"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
@@ -151,6 +152,24 @@
             <Setter Property="Background" Value="#FAFAF9"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="#475569"/>
+        </Style>
+
+        <Style x:Key="EduCombinedRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsManual}" Value="False">
+                    <Setter Property="Background" Value="#F0F9FF"/>
+                    <Setter Property="Foreground" Value="#475569"/>
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -319,7 +338,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <DataGrid x:Name="EduBasicGrid"
+                            <DataGrid x:Name="EduCombinedGrid"
                                       AutoGenerateColumns="False" CanUserSortColumns="False"
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
@@ -329,46 +348,67 @@
                                       SelectionUnit="FullRow"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
                                       CellStyle="{StaticResource AssignGridCellStyle}"
-                                      RowStyle="{StaticResource AssignGridRowStyle}">
+                                      RowStyle="{StaticResource EduCombinedRowStyle}"
+                                      BeginningEdit="EduCombinedGrid_BeginningEdit">
                                 <DataGrid.Columns>
+                                    <!-- 구분 배지 -->
+                                    <DataGridTemplateColumn Header="구분" Width="78" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#F0FDF4"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsManual}" Value="False">
+                                                                    <Setter Property="Background" Value="#EFF6FF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Source}" FontSize="11" FontWeight="SemiBold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="#059669"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsManual}" Value="False">
+                                                                        <Setter Property="Foreground" Value="#2563EB"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="교육명" Binding="{Binding EduName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridTextColumn Header="교육일" Binding="{Binding EduDate, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
-                                    <DataGridTextColumn Header="강사/기관" Binding="{Binding Instructor, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                                    <DataGridTextColumn Header="시작일/교육일" Binding="{Binding EduDate, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate}" Width="90"/>
+                                    <DataGridTextColumn Header="강사/방법" Binding="{Binding Instructor, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="70"/>
                                     <DataGridTextColumn Header="비고" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridTemplateColumn Header="" Width="36">
+                                    <!-- 삭제 버튼 (수동 행만) -->
+                                    <DataGridTemplateColumn Header="" Width="36" IsReadOnly="True">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="✕" FontSize="11" Background="Transparent" BorderThickness="0"
                                                         Foreground="#94A3B8" Cursor="Hand" VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                        Click="BtnDeleteEduRow_Click" Tag="{Binding}"/>
+                                                        Click="BtnDeleteEduRow_Click" Tag="{Binding}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsManual}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-
-                            <!-- 대시보드 연동 섹션 -->
-                            <Border Margin="0,16,0,10" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="교육 현황 대시보드 연동" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/>
-                                <TextBlock Text="(자동 연동 — 수정 불가)" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                            </StackPanel>
-                            <DataGrid x:Name="ExtEduGrid"
-                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
-                                      BorderBrush="#E2E8F0" BorderThickness="1"
-                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="40" HeadersVisibility="Column"
-                                      Background="#FAFAFA" AlternatingRowBackground="Transparent"
-                                      SelectionUnit="FullRow"
-                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
-                                      CellStyle="{StaticResource AssignGridCellStyle}"
-                                      RowStyle="{StaticResource SyncedGridRowStyle}">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*"/>
-                                    <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="110"/>
-                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="110"/>
-                                    <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="90"/>
-                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="70"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>
