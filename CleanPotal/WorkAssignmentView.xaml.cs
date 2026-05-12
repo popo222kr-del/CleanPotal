@@ -99,31 +99,11 @@ namespace CleanPotal
             InfoEmail.Text = string.IsNullOrEmpty(m.Email) ? "-" : m.Email;
             InfoPhone.Text = string.IsNullOrEmpty(m.PhoneNumber) ? "-" : m.PhoneNumber;
 
-            var combined = new ObservableCollection<EduCombinedRow>();
             var eduItems = DatabaseHelper.GetEduBasicItems(m.Username);
-            foreach (var item in eduItems)
-                combined.Add(new EduCombinedRow
-                {
-                    IsManual = true,
-                    Username = item.Username,
-                    EduName = item.EduName,
-                    EduDate = item.EduDate,
-                    Instructor = item.Instructor,
-                    Note = item.Note
-                });
+            EduBasicGrid.ItemsSource = new ObservableCollection<EduBasicItem>(eduItems);
+
             var extEdu = DatabaseHelper.GetEducationPlansByMember(m.RealName);
-            foreach (var e in extEdu.OrderByDescending(x => x.StartDate))
-                combined.Add(new EduCombinedRow
-                {
-                    IsManual = false,
-                    EduId = e.Id,
-                    EduName = e.CourseName,
-                    EduDate = e.StartDate.ToString("yyyy-MM-dd"),
-                    EndDate = e.EndDate.ToString("yyyy-MM-dd"),
-                    Instructor = e.EduMethod ?? "",
-                    Status = e.Status ?? ""
-                });
-            EduCombinedGrid.ItemsSource = combined;
+            ExtEduGrid.ItemsSource = extEdu.OrderByDescending(x => x.StartDate).ToList();
 
             var accountItems = DatabaseHelper.GetAccountItems(m.Username);
             AccountGrid.ItemsSource = new ObservableCollection<AccountItem>(accountItems);
@@ -210,39 +190,24 @@ namespace CleanPotal
 
         private void BtnAddEduRow_Click(object sender, RoutedEventArgs e)
         {
-            if (EduCombinedGrid.ItemsSource is ObservableCollection<EduCombinedRow> list)
-                list.Add(new EduCombinedRow { IsManual = true, Username = _selected?.Username ?? "" });
+            if (EduBasicGrid.ItemsSource is ObservableCollection<EduBasicItem> list)
+                list.Add(new EduBasicItem { Username = _selected?.Username ?? "" });
         }
 
         private void BtnSaveEdu_Click(object sender, RoutedEventArgs e)
         {
             if (_selected == null) return;
-            EduCombinedGrid.CommitEdit(DataGridEditingUnit.Row, true);
-            var rows = EduCombinedGrid.ItemsSource as ObservableCollection<EduCombinedRow> ?? new();
-            var manualItems = new ObservableCollection<EduBasicItem>(
-                rows.Where(r => r.IsManual).Select(r => new EduBasicItem
-                {
-                    Username = r.Username,
-                    EduName = r.EduName,
-                    EduDate = r.EduDate,
-                    Instructor = r.Instructor,
-                    Note = r.Note
-                }));
-            DatabaseHelper.SaveEduBasicItems(_selected.Username, manualItems);
+            EduBasicGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            var items = EduBasicGrid.ItemsSource as ObservableCollection<EduBasicItem> ?? new();
+            DatabaseHelper.SaveEduBasicItems(_selected.Username, items);
             MessageBox.Show("기본 교육 기록이 저장되었습니다.", "저장 완료", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void BtnDeleteEduRow_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.Tag is EduCombinedRow item &&
-                EduCombinedGrid.ItemsSource is ObservableCollection<EduCombinedRow> list)
+            if ((sender as Button)?.Tag is EduBasicItem item &&
+                EduBasicGrid.ItemsSource is ObservableCollection<EduBasicItem> list)
                 list.Remove(item);
-        }
-
-        private void EduCombinedGrid_BeginningEdit(object sender, System.Windows.Controls.DataGridBeginningEditEventArgs e)
-        {
-            if (e.Row.Item is EduCombinedRow row && !row.IsManual)
-                e.Cancel = true;
         }
 
         private void BtnAddAccountRow_Click(object sender, RoutedEventArgs e)

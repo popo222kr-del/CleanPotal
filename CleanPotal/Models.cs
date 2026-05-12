@@ -129,14 +129,46 @@ namespace CleanPotal
         private string _eduName = "";
         public string EduName { get => _eduName; set { _eduName = value; OnPropertyChanged(); } }
 
-        private string _eduDate = "";
-        public string EduDate { get => _eduDate; set { _eduDate = value; OnPropertyChanged(); } }
+        private string _startDate = "";
+        public string StartDate
+        {
+            get => _startDate;
+            set { _startDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(StartDateValue)); OnPropertyChanged(nameof(DateDisplayStr)); }
+        }
 
-        private string _instructor = "";
-        public string Instructor { get => _instructor; set { _instructor = value; OnPropertyChanged(); } }
+        private string _endDate = "";
+        public string EndDate
+        {
+            get => _endDate;
+            set { _endDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(EndDateValue)); OnPropertyChanged(nameof(DateDisplayStr)); }
+        }
 
-        private string _note = "";
-        public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }
+        public DateTime? StartDateValue
+        {
+            get => DateTime.TryParse(_startDate, out var d) ? d : (DateTime?)null;
+            set { StartDate = value?.ToString("yyyy-MM-dd") ?? ""; }
+        }
+
+        public DateTime? EndDateValue
+        {
+            get => DateTime.TryParse(_endDate, out var d) ? d : (DateTime?)null;
+            set { EndDate = value?.ToString("yyyy-MM-dd") ?? ""; }
+        }
+
+        public string DateDisplayStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_startDate) || !DateTime.TryParse(_startDate, out var s)) return "";
+                if (string.IsNullOrEmpty(_endDate) || !DateTime.TryParse(_endDate, out var e) || e.Date <= s.Date)
+                    return s.ToString("yyyy-MM-dd");
+                if (e.Year == s.Year && e.Month == s.Month)
+                    return $"{s:yyyy-MM-dd}~{e:dd}";
+                if (e.Year == s.Year)
+                    return $"{s:yyyy-MM-dd}~{e:MM-dd}";
+                return $"{s:yyyy-MM-dd}~{e:yyyy-MM-dd}";
+            }
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
@@ -156,38 +188,6 @@ namespace CleanPotal
 
         private string _accountPassword = "";
         public string AccountPassword { get => _accountPassword; set { _accountPassword = value; OnPropertyChanged(); } }
-
-        private string _note = "";
-        public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
-
-    public class EduCombinedRow : INotifyPropertyChanged
-    {
-        public bool IsManual { get; set; }
-        public string Source => IsManual ? "직접입력" : "대시보드";
-
-        // Common identity
-        public string Username { get; set; } = "";
-        public int EduId { get; set; }  // used for synced rows (EducationPlan.Id)
-
-        private string _eduName = "";
-        public string EduName { get => _eduName; set { _eduName = value; OnPropertyChanged(); } }
-
-        private string _eduDate = "";
-        public string EduDate { get => _eduDate; set { _eduDate = value; OnPropertyChanged(); } }
-
-        private string _endDate = "";
-        public string EndDate { get => _endDate; set { _endDate = value; OnPropertyChanged(); } }
-
-        private string _instructor = "";
-        public string Instructor { get => _instructor; set { _instructor = value; OnPropertyChanged(); } }
-
-        private string _status = "";
-        public string Status { get => _status; set { _status = value; OnPropertyChanged(); } }
 
         private string _note = "";
         public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }

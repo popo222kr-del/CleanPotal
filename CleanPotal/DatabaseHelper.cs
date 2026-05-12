@@ -365,10 +365,11 @@ namespace CleanPotal
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Username TEXT NOT NULL,
                     EduName TEXT,
-                    EduDate TEXT,
-                    Instructor TEXT,
-                    Note TEXT
+                    StartDate TEXT,
+                    EndDate TEXT
                 )");
+                try { db.Execute("ALTER TABLE WorkAssignmentEduBasic ADD COLUMN StartDate TEXT"); } catch { }
+                try { db.Execute("ALTER TABLE WorkAssignmentEduBasic ADD COLUMN EndDate TEXT"); } catch { }
                 db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentAccounts (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Username TEXT NOT NULL,
@@ -414,8 +415,8 @@ namespace CleanPotal
             {
                 db.Execute("DELETE FROM WorkAssignmentEduBasic WHERE Username = @Username", new { Username = username });
                 foreach (var item in items)
-                    db.Execute("INSERT INTO WorkAssignmentEduBasic (Username, EduName, EduDate, Instructor, Note) VALUES (@Username, @EduName, @EduDate, @Instructor, @Note)",
-                        new { Username = username, item.EduName, item.EduDate, item.Instructor, item.Note });
+                    db.Execute("INSERT INTO WorkAssignmentEduBasic (Username, EduName, StartDate, EndDate) VALUES (@Username, @EduName, @StartDate, @EndDate)",
+                        new { Username = username, item.EduName, item.StartDate, item.EndDate });
             }
         }
 

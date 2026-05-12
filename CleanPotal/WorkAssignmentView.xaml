@@ -338,7 +338,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <DataGrid x:Name="EduCombinedGrid"
+                            <DataGrid x:Name="EduBasicGrid"
                                       AutoGenerateColumns="False" CanUserSortColumns="False"
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
@@ -348,67 +348,72 @@
                                       SelectionUnit="FullRow"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
                                       CellStyle="{StaticResource AssignGridCellStyle}"
-                                      RowStyle="{StaticResource EduCombinedRowStyle}"
-                                      BeginningEdit="EduCombinedGrid_BeginningEdit">
+                                      RowStyle="{StaticResource AssignGridRowStyle}">
                                 <DataGrid.Columns>
-                                    <!-- 구분 배지 -->
-                                    <DataGridTemplateColumn Header="구분" Width="78" IsReadOnly="True">
+                                    <DataGridTextColumn Header="교육 내용" Binding="{Binding EduName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                    <!-- 교육 일자: 표시는 DateDisplayStr, 편집은 DatePicker 두 개 -->
+                                    <DataGridTemplateColumn Header="교육 일자" Width="290">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#F0FDF4"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsManual}" Value="False">
-                                                                    <Setter Property="Background" Value="#EFF6FF"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <TextBlock Text="{Binding Source}" FontSize="11" FontWeight="SemiBold">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="#059669"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsManual}" Value="False">
-                                                                        <Setter Property="Foreground" Value="#2563EB"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Border>
+                                                <TextBlock Text="{Binding DateDisplayStr}" VerticalAlignment="Center"
+                                                           Padding="10,0" FontSize="13" Foreground="#1E293B"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                                                    <DatePicker SelectedDate="{Binding StartDateValue, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                                Width="128" VerticalAlignment="Center" FontSize="12"/>
+                                                    <TextBlock Text="~" VerticalAlignment="Center" Margin="4,0" Foreground="#64748B" FontSize="14"/>
+                                                    <DatePicker SelectedDate="{Binding EndDateValue, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                                Width="128" VerticalAlignment="Center" FontSize="12"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="교육명" Binding="{Binding EduName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridTextColumn Header="시작일/교육일" Binding="{Binding EduDate, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
-                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate}" Width="90"/>
-                                    <DataGridTextColumn Header="강사/방법" Binding="{Binding Instructor, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
-                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="70"/>
-                                    <DataGridTextColumn Header="비고" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <!-- 삭제 버튼 (수동 행만) -->
                                     <DataGridTemplateColumn Header="" Width="36" IsReadOnly="True">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="✕" FontSize="11" Background="Transparent" BorderThickness="0"
                                                         Foreground="#94A3B8" Cursor="Hand" VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                        Click="BtnDeleteEduRow_Click" Tag="{Binding}">
-                                                    <Button.Style>
-                                                        <Style TargetType="Button">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsManual}" Value="False">
-                                                                    <Setter Property="Visibility" Value="Hidden"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Button.Style>
-                                                </Button>
+                                                        Click="BtnDeleteEduRow_Click" Tag="{Binding}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ── 외부 교육 기록 카드 ── -->
+                    <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20,16" Margin="0,0,0,16">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="0"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <Grid Margin="0,0,0,12">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Width="4" Height="16" CornerRadius="2" Background="#3B82F6" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="외부 교육 기록" Style="{StaticResource CardHeaderStyle}"/>
+                                    <TextBlock Text="(교육 현황 대시보드 자동 연동)" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <DataGrid x:Name="ExtEduGrid"
+                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
+                                      BorderBrush="#E2E8F0" BorderThickness="1"
+                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                                      RowHeight="40" HeadersVisibility="Column"
+                                      Background="White" AlternatingRowBackground="Transparent"
+                                      SelectionUnit="FullRow"
+                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
+                                      CellStyle="{StaticResource AssignGridCellStyle}"
+                                      RowStyle="{StaticResource SyncedGridRowStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*"/>
+                                    <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="110"/>
+                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="110"/>
+                                    <DataGridTextColumn Header="강사/방법" Binding="{Binding EduMethod}" Width="100"/>
+                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="70"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>
