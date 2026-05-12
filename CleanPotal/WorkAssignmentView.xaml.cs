@@ -130,16 +130,20 @@ namespace CleanPotal
 
         private void TxtMemberSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplySearchSort();
 
-        private void BtnSortAsc_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.NameAsc; SetSortButtonStyles(); ApplySearchSort(); }
-        private void BtnSortDesc_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.NameDesc; SetSortButtonStyles(); ApplySearchSort(); }
+        private void BtnSortName_Click(object sender, RoutedEventArgs e)
+        {
+            _sortMode = _sortMode == SortMode.NameAsc ? SortMode.NameDesc : SortMode.NameAsc;
+            BtnSortName.Content = _sortMode == SortMode.NameAsc ? "가나다↑" : "가나다↓";
+            SetSortButtonStyles();
+            ApplySearchSort();
+        }
         private void BtnSortTeam_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.Team; SetSortButtonStyles(); ApplySearchSort(); }
 
         private void SetSortButtonStyles()
         {
             var activeColor = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#EFF6FF"));
             var normalColor = System.Windows.Media.Brushes.White;
-            BtnSortAsc.Background = _sortMode == SortMode.NameAsc ? activeColor : normalColor;
-            BtnSortDesc.Background = _sortMode == SortMode.NameDesc ? activeColor : normalColor;
+            BtnSortName.Background = (_sortMode == SortMode.NameAsc || _sortMode == SortMode.NameDesc) ? activeColor : normalColor;
             BtnSortTeam.Background = _sortMode == SortMode.Team ? activeColor : normalColor;
         }
 
@@ -148,7 +152,9 @@ namespace CleanPotal
             string kw = TxtMemberSearch?.Text?.Trim() ?? "";
             var filtered = string.IsNullOrEmpty(kw)
                 ? _members.ToList()
-                : _members.Where(m => m.RealName.Contains(kw) || m.TeamName.Contains(kw)).ToList();
+                : _members.Where(m =>
+                    m.RealName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    m.TeamName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
 
             var sorted = _sortMode switch
             {

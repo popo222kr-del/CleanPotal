@@ -197,8 +197,10 @@ namespace CleanPotal
         public string Status
         {
             get => _status;
-            set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressPercent)); OnPropertyChanged(nameof(ProgressStr)); }
+            set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressPercent)); OnPropertyChanged(nameof(ProgressStr)); OnPropertyChanged(nameof(CompletedSortKey)); }
         }
+
+        public int CompletedSortKey => (Status == "완료" || Status == "취소") ? 1 : 0;
 
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";

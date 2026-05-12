@@ -99,12 +99,58 @@
         <!-- DataGrid 공통 -->
         <Style x:Key="AssignGridHeaderStyle" TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F8FAFC"/>
-            <Setter Property="Foreground" Value="#475569"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+
+        <Style x:Key="AssignGridCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                    <Setter Property="Foreground" Value="#1D4ED8"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AssignGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SyncedGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FAFAF9"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#475569"/>
         </Style>
     </UserControl.Resources>
 
@@ -126,18 +172,12 @@
                 <!-- 헤더 + 정렬 -->
                 <Border Grid.Row="0" Padding="12,12,12,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <Grid Margin="0,0,0,8">
+                        <Grid Margin="0,0,0,4">
                             <TextBlock Text="인원 목록" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <Button x:Name="BtnSortAsc" Content="가나다↑" FontSize="10" Height="22" Padding="6,0"
+                                <Button x:Name="BtnSortName" Content="가나다↑" FontSize="10" Height="22" Padding="6,0"
                                         Background="#EFF6FF" Foreground="#2563EB" BorderThickness="0" Cursor="Hand"
-                                        Click="BtnSortAsc_Click">
-                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
-                                </Button>
-                                <Button x:Name="BtnSortDesc" Content="가나다↓" FontSize="10" Height="22" Padding="6,0"
-                                        Background="White" Foreground="#64748B" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand"
-                                        Margin="3,0,0,0" Click="BtnSortDesc_Click">
+                                        Click="BtnSortName_Click">
                                     <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
                                 </Button>
                                 <Button x:Name="BtnSortTeam" Content="팀별" FontSize="10" Height="22" Padding="6,0"
@@ -147,6 +187,7 @@
                                 </Button>
                             </StackPanel>
                         </Grid>
+                        <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,8"/>
                         <!-- 검색 -->
                         <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Background="White" Padding="8,0">
                             <TextBox x:Name="TxtMemberSearch" BorderThickness="0" Background="Transparent"
@@ -288,9 +329,12 @@
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
                                       GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="38" HeadersVisibility="Column"
-                                      Background="White" AlternatingRowBackground="#FAFAFA"
-                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
+                                      RowHeight="40" HeadersVisibility="Column"
+                                      Background="White" AlternatingRowBackground="Transparent"
+                                      SelectionUnit="FullRow"
+                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
+                                      CellStyle="{StaticResource AssignGridCellStyle}"
+                                      RowStyle="{StaticResource AssignGridRowStyle}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="교육명" Binding="{Binding EduName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                                     <DataGridTextColumn Header="교육일" Binding="{Binding EduDate, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
@@ -305,6 +349,31 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 대시보드 연동 섹션 -->
+                            <Border Margin="0,16,0,10" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="교육 현황 대시보드 연동" FontSize="12" FontWeight="SemiBold" Foreground="#64748B"/>
+                                <TextBlock Text="(자동 연동 — 수정 불가)" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <DataGrid x:Name="ExtEduGrid"
+                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
+                                      BorderBrush="#E2E8F0" BorderThickness="1"
+                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                                      RowHeight="40" HeadersVisibility="Column"
+                                      Background="#FAFAFA" AlternatingRowBackground="Transparent"
+                                      SelectionUnit="FullRow"
+                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
+                                      CellStyle="{StaticResource AssignGridCellStyle}"
+                                      RowStyle="{StaticResource SyncedGridRowStyle}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*"/>
+                                    <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="110"/>
+                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="110"/>
+                                    <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="90"/>
+                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="70"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>
@@ -336,9 +405,12 @@
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
                                       GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="38" HeadersVisibility="Column"
-                                      Background="White" AlternatingRowBackground="#FAFAFA"
-                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
+                                      RowHeight="40" HeadersVisibility="Column"
+                                      Background="White" AlternatingRowBackground="Transparent"
+                                      SelectionUnit="FullRow"
+                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
+                                      CellStyle="{StaticResource AssignGridCellStyle}"
+                                      RowStyle="{StaticResource AssignGridRowStyle}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="서비스명" Binding="{Binding ServiceName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                                     <DataGridTextColumn Header="계정 ID" Binding="{Binding AccountId, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
@@ -358,35 +430,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- ── 외부 교육 이력 카드 ── -->
-                    <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20,16" Margin="0,0,0,0">
-                        <Border.Effect>
-                            <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="0"/>
-                        </Border.Effect>
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                <Border Width="4" Height="16" CornerRadius="2" Background="#F59E0B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="외부 교육 이력" Style="{StaticResource CardHeaderStyle}"/>
-                                <TextBlock Text="(자동 연동 - 교육 현황 대시보드 기준)" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                            </StackPanel>
-
-                            <DataGrid x:Name="ExtEduGrid"
-                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
-                                      BorderBrush="#E2E8F0" BorderThickness="1"
-                                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="38" HeadersVisibility="Column"
-                                      Background="White" AlternatingRowBackground="#FAFAFA"
-                                      ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*"/>
-                                    <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="110"/>
-                                    <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="110"/>
-                                    <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="100"/>
-                                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="80"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </StackPanel>
-                    </Border>
 
                 </StackPanel>
             </ScrollViewer>

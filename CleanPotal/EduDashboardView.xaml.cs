@@ -68,12 +68,13 @@ namespace CleanPotal
                         AttachmentPath = e.AttachmentPath ?? ""
                     };
                 })
-                .OrderBy(r => r.MemberName)
-                .ThenBy(r => r.StartDate)
                 .ToList();
 
-            _view = CollectionViewSource.GetDefaultView(_allRows);
-            _view.Filter = FilterRow;
+            var lcv = new ListCollectionView(_allRows);
+            lcv.SortDescriptions.Add(new SortDescription(nameof(EduDashboardRow.CompletedSortKey), ListSortDirection.Ascending));
+            lcv.SortDescriptions.Add(new SortDescription(nameof(EduDashboardRow.StartDate), ListSortDirection.Ascending));
+            lcv.Filter = FilterRow;
+            _view = lcv;
             EduDataGrid.ItemsSource = _view;
 
             UpdateStatusCards();
