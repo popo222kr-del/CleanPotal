@@ -6,14 +6,14 @@
     <UserControl.Resources>
         <!-- 카드 섹션 헤더 텍스트 -->
         <Style x:Key="CardHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="#0F172A"/>
         </Style>
 
         <!-- 라벨 텍스트 -->
         <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#64748B"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
@@ -21,7 +21,7 @@
 
         <!-- 읽기전용 값 텍스트 -->
         <Style x:Key="FieldValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Foreground" Value="#0F172A"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
@@ -101,8 +101,8 @@
             <Setter Property="Background" Value="#F8FAFC"/>
             <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,7"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
@@ -123,11 +123,37 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- 헤더 -->
-                <Border Grid.Row="0" Padding="16,14,16,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                <!-- 헤더 + 정렬 -->
+                <Border Grid.Row="0" Padding="12,12,12,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <TextBlock Text="인원 목록" FontSize="13" FontWeight="Bold" Foreground="#0F172A"/>
-                        <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="인원 목록" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Button x:Name="BtnSortAsc" Content="가나다↑" FontSize="10" Height="22" Padding="6,0"
+                                        Background="#EFF6FF" Foreground="#2563EB" BorderThickness="0" Cursor="Hand"
+                                        Click="BtnSortAsc_Click">
+                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                                </Button>
+                                <Button x:Name="BtnSortDesc" Content="가나다↓" FontSize="10" Height="22" Padding="6,0"
+                                        Background="White" Foreground="#64748B" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand"
+                                        Margin="3,0,0,0" Click="BtnSortDesc_Click">
+                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                                </Button>
+                                <Button x:Name="BtnSortTeam" Content="팀별" FontSize="10" Height="22" Padding="6,0"
+                                        Background="White" Foreground="#64748B" BorderBrush="#E2E8F0" BorderThickness="1" Cursor="Hand"
+                                        Margin="3,0,0,0" Click="BtnSortTeam_Click">
+                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                        <!-- 검색 -->
+                        <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Background="White" Padding="8,0">
+                            <TextBox x:Name="TxtMemberSearch" BorderThickness="0" Background="Transparent"
+                                     FontSize="12" Foreground="#475569" Height="28"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="TxtMemberSearch_TextChanged"/>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -191,49 +217,44 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Row 0 -->
-                                <StackPanel Grid.Column="0" Margin="0,0,16,12">
+                                <!-- Row 0: 이름 / 사번 / 소속팀 / 직위 -->
+                                <StackPanel Grid.Column="0" Margin="0,0,20,14">
                                     <TextBlock Text="이름" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoRealName" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="0,0,16,12">
-                                    <TextBlock Text="아이디" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBlock x:Name="InfoUsername" Style="{StaticResource FieldValueStyle}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2" Margin="0,0,16,12">
+                                <StackPanel Grid.Column="1" Margin="0,0,20,14">
                                     <TextBlock Text="사번" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoEmployeeNumber" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="3" Margin="0,0,16,12">
+                                <StackPanel Grid.Column="2" Margin="0,0,20,14">
                                     <TextBlock Text="소속팀" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoTeam" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="4" Margin="0,0,0,12">
+                                <StackPanel Grid.Column="3" Margin="0,0,0,14">
                                     <TextBlock Text="직위" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoJobTitle" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
 
-                                <!-- Row 1 -->
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
+                                <!-- Row 1: 입사일 / 경력 / 이메일 / 전화번호 -->
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,20,0">
                                     <TextBlock Text="입사일" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoHireDate" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,0">
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,20,0">
                                     <TextBlock Text="경력" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoCareer" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,16,0">
+                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,20,0">
                                     <TextBlock Text="이메일" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoEmail" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,0,16,0">
+                                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,0,0,0">
                                     <TextBlock Text="전화번호" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoPhone" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
@@ -267,7 +288,7 @@
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
                                       GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="34" HeadersVisibility="Column"
+                                      RowHeight="38" HeadersVisibility="Column"
                                       Background="White" AlternatingRowBackground="#FAFAFA"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
                                 <DataGrid.Columns>
@@ -315,7 +336,7 @@
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
                                       GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="34" HeadersVisibility="Column"
+                                      RowHeight="38" HeadersVisibility="Column"
                                       Background="White" AlternatingRowBackground="#FAFAFA"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
                                 <DataGrid.Columns>
@@ -353,7 +374,7 @@
                                       AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
                                       BorderBrush="#E2E8F0" BorderThickness="1"
                                       GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                      RowHeight="34" HeadersVisibility="Column"
+                                      RowHeight="38" HeadersVisibility="Column"
                                       Background="White" AlternatingRowBackground="#FAFAFA"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}">
                                 <DataGrid.Columns>

@@ -92,7 +92,6 @@ namespace CleanPotal
                 _selectedUser = user;
                 _isAddMode = false;
                 ShowDetailPanel(user);
-                LoadEduHistory(user.RealName);
             }
         }
 
@@ -109,12 +108,6 @@ namespace CleanPotal
             DetailTeamBadge.Visibility = Visibility.Collapsed;
             NewModeBadge.Visibility = Visibility.Visible;
             BtnDeleteUser.Visibility = Visibility.Collapsed;
-
-            EduSubtitle.Text = "사용자를 저장한 후 교육 이력을 확인할 수 있습니다.";
-            EduHistoryGrid.ItemsSource = null;
-            EduHistoryGrid.Visibility = Visibility.Collapsed;
-            EduEmptyPlaceholder.Visibility = Visibility.Visible;
-            EduEmptyText.Text = "사용자를 저장한 후 교육 이력을 확인할 수 있습니다.";
 
             EmptyState.Visibility = Visibility.Collapsed;
             DetailPanel.Visibility = Visibility.Visible;
@@ -151,21 +144,6 @@ namespace CleanPotal
 
             EmptyState.Visibility = Visibility.Collapsed;
             DetailPanel.Visibility = Visibility.Visible;
-        }
-
-        // ── 교육 이력 로드 ───────────────────────────────────────
-        private void LoadEduHistory(string memberName)
-        {
-            var history = DatabaseHelper.GetEducationPlansByMember(memberName);
-            EduHistoryGrid.ItemsSource = history;
-
-            bool hasData = history.Count > 0;
-            EduSubtitle.Text = hasData
-                ? $"총 {history.Count}건의 교육 이력이 등록되어 있습니다."
-                : "등록된 교육 이력이 없습니다.";
-            EduHistoryGrid.Visibility = hasData ? Visibility.Visible : Visibility.Collapsed;
-            EduEmptyText.Text = "등록된 교육 이력이 없습니다.";
-            EduEmptyPlaceholder.Visibility = hasData ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // ── 저장 ────────────────────────────────────────────────

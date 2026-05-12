@@ -11,6 +11,8 @@ namespace CleanPotal
     {
         private ObservableCollection<WorkAssignmentMember> _members = new();
         private WorkAssignmentMember? _selected;
+        private enum SortMode { NameAsc, NameDesc, Team }
+        private SortMode _sortMode = SortMode.NameAsc;
 
         public WorkAssignmentView()
         {
@@ -48,8 +50,8 @@ namespace CleanPotal
                     });
             }
 
-            MemberList.ItemsSource = _members;
             TxtMemberCount.Text = $"{_members.Count}명";
+            ApplySearchSort();
 
             // 이전 선택 복원
             if (restoreUsername != null)
@@ -108,7 +110,6 @@ namespace CleanPotal
             PanelDetail.Visibility = Visibility.Visible;
 
             InfoRealName.Text = m.RealName;
-            InfoUsername.Text = m.Username;
             InfoEmployeeNumber.Text = string.IsNullOrEmpty(m.EmployeeNumber) ? m.Username : m.EmployeeNumber;
             InfoTeam.Text = m.TeamName;
             InfoJobTitle.Text = m.JobTitle;
@@ -125,6 +126,38 @@ namespace CleanPotal
 
             var extEdu = DatabaseHelper.GetEducationPlansByMember(m.RealName);
             ExtEduGrid.ItemsSource = extEdu.OrderByDescending(x => x.StartDate).ToList();
+        }
+
+        private void TxtMemberSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplySearchSort();
+
+        private void BtnSortAsc_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.NameAsc; SetSortButtonStyles(); ApplySearchSort(); }
+        private void BtnSortDesc_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.NameDesc; SetSortButtonStyles(); ApplySearchSort(); }
+        private void BtnSortTeam_Click(object sender, RoutedEventArgs e) { _sortMode = SortMode.Team; SetSortButtonStyles(); ApplySearchSort(); }
+
+        private void SetSortButtonStyles()
+        {
+            var activeColor = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#EFF6FF"));
+            var normalColor = System.Windows.Media.Brushes.White;
+            BtnSortAsc.Background = _sortMode == SortMode.NameAsc ? activeColor : normalColor;
+            BtnSortDesc.Background = _sortMode == SortMode.NameDesc ? activeColor : normalColor;
+            BtnSortTeam.Background = _sortMode == SortMode.Team ? activeColor : normalColor;
+        }
+
+        private void ApplySearchSort()
+        {
+            string kw = TxtMemberSearch?.Text?.Trim() ?? "";
+            var filtered = string.IsNullOrEmpty(kw)
+                ? _members.ToList()
+                : _members.Where(m => m.RealName.Contains(kw) || m.TeamName.Contains(kw)).ToList();
+
+            var sorted = _sortMode switch
+            {
+                SortMode.NameDesc => filtered.OrderByDescending(m => m.RealName).ToList(),
+                SortMode.Team     => filtered.OrderBy(m => m.TeamName).ThenBy(m => m.RealName).ToList(),
+                _                 => filtered.OrderBy(m => m.RealName).ToList()
+            };
+
+            MemberList.ItemsSource = sorted;
         }
 
         private void BtnAddMember_Click(object sender, RoutedEventArgs e)

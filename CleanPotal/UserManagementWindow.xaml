@@ -419,11 +419,11 @@
                                         <!-- 행 2: 사번 / 입사일 / 경력(readonly) / 메일주소 / 전화번호 -->
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="0.7*"/><ColumnDefinition Width="10"/>
-                                                <ColumnDefinition Width="0.8*"/><ColumnDefinition Width="10"/>
-                                                <ColumnDefinition Width="0.55*"/><ColumnDefinition Width="10"/>
-                                                <ColumnDefinition Width="1*"/><ColumnDefinition Width="10"/>
-                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/><ColumnDefinition Width="10"/>
+                                                <ColumnDefinition/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
                                                 <TextBlock Text="사번" Style="{StaticResource FieldLabel}"/>
@@ -488,127 +488,6 @@
 
                             </StackPanel>
                         </ScrollViewer>
-                    </TabItem>
-
-                    <!-- ── Tab 2: 교육 이력 ── -->
-                    <TabItem Header="교육 이력" Style="{StaticResource ModernTab}">
-                        <Grid Margin="28,16,28,20">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock x:Name="EduSubtitle" Grid.Row="0"
-                                       FontSize="12" Foreground="#64748B" Margin="0,0,0,10"/>
-                            <StackPanel x:Name="EduEmptyPlaceholder" Grid.Row="1"
-                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                        Visibility="Collapsed">
-                                <TextBlock Text="&#xE7C3;"
-                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol"
-                                           FontSize="36" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
-                                <TextBlock x:Name="EduEmptyText" Text="등록된 교육 이력이 없습니다."
-                                           FontSize="13" Foreground="#94A3B8"
-                                           HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                            </StackPanel>
-                            <Border Grid.Row="1" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1"
-                                    Background="White">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="1"/>
-                                </Border.Effect>
-                                <DataGrid x:Name="EduHistoryGrid"
-                                          AutoGenerateColumns="False" IsReadOnly="True"
-                                          SelectionMode="Single" SelectionUnit="FullRow"
-                                          Background="Transparent" BorderThickness="0"
-                                          RowHeight="34" HeadersVisibility="Column"
-                                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
-                                          AlternatingRowBackground="#FAFAFA" CanUserSortColumns="True">
-                                    <DataGrid.ColumnHeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="Background" Value="#F8FAFC"/>
-                                            <Setter Property="Foreground" Value="#475569"/>
-                                            <Setter Property="FontWeight" Value="Bold"/>
-                                            <Setter Property="FontSize" Value="12"/>
-                                            <Setter Property="Padding" Value="12,7"/>
-                                            <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                        </Style>
-                                    </DataGrid.ColumnHeaderStyle>
-                                    <DataGrid.RowStyle>
-                                        <Style TargetType="DataGridRow">
-                                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </DataGrid.RowStyle>
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Padding" Value="12,0"/>
-                                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Header="시작일" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="100">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Padding" Value="12,0"/>
-                                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Header="종료일" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="100">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Padding" Value="12,0"/>
-                                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
-                                        <DataGridTemplateColumn Header="상태" Width="90">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Border x:Name="sBd" CornerRadius="10" Padding="8,3"
-                                                            HorizontalAlignment="Left" Margin="8,0"
-                                                            Background="#FEF3C7">
-                                                        <TextBlock x:Name="sTxt" Text="{Binding Status}"
-                                                                   FontSize="11" FontWeight="SemiBold"
-                                                                   Foreground="#D97706" VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <DataTemplate.Triggers>
-                                                        <DataTrigger Binding="{Binding Status}" Value="신청완료">
-                                                            <Setter TargetName="sBd" Property="Background" Value="#CCFBF1"/>
-                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#0D9488"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="진행">
-                                                            <Setter TargetName="sBd" Property="Background" Value="#DBEAFE"/>
-                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#2563EB"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="완료">
-                                                            <Setter TargetName="sBd" Property="Background" Value="#D1FAE5"/>
-                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#059669"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="취소">
-                                                            <Setter TargetName="sBd" Property="Background" Value="#FEE2E2"/>
-                                                            <Setter TargetName="sTxt" Property="Foreground" Value="#DC2626"/>
-                                                        </DataTrigger>
-                                                    </DataTemplate.Triggers>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="90">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Padding" Value="12,0"/>
-                                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Border>
-                        </Grid>
                     </TabItem>
 
                 </TabControl>
