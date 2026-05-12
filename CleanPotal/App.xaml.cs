@@ -91,8 +91,8 @@ namespace CleanPotal
                 shortcut.Description = "CleanPotal";
                 shortcut.Save();
 
-                using var writeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(regKey);
-                writeKey?.SetValue(regValue, "1");
+                using var writeKey2 = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(regKey);
+                writeKey2?.SetValue(regValue, "1");
             }
             catch { }
         }
