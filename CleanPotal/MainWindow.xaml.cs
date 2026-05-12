@@ -20,6 +20,8 @@ namespace CleanPotal
         private ProdReqView? _prodReqView;
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
+        private EduDashboardView? _eduDashboardView;
+        private WorkAssignmentView? _workAssignmentView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -61,6 +63,7 @@ namespace CleanPotal
             this.Loaded += (s, e) => {
                 ShowPortal();
                 InitializePollingTimer();
+                ApplyAdminMenuVisibility();
             };
         }
 
@@ -116,6 +119,7 @@ namespace CleanPotal
                 case PersonalMemoView memo:     memo.TryRefresh(); break;
                 case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
+                case EduDashboardView ed: ed.TryRefresh(); break;
             }
         }
 
@@ -198,8 +202,25 @@ namespace CleanPotal
             ExpanderAttendance.IsExpanded = false; ExpanderProduction.IsExpanded = false;
             ExpanderFieldInspection.IsExpanded = false;
             ExpanderOffice.IsExpanded = false; ExpanderEtc.IsExpanded = false;
+            ExpanderAdmin.IsExpanded = false;
             _isUpdatingNav = false;
             ToggleSectionHeaders(Visibility.Collapsed); // 🎨 접을 땐 섹션 헤더 숨김
+        }
+
+        // 관리자 전용 메뉴 표시 여부 적용
+        private void ApplyAdminMenuVisibility()
+        {
+            // 관리자 영역(사용자 계정 관리)은 마스터(1004)만
+            bool isMaster = SessionManager.CurrentUsername == "1004";
+            var masterVis = isMaster ? Visibility.Visible : Visibility.Collapsed;
+            if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = masterVis;
+            if (ExpanderAdmin != null) ExpanderAdmin.Visibility = masterVis;
+
+            // OFFICE 업무 내 교육 메뉴 가시성
+            bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
+            bool canViewEdu = canEditEdu || SessionManager.CurrentTeamName == "Office";
+            if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
+            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // 🎨 섹션 헤더(MAIN/WORKSPACE/TOOLS) Visibility 일괄 제어
@@ -208,6 +229,9 @@ namespace CleanPotal
             if (SectionHeaderMain != null) SectionHeaderMain.Visibility = visibility;
             if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
             if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
+            // ADMIN 헤더는 마스터(1004)만 표시
+            if (SectionHeaderAdmin != null && SessionManager.CurrentUsername == "1004")
+                SectionHeaderAdmin.Visibility = visibility;
         }
 
         private void AnimateSidebarWidth(double toWidth)
@@ -225,14 +249,16 @@ namespace CleanPotal
             else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
+            else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
-        private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask") OpenWeeklyReport_Click(sender, e); }
+        private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment") OpenWeeklyReport_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
         private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
+        private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
         private void OpenHandover(object sender, RoutedEventArgs e) { OpenSidebar(); ShowHandover(); }
@@ -258,6 +284,73 @@ namespace CleanPotal
                 return false;
             }
             return true;
+        }
+
+        private bool CanOpenAdminFeature()
+        {
+            if (SessionManager.CurrentUsername != "1004")
+            {
+                MessageBox.Show("해당 기능은 시스템 관리자(마스터)만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return false;
+            }
+            return true;
+        }
+
+        private bool CanOpenEduDashboard()
+        {
+            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office";
+            if (!ok) { MessageBox.Show("접근 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
+            return true;
+        }
+
+        private bool CanOpenWorkAssignment()
+        {
+            bool ok = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004";
+            if (!ok) { MessageBox.Show("교육 관리 권한이 필요합니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
+            return true;
+        }
+
+        private void OpenEduDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenEduDashboard()) return;
+            ShowEduDashboard();
+        }
+
+        private void OpenWorkAssignment_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenWorkAssignment()) return;
+            ShowWorkAssignment();
+        }
+
+        private void ShowEduDashboard()
+        {
+            _currentViewName = "EduDashboard";
+            ApplySectionMeta("교육 현황 대시보드", "연도별 교육 계획 현황과 이수 진행률을 확인합니다.");
+            UpdateNavSelection("EduDashboard");
+            if (_eduDashboardView == null) _eduDashboardView = new EduDashboardView();
+            else _eduDashboardView.TryRefresh();
+            MainContent.Content = _eduDashboardView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowWorkAssignment()
+        {
+            _currentViewName = "WorkAssignment";
+            ApplySectionMeta("개인별 업무 분장표", "팀원별 업무 내용, 기본 교육 기록, 기관 계정을 관리합니다.");
+            UpdateNavSelection("WorkAssignment");
+            if (_workAssignmentView == null) _workAssignmentView = new WorkAssignmentView();
+            else _workAssignmentView.TryRefresh();
+            MainContent.Content = _workAssignmentView;
+            HideAllHeaderButtons();
+        }
+
+        private void OpenUserManagement_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CanOpenAdminFeature()) return;
+            new UserManagementWindow { Owner = this }.ShowDialog();
         }
 
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
@@ -447,9 +540,11 @@ namespace CleanPotal
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal;
+            if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
+            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
-            ExpanderFieldInspection.Style = expNormal;
+            ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
 
             switch (viewName)
             {
@@ -464,6 +559,8 @@ namespace CleanPotal
                 case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
                 case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
                 case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
+                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;

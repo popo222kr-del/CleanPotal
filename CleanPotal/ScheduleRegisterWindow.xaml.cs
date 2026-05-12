@@ -9,14 +9,35 @@ namespace CleanPotal
     public partial class ScheduleRegisterWindow : Window
     {
         private List<UserModel> _allUsers = new List<UserModel>();
+        private List<UserModel> _filteredEduUsers = new List<UserModel>();
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
         private bool _isHolidayLoaded = false;
 
-        public ScheduleRegisterWindow()
+        public ScheduleRegisterWindow(bool openEduTab = false, bool eduOnly = false)
         {
             InitializeComponent();
+
+            if (eduOnly)
+            {
+                this.Loaded += (_, _) =>
+                {
+                    TabAttendance.Visibility = Visibility.Collapsed;
+                    MainTab.SelectedItem = TabEdu;
+                    TxtWindowTitle.Text = "교육 일정 등록";
+                    TxtWindowSubtitle.Visibility = Visibility.Collapsed;
+                };
+            }
+            else if (openEduTab)
+            {
+                this.Loaded += (_, _) => MainTab.SelectedItem = TabEdu;
+            }
+            else
+            {
+                // 세정팀 일정 달력: 교육 탭 항상 숨김
+                this.Loaded += (_, _) => TabEdu.Visibility = Visibility.Collapsed;
+            }
 
             DpShiftStart.SelectedDate = DateTime.Today;
             DpShiftEnd.SelectedDate = DateTime.Today;
@@ -31,7 +52,7 @@ namespace CleanPotal
             CmbShiftName.IsEnabled = false;
 
             bool isMaster = SessionManager.CurrentUsername == "1004";
-            bool hasSchedulePermission = SessionManager.CanManageSchedule;
+            bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
             bool canManageAllAttendance = isMaster || hasSchedulePermission;
 
             if (canManageAllAttendance)
@@ -45,14 +66,23 @@ namespace CleanPotal
                 CmbShiftName.IsEnabled = true;
             }
 
-            // 교육 일정 등록은 "일정 권한"이 체크된 사용자만 가능
+            // 교육 일정 등록은 "관리자" 권한이 체크된 사용자만 가능
             if (hasSchedulePermission)
             {
                 TabEdu.Visibility = Visibility.Visible;
-                var teams = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.TeamName))
-                                     .Select(u => u.TeamName).Distinct().ToList();
+
+                var teamOrder = new[] { "Office", "김팀", "장팀", "주간팀" };
+                var teams = _allUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName))
+                    .Select(u => u.TeamName)
+                    .Distinct()
+                    .OrderBy(t => { int i = Array.IndexOf(teamOrder, t); return i < 0 ? 99 : i; })
+                    .ToList();
+                teams.Insert(0, "전체");
                 CmbEduTeam.ItemsSource = teams;
-                if (teams.Count > 0) CmbEduTeam.SelectedIndex = 0;
+                CmbEduTeam.SelectedIndex = 0;
+
+                RefreshEduNameList();
             }
             else
             {
@@ -65,6 +95,9 @@ namespace CleanPotal
             DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
             CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
+            RbMethodCollective.Checked += (_, __) => RefreshPreview();
+            RbMethodELearning.Checked += (_, __) => RefreshPreview();
+            RbMethodVideo.Checked += (_, __) => RefreshPreview();
 
             // 창이 열릴 때 백그라운드에서 공휴일 데이터를 로드
             this.Loaded += async (s, e) =>
@@ -83,6 +116,25 @@ namespace CleanPotal
             };
 
             RefreshPreview();
+        }
+
+        private void CmbEduTeam_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RefreshEduNameList();
+            RefreshPreview();
+        }
+
+        private void RefreshEduNameList()
+        {
+            string selectedTeam = CmbEduTeam.SelectedItem?.ToString() ?? "전체";
+            _filteredEduUsers = _allUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) &&
+                            (selectedTeam == "전체" || u.TeamName == selectedTeam))
+                .OrderBy(u => u.RealName)
+                .ToList();
+
+            CmbEduName.ItemsSource = _filteredEduUsers.Select(u => u.RealName).ToList();
+            if (CmbEduName.Items.Count > 0) CmbEduName.SelectedIndex = 0;
         }
 
         private void DpShiftStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -111,18 +163,6 @@ namespace CleanPotal
             RefreshPreview();
         }
 
-        private void CmbEduTeam_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            string? selectedTeam = CmbEduTeam.SelectedItem as string;
-            if (string.IsNullOrEmpty(selectedTeam)) return;
-
-            var teamMembers = _allUsers.Where(u => u.TeamName == selectedTeam)
-                                       .Select(u => u.RealName).ToList();
-
-            CmbEduName.ItemsSource = teamMembers;
-            if (teamMembers.Count > 0) CmbEduName.SelectedIndex = 0;
-            RefreshPreview();
-        }
 
         private int CountBusinessDays(DateTime startDate, DateTime endDate)
         {
@@ -247,12 +287,14 @@ namespace CleanPotal
                 {
                     string name = CmbEduName.SelectedItem?.ToString() ?? "";
                     string course = TxtEduCourse.Text.Trim();
-                    string method = TxtEduMethod.Text.Trim();
+                    string method = RbMethodELearning.IsChecked == true ? "이러닝"
+                                  : RbMethodVideo.IsChecked == true ? "화상"
+                                  : "집합";
 
-                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(course) || string.IsNullOrEmpty(method) ||
+                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(course) ||
                         !DpEduStart.SelectedDate.HasValue || !DpEduEnd.SelectedDate.HasValue)
                     {
-                        MessageBox.Show("대상자, 교육명, 기간, 교육 내용을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("대상자, 교육명, 기간을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -280,7 +322,8 @@ namespace CleanPotal
 
                     // 🔥 2. 누락되었던 로직: 스케줄 보드(ShiftScheduleModel)에도 '교육'으로 자동 동시 등록
                     int shiftRegisteredCount = 0;
-                    string teamGroup = _allUsers.FirstOrDefault(u => u.RealName == name)?.TeamName ?? "";
+                    string teamGroup = _filteredEduUsers.FirstOrDefault(u => u.RealName == name)?.TeamName
+                                       ?? _allUsers.FirstOrDefault(u => u.RealName == name)?.TeamName ?? "";
 
                     for (DateTime dt = startDate; dt <= endDate; dt = dt.AddDays(1))
                     {

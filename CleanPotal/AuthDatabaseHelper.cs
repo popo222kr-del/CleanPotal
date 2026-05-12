@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CleanPotal
 {
@@ -13,6 +14,9 @@ namespace CleanPotal
         public string RealName { get; set; } = "";
         public string TeamName { get; set; } = "";
 
+        [JsonIgnore]
+        public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
+
         public string JobTitle { get; set; } = "";
         public string Email { get; set; } = "";
         public string PhoneNumber { get; set; } = "";
@@ -22,6 +26,9 @@ namespace CleanPotal
         public bool CanManageVendors { get; set; } = false;
         // 🔥 신규: 교육/일정 관리 권한
         public bool CanManageSchedule { get; set; } = false;
+        public string HireDate { get; set; } = "";
+        // 아이디(Username)와 분리된 사번 — 기존 사용자는 Username과 동일하게 자동 초기화됨
+        public string EmployeeNumber { get; set; } = "";
     }
 
     public static class AuthDatabaseHelper
@@ -68,7 +75,21 @@ namespace CleanPotal
             try
             {
                 string json = File.ReadAllText(UsersFilePath);
-                return JsonSerializer.Deserialize<List<UserModel>>(json) ?? new List<UserModel>();
+                var users = JsonSerializer.Deserialize<List<UserModel>>(json) ?? new List<UserModel>();
+
+                // 마이그레이션: 사번이 비어 있는 기존 사용자는 아이디와 동일하게 초기화
+                bool needsSave = false;
+                foreach (var u in users)
+                {
+                    if (string.IsNullOrEmpty(u.EmployeeNumber))
+                    {
+                        u.EmployeeNumber = u.Username;
+                        needsSave = true;
+                    }
+                }
+                if (needsSave) SaveAllUsers(users);
+
+                return users;
             }
             catch { return new List<UserModel>(); }
         }

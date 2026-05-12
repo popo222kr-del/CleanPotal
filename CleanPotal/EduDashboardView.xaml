@@ -1,0 +1,503 @@
+<UserControl x:Class="CleanPotal.EduDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:CleanPotal"
+             Background="#F8FAFC">
+
+    <UserControl.Resources>
+        <local:PercentToBrushConverter x:Key="PercentToBrushConverter"/>
+
+        <Style x:Key="YearNavBtn" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <x:Array x:Key="StatusOptions" Type="system:String">
+            <system:String>대기</system:String>
+            <system:String>신청완료</system:String>
+            <system:String>진행</system:String>
+            <system:String>완료</system:String>
+            <system:String>취소</system:String>
+        </x:Array>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- 상태 카드 -->
+            <RowDefinition Height="Auto"/>  <!-- 필터 바 -->
+            <RowDefinition Height="*"/>     <!-- 데이터 그리드 -->
+        </Grid.RowDefinitions>
+
+        <!-- ── 상태 카드 ── -->
+        <Grid Grid.Row="0" Margin="28,16,28,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 대기 -->
+            <Border Grid.Column="0" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#F97316" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountWaiting" Text="0" FontSize="26" FontWeight="Bold" Foreground="#F97316"/>
+                        <TextBlock Text="대기" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 신청완료 -->
+            <Border Grid.Column="2" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#0D9488" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountApplied" Text="0" FontSize="26" FontWeight="Bold" Foreground="#0D9488"/>
+                        <TextBlock Text="신청완료" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 취소 -->
+            <Border Grid.Column="4" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#EF4444" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountCancelled" Text="0" FontSize="26" FontWeight="Bold" Foreground="#EF4444"/>
+                        <TextBlock Text="취소" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 진행 -->
+            <Border Grid.Column="6" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#2563EB" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountInProgress" Text="0" FontSize="26" FontWeight="Bold" Foreground="#2563EB"/>
+                        <TextBlock Text="진행" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 완료 -->
+            <Border Grid.Column="8" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#10B981" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountDone" Text="0" FontSize="26" FontWeight="Bold" Foreground="#10B981"/>
+                        <TextBlock Text="완료" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 전체 -->
+            <Border Grid.Column="10" Background="White" CornerRadius="10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="8" ShadowDepth="0"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#64748B" CornerRadius="10,10,0,0"/>
+                    <StackPanel Grid.Row="1" Margin="16,10,16,12">
+                        <TextBlock x:Name="CountTotal" Text="0" FontSize="26" FontWeight="Bold" Foreground="#64748B"/>
+                        <TextBlock Text="전체" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ── 필터 바 ── -->
+        <Grid Grid.Row="1" Margin="28,12,28,0">
+            <!-- 왼쪽: 연도 선택 + pill 필터 + 건수 배지 -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- 연도 선택기 -->
+                <Button x:Name="BtnPrevYear" Style="{StaticResource YearNavBtn}" Click="BtnPrevYear_Click">
+                    <Path Data="M 5,0 L 0,4 L 5,8" Stroke="#64748B" StrokeThickness="1.5"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
+                <TextBlock x:Name="YearText" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                           Width="52" TextAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="BtnNextYear" Style="{StaticResource YearNavBtn}"
+                        Margin="0,0,14,0" Click="BtnNextYear_Click">
+                    <Path Data="M 0,0 L 5,4 L 0,8" Stroke="#64748B" StrokeThickness="1.5"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Fill="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
+
+                <!-- 상태 pill 필터 -->
+                <ListBox x:Name="StatusFilter"
+                         SelectionMode="Single"
+                         Background="Transparent" BorderThickness="0"
+                         SelectionChanged="StatusFilter_SelectionChanged">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="pill" CornerRadius="20" Padding="14,6"
+                                                Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
+                                                Cursor="Hand" Margin="0,0,6,0">
+                                            <TextBlock x:Name="label" Text="{TemplateBinding Content}"
+                                                       FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="#64748B" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="pill" Property="Background" Value="#1E293B"/>
+                                                <Setter TargetName="pill" Property="BorderBrush" Value="#1E293B"/>
+                                                <Setter TargetName="label" Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                    <Condition Property="IsSelected" Value="False"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter TargetName="pill" Property="Background" Value="#F1F5F9"/>
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+
+                <Border Background="#EFF6FF" CornerRadius="6" Padding="10,5" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="TotalBadge" Text="전체 0건" FontSize="12" Foreground="#2563EB" FontWeight="SemiBold"/>
+                </Border>
+            </StackPanel>
+
+            <!-- 오른쪽: 교육 일정 등록 버튼 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="BtnAddEdu" Content="+ 교육 일정 등록"
+                        Height="32" Padding="14,0"
+                        Foreground="White" FontSize="12" FontWeight="SemiBold"
+                        BorderThickness="0" Cursor="Hand"
+                        Visibility="Collapsed"
+                        Click="BtnAddEdu_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="#2563EB" CornerRadius="7"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ── 데이터 그리드 ── -->
+        <DataGrid x:Name="EduDataGrid" Grid.Row="2"
+                  Margin="28,10,28,20"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Single" SelectionUnit="FullRow"
+                  Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
+                  RowHeight="36" HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                  AlternatingRowBackground="#FAFAFA"
+                  CanUserSortColumns="True"
+                  AllowDrop="True"
+                  DragOver="EduDataGrid_DragOver"
+                  Drop="EduDataGrid_Drop"
+                  PreviewKeyDown="EduDataGrid_PreviewKeyDown">
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="Foreground" Value="#475569"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="10,7"/>
+                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="이름" Binding="{Binding MemberName}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="사번" Binding="{Binding EmployeeNumber}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#94A3B8"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="입사일" Binding="{Binding HireDate}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#94A3B8"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="경력" Binding="{Binding CareerStr}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#475569"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="소속팀" Binding="{Binding TeamName}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="교육명" Binding="{Binding CourseName}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="시작일" Binding="{Binding StartDateStr}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="종료일" Binding="{Binding EndDateStr}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 상태 컬럼: Notion 스타일 pill -->
+                <DataGridTemplateColumn Header="상태" Width="120" SortMemberPath="Status">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border x:Name="pillBd" CornerRadius="12" Padding="10,4"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="8,0" Cursor="Hand" MouseLeftButtonUp="StatusPill_Click"
+                                    Background="#FEF3C7">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="pillDot" Width="7" Height="7"
+                                             VerticalAlignment="Center" Margin="0,0,5,0"
+                                             Fill="#D97706"/>
+                                    <TextBlock x:Name="pillTxt" Text="{Binding Status}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="#D97706" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="신청완료">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#CCFBF1"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#0D9488"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#0D9488"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="진행">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#DBEAFE"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#2563EB"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#2563EB"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="완료">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#D1FAE5"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#059669"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#059669"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="취소">
+                                    <Setter TargetName="pillBd" Property="Background" Value="#FEE2E2"/>
+                                    <Setter TargetName="pillDot" Property="Fill" Value="#DC2626"/>
+                                    <Setter TargetName="pillTxt" Property="Foreground" Value="#DC2626"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- 진행률 컬럼: 인수인계와 동일한 스타일 -->
+                <DataGridTemplateColumn Header="진행률" Width="130" SortMemberPath="ProgressPercent">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Margin="10,0" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="40"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Height="8" Background="#E5E7EB" CornerRadius="4" ClipToBounds="True">
+                                    <ProgressBar Minimum="0" Maximum="100"
+                                                 Value="{Binding ProgressPercent, Mode=OneWay}"
+                                                 Foreground="{Binding ProgressPercent, Mode=OneWay, Converter={StaticResource PercentToBrushConverter}}"
+                                                 Background="Transparent" BorderThickness="0"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                           Text="{Binding ProgressStr}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="방법" Binding="{Binding EduMethod}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 첨부파일 컬럼 -->
+                <DataGridTemplateColumn Header="첨부파일" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border x:Name="attachBd" CornerRadius="6" Padding="8,4"
+                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                    Background="#F1F5F9"
+                                    MouseLeftButtonUp="AttachBtn_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBlock x:Name="attachTxt" Text="{Binding AttachmentLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="#94A3B8" VerticalAlignment="Center"
+                                               MaxWidth="72" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding HasAttachment}" Value="True">
+                                    <Setter TargetName="attachBd" Property="Background" Value="#EFF6FF"/>
+                                    <Setter TargetName="attachTxt" Property="Foreground" Value="#2563EB"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+    </Grid>
+</UserControl>

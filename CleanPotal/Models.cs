@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 
 namespace CleanPotal
 {
@@ -82,5 +83,190 @@ namespace CleanPotal
         public string Status { get; set; } = "";
         public int Progress { get; set; }
         public string EduMethod { get; set; } = "";
+        public string AttachmentPath { get; set; } = "";
+    }
+
+    public class WorkAssignmentMember : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+        public string RealName { get; set; } = "";
+        public string TeamName { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string HireDate { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string EmployeeNumber { get; set; } = "";
+
+        public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
+
+        public string CareerStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(HireDate) || !DateTime.TryParse(HireDate, out var hire)) return "-";
+                var today = DateTime.Today;
+                int years = today.Year - hire.Year;
+                int months = today.Month - hire.Month;
+                if (months < 0) { years--; months += 12; }
+                if (years < 0) return "-";
+                if (years == 0) return $"{months}개월";
+                if (months == 0) return $"{years}년";
+                return $"{years}년 {months}개월";
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class EduBasicItem : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+
+        private string _eduName = "";
+        public string EduName { get => _eduName; set { _eduName = value; OnPropertyChanged(); } }
+
+        private string _startDate = "";
+        public string StartDate
+        {
+            get => _startDate;
+            set { _startDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(StartDateValue)); OnPropertyChanged(nameof(DateDisplayStr)); }
+        }
+
+        private string _endDate = "";
+        public string EndDate
+        {
+            get => _endDate;
+            set { _endDate = value; OnPropertyChanged(); OnPropertyChanged(nameof(EndDateValue)); OnPropertyChanged(nameof(DateDisplayStr)); }
+        }
+
+        public DateTime? StartDateValue
+        {
+            get => DateTime.TryParse(_startDate, out var d) ? d : (DateTime?)null;
+            set { StartDate = value?.ToString("yyyy-MM-dd") ?? ""; }
+        }
+
+        public DateTime? EndDateValue
+        {
+            get => DateTime.TryParse(_endDate, out var d) ? d : (DateTime?)null;
+            set { EndDate = value?.ToString("yyyy-MM-dd") ?? ""; }
+        }
+
+        public string DateDisplayStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_startDate) || !DateTime.TryParse(_startDate, out var s)) return "";
+                if (string.IsNullOrEmpty(_endDate) || !DateTime.TryParse(_endDate, out var e) || e.Date <= s.Date)
+                    return s.ToString("yyyy-MM-dd");
+                if (e.Year == s.Year && e.Month == s.Month)
+                    return $"{s:yyyy-MM-dd}~{e:dd}";
+                if (e.Year == s.Year)
+                    return $"{s:yyyy-MM-dd}~{e:MM-dd}";
+                return $"{s:yyyy-MM-dd}~{e:yyyy-MM-dd}";
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class AccountItem : INotifyPropertyChanged
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+
+        private string _serviceName = "";
+        public string ServiceName { get => _serviceName; set { _serviceName = value; OnPropertyChanged(); } }
+
+        private string _accountId = "";
+        public string AccountId { get => _accountId; set { _accountId = value; OnPropertyChanged(); } }
+
+        private string _accountPassword = "";
+        public string AccountPassword { get => _accountPassword; set { _accountPassword = value; OnPropertyChanged(); } }
+
+        private string _note = "";
+        public string Note { get => _note; set { _note = value; OnPropertyChanged(); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class EduDashboardRow : INotifyPropertyChanged
+    {
+        public int EduId { get; set; }
+        public string MemberName { get; set; } = "";
+        public string Username { get; set; } = "";
+        public string EmployeeNumber { get; set; } = "";
+        public string HireDate { get; set; } = "";
+        public string CareerStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(HireDate) || !DateTime.TryParse(HireDate, out var hire)) return "-";
+                var today = DateTime.Today;
+                int years = today.Year - hire.Year;
+                int months = today.Month - hire.Month;
+                if (months < 0) { years--; months += 12; }
+                if (years < 0) return "-";
+                if (years == 0) return $"{months}개월";
+                if (months == 0) return $"{years}년";
+                return $"{years}년 {months}개월";
+            }
+        }
+        public string TeamName { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+
+        private string _status = "";
+        public string Status
+        {
+            get => _status;
+            set { _status = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgressPercent)); OnPropertyChanged(nameof(ProgressStr)); OnPropertyChanged(nameof(CompletedSortKey)); }
+        }
+
+        public int CompletedSortKey => (Status == "완료" || Status == "취소") ? 1 : 0;
+
+        public int Progress { get; set; }
+        public string EduMethod { get; set; } = "";
+
+        private string _attachmentPath = "";
+        public string AttachmentPath
+        {
+            get => _attachmentPath;
+            set { _attachmentPath = value ?? ""; OnPropertyChanged(); OnPropertyChanged(nameof(HasAttachment)); OnPropertyChanged(nameof(AttachmentLabel)); }
+        }
+        public bool HasAttachment => !string.IsNullOrEmpty(_attachmentPath);
+        public string AttachmentLabel => HasAttachment ? Path.GetFileName(_attachmentPath) : "첨부";
+
+        public string StartDateStr => StartDate.ToString("yyyy-MM-dd");
+        public string EndDateStr => EndDate.ToString("yyyy-MM-dd");
+
+        public int ProgressPercent
+        {
+            get
+            {
+                if (Status == "완료") return 100;
+                if (Status == "취소" || Status == "대기") return 0;
+                var start = StartDate.Date;
+                var end = EndDate.Date;
+                if (end <= start) return DateTime.Today >= end ? 100 : 0;
+                var p = (int)Math.Round((DateTime.Today - start).TotalDays / (end - start).TotalDays * 100.0, MidpointRounding.AwayFromZero);
+                return p < 0 ? 0 : (p > 100 ? 100 : p);
+            }
+        }
+
+        public string ProgressStr => $"{ProgressPercent}%";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

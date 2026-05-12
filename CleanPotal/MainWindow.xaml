@@ -375,6 +375,8 @@
                         <Expander x:Name="ExpanderOffice" Header="OFFICE 업무" Tag="&#xE8F1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderOffice_Expanded">
                             <StackPanel>
                                 <Button x:Name="BtnNavWeeklyReport" Content="주간보고" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWeeklyReport_Click"/>
+                                <Button x:Name="BtnNavEduDashboard" Content="교육 현황 대시보드" Style="{StaticResource ErpSubButtonStyle}" Click="OpenEduDashboard_Click" Visibility="Collapsed"/>
+                                <Button x:Name="BtnNavWorkAssignment" Content="개인별 업무 분장표" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWorkAssignment_Click" Visibility="Collapsed"/>
                             </StackPanel>
                         </Expander>
 
@@ -385,6 +387,14 @@
                             <StackPanel>
                                 <Button x:Name="BtnNavReport" Content="성적서 자동 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenReport_Click"/>
                                 <Button x:Name="BtnNavDispatchCert" Content="반출등록 성적서 생성" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDispatchCert_Click"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- 관리자 전용 섹션 -->
+                        <TextBlock x:Name="SectionHeaderAdmin" Text="ADMIN" Style="{StaticResource SectionHeaderStyle}" Visibility="Collapsed"/>
+                        <Expander x:Name="ExpanderAdmin" Header="관리자 영역" Tag="&#xE72E;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderAdmin_Expanded" Visibility="Collapsed">
+                            <StackPanel>
+                                <Button x:Name="BtnNavUserManagement" Content="사용자 계정 관리" Style="{StaticResource ErpSubButtonStyle}" Click="OpenUserManagement_Click"/>
                             </StackPanel>
                         </Expander>
                     </StackPanel>
