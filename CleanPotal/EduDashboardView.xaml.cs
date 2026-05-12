@@ -101,7 +101,7 @@ namespace CleanPotal
         // ── 이벤트 ────────────────────────────────────────────────────
         private void BtnAddEdu_Click(object sender, RoutedEventArgs e)
         {
-            var win = new ScheduleRegisterWindow(openEduTab: true)
+            var win = new ScheduleRegisterWindow(eduOnly: true)
             {
                 Owner = Window.GetWindow(this),
                 WindowStartupLocation = WindowStartupLocation.CenterOwner

@@ -250,7 +250,7 @@
                 </Style>
             </TabControl.Resources>
 
-            <TabItem Header="근태/휴가 등록" FontSize="15">
+            <TabItem x:Name="TabAttendance" Header="근태/휴가 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="직원 이름" Style="{StaticResource FieldLabelStyle}"/>
                     <ComboBox x:Name="CmbShiftName" Style="{StaticResource InputComboStyle}" Margin="0,0,0,20"/>

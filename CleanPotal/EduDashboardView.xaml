@@ -7,6 +7,37 @@
 
     <UserControl.Resources>
         <local:PercentToBrushConverter x:Key="PercentToBrushConverter"/>
+
+        <Style x:Key="YearNavBtn" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <x:Array x:Key="StatusOptions" Type="system:String">
             <system:String>대기</system:String>
             <system:String>신청완료</system:String>
@@ -144,8 +175,21 @@
 
         <!-- ── 필터 바 ── -->
         <Grid Grid.Row="1" Margin="28,12,28,0">
-            <!-- 왼쪽: pill 필터 버튼 + 전체 건수 -->
+            <!-- 왼쪽: 연도 선택 + pill 필터 + 건수 배지 -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- 연도 선택기 -->
+                <Button x:Name="BtnPrevYear" Content="◄"
+                        Style="{StaticResource YearNavBtn}"
+                        Click="BtnPrevYear_Click"/>
+                <TextBlock x:Name="YearText" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                           Width="52" TextAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="BtnNextYear" Content="►"
+                        Style="{StaticResource YearNavBtn}"
+                        Margin="0,0,14,0"
+                        Click="BtnNextYear_Click"/>
+
+                <!-- 상태 pill 필터 -->
                 <ListBox x:Name="StatusFilter"
                          SelectionMode="Single"
                          Background="Transparent" BorderThickness="0"
@@ -187,43 +231,33 @@
                         </Style>
                     </ListBox.ItemContainerStyle>
                 </ListBox>
+
                 <Border Background="#EFF6FF" CornerRadius="6" Padding="10,5" Margin="8,0,0,0" VerticalAlignment="Center">
                     <TextBlock x:Name="TotalBadge" Text="전체 0건" FontSize="12" Foreground="#2563EB" FontWeight="SemiBold"/>
                 </Border>
             </StackPanel>
 
-            <!-- 오른쪽: 교육 등록 버튼 + 연도 선택 -->
+            <!-- 오른쪽: 교육 일정 등록 버튼 -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button x:Name="BtnAddEdu" Content="+ 교육 일정 등록"
-                        Height="32" Padding="14,0" Margin="0,0,12,0"
+                        Height="32" Padding="14,0"
                         Foreground="White" FontSize="12" FontWeight="SemiBold"
                         BorderThickness="0" Cursor="Hand"
                         Visibility="Collapsed"
                         Click="BtnAddEdu_Click">
-                    <Button.Background>
-                        <SolidColorBrush Color="#2563EB"/>
-                    </Button.Background>
-                    <Button.Resources>
-                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style>
-                    </Button.Resources>
-                </Button>
-                <Button x:Name="BtnPrevYear" Content="◄" Width="30" Height="30"
-                        Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                        Foreground="#64748B" FontSize="12" Cursor="Hand"
-                        Click="BtnPrevYear_Click">
-                    <Button.Resources>
-                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
-                    </Button.Resources>
-                </Button>
-                <TextBlock x:Name="YearText" FontSize="15" FontWeight="Bold" Foreground="#0F172A"
-                           Width="60" TextAlignment="Center" VerticalAlignment="Center"/>
-                <Button x:Name="BtnNextYear" Content="►" Width="30" Height="30"
-                        Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                        Foreground="#64748B" FontSize="12" Cursor="Hand"
-                        Click="BtnNextYear_Click">
-                    <Button.Resources>
-                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
-                    </Button.Resources>
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="#2563EB" CornerRadius="7"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
             </StackPanel>
         </Grid>

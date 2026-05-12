@@ -14,11 +14,28 @@ namespace CleanPotal
         private List<string> _dynamicHolidays = new List<string>();
         private bool _isHolidayLoaded = false;
 
-        public ScheduleRegisterWindow(bool openEduTab = false)
+        public ScheduleRegisterWindow(bool openEduTab = false, bool eduOnly = false)
         {
             InitializeComponent();
-            if (openEduTab)
+
+            if (eduOnly)
+            {
+                // 교육 현황 대시보드에서 열릴 때: 근태 탭 숨기고 교육 탭만 표시
+                this.Loaded += (_, _) =>
+                {
+                    TabAttendance.Visibility = Visibility.Collapsed;
+                    MainTab.SelectedIndex = 0; // TabEdu가 유일하게 보이는 탭
+                };
+            }
+            else if (openEduTab)
+            {
                 this.Loaded += (_, _) => MainTab.SelectedIndex = 1;
+            }
+            else
+            {
+                // 세정팀 일정 달력에서 열릴 때: 교육 탭 항상 숨김
+                this.Loaded += (_, _) => TabEdu.Visibility = Visibility.Collapsed;
+            }
 
             DpShiftStart.SelectedDate = DateTime.Today;
             DpShiftEnd.SelectedDate = DateTime.Today;
@@ -33,7 +50,7 @@ namespace CleanPotal
             CmbShiftName.IsEnabled = false;
 
             bool isMaster = SessionManager.CurrentUsername == "1004";
-            bool hasSchedulePermission = SessionManager.CanManageSchedule;
+            bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
             bool canManageAllAttendance = isMaster || hasSchedulePermission;
 
             if (canManageAllAttendance)
