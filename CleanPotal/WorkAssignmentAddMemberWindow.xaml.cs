@@ -8,7 +8,7 @@ namespace CleanPotal
     public partial class WorkAssignmentAddMemberWindow : Window
     {
         private List<UserModel> _allAvailable;
-        public string? SelectedUsername { get; private set; }
+        public List<string>? SelectedUsernames { get; private set; }
 
         public WorkAssignmentAddMemberWindow(List<UserModel> available)
         {
@@ -20,12 +20,9 @@ namespace CleanPotal
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             string kw = SearchBox.Text.Trim();
-            if (string.IsNullOrEmpty(kw))
-                UserList.ItemsSource = _allAvailable;
-            else
-                UserList.ItemsSource = _allAvailable
-                    .Where(u => u.RealName.Contains(kw) || u.TeamName.Contains(kw))
-                    .ToList();
+            UserList.ItemsSource = string.IsNullOrEmpty(kw)
+                ? _allAvailable
+                : _allAvailable.Where(u => u.RealName.Contains(kw) || u.TeamName.Contains(kw)).ToList();
         }
 
         private void UserList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => Confirm();
@@ -36,11 +33,10 @@ namespace CleanPotal
 
         private void Confirm()
         {
-            if (UserList.SelectedItem is UserModel u)
-            {
-                SelectedUsername = u.Username;
-                DialogResult = true;
-            }
+            var selected = UserList.SelectedItems.Cast<UserModel>().ToList();
+            if (selected.Count == 0) return;
+            SelectedUsernames = selected.Select(u => u.Username).ToList();
+            DialogResult = true;
         }
     }
 }

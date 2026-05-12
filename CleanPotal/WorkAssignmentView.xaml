@@ -135,6 +135,7 @@
                 <ListBox x:Name="MemberList" Grid.Row="1"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         SelectionMode="Multiple"
                          SelectionChanged="MemberList_SelectionChanged"
                          ItemContainerStyle="{StaticResource MemberItemStyle}"
                          Padding="8,6">
@@ -156,14 +157,17 @@
 
         <!-- ─── 오른쪽: 상세 패널 ─── -->
         <Grid Grid.Column="1">
-            <!-- 선택 안 된 상태 -->
-            <Border x:Name="PanelEmpty" VerticalAlignment="Center" HorizontalAlignment="Center">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="👤" FontSize="40" HorizontalAlignment="Center"/>
-                    <TextBlock Text="인원을 선택하면 업무 분장표가 표시됩니다." FontSize="14" Foreground="#94A3B8"
-                               HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                </StackPanel>
-            </Border>
+            <!-- 선택 안 된 상태 / 다중 선택 안내 -->
+            <StackPanel x:Name="PanelEmpty" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="👤" FontSize="40" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="SingleSelectHint" Text="인원을 선택하면 업무 분장표가 표시됩니다."
+                           FontSize="14" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                <Border x:Name="MultiSelectHint" Background="#FEF3C7" CornerRadius="8" Padding="16,10"
+                        Margin="0,12,0,0" Visibility="Collapsed">
+                    <TextBlock x:Name="MultiSelectCountText" FontSize="13" Foreground="#92400E"
+                               HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300"/>
+                </Border>
+            </StackPanel>
 
             <!-- 상세 내용 -->
             <ScrollViewer x:Name="PanelDetail" Visibility="Collapsed"
@@ -187,6 +191,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -199,14 +204,18 @@
                                     <TextBlock x:Name="InfoRealName" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="0,0,16,12">
-                                    <TextBlock Text="사번" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="아이디" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoUsername" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Margin="0,0,16,12">
+                                    <TextBlock Text="사번" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock x:Name="InfoEmployeeNumber" Style="{StaticResource FieldValueStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="0,0,16,12">
                                     <TextBlock Text="소속팀" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoTeam" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="3" Margin="0,0,0,12">
+                                <StackPanel Grid.Column="4" Margin="0,0,0,12">
                                     <TextBlock Text="직위" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoJobTitle" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
@@ -224,7 +233,7 @@
                                     <TextBlock Text="이메일" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoEmail" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,0,0,0">
+                                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,0,16,0">
                                     <TextBlock Text="전화번호" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoPhone" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>

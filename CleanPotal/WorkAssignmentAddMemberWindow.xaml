@@ -13,7 +13,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="인원 선택" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="0" Text="인원 선택 (Ctrl/Shift 클릭으로 다중 선택)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
 
         <!-- 검색 -->
         <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Margin="0,0,0,10" Padding="10,6">
@@ -42,6 +42,7 @@
         <!-- 리스트 -->
         <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
             <ListBox x:Name="UserList" Background="Transparent" BorderThickness="0"
+                     SelectionMode="Multiple"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      MouseDoubleClick="UserList_MouseDoubleClick">
                 <ListBox.ItemTemplate>

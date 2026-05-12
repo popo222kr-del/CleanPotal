@@ -138,6 +138,7 @@ namespace CleanPotal
             TxtNewName.Text = user.RealName;
             TxtNewTitle.Text = user.JobTitle;
             TxtNewTeam.Text = user.TeamName;
+            TxtEmployeeNumber.Text = string.IsNullOrEmpty(user.EmployeeNumber) ? user.Username : user.EmployeeNumber;
             TxtHireDate.Text = user.HireDate;
             TxtCareer.Text = CalcCareerStr(user.HireDate);
             TxtNewEmail.Text = user.Email;
@@ -182,7 +183,7 @@ namespace CleanPotal
             }
             if (string.IsNullOrEmpty(pw) || string.IsNullOrEmpty(name))
             {
-                MessageBox.Show("사번, 비밀번호, 이름은 필수 입력 항목입니다.", "알림",
+                MessageBox.Show("아이디, 비밀번호, 이름은 필수 입력 항목입니다.", "알림",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -191,16 +192,18 @@ namespace CleanPotal
             {
                 if (_allUsers.Any(u => u.Username == id))
                 {
-                    MessageBox.Show("이미 존재하는 사번입니다.", "오류",
+                    MessageBox.Show("이미 존재하는 아이디입니다.", "오류",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
+                string empNum = TxtEmployeeNumber.Text.Trim();
                 var newUser = new UserModel
                 {
                     Username = id, Password = pw, RealName = name,
                     TeamName = TxtNewTeam.Text.Trim(),
                     JobTitle = TxtNewTitle.Text.Trim(),
+                    EmployeeNumber = string.IsNullOrEmpty(empNum) ? id : empNum,
                     HireDate = TxtHireDate.Text.Trim(),
                     Email = TxtNewEmail.Text.Trim(),
                     PhoneNumber = TxtNewPhone.Text.Trim(),
@@ -228,7 +231,7 @@ namespace CleanPotal
 
                 if (id != _selectedUser.Username && _allUsers.Any(u => u.Username == id))
                 {
-                    MessageBox.Show("이미 사용 중인 사번입니다.", "오류",
+                    MessageBox.Show("이미 사용 중인 아이디입니다.", "오류",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -244,6 +247,7 @@ namespace CleanPotal
                 _selectedUser.RealName = name;
                 _selectedUser.TeamName = TxtNewTeam.Text.Trim();
                 _selectedUser.JobTitle = TxtNewTitle.Text.Trim();
+                _selectedUser.EmployeeNumber = TxtEmployeeNumber.Text.Trim();
                 _selectedUser.HireDate = TxtHireDate.Text.Trim();
                 _selectedUser.Email = TxtNewEmail.Text.Trim();
                 _selectedUser.PhoneNumber = TxtNewPhone.Text.Trim();
@@ -303,7 +307,8 @@ namespace CleanPotal
         private void ClearInputFields()
         {
             TxtNewId.Clear(); TxtNewPw.Clear(); TxtNewName.Clear();
-            TxtNewTitle.Clear(); TxtNewTeam.Clear(); TxtHireDate.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
+            TxtNewTitle.Clear(); TxtNewTeam.Clear();
+            TxtEmployeeNumber.Clear(); TxtHireDate.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
             ChkManageFiles.IsChecked = false; ChkManageNotices.IsChecked = false;
             ChkManageVendors.IsChecked = false; ChkManageSchedule.IsChecked = false;
         }

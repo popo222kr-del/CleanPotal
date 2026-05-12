@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -14,12 +15,17 @@ namespace CleanPotal
         public WorkAssignmentView()
         {
             InitializeComponent();
-            LoadMembers();
+            LoadMembers(null);
         }
 
-        public void TryRefresh() => LoadMembers();
+        // 새로고침 시 선택된 인원 유지 — 폴링 타이머가 호출해도 화면 이탈 없음
+        public void TryRefresh()
+        {
+            string? selectedUsername = _selected?.Username;
+            LoadMembers(selectedUsername);
+        }
 
-        private void LoadMembers()
+        private void LoadMembers(string? restoreUsername)
         {
             var usernames = DatabaseHelper.GetWorkAssignmentUsernames();
             var allUsers = AuthDatabaseHelper.GetAllUsers();
@@ -37,24 +43,63 @@ namespace CleanPotal
                         JobTitle = u.JobTitle,
                         HireDate = u.HireDate,
                         Email = u.Email,
-                        PhoneNumber = u.PhoneNumber
+                        PhoneNumber = u.PhoneNumber,
+                        EmployeeNumber = u.EmployeeNumber
                     });
             }
 
             MemberList.ItemsSource = _members;
             TxtMemberCount.Text = $"{_members.Count}명";
+
+            // 이전 선택 복원
+            if (restoreUsername != null)
+            {
+                var restore = _members.FirstOrDefault(m => m.Username == restoreUsername);
+                if (restore != null)
+                {
+                    MemberList.SelectedItem = restore;
+                    return;
+                }
+            }
+
+            // 복원할 항목이 없으면 빈 상태
+            _selected = null;
+            PanelEmpty.Visibility = Visibility.Visible;
+            PanelDetail.Visibility = Visibility.Collapsed;
         }
 
         private void MemberList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _selected = MemberList.SelectedItem as WorkAssignmentMember;
-            if (_selected == null)
+            var selected = MemberList.SelectedItems.Cast<WorkAssignmentMember>().ToList();
+
+            // 단일 선택일 때만 상세 패널 표시
+            if (selected.Count == 1)
             {
+                _selected = selected[0];
+                ShowDetail(_selected);
+            }
+            else if (selected.Count == 0)
+            {
+                _selected = null;
                 PanelEmpty.Visibility = Visibility.Visible;
                 PanelDetail.Visibility = Visibility.Collapsed;
-                return;
             }
-            ShowDetail(_selected);
+            else
+            {
+                // 다중 선택 시 상세 패널 숨기고 안내 표시
+                _selected = null;
+                PanelEmpty.Visibility = Visibility.Visible;
+                PanelDetail.Visibility = Visibility.Collapsed;
+                MultiSelectHint.Visibility = Visibility.Visible;
+                SingleSelectHint.Visibility = Visibility.Collapsed;
+                MultiSelectCountText.Text = $"{selected.Count}명 선택됨 — 삭제 버튼으로 일괄 삭제할 수 있습니다.";
+            }
+
+            if (selected.Count <= 1)
+            {
+                MultiSelectHint.Visibility = Visibility.Collapsed;
+                SingleSelectHint.Visibility = Visibility.Visible;
+            }
         }
 
         private void ShowDetail(WorkAssignmentMember m)
@@ -64,6 +109,7 @@ namespace CleanPotal
 
             InfoRealName.Text = m.RealName;
             InfoUsername.Text = m.Username;
+            InfoEmployeeNumber.Text = string.IsNullOrEmpty(m.EmployeeNumber) ? m.Username : m.EmployeeNumber;
             InfoTeam.Text = m.TeamName;
             InfoJobTitle.Text = m.JobTitle;
             InfoHireDate.Text = string.IsNullOrEmpty(m.HireDate) ? "-" : m.HireDate;
@@ -94,26 +140,32 @@ namespace CleanPotal
             }
 
             var win = new WorkAssignmentAddMemberWindow(available) { Owner = Window.GetWindow(this) };
-            if (win.ShowDialog() == true && win.SelectedUsername != null)
+            if (win.ShowDialog() == true && win.SelectedUsernames?.Count > 0)
             {
-                DatabaseHelper.AddWorkAssignmentMember(win.SelectedUsername);
-                LoadMembers();
-                var added = _members.FirstOrDefault(m => m.Username == win.SelectedUsername);
-                if (added != null) MemberList.SelectedItem = added;
+                foreach (var uname in win.SelectedUsernames)
+                    DatabaseHelper.AddWorkAssignmentMember(uname);
+
+                string? firstAdded = win.SelectedUsernames.First();
+                LoadMembers(firstAdded);
             }
         }
 
         private void BtnRemoveMember_Click(object sender, RoutedEventArgs e)
         {
-            if (_selected == null) return;
-            var result = MessageBox.Show($"'{_selected.RealName}' 인원을 목록에서 삭제하시겠습니까?\n관련 기본 교육 기록 및 기관 계정 데이터도 함께 삭제됩니다.",
-                "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (result != MessageBoxResult.Yes) return;
+            var toDelete = MemberList.SelectedItems.Cast<WorkAssignmentMember>().ToList();
+            if (toDelete.Count == 0) return;
 
-            DatabaseHelper.RemoveWorkAssignmentMember(_selected.Username);
-            LoadMembers();
-            PanelEmpty.Visibility = Visibility.Visible;
-            PanelDetail.Visibility = Visibility.Collapsed;
+            string names = string.Join(", ", toDelete.Select(m => m.RealName));
+            string msg = toDelete.Count == 1
+                ? $"'{names}' 인원을 목록에서 삭제하시겠습니까?\n관련 기본 교육 기록 및 기관 계정 데이터도 함께 삭제됩니다."
+                : $"선택한 {toDelete.Count}명({names})을 목록에서 삭제하시겠습니까?\n관련 데이터도 모두 삭제됩니다.";
+
+            if (MessageBox.Show(msg, "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
+            foreach (var m in toDelete)
+                DatabaseHelper.RemoveWorkAssignmentMember(m.Username);
+
+            LoadMembers(null);
         }
 
         private void BtnAddEduRow_Click(object sender, RoutedEventArgs e)

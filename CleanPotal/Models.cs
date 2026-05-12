@@ -96,6 +96,7 @@ namespace CleanPotal
         public string HireDate { get; set; } = "";
         public string Email { get; set; } = "";
         public string PhoneNumber { get; set; } = "";
+        public string EmployeeNumber { get; set; } = "";
 
         public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
 
