@@ -209,7 +209,7 @@ namespace CleanPotal
         // 관리자 전용 메뉴 표시 여부 적용
         private void ApplyAdminMenuVisibility()
         {
-            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
             var adminVis = isAdmin ? Visibility.Visible : Visibility.Collapsed;
             if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = adminVis;
             if (ExpanderAdmin != null) ExpanderAdmin.Visibility = adminVis;
@@ -222,7 +222,7 @@ namespace CleanPotal
             if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
             if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
             // ADMIN 헤더는 관리자 계정일 때만 표시
-            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
             if (SectionHeaderAdmin != null && isAdmin)
                 SectionHeaderAdmin.Visibility = visibility;
         }
@@ -281,7 +281,7 @@ namespace CleanPotal
 
         private bool CanOpenAdminFeature()
         {
-            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004";
+            bool isAdmin = SessionManager.CurrentTeamName == "관리자" || SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
             if (!isAdmin)
             {
                 MessageBox.Show("해당 기능은 관리자만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);

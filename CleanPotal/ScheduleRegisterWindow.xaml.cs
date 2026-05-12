@@ -14,9 +14,11 @@ namespace CleanPotal
         private List<string> _dynamicHolidays = new List<string>();
         private bool _isHolidayLoaded = false;
 
-        public ScheduleRegisterWindow()
+        public ScheduleRegisterWindow(bool openEduTab = false)
         {
             InitializeComponent();
+            if (openEduTab)
+                this.Loaded += (_, _) => MainTab.SelectedIndex = 1;
 
             DpShiftStart.SelectedDate = DateTime.Today;
             DpShiftEnd.SelectedDate = DateTime.Today;

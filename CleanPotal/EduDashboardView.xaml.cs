@@ -28,6 +28,10 @@ namespace CleanPotal
             StatusFilter.SelectedIndex = 0;
 
             YearText.Text = _selectedYear.ToString();
+
+            if (SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")
+                BtnAddEdu.Visibility = System.Windows.Visibility.Visible;
+
             LoadData();
         }
 
@@ -95,6 +99,17 @@ namespace CleanPotal
         }
 
         // ── 이벤트 ────────────────────────────────────────────────────
+        private void BtnAddEdu_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new ScheduleRegisterWindow(openEduTab: true)
+            {
+                Owner = Window.GetWindow(this),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            if (win.ShowDialog() == true)
+                LoadData();
+        }
+
         private void BtnPrevYear_Click(object sender, RoutedEventArgs e)
         {
             _selectedYear--;
