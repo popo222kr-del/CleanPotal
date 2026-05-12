@@ -472,7 +472,7 @@
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                             <CheckBox x:Name="ChkManageVendors" Content="업체 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
-                                            <CheckBox x:Name="ChkManageSchedule" Content="관리자"
+                                            <CheckBox x:Name="ChkManageSchedule" Content="교육 관리"
                                                       Style="{StaticResource PermCheck}"/>
                                         </UniformGrid>
                                     </StackPanel>

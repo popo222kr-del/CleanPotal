@@ -72,35 +72,16 @@ namespace CleanPotal
 
         private void MemberList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selected = MemberList.SelectedItems.Cast<WorkAssignmentMember>().ToList();
-
-            // 단일 선택일 때만 상세 패널 표시
-            if (selected.Count == 1)
+            if (MemberList.SelectedItem is WorkAssignmentMember m)
             {
-                _selected = selected[0];
+                _selected = m;
                 ShowDetail(_selected);
-            }
-            else if (selected.Count == 0)
-            {
-                _selected = null;
-                PanelEmpty.Visibility = Visibility.Visible;
-                PanelDetail.Visibility = Visibility.Collapsed;
             }
             else
             {
-                // 다중 선택 시 상세 패널 숨기고 안내 표시
                 _selected = null;
                 PanelEmpty.Visibility = Visibility.Visible;
                 PanelDetail.Visibility = Visibility.Collapsed;
-                MultiSelectHint.Visibility = Visibility.Visible;
-                SingleSelectHint.Visibility = Visibility.Collapsed;
-                MultiSelectCountText.Text = $"{selected.Count}명 선택됨 — 삭제 버튼으로 일괄 삭제할 수 있습니다.";
-            }
-
-            if (selected.Count <= 1)
-            {
-                MultiSelectHint.Visibility = Visibility.Collapsed;
-                SingleSelectHint.Visibility = Visibility.Visible;
             }
         }
 

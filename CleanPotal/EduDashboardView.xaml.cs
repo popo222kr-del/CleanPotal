@@ -68,13 +68,12 @@ namespace CleanPotal
                         AttachmentPath = e.AttachmentPath ?? ""
                     };
                 })
+                .OrderBy(r => (r.Status == "완료" || r.Status == "취소") ? 1 : 0)
+                .ThenBy(r => r.StartDate)
                 .ToList();
 
-            var lcv = new ListCollectionView(_allRows);
-            lcv.SortDescriptions.Add(new SortDescription(nameof(EduDashboardRow.CompletedSortKey), ListSortDirection.Ascending));
-            lcv.SortDescriptions.Add(new SortDescription(nameof(EduDashboardRow.StartDate), ListSortDirection.Ascending));
-            lcv.Filter = FilterRow;
-            _view = lcv;
+            _view = CollectionViewSource.GetDefaultView(_allRows);
+            _view.Filter = FilterRow;
             EduDataGrid.ItemsSource = _view;
 
             UpdateStatusCards();
@@ -178,6 +177,7 @@ namespace CleanPotal
 
         private void AttachBtn_Click(object sender, MouseButtonEventArgs e)
         {
+            bool canEdit = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004";
             if (sender is not FrameworkElement el) return;
             if (el.DataContext is not EduDashboardRow row) return;
 
@@ -188,25 +188,26 @@ namespace CleanPotal
                 var openItem = new MenuItem { Header = "파일 열기" };
                 openItem.Click += (_, _) => Process.Start(new ProcessStartInfo(row.AttachmentPath) { UseShellExecute = true });
 
-                var changeItem = new MenuItem { Header = "파일 변경" };
-                changeItem.Click += (_, _) => PickAndSaveAttachment(row);
-
-                var removeItem = new MenuItem { Header = "첨부 제거" };
-                removeItem.Click += (_, _) =>
+                if (canEdit)
                 {
-                    row.AttachmentPath = "";
-                    DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, "");
-                };
-
-                menu.Items.Add(openItem);
-                menu.Items.Add(changeItem);
-                menu.Items.Add(new Separator());
-                menu.Items.Add(removeItem);
+                    var changeItem = new MenuItem { Header = "파일 변경" };
+                    changeItem.Click += (_, _) => PickAndSaveAttachment(row);
+                    var removeItem = new MenuItem { Header = "첨부 제거" };
+                    removeItem.Click += (_, _) => { row.AttachmentPath = ""; DatabaseHelper.UpdateEducationPlanAttachment(row.EduId, ""); };
+                    menu.Items.Add(openItem);
+                    menu.Items.Add(changeItem);
+                    menu.Items.Add(new Separator());
+                    menu.Items.Add(removeItem);
+                }
+                else
+                {
+                    menu.Items.Add(openItem);
+                }
 
                 el.ContextMenu = menu;
                 menu.IsOpen = true;
             }
-            else
+            else if (canEdit)
             {
                 PickAndSaveAttachment(row);
             }
@@ -229,6 +230,7 @@ namespace CleanPotal
 
         private void StatusPill_Click(object sender, MouseButtonEventArgs e)
         {
+            if (!(SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")) { e.Handled = true; return; }
             if (sender is not FrameworkElement pill) return;
             if (pill.DataContext is not EduDashboardRow row) return;
 
@@ -285,10 +287,8 @@ namespace CleanPotal
                 {
                     string newStatus = (string)item.Tag;
                     if (newStatus == row.Status) return;
-                    row.Status = newStatus;
                     DatabaseHelper.UpdateEducationPlanStatus(row.EduId, newStatus);
-                    UpdateStatusCards();
-                    _view?.Refresh();
+                    LoadData();
                 };
                 menu.Items.Add(item);
             }
