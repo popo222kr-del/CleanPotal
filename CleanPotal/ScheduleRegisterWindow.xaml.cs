@@ -161,18 +161,6 @@ namespace CleanPotal
             RefreshPreview();
         }
 
-        private void CmbEduTeam_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            string? selectedTeam = CmbEduTeam.SelectedItem as string;
-            if (string.IsNullOrEmpty(selectedTeam)) return;
-
-            var teamMembers = _allUsers.Where(u => u.TeamName == selectedTeam)
-                                       .Select(u => u.RealName).ToList();
-
-            CmbEduName.ItemsSource = teamMembers;
-            if (teamMembers.Count > 0) CmbEduName.SelectedIndex = 0;
-            RefreshPreview();
-        }
 
         private int CountBusinessDays(DateTime startDate, DateTime endDate)
         {
