@@ -217,8 +217,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="새로운 일정 등록" FontSize="24" FontWeight="Bold" Foreground="#0F172A"/>
-            <TextBlock Text="시스템에 등록된 일정은 캘린더와 인수인계에 즉시 동기화됩니다." FontSize="13" Foreground="#64748B" Margin="0,4,0,0"/>
+            <TextBlock x:Name="TxtWindowTitle" Text="새로운 일정 등록" FontSize="24" FontWeight="Bold" Foreground="#0F172A"/>
+            <TextBlock x:Name="TxtWindowSubtitle" Text="시스템에 등록된 일정은 캘린더와 인수인계에 즉시 동기화됩니다." FontSize="13" Foreground="#64748B" Margin="0,4,0,0"/>
         </StackPanel>
 
         <TabControl x:Name="MainTab" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
@@ -303,21 +303,13 @@
 
             <TabItem x:Name="TabEdu" Header="교육 일정 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
-                    <Grid Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="팀 선택" Style="{StaticResource FieldLabelStyle}"/>
-                            <ComboBox x:Name="CmbEduTeam" Style="{StaticResource InputComboStyle}" SelectionChanged="CmbEduTeam_SelectionChanged"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
-                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"/>
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
+                        <ComboBox x:Name="CmbEduName"
+                                  IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"
+                                  Height="42" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1"
+                                  Padding="10,0" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
                     <TextBlock Text="교육/프로젝트명" Style="{StaticResource FieldLabelStyle}"/>
                     <TextBox x:Name="TxtEduCourse" Style="{StaticResource InputTextStyle}" Margin="0,0,0,20"/>

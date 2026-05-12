@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace CleanPotal
 {
     public partial class ScheduleRegisterWindow : Window
     {
         private List<UserModel> _allUsers = new List<UserModel>();
+        private List<string> _eduNamesList = new List<string>();
+        private ICollectionView? _eduNamesView;
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
@@ -20,20 +23,21 @@ namespace CleanPotal
 
             if (eduOnly)
             {
-                // 교육 현황 대시보드에서 열릴 때: 근태 탭 숨기고 교육 탭만 표시
                 this.Loaded += (_, _) =>
                 {
                     TabAttendance.Visibility = Visibility.Collapsed;
-                    MainTab.SelectedIndex = 0; // TabEdu가 유일하게 보이는 탭
+                    MainTab.SelectedItem = TabEdu;
+                    TxtWindowTitle.Text = "교육 일정 등록";
+                    TxtWindowSubtitle.Visibility = Visibility.Collapsed;
                 };
             }
             else if (openEduTab)
             {
-                this.Loaded += (_, _) => MainTab.SelectedIndex = 1;
+                this.Loaded += (_, _) => MainTab.SelectedItem = TabEdu;
             }
             else
             {
-                // 세정팀 일정 달력에서 열릴 때: 교육 탭 항상 숨김
+                // 세정팀 일정 달력: 교육 탭 항상 숨김
                 this.Loaded += (_, _) => TabEdu.Visibility = Visibility.Collapsed;
             }
 
@@ -64,14 +68,40 @@ namespace CleanPotal
                 CmbShiftName.IsEnabled = true;
             }
 
-            // 교육 일정 등록은 "일정 권한"이 체크된 사용자만 가능
+            // 교육 일정 등록은 "관리자" 권한이 체크된 사용자만 가능
             if (hasSchedulePermission)
             {
                 TabEdu.Visibility = Visibility.Visible;
-                var teams = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.TeamName))
-                                     .Select(u => u.TeamName).Distinct().ToList();
-                CmbEduTeam.ItemsSource = teams;
-                if (teams.Count > 0) CmbEduTeam.SelectedIndex = 0;
+
+                // Office → 김팀 → 장팀 → 주간팀 → 나머지 순 정렬
+                var teamOrder = new[] { "Office", "김팀", "장팀", "주간팀" };
+                _eduNamesList = _allUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName))
+                    .OrderBy(u => { int i = Array.IndexOf(teamOrder, u.TeamName); return i < 0 ? 99 : i; })
+                    .ThenBy(u => u.RealName)
+                    .Select(u => $"[{u.TeamName}] {u.RealName}")
+                    .ToList();
+
+                _eduNamesView = CollectionViewSource.GetDefaultView(_eduNamesList);
+                CmbEduName.ItemsSource = _eduNamesView;
+                if (_eduNamesList.Count > 0) CmbEduName.SelectedIndex = 0;
+
+                // 검색 필터링: 템플릿 로드 후 내부 TextBox에 이벤트 연결
+                CmbEduName.Loaded += (_, _) =>
+                {
+                    if (CmbEduName.Template?.FindName("PART_EditableTextBox", CmbEduName) is TextBox tb)
+                    {
+                        tb.TextChanged += (__, ___) =>
+                        {
+                            string kw = tb.Text ?? "";
+                            _eduNamesView!.Filter = o =>
+                                string.IsNullOrEmpty(kw) ||
+                                o.ToString()!.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0;
+                            _eduNamesView.Refresh();
+                            if (CmbEduName.Items.Count > 0) CmbEduName.IsDropDownOpen = true;
+                        };
+                    }
+                };
             }
             else
             {
@@ -264,7 +294,8 @@ namespace CleanPotal
                 }
                 else // 교육 일정 등록
                 {
-                    string name = CmbEduName.SelectedItem?.ToString() ?? "";
+                    string rawSel = CmbEduName.SelectedItem?.ToString() ?? CmbEduName.Text ?? "";
+                    string name = rawSel.Contains("]") ? rawSel.Substring(rawSel.IndexOf(']') + 1).Trim() : rawSel;
                     string course = TxtEduCourse.Text.Trim();
                     string method = TxtEduMethod.Text.Trim();
 
