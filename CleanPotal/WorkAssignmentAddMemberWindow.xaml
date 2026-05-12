@@ -46,7 +46,7 @@
                      MouseDoubleClick="UserList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Padding="4,4">
+                        <StackPanel Margin="4,4">
                             <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A">
                                 <Run Text="{Binding RealName}"/>
                             </TextBlock>
