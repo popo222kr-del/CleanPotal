@@ -60,6 +60,7 @@ namespace CleanPotal
             => new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
 
+        private AutoSyncManager _noticeSyncManager;
         private AutoSyncManager _dbSyncManager;
         private AutoSyncManager _vendorSyncManager;
 
