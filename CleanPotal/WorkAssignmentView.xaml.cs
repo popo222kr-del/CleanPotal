@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace CleanPotal
 {
@@ -186,6 +187,58 @@ namespace CleanPotal
                 DatabaseHelper.RemoveWorkAssignmentMember(m.Username);
 
             LoadMembers(null);
+        }
+
+        private void EduBasicGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control) return;
+            if (_selected == null) return;
+            if (EduBasicGrid.ItemsSource is not ObservableCollection<EduBasicItem> list) return;
+
+            var text = Clipboard.GetText();
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var cols = line.Split('\t');
+                var item = new EduBasicItem { Username = _selected.Username };
+                if (cols.Length >= 1) item.EduName = cols[0].Trim();
+                if (cols.Length >= 2) ParseEduDateIntoItem(cols[1].Trim(), item);
+                list.Add(item);
+            }
+            e.Handled = true;
+        }
+
+        private static void ParseEduDateIntoItem(string raw, EduBasicItem item)
+        {
+            if (string.IsNullOrEmpty(raw)) return;
+            var tildeIdx = raw.IndexOf('~');
+            if (tildeIdx < 0)
+            {
+                if (DateTime.TryParse(raw, out var d)) item.StartDate = d.ToString("yyyy-MM-dd");
+                return;
+            }
+
+            var startStr = raw[..tildeIdx].Trim();
+            var endStr   = raw[(tildeIdx + 1)..].Trim();
+            if (!DateTime.TryParse(startStr, out var start)) return;
+            item.StartDate = start.ToString("yyyy-MM-dd");
+
+            // 종료 부분: 완전한 날짜 / MM-dd / dd 세 가지 처리
+            if (DateTime.TryParse(endStr, out var fullEnd))
+            {
+                item.EndDate = fullEnd.ToString("yyyy-MM-dd");
+            }
+            else if (endStr.Contains('-') && DateTime.TryParse($"{start.Year}-{endStr}", out var monthEnd))
+            {
+                item.EndDate = monthEnd.ToString("yyyy-MM-dd");
+            }
+            else if (int.TryParse(endStr, out int day) && day >= 1 && day <= 31)
+            {
+                var lastOfMonth = DateTime.DaysInMonth(start.Year, start.Month);
+                item.EndDate = new DateTime(start.Year, start.Month, Math.Min(day, lastOfMonth)).ToString("yyyy-MM-dd");
+            }
         }
 
         private void BtnAddEduRow_Click(object sender, RoutedEventArgs e)

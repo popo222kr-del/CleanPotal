@@ -348,7 +348,8 @@
                                       SelectionUnit="FullRow"
                                       ColumnHeaderStyle="{StaticResource AssignGridHeaderStyle}"
                                       CellStyle="{StaticResource AssignGridCellStyle}"
-                                      RowStyle="{StaticResource AssignGridRowStyle}">
+                                      RowStyle="{StaticResource AssignGridRowStyle}"
+                                      PreviewKeyDown="EduBasicGrid_PreviewKeyDown">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="교육 내용" Binding="{Binding EduName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                                     <!-- 교육 일자: 표시는 DateDisplayStr, 편집은 DatePicker 두 개 -->
