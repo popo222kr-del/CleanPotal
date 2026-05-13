@@ -8,6 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>bono.ico</ApplicationIcon>
+    <SignManifests>false</SignManifests>
+    <GenerateTemporaryBootstrapper>false</GenerateTemporaryBootstrapper>
   </PropertyGroup>
 
   <ItemGroup>
