@@ -30,7 +30,10 @@ namespace CleanPotal
             YearText.Text = _selectedYear.ToString();
 
             if (SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")
+            {
                 BtnAddEdu.Visibility = System.Windows.Visibility.Visible;
+                BtnDeleteEdu.Visibility = System.Windows.Visibility.Visible;
+            }
 
             LoadData();
         }
@@ -82,8 +85,23 @@ namespace CleanPotal
         private bool FilterRow(object obj)
         {
             if (obj is not EduDashboardRow row) return false;
+
             string selected = StatusFilter?.SelectedItem as string ?? "전체";
-            return selected == "전체" || row.Status == selected;
+            if (selected != "전체" && row.Status != selected) return false;
+
+            string keyword = SearchBox?.Text?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                bool match = row.MemberName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                          || row.EmployeeNumber.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                          || row.CourseName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                          || row.TeamName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                          || row.JobTitle.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                          || row.EduMethod.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                if (!match) return false;
+            }
+
+            return true;
         }
 
         // ── 상태 카드 숫자 갱신 ────────────────────────────────────────
@@ -151,6 +169,31 @@ namespace CleanPotal
         }
 
         private void StatusFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _view?.Refresh();
+
+        private void BtnClearSearch_Click(object sender, RoutedEventArgs e)
+        {
+            SearchBox.Text = "";
+            SearchBox.Focus();
+        }
+
+        private void BtnDeleteEdu_Click(object sender, RoutedEventArgs e)
+        {
+            if (EduDataGrid.SelectedItem is not EduDashboardRow row) return;
+
+            var result = MessageBox.Show(
+                $"'{row.CourseName}' ({row.MemberName}) 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.",
+                "교육 일정 삭제",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.OK)
+            {
+                DatabaseHelper.DeleteEducationPlan(row.EduId);
+                LoadData();
+            }
+        }
 
         private void EduDataGrid_DragOver(object sender, DragEventArgs e)
         {

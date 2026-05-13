@@ -175,8 +175,13 @@
 
         <!-- ── 필터 바 ── -->
         <Grid Grid.Row="1" Margin="28,12,28,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
             <!-- 왼쪽: 연도 선택 + pill 필터 + 건수 배지 -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 
                 <!-- 연도 선택기 -->
                 <Button x:Name="BtnPrevYear" Style="{StaticResource YearNavBtn}" Click="BtnPrevYear_Click">
@@ -241,8 +246,82 @@
                 </Border>
             </StackPanel>
 
-            <!-- 오른쪽: 교육 일정 등록 버튼 -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <!-- 오른쪽: 검색 + 삭제 + 등록 버튼 -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- 검색창 -->
+                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
+                        CornerRadius="7" Height="32" Width="200" Margin="0,0,8,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol"
+                                   FontSize="13" Foreground="#94A3B8" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                        <TextBox x:Name="SearchBox" Grid.Column="1"
+                                 Background="Transparent" BorderThickness="0"
+                                 VerticalContentAlignment="Center" FontSize="12" Foreground="#0F172A"
+                                 TextChanged="SearchBox_TextChanged"/>
+                        <TextBlock Grid.Column="1" Text="이름, 사번, 교육명 검색..."
+                                   Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Grid.Column="2" x:Name="BtnClearSearch" Content="✕"
+                                Width="24" Height="24" Background="Transparent" BorderThickness="0"
+                                Foreground="#94A3B8" FontSize="11" Cursor="Hand"
+                                Click="BtnClearSearch_Click" Margin="0,0,4,0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- 삭제 버튼 (관리자 전용) -->
+                <Button x:Name="BtnDeleteEdu" Content="선택 삭제"
+                        Height="32" Padding="14,0"
+                        Foreground="#DC2626" FontSize="12" FontWeight="SemiBold"
+                        BorderThickness="1" BorderBrush="#FECACA" Background="#FEF2F2"
+                        Cursor="Hand" Margin="0,0,8,0"
+                        Visibility="Collapsed"
+                        Click="BtnDeleteEdu_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#FEE2E2"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- 교육 일정 등록 버튼 -->
                 <Button x:Name="BtnAddEdu" Content="+ 교육 일정 등록"
                         Height="32" Padding="14,0"
                         Foreground="White" FontSize="12" FontWeight="SemiBold"
