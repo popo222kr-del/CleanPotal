@@ -253,22 +253,69 @@
                     <TextBlock Grid.Row="0" Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                        <ItemsControl ItemsSource="{Binding NoticeItems}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,8,0" VerticalAlignment="Top"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="15" FontWeight="Medium" LineHeight="22" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <StackPanel>
+                            <!-- 기존 공지 목록 -->
+                            <ItemsControl ItemsSource="{Binding NoticeItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F9FAFB" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="•" Foreground="#6B7280" FontSize="18" Margin="0,-2,8,0" VerticalAlignment="Top"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" FontSize="15" FontWeight="Medium" LineHeight="22" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- 교육 일정 (D-7 이내) -->
+                            <StackPanel Visibility="{Binding HasUpcomingEdu, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Margin="0,8,0,8" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="📅" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="교육 일정" FontSize="12" FontWeight="SemiBold" Foreground="#374151" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding UpcomingEduItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,5">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <!-- D-X 배지 -->
+                                                    <Border Grid.Column="0" Background="{Binding DaysBg}" CornerRadius="5" Padding="7,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding DaysLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding DaysFg}"/>
+                                                    </Border>
+                                                    <!-- 교육 정보 -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827">
+                                                            <Run Text="{Binding MemberName, Mode=OneWay}"/>
+                                                            <Run Text=" · " Foreground="#9CA3AF"/>
+                                                            <Run Text="{Binding TeamName, Mode=OneWay}" Foreground="#6B7280"/>
+                                                            <Run Text="   "/>
+                                                            <Run Text="{Binding CourseName, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                            <TextBlock Text="{Binding StartDateStr}" FontSize="11" Foreground="#6B7280"/>
+                                                            <TextBlock Text=" ~ " FontSize="11" Foreground="#9CA3AF"/>
+                                                            <TextBlock Text="{Binding EndDateStr}" FontSize="11" Foreground="#6B7280"/>
+                                                            <TextBlock Text=" · " FontSize="11" Foreground="#9CA3AF" Margin="4,0"/>
+                                                            <TextBlock Text="{Binding EduMethod}" FontSize="11" Foreground="#6B7280"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
                     </ScrollViewer>
                 </Grid>
             </Border>

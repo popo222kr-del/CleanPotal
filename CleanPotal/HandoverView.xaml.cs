@@ -43,7 +43,23 @@ namespace CleanPotal
             public event PropertyChangedEventHandler? PropertyChanged;
         }
 
-        private AutoSyncManager _noticeSyncManager;
+        public class UpcomingEduItem
+        {
+            public string DaysLabel { get; set; } = "";
+            public System.Windows.Media.Brush DaysBg { get; set; } = System.Windows.Media.Brushes.Transparent;
+            public System.Windows.Media.Brush DaysFg { get; set; } = System.Windows.Media.Brushes.Black;
+            public string MemberName { get; set; } = "";
+            public string TeamName { get; set; } = "";
+            public string CourseName { get; set; } = "";
+            public string StartDateStr { get; set; } = "";
+            public string EndDateStr { get; set; } = "";
+            public string EduMethod { get; set; } = "";
+        }
+
+        private static System.Windows.Media.SolidColorBrush HexBrush(string hex)
+            => new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
+
+
         private AutoSyncManager _dbSyncManager;
         private AutoSyncManager _vendorSyncManager;
 
@@ -74,6 +90,7 @@ namespace CleanPotal
             LoadNotices();
             LoadHandoverAll();
             LoadTodayStatus();
+            LoadUpcomingEdu();
 
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
             _activeView.Filter = FilterActiveItem;
@@ -87,7 +104,7 @@ namespace CleanPotal
             RefreshTopProgressPreview();
 
             _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "office_notice.json"));
-            _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
+            _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
             _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); }); }, AppPaths.VendorsFilePath);
 
             this.Loaded += (s, e) => { _noticeSyncManager.Start(); _dbSyncManager.Start(); _vendorSyncManager.Start(); };
@@ -103,6 +120,8 @@ namespace CleanPotal
         public ObservableCollection<string> StatusOptions { get; }
         public ObservableCollection<string> DeliveryOptions { get; }
         public ObservableCollection<NoticeItem> NoticeItems { get; } = new();
+        public ObservableCollection<UpcomingEduItem> UpcomingEduItems { get; } = new();
+        public bool HasUpcomingEdu => UpcomingEduItems.Count > 0;
         public ObservableCollection<TeamStatusGroup> TeamStatusGroups { get; } = new();
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> EditModalAttachmentPaths { get; } = new();
@@ -238,6 +257,45 @@ namespace CleanPotal
             NoticeItems.Clear();
             try { string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); if (File.Exists(path)) { string json = File.ReadAllText(path, Encoding.UTF8); var list = JsonSerializer.Deserialize<List<NoticeItem>>(json); if (list != null) foreach (var item in list) NoticeItems.Add(item); } }
             catch { }
+        }
+
+        private void LoadUpcomingEdu()
+        {
+            UpcomingEduItems.Clear();
+            var today = DateTime.Today;
+            try
+            {
+                var plans = DatabaseHelper.GetEducationPlansInRange(today, today.AddDays(7));
+                var users = AuthDatabaseHelper.GetAllUsers();
+                foreach (var e in plans
+                    .Where(e => e.Status != "완료" && e.Status != "취소" && e.StartDate.Date >= today)
+                    .OrderBy(e => e.StartDate))
+                {
+                    int d = (e.StartDate.Date - today).Days;
+                    string label = d == 0 ? "D-Day" : $"D-{d}";
+                    System.Windows.Media.Brush bg, fg;
+                    if (d == 0)      { bg = HexBrush("#FEE2E2"); fg = HexBrush("#DC2626"); }
+                    else if (d <= 2) { bg = HexBrush("#FEF3C7"); fg = HexBrush("#D97706"); }
+                    else if (d <= 5) { bg = HexBrush("#DBEAFE"); fg = HexBrush("#2563EB"); }
+                    else             { bg = HexBrush("#DCFCE7"); fg = HexBrush("#16A34A"); }
+
+                    var user = users.FirstOrDefault(u => u.RealName == e.MemberName);
+                    UpcomingEduItems.Add(new UpcomingEduItem
+                    {
+                        DaysLabel    = label,
+                        DaysBg       = bg,
+                        DaysFg       = fg,
+                        MemberName   = e.MemberName,
+                        TeamName     = user?.TeamName ?? "-",
+                        CourseName   = e.CourseName,
+                        StartDateStr = e.StartDate.ToString("MM-dd"),
+                        EndDateStr   = e.EndDate.ToString("MM-dd"),
+                        EduMethod    = e.EduMethod ?? ""
+                    });
+                }
+            }
+            catch { }
+            OnPropertyChanged(nameof(HasUpcomingEdu));
         }
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
