@@ -10,22 +10,25 @@ namespace CleanPotal
     {
         private List<UserModel> _allUsers = new List<UserModel>();
         private List<UserModel> _filteredEduUsers = new List<UserModel>();
+        private EducationPlanModel? _editingPlan;
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
         private bool _isHolidayLoaded = false;
 
-        public ScheduleRegisterWindow(bool openEduTab = false, bool eduOnly = false)
+        public ScheduleRegisterWindow(bool openEduTab = false, bool eduOnly = false, EducationPlanModel? editPlan = null)
         {
             InitializeComponent();
 
-            if (eduOnly)
+            _editingPlan = editPlan;
+
+            if (eduOnly || editPlan != null)
             {
                 this.Loaded += (_, _) =>
                 {
                     TabAttendance.Visibility = Visibility.Collapsed;
                     MainTab.SelectedItem = TabEdu;
-                    TxtWindowTitle.Text = "교육 일정 등록";
+                    TxtWindowTitle.Text = editPlan != null ? "교육 일정 수정" : "교육 일정 등록";
                     TxtWindowSubtitle.Visibility = Visibility.Collapsed;
                 };
             }
@@ -83,8 +86,26 @@ namespace CleanPotal
                 CmbEduTeam.SelectedIndex = 0;
 
                 RefreshEduNameList();
+
+                // 수정 모드: 기존 값 채우기
+                if (_editingPlan != null)
+                {
+                    var member = _allUsers.FirstOrDefault(u => u.RealName == _editingPlan.MemberName);
+                    if (member != null && teams.Contains(member.TeamName))
+                    {
+                        CmbEduTeam.SelectedItem = member.TeamName;
+                        RefreshEduNameList();
+                    }
+                    CmbEduName.SelectedItem = _editingPlan.MemberName;
+                    TxtEduCourse.Text = _editingPlan.CourseName;
+                    DpEduStart.SelectedDate = _editingPlan.StartDate;
+                    DpEduEnd.SelectedDate = _editingPlan.EndDate;
+                    if (_editingPlan.EduMethod == "이러닝") RbMethodELearning.IsChecked = true;
+                    else if (_editingPlan.EduMethod == "화상") RbMethodVideo.IsChecked = true;
+                    else RbMethodCollective.IsChecked = true;
+                }
             }
-            else
+            else if (_editingPlan == null)
             {
                 TabEdu.Visibility = Visibility.Collapsed;
             }
@@ -283,7 +304,7 @@ namespace CleanPotal
 
                     MessageBox.Show($"주말/공휴일을 제외하고 총 {registeredCount}일의 일정이 성공적으로 등록되었습니다.", "등록 완료", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                else // 교육 일정 등록
+                else // 교육 일정 등록 / 수정
                 {
                     string name = CmbEduName.SelectedItem?.ToString() ?? "";
                     string course = TxtEduCourse.Text.Trim();
@@ -304,6 +325,21 @@ namespace CleanPotal
                     if (startDate > endDate)
                     {
                         MessageBox.Show("시작일이 종료일보다 늦을 수 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // 수정 모드
+                    if (_editingPlan != null)
+                    {
+                        _editingPlan.MemberName = name;
+                        _editingPlan.CourseName = course;
+                        _editingPlan.StartDate  = startDate;
+                        _editingPlan.EndDate    = endDate;
+                        _editingPlan.EduMethod  = method;
+                        DatabaseHelper.UpdateEducationPlan(_editingPlan);
+                        MessageBox.Show("교육 일정이 수정되었습니다.", "수정 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                        DialogResult = true;
+                        Close();
                         return;
                     }
 

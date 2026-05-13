@@ -264,6 +264,17 @@ namespace CleanPotal
 
         public static void InsertShiftSchedule(ShiftScheduleModel item) => UpsertShiftSchedule(item);
 
+        public static void UpdateEducationPlan(EducationPlanModel item)
+        {
+            using var db = GetConnection();
+            db.Execute(@"UPDATE EducationPlan SET MemberName=@MemberName, CourseName=@CourseName,
+                         StartDate=@StartDate, EndDate=@EndDate, EduMethod=@EduMethod WHERE Id=@Id",
+                new { item.MemberName, item.CourseName,
+                      StartDate = item.StartDate.ToString("yyyy-MM-dd"),
+                      EndDate   = item.EndDate.ToString("yyyy-MM-dd"),
+                      item.EduMethod, item.Id });
+        }
+
         public static void InsertEducationPlan(EducationPlanModel item)
         {
             using (var db = GetConnection())

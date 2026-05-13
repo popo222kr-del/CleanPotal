@@ -100,6 +100,31 @@ namespace CleanPotal
         }
 
         // ── 이벤트 ────────────────────────────────────────────────────
+        private void EduDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (!(SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")) return;
+            if (EduDataGrid.SelectedItem is not EduDashboardRow row) return;
+
+            var plan = new EducationPlanModel
+            {
+                Id             = row.EduId,
+                MemberName     = row.MemberName,
+                CourseName     = row.CourseName,
+                StartDate      = row.StartDate,
+                EndDate        = row.EndDate,
+                EduMethod      = row.EduMethod,
+                Status         = row.Status,
+                Progress       = row.Progress,
+                AttachmentPath = row.AttachmentPath
+            };
+            var win = new ScheduleRegisterWindow(editPlan: plan)
+            {
+                Owner = Window.GetWindow(this),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            if (win.ShowDialog() == true) LoadData();
+        }
+
         private void BtnAddEdu_Click(object sender, RoutedEventArgs e)
         {
             var win = new ScheduleRegisterWindow(eduOnly: true)

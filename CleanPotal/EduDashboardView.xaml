@@ -279,7 +279,8 @@
                   AllowDrop="True"
                   DragOver="EduDataGrid_DragOver"
                   Drop="EduDataGrid_Drop"
-                  PreviewKeyDown="EduDataGrid_PreviewKeyDown">
+                  PreviewKeyDown="EduDataGrid_PreviewKeyDown"
+                  MouseDoubleClick="EduDataGrid_MouseDoubleClick">
 
             <DataGrid.ColumnHeaderStyle>
                 <Style TargetType="DataGridColumnHeader">
