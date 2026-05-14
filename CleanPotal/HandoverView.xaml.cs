@@ -195,7 +195,7 @@ namespace CleanPotal
 
         private void RefreshVendorSuggestions()
         {
-            _cachedVendors = VendorStore.Load();
+            _cachedVendors = VendorStore.Load().ToList();
             VendorSuggestions.Clear();
             foreach (var v in _cachedVendors.Where(v => !string.IsNullOrWhiteSpace(v.VendorName)).OrderBy(v => v.VendorName))
                 VendorSuggestions.Add(v.VendorName!);
