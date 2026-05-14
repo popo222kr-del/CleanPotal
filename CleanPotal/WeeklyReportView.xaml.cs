@@ -238,6 +238,8 @@ namespace CleanPotal
             StartAutoReload();
         }
 
+        public void TryRefresh() => LoadFromStorage();
+
         // 🔥 새 창(Window) 호출 로직. 모달 대신 WeeklyReportTableWindow를 띄움
         public void ShowReportTable()
         {

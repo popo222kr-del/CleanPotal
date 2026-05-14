@@ -110,16 +110,18 @@ namespace CleanPotal
                 catch { }
             });
 
-            // 현재 화면 자동 갱신 (HandoverView·ScheduleBoardView는 AutoSyncManager가 처리, WeeklyReportView는 자체 타이머가 처리)
+            // 현재 화면 자동 갱신
             switch (MainContent.Content)
             {
-                case ProdReqView pv:            pv.TryRefresh(); break;
-                case TeamScheduleView tsv:      tsv.TryRefresh(); break;
-                case ProductionMeetingView pm:   pm.TryRefresh(); break;
-                case PersonalMemoView memo:     memo.TryRefresh(); break;
-                case FieldChecklistView fc:     fc.RefreshDashboardCounters(); break;
-                case DispatchCertificateBatchView dc: dc.LoadHistoryData(); break;
-                case EduDashboardView ed: ed.TryRefresh(); break;
+                case ProdReqView pv:                    pv.TryRefresh(); break;
+                case TeamScheduleView tsv:              tsv.TryRefresh(); break;
+                case ProductionMeetingView pm:          pm.TryRefresh(); break;
+                case PersonalMemoView memo:             memo.TryRefresh(); break;
+                case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
+                case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
+                case EduDashboardView ed:               ed.TryRefresh(); break;
+                case HandoverView hv:                   hv.TryRefresh(); break;
+                case WeeklyReportView wr:               wr.TryRefresh(); break;
             }
         }
 
@@ -412,6 +414,7 @@ namespace CleanPotal
             ApplySectionMeta("현장 업무 인수인계", "업체별 진행 상황을 기록하고 배차를 관리합니다.");
             UpdateNavSelection("Handover");
             if (_handoverView == null) _handoverView = new HandoverView();
+            else _handoverView.TryRefresh();
             MainContent.Content = _handoverView;
             HideAllHeaderButtons();
             BtnCommandNotice.Content = "공지 관리"; BtnCommandNotice.Visibility = Visibility.Visible;
@@ -453,6 +456,7 @@ namespace CleanPotal
                 _teamScheduleView = new TeamScheduleView();
                 _teamScheduleView.MonthTextChanged += (monthText) => { if (HeaderMonthYearText != null) HeaderMonthYearText.Text = monthText; };
             }
+            else _teamScheduleView.TryRefresh();
             MainContent.Content = _teamScheduleView;
             ApplySectionMeta("세정팀 통합 일정 달력", "근무조 교대, 연차, 교육 등 부서 전체 일정을 한눈에 파악합니다.");
             UpdateNavSelection("TeamSchedule");
@@ -465,6 +469,7 @@ namespace CleanPotal
         {
             _currentViewName = "WeeklyReport";
             if (_weeklyReportView == null) _weeklyReportView = new WeeklyReportView();
+            else _weeklyReportView.TryRefresh();
             MainContent.Content = _weeklyReportView;
             ApplySectionMeta("주간보고", "부서 주간보고 내역을 관리하고 지난 업무를 팔로업합니다.");
             UpdateNavSelection("WeeklyReport");
@@ -477,6 +482,7 @@ namespace CleanPotal
         {
             _currentViewName = "PersonalMemo";
             if (_personalMemoView == null) _personalMemoView = new PersonalMemoView();
+            else _personalMemoView.TryRefresh();
             MainContent.Content = _personalMemoView;
             ApplySectionMeta("개인 메모장", "개인 업무 메모를 작성하고 관리합니다.");
             UpdateNavSelection("PersonalMemo");
@@ -488,6 +494,7 @@ namespace CleanPotal
             _currentViewName = "PersonalTask";
             ApplySectionMeta("생산 미팅", "생산 관련 미팅 및 협의 내용을 관리합니다.");
             if (_productionMeetingView == null) _productionMeetingView = new ProductionMeetingView();
+            else _productionMeetingView.TryRefresh();
             MainContent.Content = _productionMeetingView;
             UpdateNavSelection("PersonalTask");
             HideAllHeaderButtons();

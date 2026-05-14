@@ -301,6 +301,7 @@ namespace CleanPotal
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
+        public void TryRefresh() => LoadHandoverAll();
         public void OpenNoticeModal() { if (AuthManager.CheckAuth(PermissionType.Notices)) IsNoticeModalOpen = true; }
         private void CloseNoticeModal_Click(object sender, RoutedEventArgs e) => IsNoticeModalOpen = false;
         private void AddNotice_Click(object sender, RoutedEventArgs e) { string text = NoticeInputBox?.Text?.Trim() ?? ""; if (string.IsNullOrWhiteSpace(text)) return; NoticeItems.Add(new NoticeItem { Text = text }); if (NoticeInputBox != null) NoticeInputBox.Text = ""; SaveNotices(); }
