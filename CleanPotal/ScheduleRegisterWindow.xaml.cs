@@ -292,7 +292,8 @@ namespace CleanPotal
                         RegisteredBy = SessionManager.CurrentRealName,
                         StartDate = startDate.ToString("yyyy-MM-dd"),
                         EndDate = endDate.ToString("yyyy-MM-dd"),
-                        Content = content
+                        Content = content,
+                        Detail = TxtTeamEventDetail.Text.Trim()
                     };
                     DatabaseHelper.InsertTeamEvent(teamEvent);
                     MessageBox.Show("팀 일정이 등록되었습니다.", "등록 완료", MessageBoxButton.OK, MessageBoxImage.Information);

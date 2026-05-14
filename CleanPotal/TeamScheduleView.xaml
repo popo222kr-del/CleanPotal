@@ -91,28 +91,24 @@
                                                 <TextBlock Text="{Binding HolidayName}" FontSize="10" FontWeight="Bold" Foreground="#B91C1C"/>
                                             </Border>
 
+                                            <!-- 팀 일정: 공휴일 없을 때 같은 위치에 표시 -->
+                                            <Button Grid.Column="1" Click="Badge_Click" CommandParameter="{Binding TeamEventHeaderBadge}"
+                                                    Background="Transparent" BorderThickness="0" Padding="0" Margin="8,0,0,0"
+                                                    Visibility="{Binding HasTeamEventHeader, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                    ToolTip="{Binding TeamEventHeaderBadge.TooltipText}" Cursor="Hand" VerticalAlignment="Center">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="#DBEAFE" CornerRadius="4" Padding="6,2">
+                                                            <TextBlock Text="{Binding TeamEventHeaderBadge.Text}" FontSize="10" FontWeight="Bold" Foreground="#1D4ED8" TextTrimming="CharacterEllipsis"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+
                                             <Border Grid.Column="2" Background="#DBEAFE" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsToday, Converter={StaticResource BoolToVisibilityConverter}}">
                                                 <TextBlock Text="오늘" FontSize="11" FontWeight="ExtraBold" Foreground="#1E40AF"/>
                                             </Border>
                                         </Grid>
-
-                                        <!-- 팀 일정 (공휴일 위치에 표시) -->
-                                        <ItemsControl ItemsSource="{Binding HeaderTeamEventBadges}" Margin="4,0,0,4"
-                                                      Visibility="{Binding HasHeaderTeamEventBadges, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Click="Badge_Click" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,0,2" Cursor="Hand" HorizontalContentAlignment="Stretch" ToolTip="{Binding TooltipText}">
-                                                        <Button.Template>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border Background="{Binding BackgroundBrush}" CornerRadius="4" Padding="6,2">
-                                                                    <TextBlock Text="{Binding Text}" Foreground="{Binding TextBrush}" FontWeight="{Binding FontWeight}" FontSize="10" TextTrimming="CharacterEllipsis"/>
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Button.Template>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
 
                                         <ItemsControl ItemsSource="{Binding Badges}">
                                             <ItemsControl.ItemsPanel>

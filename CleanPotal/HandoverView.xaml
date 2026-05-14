@@ -261,23 +261,13 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,4">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border Grid.Column="0" Background="{Binding StatusBg}" CornerRadius="5" Padding="7,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Background="{Binding StatusBg}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
                                                     </Border>
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Content}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" TextWrapping="Wrap"/>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                            <TextBlock Text="{Binding DateRange}" FontSize="11" Foreground="#6B7280"/>
-                                                            <TextBlock Text=" · " FontSize="11" Foreground="#9CA3AF"/>
-                                                            <TextBlock Text="{Binding RegisteredBy}" FontSize="11" Foreground="#6B7280"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </Grid>
+                                                    <TextBlock Text="{Binding DateLabel}" FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding Content}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

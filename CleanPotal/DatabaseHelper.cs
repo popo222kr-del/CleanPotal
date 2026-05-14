@@ -239,6 +239,7 @@ namespace CleanPotal
                         Content TEXT NOT NULL
                     )";
                 connection.Execute(createTeamEventsTable);
+                try { connection.Execute("ALTER TABLE TeamEvents ADD COLUMN Detail TEXT;"); } catch { }
             }
         }
 
@@ -353,8 +354,8 @@ namespace CleanPotal
         public static void InsertTeamEvent(TeamEvent item)
         {
             using (var db = GetConnection())
-                db.Execute("INSERT INTO TeamEvents (RegisteredBy, StartDate, EndDate, Content) VALUES (@RegisteredBy, @StartDate, @EndDate, @Content)",
-                    new { item.RegisteredBy, item.StartDate, item.EndDate, item.Content });
+                db.Execute("INSERT INTO TeamEvents (RegisteredBy, StartDate, EndDate, Content, Detail) VALUES (@RegisteredBy, @StartDate, @EndDate, @Content, @Detail)",
+                    new { item.RegisteredBy, item.StartDate, item.EndDate, item.Content, item.Detail });
         }
 
         public static List<TeamEvent> GetTeamEventsInRange(DateTime start, DateTime end)

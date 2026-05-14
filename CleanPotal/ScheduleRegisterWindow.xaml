@@ -326,10 +326,13 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Text="일정 내용" Style="{StaticResource FieldLabelStyle}"/>
-                    <TextBox x:Name="TxtTeamEventContent"
+                    <TextBlock Text="일정" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox x:Name="TxtTeamEventContent" Style="{StaticResource InputTextStyle}" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="상세 내용" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox x:Name="TxtTeamEventDetail"
                              Style="{StaticResource InputTextStyle}"
-                             Height="90"
+                             Height="80"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
                              VerticalContentAlignment="Top"

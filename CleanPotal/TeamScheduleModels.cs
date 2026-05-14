@@ -31,8 +31,8 @@ namespace CleanPotal
         public string HolidayName { get; set; } = "";
 
         public ObservableCollection<ScheduleBadge> Badges { get; set; } = new();
-        public ObservableCollection<ScheduleBadge> HeaderTeamEventBadges { get; set; } = new();
-        public bool HasHeaderTeamEventBadges => HeaderTeamEventBadges.Count > 0;
+        public ScheduleBadge? TeamEventHeaderBadge { get; set; } = null;
+        public bool HasTeamEventHeader => TeamEventHeaderBadge != null && !IsHoliday;
     }
 
     public class TodayStatusItem
@@ -50,5 +50,6 @@ namespace CleanPotal
         public string StartDate { get; set; } = "";
         public string EndDate { get; set; } = "";
         public string Content { get; set; } = "";
+        public string Detail { get; set; } = "";
     }
 }

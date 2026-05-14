@@ -206,28 +206,40 @@ namespace CleanPotal
                     });
                 }
 
-                // 5. 팀 일정 — 날짜 헤더 영역에 표시 (공휴일 위치)
+                // 5. 팀 일정 — 날짜 숫자 옆 공휴일 위치에 표시
                 var dayTeamEvents = teamEvents
                     .Where(t => DateTime.Parse(t.StartDate).Date <= cellDate.Date && DateTime.Parse(t.EndDate).Date >= cellDate.Date)
                     .ToList();
-                foreach (var te in dayTeamEvents)
+                if (dayTeamEvents.Count > 0)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = new List<ScheduleDetailItem>
+                    _badgeDetails[key] = dayTeamEvents.Select(te => new ScheduleDetailItem
                     {
-                        new ScheduleDetailItem { Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent" }
-                    };
-                    string displayText = te.Content.Length > 16 ? te.Content.Substring(0, 15) + "…" : te.Content;
-                    dayModel.HeaderTeamEventBadges.Add(new ScheduleBadge
+                        Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent"
+                    }).ToList();
+
+                    var first = dayTeamEvents[0];
+                    string displayText = first.Content.Length > 14 ? first.Content.Substring(0, 13) + "…" : first.Content;
+                    if (dayTeamEvents.Count > 1) displayText += $" 외 {dayTeamEvents.Count - 1}건";
+
+                    string tooltip = string.Join("\n", dayTeamEvents.Select(te =>
+                    {
+                        var t = te.Content;
+                        if (!string.IsNullOrWhiteSpace(te.Detail)) t += $"\n  └ {te.Detail}";
+                        return t;
+                    }));
+                    tooltip += $"\n등록자: {first.RegisteredBy}";
+
+                    dayModel.TeamEventHeaderBadge = new ScheduleBadge
                     {
                         Text = displayText,
-                        TooltipText = $"[팀 일정] {te.Content}\n등록자: {te.RegisteredBy}",
+                        TooltipText = tooltip,
                         BackgroundBrush = new SolidColorBrush(Color.FromRgb(219, 234, 254)),
                         TextBrush = new SolidColorBrush(Color.FromRgb(29, 78, 216)),
                         FontWeight = FontWeights.Bold,
                         RecordType = "Group",
                         GroupMembers = key
-                    });
+                    };
                 }
 
                 days.Add(dayModel);

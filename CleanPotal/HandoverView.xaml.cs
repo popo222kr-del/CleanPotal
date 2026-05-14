@@ -59,8 +59,7 @@ namespace CleanPotal
         public class TeamEventNoticeItem
         {
             public string Content { get; set; } = "";
-            public string DateRange { get; set; } = "";
-            public string RegisteredBy { get; set; } = "";
+            public string DateLabel { get; set; } = "";
             public System.Windows.Media.Brush StatusBg { get; set; } = System.Windows.Media.Brushes.Transparent;
             public System.Windows.Media.Brush StatusFg { get; set; } = System.Windows.Media.Brushes.Black;
             public string StatusLabel { get; set; } = "";
@@ -323,17 +322,20 @@ namespace CleanPotal
             try
             {
                 var events = DatabaseHelper.GetTeamEventsInRange(today.AddMonths(-1), today.AddYears(1));
+                var korCulture = new System.Globalization.CultureInfo("ko-KR");
                 foreach (var te in events.OrderBy(t => t.StartDate))
                 {
                     DateTime start = DateTime.Parse(te.StartDate);
                     DateTime end = DateTime.Parse(te.EndDate);
-                    string dateRange = start == end
-                        ? start.ToString("MM/dd")
-                        : $"{start:MM/dd} ~ {end:MM/dd}";
+
+                    string dayOfWeek = korCulture.DateTimeFormat.GetAbbreviatedDayName(start.DayOfWeek);
+                    string dateLabel = start == end
+                        ? $"{start.Month}월 {start.Day}일({dayOfWeek})"
+                        : $"{start.Month}월 {start.Day}일({dayOfWeek}) ~ {end.Month}월 {end.Day}일";
 
                     System.Windows.Media.Brush bg, fg;
                     int daysUntil = (start.Date - today).Days;
-                    if (daysUntil < 0)      { bg = HexBrush("#F3F4F6"); fg = HexBrush("#6B7280"); }
+                    if (daysUntil < 0)      { bg = HexBrush("#F3F4F6"); fg = HexBrush("#9CA3AF"); }
                     else if (daysUntil == 0) { bg = HexBrush("#FEE2E2"); fg = HexBrush("#DC2626"); }
                     else if (daysUntil <= 3) { bg = HexBrush("#FEF3C7"); fg = HexBrush("#D97706"); }
                     else                     { bg = HexBrush("#DBEAFE"); fg = HexBrush("#1D4ED8"); }
@@ -343,8 +345,7 @@ namespace CleanPotal
                     TeamEventNoticeItems.Add(new TeamEventNoticeItem
                     {
                         Content = te.Content,
-                        DateRange = dateRange,
-                        RegisteredBy = te.RegisteredBy,
+                        DateLabel = dateLabel,
                         StatusBg = bg,
                         StatusFg = fg,
                         StatusLabel = statusLabel
