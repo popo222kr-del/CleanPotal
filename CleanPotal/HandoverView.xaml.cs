@@ -51,8 +51,7 @@ namespace CleanPotal
             public string MemberName { get; set; } = "";
             public string TeamName { get; set; } = "";
             public string CourseName { get; set; } = "";
-            public string StartDateStr { get; set; } = "";
-            public string EndDateStr { get; set; } = "";
+            public string DateRangeStr { get; set; } = "";
             public string EduMethod { get; set; } = "";
         }
 
@@ -294,6 +293,13 @@ namespace CleanPotal
                     else if (d <= 5) { bg = HexBrush("#DBEAFE"); fg = HexBrush("#2563EB"); }
                     else             { bg = HexBrush("#DCFCE7"); fg = HexBrush("#16A34A"); }
 
+                    var korCul = new System.Globalization.CultureInfo("ko-KR");
+                    string startDow = korCul.DateTimeFormat.GetAbbreviatedDayName(e.StartDate.DayOfWeek);
+                    string endDow   = korCul.DateTimeFormat.GetAbbreviatedDayName(e.EndDate.DayOfWeek);
+                    string dateRange = e.StartDate.Date == e.EndDate.Date
+                        ? $"{e.StartDate:MM-dd} ({startDow})"
+                        : $"{e.StartDate:MM-dd} ({startDow}) ~ {e.EndDate:MM-dd} ({endDow})";
+
                     var user = users.FirstOrDefault(u => u.RealName == e.MemberName);
                     UpcomingEduItems.Add(new UpcomingEduItem
                     {
@@ -303,8 +309,7 @@ namespace CleanPotal
                         MemberName   = e.MemberName,
                         TeamName     = user?.TeamName ?? "-",
                         CourseName   = e.CourseName,
-                        StartDateStr = e.StartDate.ToString("MM-dd"),
-                        EndDateStr   = e.EndDate.ToString("MM-dd"),
+                        DateRangeStr = dateRange,
                         EduMethod    = e.EduMethod ?? ""
                     });
                 }
@@ -330,10 +335,11 @@ namespace CleanPotal
                     DateTime start = DateTime.Parse(te.StartDate);
                     DateTime end = DateTime.Parse(te.EndDate);
 
-                    string dayOfWeek = korCulture.DateTimeFormat.GetAbbreviatedDayName(start.DayOfWeek);
-                    string dateLabel = start == end
-                        ? $"{start.Month}월 {start.Day}일({dayOfWeek})"
-                        : $"{start.Month}월 {start.Day}일({dayOfWeek}) ~ {end.Month}월 {end.Day}일";
+                    string startDow = korCulture.DateTimeFormat.GetAbbreviatedDayName(start.DayOfWeek);
+                    string endDow   = korCulture.DateTimeFormat.GetAbbreviatedDayName(end.DayOfWeek);
+                    string dateLabel = start.Date == end.Date
+                        ? $"{start:MM-dd} ({startDow})"
+                        : $"{start:MM-dd} ({startDow}) ~ {end:MM-dd} ({endDow})";
 
                     System.Windows.Media.Brush bg, fg;
                     int daysUntil = (start.Date - today).Days;

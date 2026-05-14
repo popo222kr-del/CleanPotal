@@ -325,9 +325,7 @@
                                                             <Run Text="{Binding CourseName, Mode=OneWay}"/>
                                                         </TextBlock>
                                                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                            <TextBlock Text="{Binding StartDateStr}" FontSize="11" Foreground="#6B7280"/>
-                                                            <TextBlock Text=" ~ " FontSize="11" Foreground="#9CA3AF"/>
-                                                            <TextBlock Text="{Binding EndDateStr}" FontSize="11" Foreground="#6B7280"/>
+                                                            <TextBlock Text="{Binding DateRangeStr}" FontSize="11" Foreground="#6B7280"/>
                                                             <TextBlock Text=" · " FontSize="11" Foreground="#9CA3AF" Margin="4,0"/>
                                                             <TextBlock Text="{Binding EduMethod}" FontSize="11" Foreground="#6B7280"/>
                                                         </StackPanel>

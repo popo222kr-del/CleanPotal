@@ -299,7 +299,8 @@
 
                     <!-- 근태 구분 -->
                     <TextBlock Text="근태 구분" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
-                    <ComboBox x:Name="CmbShiftEditType" Height="42" Margin="0,0,0,24" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <ComboBox x:Name="CmbShiftEditType" Height="42" Margin="0,0,0,12" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1"
+                              SelectionChanged="CmbShiftEditType_SelectionChanged">
                         <ComboBoxItem Content="연차"/>
                         <ComboBoxItem Content="오전반차"/>
                         <ComboBoxItem Content="오후반차"/>
@@ -310,7 +311,18 @@
                         <ComboBoxItem Content="야간"/>
                     </ComboBox>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- 반반차 시간대 (반반차 선택 시 표시) -->
+                    <StackPanel x:Name="HalfTimeEditPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                        <TextBlock Text="시간대" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                        <ComboBox x:Name="CmbShiftEditHalfTime" Height="42" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <ComboBoxItem Content="08:30~10:30" IsSelected="True"/>
+                            <ComboBoxItem Content="10:30~12:30"/>
+                            <ComboBoxItem Content="13:30~15:30"/>
+                            <ComboBoxItem Content="15:30~17:30"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                         <Button Content="취소" Width="90" Height="42" Margin="0,0,10,0" Cursor="Hand"
                                 Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" FontSize="14" FontWeight="SemiBold" Foreground="#475569"
                                 Click="BtnCancelShiftEdit_Click">

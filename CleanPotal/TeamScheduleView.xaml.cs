@@ -13,6 +13,7 @@ namespace CleanPotal
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
+        public string RawType { get; set; } = "";
         public string SourceType { get; set; } = "";
         public string StartDate { get; set; } = "";
         public string EndDate { get; set; } = "";
@@ -122,7 +123,7 @@ namespace CleanPotal
                 if (dayShifts.Count > 0)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = dayShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
+                    _badgeDetails[key] = dayShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, RawType = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
 
                     dayModel.Badges.Add(new ScheduleBadge
                     {
@@ -140,7 +141,7 @@ namespace CleanPotal
                 if (nightShifts.Count > 0)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = nightShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
+                    _badgeDetails[key] = nightShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, RawType = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
 
                     dayModel.Badges.Add(new ScheduleBadge
                     {
@@ -267,7 +268,7 @@ namespace CleanPotal
             if (offList.Count == 0) return;
 
             string key = Guid.NewGuid().ToString();
-            _badgeDetails[key] = offList.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType.StartsWith("반반차") ? $"{s.ShiftType} (2시간)" : s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEdit }).ToList();
+            _badgeDetails[key] = offList.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType.StartsWith("반반차") ? $"{s.ShiftType} (2시간)" : s.ShiftType, RawType = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEdit }).ToList();
 
             var offDetails = offList.Select(s => s.ShiftType.StartsWith("반반차") ? $"[{s.ShiftType}] {s.MemberName} (2시간)" : $"[{s.ShiftType}] {s.MemberName}");
 
@@ -382,15 +383,35 @@ namespace CleanPotal
                 _editingShiftItem = item;
                 TxtShiftEditName.Text = item.Name;
                 TxtShiftEditDate.Text = DateTime.TryParse(item.StartDate, out var d)
-                    ? d.ToString("yyyy년 M월 d일 (ddd)", new System.Globalization.CultureInfo("ko-KR"))
+                    ? d.ToString("MM-dd (ddd)", new System.Globalization.CultureInfo("ko-KR"))
                     : item.StartDate;
 
-                string currentType = item.Type.Contains("(") ? item.Type.Substring(0, item.Type.IndexOf('(')).Trim() : item.Type;
+                string rawType = item.RawType;
+                string baseType = rawType;
+                string halfTime = "";
+                if (rawType.StartsWith("반반차") && rawType.Contains("("))
+                {
+                    baseType = "반반차";
+                    halfTime = rawType.Substring(rawType.IndexOf('(') + 1).TrimEnd(')').Trim();
+                }
+
                 foreach (ComboBoxItem ci in CmbShiftEditType.Items)
-                    if (ci.Content?.ToString() == currentType) { CmbShiftEditType.SelectedItem = ci; break; }
+                    if (ci.Content?.ToString() == baseType) { CmbShiftEditType.SelectedItem = ci; break; }
+
+                HalfTimeEditPanel.Visibility = baseType == "반반차" ? Visibility.Visible : Visibility.Collapsed;
+                if (!string.IsNullOrEmpty(halfTime))
+                    foreach (ComboBoxItem ci in CmbShiftEditHalfTime.Items)
+                        if (ci.Content?.ToString() == halfTime) { CmbShiftEditHalfTime.SelectedItem = ci; break; }
 
                 ShiftEditOverlay.Visibility = Visibility.Visible;
             }
+        }
+
+        private void CmbShiftEditType_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (HalfTimeEditPanel == null) return;
+            string selected = (CmbShiftEditType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+            HalfTimeEditPanel.Visibility = selected == "반반차" ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void BtnSaveShiftEdit_Click(object sender, RoutedEventArgs e)
@@ -398,6 +419,12 @@ namespace CleanPotal
             if (_editingShiftItem == null) return;
             string newType = (CmbShiftEditType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
             if (string.IsNullOrEmpty(newType)) return;
+
+            if (newType == "반반차")
+            {
+                string timeSlot = (CmbShiftEditHalfTime.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "08:30~10:30";
+                newType = $"반반차 ({timeSlot})";
+            }
 
             DatabaseHelper.UpdateShiftScheduleType(_editingShiftItem.Id, newType);
             ShiftEditOverlay.Visibility = Visibility.Collapsed;
