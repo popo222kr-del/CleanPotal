@@ -959,7 +959,7 @@
                         <Button Content="선택 삭제" Style="{StaticResource ModalDangerButtonStyle}" Width="100" Click="DoneDeleteSelected_Click"/>
                     </StackPanel>
 
-                    <DataGrid x:Name="DoneGrid" Grid.Row="2" VerticalAlignment="Top"
+                    <DataGrid x:Name="DoneGrid" Grid.Row="2"
                               AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
                               SelectionChanged="DoneGrid_SelectionChanged">
                         <DataGrid.Resources>

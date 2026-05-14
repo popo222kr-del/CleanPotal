@@ -692,6 +692,16 @@ namespace CleanPotal
                 Keyboard.ClearFocus();
 
                 CaptureTarget.UpdateLayout();
+
+                // Hide ComboBox dropdown arrows for a clean capture
+                foreach (var combo in FindVisualChildren<ComboBox>(DispatchDataGrid))
+                {
+                    combo.ApplyTemplate();
+                    foreach (var toggleBtn in FindVisualChildren<System.Windows.Controls.Primitives.ToggleButton>(combo))
+                        toggleBtn.Visibility = Visibility.Collapsed;
+                }
+
+                CaptureTarget.UpdateLayout();
                 Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
 
                 Point listTopLeft = ListContainer.TranslatePoint(new Point(0, 0), CaptureTarget);
@@ -752,7 +762,26 @@ namespace CleanPotal
                 if (selectedIndex >= 0 && selectedIndex < DispatchDataGrid.Items.Count)
                     DispatchDataGrid.SelectedIndex = selectedIndex;
 
+                // Restore ComboBox dropdown arrows
+                foreach (var combo in FindVisualChildren<ComboBox>(DispatchDataGrid))
+                {
+                    foreach (var toggleBtn in FindVisualChildren<System.Windows.Controls.Primitives.ToggleButton>(combo))
+                        toggleBtn.Visibility = Visibility.Visible;
+                }
+
                 CaptureTarget.UpdateLayout();
+            }
+        }
+
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T t) yield return t;
+                foreach (var grandchild in FindVisualChildren<T>(child))
+                    yield return grandchild;
             }
         }
 
