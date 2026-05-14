@@ -430,7 +430,8 @@ namespace CleanPotal
 
             _unreadReqCount = 0; UpdateBadge(); ToastNotification.Visibility = Visibility.Collapsed;
 
-            _prodReqView = new ProdReqView();
+            if (_prodReqView == null) _prodReqView = new ProdReqView();
+            else _prodReqView.TryRefresh();
             MainContent.Content = _prodReqView;
             HideAllHeaderButtons();
             BtnCommandNewReq.Visibility = Visibility.Visible;

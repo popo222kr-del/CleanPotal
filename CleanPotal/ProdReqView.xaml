@@ -313,7 +313,30 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="구분" Binding="{Binding Category}" Width="80" ElementStyle="{StaticResource GridTextStyle}"/>
+                        <DataGridTemplateColumn Header="구분" Width="80" SortMemberPath="Category">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="5,0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding Category}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"/>
+                                        <TextBlock FontSize="11" Foreground="#64748B">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Location}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                            <Run Text="("/>
+                                            <Run Text="{Binding Location, Mode=OneWay}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <DataGridTemplateColumn Header="요청사항" Width="1.5*">
                             <DataGridTemplateColumn.CellTemplate>
@@ -476,7 +499,30 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="완료일" Binding="{Binding ActionDate, StringFormat=yyyy-MM-dd}" Width="100" ElementStyle="{StaticResource GridTextStyle}"/>
-                        <DataGridTextColumn Header="구분" Binding="{Binding Category}" Width="90" ElementStyle="{StaticResource GridTextStyle}"/>
+                        <DataGridTemplateColumn Header="구분" Width="90" SortMemberPath="Category">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="5,0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding Category}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"/>
+                                        <TextBlock FontSize="11" Foreground="#64748B">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Location}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                            <Run Text="("/>
+                                            <Run Text="{Binding Location, Mode=OneWay}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <DataGridTemplateColumn Header="요청내용" Width="1.5*">
                             <DataGridTemplateColumn.CellTemplate>
