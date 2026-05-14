@@ -410,6 +410,12 @@ namespace CleanPotal
             GridLength origRow2Height = CaptureTarget.RowDefinitions[2].Height;
             int selectedIndex = DispatchDataGrid.SelectedIndex;
 
+            var vendorCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[1];
+            var managerCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[4];
+            var contactCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[5];
+            var addressCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[6];
+            DataTemplate? origVendorTemplate = null, origManagerTemplate = null, origContactTemplate = null, origAddressTemplate = null;
+
             try
             {
                 CaptureTarget.UpdateLayout();
@@ -450,6 +456,16 @@ namespace CleanPotal
                 CaptureTarget.Background = Brushes.White;
                 DispatchDataGrid.SelectedIndex = -1;
                 Keyboard.ClearFocus();
+
+                // Replace ComboBox columns with plain TextBlock templates for a clean capture
+                origVendorTemplate = vendorCol.CellTemplate;
+                origManagerTemplate = managerCol.CellTemplate;
+                origContactTemplate = contactCol.CellTemplate;
+                origAddressTemplate = addressCol.CellTemplate;
+                vendorCol.CellTemplate = CreateTextCellTemplate("VendorName");
+                managerCol.CellTemplate = CreateTextCellTemplate("ManagerName");
+                contactCol.CellTemplate = CreateTextCellTemplate("ContactNumber");
+                addressCol.CellTemplate = CreateTextCellTemplate("FullAddress");
 
                 CaptureTarget.UpdateLayout();
                 Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
@@ -516,8 +532,27 @@ namespace CleanPotal
                 if (selectedIndex >= 0 && selectedIndex < DispatchDataGrid.Items.Count)
                     DispatchDataGrid.SelectedIndex = selectedIndex;
 
+                // Restore original ComboBox cell templates
+                if (origVendorTemplate != null) vendorCol.CellTemplate = origVendorTemplate;
+                if (origManagerTemplate != null) managerCol.CellTemplate = origManagerTemplate;
+                if (origContactTemplate != null) contactCol.CellTemplate = origContactTemplate;
+                if (origAddressTemplate != null) addressCol.CellTemplate = origAddressTemplate;
+
                 CaptureTarget.UpdateLayout();
             }
+        }
+
+        private static DataTemplate CreateTextCellTemplate(string bindingPath)
+        {
+            var factory = new FrameworkElementFactory(typeof(TextBlock));
+            factory.SetBinding(TextBlock.TextProperty, new Binding(bindingPath));
+            factory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            factory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            factory.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Center);
+            factory.SetValue(TextBlock.FontSizeProperty, 14.0);
+            factory.SetValue(TextBlock.PaddingProperty, new Thickness(8, 0, 8, 0));
+            factory.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap);
+            return new DataTemplate { VisualTree = factory };
         }
 
         private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
