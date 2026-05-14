@@ -649,6 +649,12 @@ namespace CleanPotal
             GridLength origRow2Height = CaptureTarget.RowDefinitions[2].Height;
             int selectedIndex = DispatchDataGrid.SelectedIndex;
 
+            var vendorCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[1];
+            var managerCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[4];
+            var contactCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[5];
+            var addressCol = (DataGridTemplateColumn)DispatchDataGrid.Columns[6];
+            DataTemplate? origVendorTemplate = null, origManagerTemplate = null, origContactTemplate = null, origAddressTemplate = null;
+
             try
             {
                 CaptureTarget.UpdateLayout();
@@ -691,15 +697,15 @@ namespace CleanPotal
                 DispatchDataGrid.SelectedIndex = -1;
                 Keyboard.ClearFocus();
 
-                CaptureTarget.UpdateLayout();
-
-                // Hide ComboBox dropdown arrows for a clean capture
-                foreach (var combo in FindVisualChildren<ComboBox>(DispatchDataGrid))
-                {
-                    combo.ApplyTemplate();
-                    foreach (var toggleBtn in FindVisualChildren<System.Windows.Controls.Primitives.ToggleButton>(combo))
-                        toggleBtn.Visibility = Visibility.Collapsed;
-                }
+                // Replace ComboBox columns with plain TextBlock templates for a clean capture
+                origVendorTemplate = vendorCol.CellTemplate;
+                origManagerTemplate = managerCol.CellTemplate;
+                origContactTemplate = contactCol.CellTemplate;
+                origAddressTemplate = addressCol.CellTemplate;
+                vendorCol.CellTemplate = CreateTextCellTemplate("VendorName");
+                managerCol.CellTemplate = CreateTextCellTemplate("ManagerName");
+                contactCol.CellTemplate = CreateTextCellTemplate("ContactNumber");
+                addressCol.CellTemplate = CreateTextCellTemplate("FullAddress");
 
                 CaptureTarget.UpdateLayout();
                 Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
@@ -762,27 +768,27 @@ namespace CleanPotal
                 if (selectedIndex >= 0 && selectedIndex < DispatchDataGrid.Items.Count)
                     DispatchDataGrid.SelectedIndex = selectedIndex;
 
-                // Restore ComboBox dropdown arrows
-                foreach (var combo in FindVisualChildren<ComboBox>(DispatchDataGrid))
-                {
-                    foreach (var toggleBtn in FindVisualChildren<System.Windows.Controls.Primitives.ToggleButton>(combo))
-                        toggleBtn.Visibility = Visibility.Visible;
-                }
+                // Restore original ComboBox cell templates
+                if (origVendorTemplate != null) vendorCol.CellTemplate = origVendorTemplate;
+                if (origManagerTemplate != null) managerCol.CellTemplate = origManagerTemplate;
+                if (origContactTemplate != null) contactCol.CellTemplate = origContactTemplate;
+                if (origAddressTemplate != null) addressCol.CellTemplate = origAddressTemplate;
 
                 CaptureTarget.UpdateLayout();
             }
         }
 
-        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+        private static DataTemplate CreateTextCellTemplate(string bindingPath)
         {
-            int count = VisualTreeHelper.GetChildrenCount(parent);
-            for (int i = 0; i < count; i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T t) yield return t;
-                foreach (var grandchild in FindVisualChildren<T>(child))
-                    yield return grandchild;
-            }
+            var factory = new FrameworkElementFactory(typeof(TextBlock));
+            factory.SetBinding(TextBlock.TextProperty, new Binding(bindingPath));
+            factory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            factory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            factory.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Center);
+            factory.SetValue(TextBlock.FontSizeProperty, 14.0);
+            factory.SetValue(TextBlock.PaddingProperty, new Thickness(8, 0, 8, 0));
+            factory.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap);
+            return new DataTemplate { VisualTree = factory };
         }
 
         private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
