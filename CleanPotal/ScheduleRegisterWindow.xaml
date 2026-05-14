@@ -301,6 +301,42 @@
                 </StackPanel>
             </TabItem>
 
+            <TabItem x:Name="TabTeamEvent" Header="팀 일정 등록" FontSize="15" Visibility="Collapsed">
+                <StackPanel Margin="0,20,0,0">
+                    <TextBlock Text="등록자" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox x:Name="TxtTeamEventRegisteredBy" Style="{StaticResource InputTextStyle}" IsReadOnly="True" Margin="0,0,0,20"/>
+
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="시작일" Style="{StaticResource FieldLabelStyle}"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpTeamEventStart" Style="{StaticResource InputDateStyle}" BorderThickness="0"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="종료일" Style="{StaticResource FieldLabelStyle}"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpTeamEventEnd" Style="{StaticResource InputDateStyle}" BorderThickness="0"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="일정 내용" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox x:Name="TxtTeamEventContent"
+                             Style="{StaticResource InputTextStyle}"
+                             Height="90"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalContentAlignment="Top"
+                             Padding="12,10"/>
+                </StackPanel>
+            </TabItem>
+
             <TabItem x:Name="TabEdu" Header="교육 일정 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <Grid Margin="0,0,0,20">

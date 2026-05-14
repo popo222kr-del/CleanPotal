@@ -40,4 +40,13 @@ namespace CleanPotal
         public SolidColorBrush TextBrush { get; set; } = Brushes.Black;
         public string MembersText { get; set; } = "";
     }
+
+    public class TeamEvent
+    {
+        public int Id { get; set; }
+        public string RegisteredBy { get; set; } = "";
+        public string StartDate { get; set; } = "";
+        public string EndDate { get; set; } = "";
+        public string Content { get; set; } = "";
+    }
 }

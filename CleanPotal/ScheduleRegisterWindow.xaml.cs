@@ -22,11 +22,15 @@ namespace CleanPotal
 
             _editingPlan = editPlan;
 
+            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true || isMaster;
+
             if (eduOnly || editPlan != null)
             {
                 this.Loaded += (_, _) =>
                 {
                     TabAttendance.Visibility = Visibility.Collapsed;
+                    TabTeamEvent.Visibility = Visibility.Collapsed;
                     MainTab.SelectedItem = TabEdu;
                     TxtWindowTitle.Text = editPlan != null ? "교육 일정 수정" : "교육 일정 등록";
                     TxtWindowSubtitle.Visibility = Visibility.Collapsed;
@@ -42,10 +46,21 @@ namespace CleanPotal
                 this.Loaded += (_, _) => TabEdu.Visibility = Visibility.Collapsed;
             }
 
+            if (isOffice && !eduOnly && editPlan == null)
+            {
+                this.Loaded += (_, _) =>
+                {
+                    TabTeamEvent.Visibility = Visibility.Visible;
+                    TxtTeamEventRegisteredBy.Text = SessionManager.CurrentRealName;
+                };
+            }
+
             DpShiftStart.SelectedDate = DateTime.Today;
             DpShiftEnd.SelectedDate = DateTime.Today;
             DpEduStart.SelectedDate = DateTime.Today;
             DpEduEnd.SelectedDate = DateTime.Today;
+            DpTeamEventStart.SelectedDate = DateTime.Today;
+            DpTeamEventEnd.SelectedDate = DateTime.Today;
 
             // 권한 상관없이 전체 유저 정보는 미리 로드 (팀명 매핑 및 Upsert를 위해 필요)
             _allUsers = AuthDatabaseHelper.GetAllUsers();
@@ -54,7 +69,6 @@ namespace CleanPotal
             CmbShiftName.SelectedIndex = 0;
             CmbShiftName.IsEnabled = false;
 
-            bool isMaster = SessionManager.CurrentUsername == "1004";
             bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
             bool canManageAllAttendance = isMaster || hasSchedulePermission;
 
@@ -250,7 +264,36 @@ namespace CleanPotal
                     return;
                 }
 
-                if (MainTab.SelectedIndex == 0) // 근태/휴가 다중 등록
+                if (MainTab.SelectedItem == TabTeamEvent) // 팀 일정 등록
+                {
+                    string content = TxtTeamEventContent.Text.Trim();
+                    if (string.IsNullOrEmpty(content) || !DpTeamEventStart.SelectedDate.HasValue || !DpTeamEventEnd.SelectedDate.HasValue)
+                    {
+                        MessageBox.Show("시작일, 종료일, 일정 내용을 모두 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    DateTime startDate = DpTeamEventStart.SelectedDate.Value.Date;
+                    DateTime endDate = DpTeamEventEnd.SelectedDate.Value.Date;
+                    if (startDate > endDate)
+                    {
+                        MessageBox.Show("시작일이 종료일보다 늦을 수 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var teamEvent = new TeamEvent
+                    {
+                        RegisteredBy = SessionManager.CurrentRealName,
+                        StartDate = startDate.ToString("yyyy-MM-dd"),
+                        EndDate = endDate.ToString("yyyy-MM-dd"),
+                        Content = content
+                    };
+                    DatabaseHelper.InsertTeamEvent(teamEvent);
+                    MessageBox.Show("팀 일정이 등록되었습니다.", "등록 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                    this.DialogResult = true;
+                    return;
+                }
+                else if (MainTab.SelectedItem == TabAttendance) // 근태/휴가 다중 등록
                 {
                     string selection = CmbShiftName.SelectedItem?.ToString() ?? "";
                     string name = selection.Contains("]") ? selection.Substring(selection.IndexOf(']') + 1).Trim() : selection;

@@ -49,10 +49,11 @@ namespace CleanPotal
 
             var shifts = DatabaseHelper.GetShiftSchedulesInRange(startDate, endDate);
             var edus = DatabaseHelper.GetEducationPlansInRange(startDate, endDate);
+            var teamEvents = DatabaseHelper.GetTeamEventsInRange(startDate, endDate);
             var allUsers = AuthDatabaseHelper.GetAllUsers();
 
             // 1) 먼저 휴일 정보 없이 즉시 렌더링(화면 멈춤 방지)
-            var initialDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, new Dictionary<string, string>());
+            var initialDays = BuildDayModels(targetDate, startDate, shifts, edus, teamEvents, allUsers, new Dictionary<string, string>());
             if (buildVersion != _calendarBuildVersion) return;
             CalendarItemsControl.ItemsSource = initialDays;
 
@@ -68,7 +69,7 @@ namespace CleanPotal
             }
 
             if (buildVersion != _calendarBuildVersion) return;
-            var finalDays = BuildDayModels(targetDate, startDate, shifts, edus, allUsers, holidayMap);
+            var finalDays = BuildDayModels(targetDate, startDate, shifts, edus, teamEvents, allUsers, holidayMap);
             CalendarItemsControl.ItemsSource = finalDays;
         }
 
@@ -77,6 +78,7 @@ namespace CleanPotal
             DateTime startDate,
             List<ShiftScheduleModel> shifts,
             List<EducationPlanModel> edus,
+            List<TeamEvent> teamEvents,
             List<UserModel> allUsers,
             Dictionary<string, string> holidayMap)
         {
@@ -204,6 +206,30 @@ namespace CleanPotal
                     });
                 }
 
+                // 5. 팀 일정 뱃지 (각 이벤트를 개별 뱃지로 표시)
+                var dayTeamEvents = teamEvents
+                    .Where(t => DateTime.Parse(t.StartDate).Date <= cellDate.Date && DateTime.Parse(t.EndDate).Date >= cellDate.Date)
+                    .ToList();
+                foreach (var te in dayTeamEvents)
+                {
+                    string key = Guid.NewGuid().ToString();
+                    _badgeDetails[key] = new List<ScheduleDetailItem>
+                    {
+                        new ScheduleDetailItem { Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent" }
+                    };
+                    string displayText = te.Content.Length > 16 ? te.Content.Substring(0, 15) + "…" : te.Content;
+                    dayModel.Badges.Add(new ScheduleBadge
+                    {
+                        Text = displayText,
+                        TooltipText = $"[팀 일정] {te.Content}\n등록자: {te.RegisteredBy}",
+                        BackgroundBrush = new SolidColorBrush(Color.FromRgb(219, 234, 254)),
+                        TextBrush = new SolidColorBrush(Color.FromRgb(29, 78, 216)),
+                        FontWeight = FontWeights.Bold,
+                        RecordType = "Group",
+                        GroupMembers = key
+                    });
+                }
+
                 days.Add(dayModel);
             }
 
@@ -286,9 +312,11 @@ namespace CleanPotal
             if ((sender as Button)?.DataContext is ScheduleDetailItem item)
             {
                 bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+                bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
                 bool isMine = item.Name == SessionManager.CurrentRealName;
+                bool canDeleteTeamEvent = item.SourceType == "TeamEvent" && (isOffice || isMaster);
 
-                if (!isMaster && !isMine)
+                if (!isMaster && !isMine && !canDeleteTeamEvent)
                 {
                     MessageBox.Show("본인이 등록한 일정만 삭제하거나 수정할 수 있습니다.", "권한 없음", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -300,6 +328,7 @@ namespace CleanPotal
                 {
                     if (item.SourceType == "Shift") DatabaseHelper.DeleteShiftSchedule(item.Id);
                     else if (item.SourceType == "Edu") DatabaseHelper.DeleteEducationPlan(item.Id);
+                    else if (item.SourceType == "TeamEvent") DatabaseHelper.DeleteTeamEvent(item.Id);
 
                     ModalOverlay.Visibility = Visibility.Collapsed;
                     _ = BuildCalendarAsync(_currentDate);

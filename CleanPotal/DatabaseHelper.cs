@@ -229,6 +229,16 @@ namespace CleanPotal
                     )";
                 connection.Execute(createEduTable);
                 try { connection.Execute("ALTER TABLE EducationPlan ADD COLUMN AttachmentPath TEXT;"); } catch { }
+
+                string createTeamEventsTable = @"
+                    CREATE TABLE IF NOT EXISTS TeamEvents (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        RegisteredBy TEXT NOT NULL,
+                        StartDate TEXT NOT NULL,
+                        EndDate TEXT NOT NULL,
+                        Content TEXT NOT NULL
+                    )";
+                connection.Execute(createTeamEventsTable);
             }
         }
 
@@ -338,6 +348,27 @@ namespace CleanPotal
         public static void DeleteEducationPlan(int id)
         {
             using (var db = GetConnection()) db.Execute("DELETE FROM EducationPlan WHERE Id = @Id", new { Id = id });
+        }
+
+        public static void InsertTeamEvent(TeamEvent item)
+        {
+            using (var db = GetConnection())
+                db.Execute("INSERT INTO TeamEvents (RegisteredBy, StartDate, EndDate, Content) VALUES (@RegisteredBy, @StartDate, @EndDate, @Content)",
+                    new { item.RegisteredBy, item.StartDate, item.EndDate, item.Content });
+        }
+
+        public static List<TeamEvent> GetTeamEventsInRange(DateTime start, DateTime end)
+        {
+            using (var db = GetConnection())
+            {
+                string sql = "SELECT * FROM TeamEvents WHERE StartDate <= @End AND EndDate >= @Start ORDER BY StartDate ASC";
+                return db.Query<TeamEvent>(sql, new { Start = start.ToString("yyyy-MM-dd"), End = end.ToString("yyyy-MM-dd") }).ToList();
+            }
+        }
+
+        public static void DeleteTeamEvent(int id)
+        {
+            using (var db = GetConnection()) db.Execute("DELETE FROM TeamEvents WHERE Id = @Id", new { Id = id });
         }
 
         public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)
