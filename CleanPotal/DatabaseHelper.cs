@@ -372,6 +372,13 @@ namespace CleanPotal
             using (var db = GetConnection()) db.Execute("DELETE FROM TeamEvents WHERE Id = @Id", new { Id = id });
         }
 
+        public static void UpdateTeamEvent(TeamEvent item)
+        {
+            using (var db = GetConnection())
+                db.Execute("UPDATE TeamEvents SET StartDate=@StartDate, EndDate=@EndDate, Content=@Content, Detail=@Detail WHERE Id=@Id",
+                    new { item.StartDate, item.EndDate, item.Content, item.Detail, item.Id });
+        }
+
         public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)
         {
             using (var db = GetConnection())

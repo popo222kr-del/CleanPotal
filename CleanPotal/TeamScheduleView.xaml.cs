@@ -14,6 +14,9 @@ namespace CleanPotal
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
         public string SourceType { get; set; } = "";
+        public string StartDate { get; set; } = "";
+        public string EndDate { get; set; } = "";
+        public string Detail { get; set; } = "";
     }
 
     public partial class TeamScheduleView : UserControl
@@ -21,6 +24,7 @@ namespace CleanPotal
         private DateTime _currentDate;
         private Dictionary<string, List<ScheduleDetailItem>> _badgeDetails = new();
         private int _calendarBuildVersion = 0;
+        private ScheduleDetailItem? _editingTeamEventItem;
 
         // 🔥 메인 창(MainWindow)의 헤더 텍스트를 실시간 변경하기 위한 이벤트
         public event Action<string>? MonthTextChanged;
@@ -215,7 +219,8 @@ namespace CleanPotal
                     string key = Guid.NewGuid().ToString();
                     _badgeDetails[key] = dayTeamEvents.Select(te => new ScheduleDetailItem
                     {
-                        Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent"
+                        Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent",
+                        StartDate = te.StartDate, EndDate = te.EndDate, Detail = te.Detail ?? ""
                     }).ToList();
 
                     var first = dayTeamEvents[0];
@@ -346,6 +351,71 @@ namespace CleanPotal
                     _ = BuildCalendarAsync(_currentDate);
                 }
             }
+        }
+
+        private void BtnEditTeamEvent_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.DataContext is not ScheduleDetailItem item || item.SourceType != "TeamEvent") return;
+
+            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+            bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
+            if (!isOffice && !isMaster)
+            {
+                MessageBox.Show("팀 일정은 Office 권한자만 수정할 수 있습니다.", "권한 없음", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _editingTeamEventItem = item;
+            DpEditTeamEventStart.SelectedDate = DateTime.TryParse(item.StartDate, out var s) ? s : DateTime.Today;
+            DpEditTeamEventEnd.SelectedDate = DateTime.TryParse(item.EndDate, out var en) ? en : DateTime.Today;
+            TxtEditTeamEventContent.Text = item.Type;
+            TxtEditTeamEventDetail.Text = item.Detail;
+
+            ModalOverlay.Visibility = Visibility.Collapsed;
+            TeamEventEditOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void DpEditTeamEventStart_SelectedDateChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (DpEditTeamEventStart?.SelectedDate.HasValue == true)
+                DpEditTeamEventEnd.SelectedDate = DpEditTeamEventStart.SelectedDate;
+        }
+
+        private void BtnSaveTeamEventEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (_editingTeamEventItem == null) return;
+            string content = TxtEditTeamEventContent.Text.Trim();
+            if (string.IsNullOrEmpty(content) || !DpEditTeamEventStart.SelectedDate.HasValue || !DpEditTeamEventEnd.SelectedDate.HasValue)
+            {
+                MessageBox.Show("일정 내용과 기간을 입력해주세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            DateTime start = DpEditTeamEventStart.SelectedDate.Value.Date;
+            DateTime end = DpEditTeamEventEnd.SelectedDate.Value.Date;
+            if (start > end)
+            {
+                MessageBox.Show("시작일이 종료일보다 늦을 수 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var te = new TeamEvent
+            {
+                Id = _editingTeamEventItem.Id,
+                RegisteredBy = _editingTeamEventItem.Name,
+                StartDate = start.ToString("yyyy-MM-dd"),
+                EndDate = end.ToString("yyyy-MM-dd"),
+                Content = content,
+                Detail = TxtEditTeamEventDetail.Text.Trim()
+            };
+            DatabaseHelper.UpdateTeamEvent(te);
+            TeamEventEditOverlay.Visibility = Visibility.Collapsed;
+            _editingTeamEventItem = null;
+            _ = BuildCalendarAsync(_currentDate);
+        }
+
+        private void BtnCancelTeamEventEdit_Click(object sender, RoutedEventArgs e)
+        {
+            TeamEventEditOverlay.Visibility = Visibility.Collapsed;
+            _editingTeamEventItem = null;
         }
 
         // ===============================================

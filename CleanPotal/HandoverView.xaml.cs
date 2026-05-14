@@ -59,10 +59,12 @@ namespace CleanPotal
         public class TeamEventNoticeItem
         {
             public string Content { get; set; } = "";
+            public string Detail { get; set; } = "";
             public string DateLabel { get; set; } = "";
             public System.Windows.Media.Brush StatusBg { get; set; } = System.Windows.Media.Brushes.Transparent;
             public System.Windows.Media.Brush StatusFg { get; set; } = System.Windows.Media.Brushes.Black;
             public string StatusLabel { get; set; } = "";
+            public string FullContent => string.IsNullOrWhiteSpace(Detail) ? Content : $"{Content}  -  {Detail}";
         }
 
         private static System.Windows.Media.SolidColorBrush HexBrush(string hex)
@@ -345,6 +347,7 @@ namespace CleanPotal
                     TeamEventNoticeItems.Add(new TeamEventNoticeItem
                     {
                         Content = te.Content,
+                        Detail = te.Detail ?? "",
                         DateLabel = dateLabel,
                         StatusBg = bg,
                         StatusFg = fg,

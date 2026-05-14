@@ -187,22 +187,96 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTemplateColumn Header="관리" Width="80">
+                            <DataGridTemplateColumn Header="관리" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="삭제" Background="#FEE2E2" Foreground="#DC2626" BorderBrush="#FCA5A5" BorderThickness="1" Width="60" Height="30" Cursor="Hand" FontWeight="Bold" Click="BtnDeleteDetail_Click">
-                                            <Button.Resources>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="CornerRadius" Value="6"/>
-                                                </Style>
-                                            </Button.Resources>
-                                        </Button>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="수정" Background="#DBEAFE" Foreground="#1D4ED8" BorderBrush="#93C5FD" BorderThickness="1" Width="56" Height="30" Cursor="Hand" FontWeight="Bold" Margin="0,0,6,0" Click="BtnEditTeamEvent_Click">
+                                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SourceType}" Value="TeamEvent">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <Button Content="삭제" Background="#FEE2E2" Foreground="#DC2626" BorderBrush="#FCA5A5" BorderThickness="1" Width="56" Height="30" Cursor="Hand" FontWeight="Bold" Click="BtnDeleteDetail_Click">
+                                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                                            </Button>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
+            </Border>
+        </Border>
+
+        <!-- 팀 일정 수정 오버레이 -->
+        <Border x:Name="TeamEventEditOverlay" Background="#80111827" Visibility="Collapsed" Panel.ZIndex="101">
+            <Border Background="#FFFFFF" CornerRadius="16" Width="500" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" ShadowDepth="5"/>
+                </Border.Effect>
+                <StackPanel Margin="28,24">
+                    <!-- 헤더 -->
+                    <Grid Margin="0,0,0,20">
+                        <TextBlock Text="팀 일정 수정" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
+                        <Button Content="✕" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" FontSize="18" FontWeight="Bold" Foreground="#64748B" Cursor="Hand" Click="BtnCancelTeamEventEdit_Click"/>
+                    </Grid>
+
+                    <!-- 시작일 / 종료일 -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="시작일" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpEditTeamEventStart" Height="42" BorderThickness="0" FontSize="14" SelectedDateChanged="DpEditTeamEventStart_SelectedDateChanged"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="종료일" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                                <DatePicker x:Name="DpEditTeamEventEnd" Height="42" BorderThickness="0" FontSize="14"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 일정 -->
+                    <TextBlock Text="일정" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                    <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,16">
+                        <TextBox x:Name="TxtEditTeamEventContent" Height="42" Padding="12,0" VerticalContentAlignment="Center" FontSize="14" BorderThickness="0" Foreground="#0F172A"/>
+                    </Border>
+
+                    <!-- 상세 내용 -->
+                    <TextBlock Text="상세 내용" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                    <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,20">
+                        <TextBox x:Name="TxtEditTeamEventDetail" Height="80" Padding="12,10" FontSize="14" BorderThickness="0" Foreground="#0F172A" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"/>
+                    </Border>
+
+                    <!-- 버튼 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="취소" Width="90" Height="42" Margin="0,0,10,0" Cursor="Hand"
+                                Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                                Click="BtnCancelTeamEventEdit_Click">
+                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                        </Button>
+                        <Button Content="저장하기" Width="140" Height="42" Cursor="Hand"
+                                Background="#0F172A" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"
+                                Click="BtnSaveTeamEventEdit_Click">
+                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
             </Border>
         </Border>
     </Grid>

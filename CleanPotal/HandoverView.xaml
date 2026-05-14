@@ -266,7 +266,7 @@
                                                         <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
                                                     </Border>
                                                     <TextBlock Text="{Binding DateLabel}" FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding Content}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding FullContent}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
