@@ -191,18 +191,10 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="수정" Background="#DBEAFE" Foreground="#1D4ED8" BorderBrush="#93C5FD" BorderThickness="1" Width="56" Height="30" Cursor="Hand" FontWeight="Bold" Margin="0,0,6,0" Click="BtnEditTeamEvent_Click">
+                                            <Button Content="수정" Background="#DBEAFE" Foreground="#1D4ED8" BorderBrush="#93C5FD" BorderThickness="1" Width="56" Height="30" Cursor="Hand" FontWeight="Bold" Margin="0,0,6,0"
+                                                    Click="BtnEditItem_Click"
+                                                    Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibilityConverter}}">
                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding SourceType}" Value="TeamEvent">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
                                             </Button>
                                             <Button Content="삭제" Background="#FEE2E2" Foreground="#DC2626" BorderBrush="#FCA5A5" BorderThickness="1" Width="56" Height="30" Cursor="Hand" FontWeight="Bold" Click="BtnDeleteDetail_Click">
                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
@@ -273,6 +265,60 @@
                         <Button Content="저장하기" Width="140" Height="42" Cursor="Hand"
                                 Background="#0F172A" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"
                                 Click="BtnSaveTeamEventEdit_Click">
+                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+        <!-- 근태/휴가 수정 오버레이 -->
+        <Border x:Name="ShiftEditOverlay" Background="#80111827" Visibility="Collapsed" Panel.ZIndex="102">
+            <Border Background="#FFFFFF" CornerRadius="16" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" ShadowDepth="5"/>
+                </Border.Effect>
+                <StackPanel Margin="28,24">
+                    <Grid Margin="0,0,0,20">
+                        <TextBlock Text="근태/휴가 수정" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
+                        <Button Content="✕" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" FontSize="18" FontWeight="Bold" Foreground="#64748B" Cursor="Hand" Click="BtnCancelShiftEdit_Click"/>
+                    </Grid>
+
+                    <!-- 대상 정보 (읽기전용) -->
+                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,20">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="대상" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Width="40"/>
+                                <TextBlock x:Name="TxtShiftEditName" FontSize="14" FontWeight="Bold" Foreground="#0F172A"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="날짜" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Width="40"/>
+                                <TextBlock x:Name="TxtShiftEditDate" FontSize="13" Foreground="#475569"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 근태 구분 -->
+                    <TextBlock Text="근태 구분" FontSize="13" FontWeight="SemiBold" Foreground="#475569" Margin="2,0,0,6"/>
+                    <ComboBox x:Name="CmbShiftEditType" Height="42" Margin="0,0,0,24" FontSize="14" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <ComboBoxItem Content="연차"/>
+                        <ComboBoxItem Content="오전반차"/>
+                        <ComboBoxItem Content="오후반차"/>
+                        <ComboBoxItem Content="반반차"/>
+                        <ComboBoxItem Content="휴무"/>
+                        <ComboBoxItem Content="특근"/>
+                        <ComboBoxItem Content="주간"/>
+                        <ComboBoxItem Content="야간"/>
+                    </ComboBox>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="취소" Width="90" Height="42" Margin="0,0,10,0" Cursor="Hand"
+                                Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                                Click="BtnCancelShiftEdit_Click">
+                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
+                        </Button>
+                        <Button Content="저장하기" Width="140" Height="42" Cursor="Hand"
+                                Background="#0F172A" BorderThickness="0" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"
+                                Click="BtnSaveShiftEdit_Click">
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style></Button.Resources>
                         </Button>
                     </StackPanel>

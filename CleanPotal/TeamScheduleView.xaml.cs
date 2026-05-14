@@ -17,6 +17,7 @@ namespace CleanPotal
         public string StartDate { get; set; } = "";
         public string EndDate { get; set; } = "";
         public string Detail { get; set; } = "";
+        public bool CanEdit { get; set; } = false;
     }
 
     public partial class TeamScheduleView : UserControl
@@ -25,6 +26,7 @@ namespace CleanPotal
         private Dictionary<string, List<ScheduleDetailItem>> _badgeDetails = new();
         private int _calendarBuildVersion = 0;
         private ScheduleDetailItem? _editingTeamEventItem;
+        private ScheduleDetailItem? _editingShiftItem;
 
         // 🔥 메인 창(MainWindow)의 헤더 텍스트를 실시간 변경하기 위한 이벤트
         public event Action<string>? MonthTextChanged;
@@ -89,6 +91,12 @@ namespace CleanPotal
             _badgeDetails.Clear();
             var days = new ObservableCollection<CalendarDayModel>();
 
+            bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
+            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+            bool isWeekdayTeam = SessionManager.CurrentTeamName?.Contains("주간") == true;
+            bool canEditShifts = isOffice || isMaster || isWeekdayTeam;
+            bool canEditTeamEvents = isOffice || isMaster;
+
             for (int i = 0; i < 42; i++)
             {
                 DateTime cellDate = startDate.AddDays(i);
@@ -114,7 +122,7 @@ namespace CleanPotal
                 if (dayShifts.Count > 0)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = dayShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift" }).ToList();
+                    _badgeDetails[key] = dayShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
 
                     dayModel.Badges.Add(new ScheduleBadge
                     {
@@ -132,7 +140,7 @@ namespace CleanPotal
                 if (nightShifts.Count > 0)
                 {
                     string key = Guid.NewGuid().ToString();
-                    _badgeDetails[key] = nightShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift" }).ToList();
+                    _badgeDetails[key] = nightShifts.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEditShifts }).ToList();
 
                     dayModel.Badges.Add(new ScheduleBadge
                     {
@@ -186,9 +194,9 @@ namespace CleanPotal
                         }
                     }
 
-                    AddOffBadge(dayOffShifts, "주간", dayModel);
-                    AddOffBadge(nightOffShifts, "야간", dayModel);
-                    AddOffBadge(generalOffShifts, "", dayModel);
+                    AddOffBadge(dayOffShifts, "주간", dayModel, canEditShifts);
+                    AddOffBadge(nightOffShifts, "야간", dayModel, canEditShifts);
+                    AddOffBadge(generalOffShifts, "", dayModel, canEditShifts);
                 }
 
                 // 4. 교육 뱃지
@@ -220,7 +228,8 @@ namespace CleanPotal
                     _badgeDetails[key] = dayTeamEvents.Select(te => new ScheduleDetailItem
                     {
                         Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent",
-                        StartDate = te.StartDate, EndDate = te.EndDate, Detail = te.Detail ?? ""
+                        StartDate = te.StartDate, EndDate = te.EndDate, Detail = te.Detail ?? "",
+                        CanEdit = canEditTeamEvents
                     }).ToList();
 
                     var first = dayTeamEvents[0];
@@ -253,12 +262,12 @@ namespace CleanPotal
             return days;
         }
 
-        private void AddOffBadge(List<ShiftScheduleModel> offList, string prefix, CalendarDayModel dayModel)
+        private void AddOffBadge(List<ShiftScheduleModel> offList, string prefix, CalendarDayModel dayModel, bool canEdit = false)
         {
             if (offList.Count == 0) return;
 
             string key = Guid.NewGuid().ToString();
-            _badgeDetails[key] = offList.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType.StartsWith("반반차") ? $"{s.ShiftType} (2시간)" : s.ShiftType, SourceType = "Shift" }).ToList();
+            _badgeDetails[key] = offList.Select(s => new ScheduleDetailItem { Id = s.Id, Name = s.MemberName, Type = s.ShiftType.StartsWith("반반차") ? $"{s.ShiftType} (2시간)" : s.ShiftType, SourceType = "Shift", StartDate = s.TargetDate.ToString("yyyy-MM-dd"), CanEdit = canEdit }).ToList();
 
             var offDetails = offList.Select(s => s.ShiftType.StartsWith("반반차") ? $"[{s.ShiftType}] {s.MemberName} (2시간)" : $"[{s.ShiftType}] {s.MemberName}");
 
@@ -353,26 +362,53 @@ namespace CleanPotal
             }
         }
 
-        private void BtnEditTeamEvent_Click(object sender, RoutedEventArgs e)
+        private void BtnEditItem_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.DataContext is not ScheduleDetailItem item || item.SourceType != "TeamEvent") return;
-
-            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
-            bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
-            if (!isOffice && !isMaster)
-            {
-                MessageBox.Show("팀 일정은 Office 권한자만 수정할 수 있습니다.", "권한 없음", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            _editingTeamEventItem = item;
-            DpEditTeamEventStart.SelectedDate = DateTime.TryParse(item.StartDate, out var s) ? s : DateTime.Today;
-            DpEditTeamEventEnd.SelectedDate = DateTime.TryParse(item.EndDate, out var en) ? en : DateTime.Today;
-            TxtEditTeamEventContent.Text = item.Type;
-            TxtEditTeamEventDetail.Text = item.Detail;
+            if ((sender as Button)?.DataContext is not ScheduleDetailItem item) return;
 
             ModalOverlay.Visibility = Visibility.Collapsed;
-            TeamEventEditOverlay.Visibility = Visibility.Visible;
+
+            if (item.SourceType == "TeamEvent")
+            {
+                _editingTeamEventItem = item;
+                DpEditTeamEventStart.SelectedDate = DateTime.TryParse(item.StartDate, out var s) ? s : DateTime.Today;
+                DpEditTeamEventEnd.SelectedDate = DateTime.TryParse(item.EndDate, out var en) ? en : DateTime.Today;
+                TxtEditTeamEventContent.Text = item.Type;
+                TxtEditTeamEventDetail.Text = item.Detail;
+                TeamEventEditOverlay.Visibility = Visibility.Visible;
+            }
+            else if (item.SourceType == "Shift")
+            {
+                _editingShiftItem = item;
+                TxtShiftEditName.Text = item.Name;
+                TxtShiftEditDate.Text = DateTime.TryParse(item.StartDate, out var d)
+                    ? d.ToString("yyyy년 M월 d일 (ddd)", new System.Globalization.CultureInfo("ko-KR"))
+                    : item.StartDate;
+
+                string currentType = item.Type.Contains("(") ? item.Type.Substring(0, item.Type.IndexOf('(')).Trim() : item.Type;
+                foreach (ComboBoxItem ci in CmbShiftEditType.Items)
+                    if (ci.Content?.ToString() == currentType) { CmbShiftEditType.SelectedItem = ci; break; }
+
+                ShiftEditOverlay.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void BtnSaveShiftEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (_editingShiftItem == null) return;
+            string newType = (CmbShiftEditType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+            if (string.IsNullOrEmpty(newType)) return;
+
+            DatabaseHelper.UpdateShiftScheduleType(_editingShiftItem.Id, newType);
+            ShiftEditOverlay.Visibility = Visibility.Collapsed;
+            _editingShiftItem = null;
+            _ = BuildCalendarAsync(_currentDate);
+        }
+
+        private void BtnCancelShiftEdit_Click(object sender, RoutedEventArgs e)
+        {
+            ShiftEditOverlay.Visibility = Visibility.Collapsed;
+            _editingShiftItem = null;
         }
 
         private void DpEditTeamEventStart_SelectedDateChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

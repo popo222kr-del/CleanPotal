@@ -346,6 +346,13 @@ namespace CleanPotal
             using (var db = GetConnection()) db.Execute("DELETE FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
         }
 
+        public static void UpdateShiftScheduleType(int id, string newShiftType)
+        {
+            using (var db = GetConnection())
+                db.Execute("UPDATE ShiftSchedule SET ShiftType = @ShiftType WHERE Id = @Id",
+                    new { ShiftType = newShiftType, Id = id });
+        }
+
         public static void DeleteEducationPlan(int id)
         {
             using (var db = GetConnection()) db.Execute("DELETE FROM EducationPlan WHERE Id = @Id", new { Id = id });

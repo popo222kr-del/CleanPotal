@@ -254,27 +254,6 @@
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                         <StackPanel>
-                            <!-- 팀 일정 (상단) -->
-                            <StackPanel Visibility="{Binding HasTeamEventNotice, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,0,0,8">
-                                <TextBlock Text="팀 일정" FontSize="12" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,6"/>
-                                <ItemsControl ItemsSource="{Binding TeamEventNoticeItems}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,4">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Border Background="{Binding StatusBg}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding DateLabel}" FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding FullContent}" FontSize="13" FontWeight="SemiBold" Foreground="#111827" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <Border Margin="0,4,0,0" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
-                            </StackPanel>
-
                             <!-- 기존 공지 목록 -->
                             <ItemsControl ItemsSource="{Binding NoticeItems}">
                                 <ItemsControl.ItemTemplate>
@@ -292,6 +271,27 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- 팀 일정 -->
+                            <StackPanel Visibility="{Binding HasTeamEventNotice, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,6,0,8">
+                                <Border Margin="0,0,0,8" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
+                                <TextBlock Text="팀 일정" FontSize="12" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,6"/>
+                                <ItemsControl ItemsSource="{Binding TeamEventNoticeItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,4">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                    <Border Background="{Binding StatusBg}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding DateLabel}" FontSize="13" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding FullContent}" FontSize="13" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
 
                             <!-- 교육 일정 (D-7 이내) -->
                             <StackPanel Visibility="{Binding HasUpcomingEdu, Converter={StaticResource BoolToVisibilityConverter}}">
