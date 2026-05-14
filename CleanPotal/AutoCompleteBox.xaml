@@ -15,7 +15,7 @@
                      Foreground="#0F172A"
                      FontSize="14"
                      TextChanged="InputBox_TextChanged"
-                     KeyDown="InputBox_KeyDown"
+                     PreviewKeyDown="InputBox_PreviewKeyDown"
                      LostFocus="InputBox_LostFocus"/>
         </Border>
 

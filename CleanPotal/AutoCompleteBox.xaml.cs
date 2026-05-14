@@ -113,7 +113,7 @@ namespace CleanPotal
             SuggestionPopup.IsOpen = true;
         }
 
-        private void InputBox_KeyDown(object sender, KeyEventArgs e)
+        private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (!SuggestionPopup.IsOpen) return;
 
