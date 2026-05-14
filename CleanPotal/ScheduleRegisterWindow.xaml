@@ -315,7 +315,7 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="시작일" Style="{StaticResource FieldLabelStyle}"/>
                             <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
-                                <DatePicker x:Name="DpTeamEventStart" Style="{StaticResource InputDateStyle}" BorderThickness="0"/>
+                                <DatePicker x:Name="DpTeamEventStart" Style="{StaticResource InputDateStyle}" BorderThickness="0" SelectedDateChanged="DpTeamEventStart_SelectedDateChanged"/>
                             </Border>
                         </StackPanel>
                         <StackPanel Grid.Column="2">

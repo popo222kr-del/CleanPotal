@@ -56,6 +56,16 @@ namespace CleanPotal
             public string EduMethod { get; set; } = "";
         }
 
+        public class TeamEventNoticeItem
+        {
+            public string Content { get; set; } = "";
+            public string DateRange { get; set; } = "";
+            public string RegisteredBy { get; set; } = "";
+            public System.Windows.Media.Brush StatusBg { get; set; } = System.Windows.Media.Brushes.Transparent;
+            public System.Windows.Media.Brush StatusFg { get; set; } = System.Windows.Media.Brushes.Black;
+            public string StatusLabel { get; set; } = "";
+        }
+
         private static System.Windows.Media.SolidColorBrush HexBrush(string hex)
             => new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
@@ -92,6 +102,7 @@ namespace CleanPotal
             LoadHandoverAll();
             LoadTodayStatus();
             LoadUpcomingEdu();
+            LoadUpcomingTeamEvents();
 
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
             _activeView.Filter = FilterActiveItem;
@@ -105,7 +116,7 @@ namespace CleanPotal
             RefreshTopProgressPreview();
 
             _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "office_notice.json"));
-            _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
+            _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
             _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); }); }, AppPaths.VendorsFilePath);
 
             this.Loaded += (s, e) => { _noticeSyncManager.Start(); _dbSyncManager.Start(); _vendorSyncManager.Start(); };
@@ -123,6 +134,8 @@ namespace CleanPotal
         public ObservableCollection<NoticeItem> NoticeItems { get; } = new();
         public ObservableCollection<UpcomingEduItem> UpcomingEduItems { get; } = new();
         public bool HasUpcomingEdu => UpcomingEduItems.Count > 0;
+        public ObservableCollection<TeamEventNoticeItem> TeamEventNoticeItems { get; } = new();
+        public bool HasTeamEventNotice => TeamEventNoticeItems.Count > 0;
         public ObservableCollection<TeamStatusGroup> TeamStatusGroups { get; } = new();
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> EditModalAttachmentPaths { get; } = new();
@@ -301,7 +314,46 @@ namespace CleanPotal
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
-        public void TryRefresh() => LoadHandoverAll();
+        public void TryRefresh() { LoadHandoverAll(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }
+
+        private void LoadUpcomingTeamEvents()
+        {
+            TeamEventNoticeItems.Clear();
+            var today = DateTime.Today;
+            try
+            {
+                var events = DatabaseHelper.GetTeamEventsInRange(today.AddMonths(-1), today.AddYears(1));
+                foreach (var te in events.OrderBy(t => t.StartDate))
+                {
+                    DateTime start = DateTime.Parse(te.StartDate);
+                    DateTime end = DateTime.Parse(te.EndDate);
+                    string dateRange = start == end
+                        ? start.ToString("MM/dd")
+                        : $"{start:MM/dd} ~ {end:MM/dd}";
+
+                    System.Windows.Media.Brush bg, fg;
+                    int daysUntil = (start.Date - today).Days;
+                    if (daysUntil < 0)      { bg = HexBrush("#F3F4F6"); fg = HexBrush("#6B7280"); }
+                    else if (daysUntil == 0) { bg = HexBrush("#FEE2E2"); fg = HexBrush("#DC2626"); }
+                    else if (daysUntil <= 3) { bg = HexBrush("#FEF3C7"); fg = HexBrush("#D97706"); }
+                    else                     { bg = HexBrush("#DBEAFE"); fg = HexBrush("#1D4ED8"); }
+
+                    string statusLabel = daysUntil < 0 ? "완료" : daysUntil == 0 ? "오늘" : $"D-{daysUntil}";
+
+                    TeamEventNoticeItems.Add(new TeamEventNoticeItem
+                    {
+                        Content = te.Content,
+                        DateRange = dateRange,
+                        RegisteredBy = te.RegisteredBy,
+                        StatusBg = bg,
+                        StatusFg = fg,
+                        StatusLabel = statusLabel
+                    });
+                }
+            }
+            catch { }
+            OnPropertyChanged(nameof(HasTeamEventNotice));
+        }
         public void OpenNoticeModal() { if (AuthManager.CheckAuth(PermissionType.Notices)) IsNoticeModalOpen = true; }
         private void CloseNoticeModal_Click(object sender, RoutedEventArgs e) => IsNoticeModalOpen = false;
         private void AddNotice_Click(object sender, RoutedEventArgs e) { string text = NoticeInputBox?.Text?.Trim() ?? ""; if (string.IsNullOrWhiteSpace(text)) return; NoticeItems.Add(new NoticeItem { Text = text }); if (NoticeInputBox != null) NoticeInputBox.Text = ""; SaveNotices(); }

@@ -190,6 +190,12 @@ namespace CleanPotal
             }
         }
 
+        private void DpTeamEventStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DpTeamEventStart.SelectedDate.HasValue)
+                DpTeamEventEnd.SelectedDate = DpTeamEventStart.SelectedDate;
+        }
+
         private void CmbShiftType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (CmbHalfTime == null) return;

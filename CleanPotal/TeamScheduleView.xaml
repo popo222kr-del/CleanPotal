@@ -96,6 +96,24 @@
                                             </Border>
                                         </Grid>
 
+                                        <!-- 팀 일정 (공휴일 위치에 표시) -->
+                                        <ItemsControl ItemsSource="{Binding HeaderTeamEventBadges}" Margin="4,0,0,4"
+                                                      Visibility="{Binding HasHeaderTeamEventBadges, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Click="Badge_Click" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,0,2" Cursor="Hand" HorizontalContentAlignment="Stretch" ToolTip="{Binding TooltipText}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{Binding BackgroundBrush}" CornerRadius="4" Padding="6,2">
+                                                                    <TextBlock Text="{Binding Text}" Foreground="{Binding TextBrush}" FontWeight="{Binding FontWeight}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
                                         <ItemsControl ItemsSource="{Binding Badges}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>

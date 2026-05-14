@@ -206,7 +206,7 @@ namespace CleanPotal
                     });
                 }
 
-                // 5. 팀 일정 뱃지 (각 이벤트를 개별 뱃지로 표시)
+                // 5. 팀 일정 — 날짜 헤더 영역에 표시 (공휴일 위치)
                 var dayTeamEvents = teamEvents
                     .Where(t => DateTime.Parse(t.StartDate).Date <= cellDate.Date && DateTime.Parse(t.EndDate).Date >= cellDate.Date)
                     .ToList();
@@ -218,7 +218,7 @@ namespace CleanPotal
                         new ScheduleDetailItem { Id = te.Id, Name = te.RegisteredBy, Type = te.Content, SourceType = "TeamEvent" }
                     };
                     string displayText = te.Content.Length > 16 ? te.Content.Substring(0, 15) + "…" : te.Content;
-                    dayModel.Badges.Add(new ScheduleBadge
+                    dayModel.HeaderTeamEventBadges.Add(new ScheduleBadge
                     {
                         Text = displayText,
                         TooltipText = $"[팀 일정] {te.Content}\n등록자: {te.RegisteredBy}",
