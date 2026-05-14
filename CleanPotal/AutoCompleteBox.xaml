@@ -1,0 +1,77 @@
+<UserControl x:Class="CleanPotal.AutoCompleteBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType">
+    <Grid>
+        <Border x:Name="InputBorder"
+                Height="42" Background="#FFFFFF"
+                BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="8">
+            <TextBox x:Name="InputBox"
+                     VerticalContentAlignment="Center"
+                     Padding="12,0"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     Foreground="#0F172A"
+                     FontSize="14"
+                     TextChanged="InputBox_TextChanged"
+                     KeyDown="InputBox_KeyDown"
+                     LostFocus="InputBox_LostFocus"/>
+        </Border>
+
+        <Popup x:Name="SuggestionPopup"
+               PlacementTarget="{Binding ElementName=InputBorder}"
+               Placement="Bottom"
+               StaysOpen="True"
+               AllowsTransparency="True"
+               IsOpen="False">
+            <Border Background="White"
+                    BorderBrush="#CBD5E1" BorderThickness="1"
+                    CornerRadius="8" Padding="4">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="3" Opacity="0.10" Direction="270"/>
+                </Border.Effect>
+                <ListBox x:Name="SuggestionList"
+                         MaxHeight="220"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         FocusVisualStyle="{x:Null}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         PreviewMouseLeftButtonDown="SuggestionList_PreviewMouseLeftButtonDown"
+                         PreviewKeyDown="SuggestionList_PreviewKeyDown">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="FontSize" Value="14"/>
+                            <Setter Property="Foreground" Value="#0F172A"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border Background="{TemplateBinding Background}"
+                                                Padding="{TemplateBinding Padding}"
+                                                CornerRadius="6">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#F1F5F9"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#EEF2FF"/>
+                                                <Setter Property="Foreground" Value="#4F46E5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

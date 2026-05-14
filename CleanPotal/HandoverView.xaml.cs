@@ -84,6 +84,11 @@ namespace CleanPotal
         private string _activeSearchKeyword = "";
         private string _doneSearchKeyword = "";
 
+        public ObservableCollection<string> VendorSuggestions { get; } = new();
+        public ObservableCollection<string> OwnerSuggestions { get; } = new();
+
+        private List<VendorModel> _cachedVendors = new();
+
         public HandoverView(bool weeklyMode = false)
         {
             _weeklyMode = weeklyMode;
@@ -110,6 +115,7 @@ namespace CleanPotal
 
             LoadNotices();
             LoadHandoverAll();
+            RefreshVendorSuggestions();
             if (!_weeklyMode) { LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }
 
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
@@ -125,7 +131,7 @@ namespace CleanPotal
 
             _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "office_notice.json"));
             _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
-            _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); }); }, AppPaths.VendorsFilePath);
+            _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); RefreshVendorSuggestions(); }); }, AppPaths.VendorsFilePath);
 
             this.Loaded += (s, e) => { _noticeSyncManager.Start(); _dbSyncManager.Start(); _vendorSyncManager.Start(); };
             this.Unloaded += (s, e) => { _noticeSyncManager.Stop(); _dbSyncManager.Stop(); _vendorSyncManager.Stop(); };
@@ -173,10 +179,48 @@ namespace CleanPotal
         private HandoverItem? _currentEditItem;
 
         private string _editVendor = "";
-        public string EditVendor { get => _editVendor; set { _editVendor = value; OnPropertyChanged(); } }
+        public string EditVendor
+        {
+            get => _editVendor;
+            set
+            {
+                _editVendor = value;
+                OnPropertyChanged();
+                RefreshOwnerSuggestions(value);
+            }
+        }
 
         private string _editOwner = "";
         public string EditOwner { get => _editOwner; set { _editOwner = value; OnPropertyChanged(); } }
+
+        private void RefreshVendorSuggestions()
+        {
+            _cachedVendors = VendorStore.Load();
+            VendorSuggestions.Clear();
+            foreach (var v in _cachedVendors.Where(v => !string.IsNullOrWhiteSpace(v.VendorName)).OrderBy(v => v.VendorName))
+                VendorSuggestions.Add(v.VendorName!);
+            RefreshOwnerSuggestions(_editVendor);
+        }
+
+        private void RefreshOwnerSuggestions(string vendorName)
+        {
+            OwnerSuggestions.Clear();
+            var match = _cachedVendors.FirstOrDefault(v =>
+                string.Equals(v.VendorName, vendorName?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            IEnumerable<string> names;
+            if (match != null && match.Managers.Count > 0)
+                names = match.Managers.Select(m => m.ManagerName).Where(n => !string.IsNullOrWhiteSpace(n));
+            else
+                names = _cachedVendors.SelectMany(v => v.Managers)
+                    .Select(m => m.ManagerName)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n);
+
+            foreach (var name in names)
+                OwnerSuggestions.Add(name);
+        }
 
         private string _editContent = "";
         public string EditContent { get => _editContent; set { _editContent = value; OnPropertyChanged(); } }
@@ -328,7 +372,7 @@ namespace CleanPotal
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
-        public void TryRefresh() { LoadHandoverAll(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
+        public void TryRefresh() { LoadHandoverAll(); RefreshVendorSuggestions(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
 
         private void LoadUpcomingTeamEvents()
         {
