@@ -456,7 +456,7 @@ namespace CleanPotal
         {
             using (var db = GetConnection())
             {
-                string query = @"
+                db.Execute(@"
                     CREATE TABLE IF NOT EXISTS ProdReqs (
                         Id TEXT PRIMARY KEY,
                         RequestDate TEXT,
@@ -471,8 +471,50 @@ namespace CleanPotal
                         Assignee TEXT,
                         RequestMemo TEXT,
                         ActionMemo TEXT
-                    )";
-                db.Execute(query);
+                    )");
+                try { db.Execute("ALTER TABLE ProdReqs ADD COLUMN CreatedAt TEXT"); } catch { }
+
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS ProdReqReadState (
+                        Username TEXT PRIMARY KEY,
+                        LastReadTime TEXT NOT NULL
+                    )");
+            }
+        }
+
+        public static int GetUnreadProdReqCount(string username)
+        {
+            using var db = GetConnection();
+            var lastRead = db.ExecuteScalar<string>(
+                "SELECT LastReadTime FROM ProdReqReadState WHERE Username = @Username",
+                new { Username = username });
+            if (lastRead == null) return 0;
+            return db.ExecuteScalar<int>(
+                "SELECT COUNT(*) FROM ProdReqs WHERE CreatedAt > @LastRead",
+                new { LastRead = lastRead });
+        }
+
+        public static void MarkProdReqAsRead(string username)
+        {
+            using var db = GetConnection();
+            string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            db.Execute(@"
+                INSERT INTO ProdReqReadState (Username, LastReadTime) VALUES (@Username, @Now)
+                ON CONFLICT(Username) DO UPDATE SET LastReadTime = @Now",
+                new { Username = username, Now = now });
+        }
+
+        public static void InitProdReqReadStateIfNew(string username)
+        {
+            using var db = GetConnection();
+            int exists = db.ExecuteScalar<int>(
+                "SELECT COUNT(*) FROM ProdReqReadState WHERE Username = @Username",
+                new { Username = username });
+            if (exists == 0)
+            {
+                string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                db.Execute("INSERT INTO ProdReqReadState (Username, LastReadTime) VALUES (@Username, @Now)",
+                    new { Username = username, Now = now });
             }
         }
 
@@ -489,10 +531,10 @@ namespace CleanPotal
             using (var db = GetConnection())
             {
                 string query = @"
-                    INSERT INTO ProdReqs 
-                    (Id, RequestDate, DueDate, Status, Category, Location, RequestDetail, Requester, ActionDate, ActionDetail, Assignee, RequestMemo, ActionMemo) 
-                    VALUES 
-                    (@Id, @RequestDate, @DueDate, @Status, @Category, @Location, @RequestDetail, @Requester, @ActionDate, @ActionDetail, @Assignee, @RequestMemo, @ActionMemo)";
+                    INSERT INTO ProdReqs
+                    (Id, RequestDate, DueDate, Status, Category, Location, RequestDetail, Requester, ActionDate, ActionDetail, Assignee, RequestMemo, ActionMemo, CreatedAt)
+                    VALUES
+                    (@Id, @RequestDate, @DueDate, @Status, @Category, @Location, @RequestDetail, @Requester, @ActionDate, @ActionDetail, @Assignee, @RequestMemo, @ActionMemo, @CreatedAt)";
 
                 db.Execute(query, new
                 {
@@ -508,7 +550,8 @@ namespace CleanPotal
                     ActionDetail = item.ActionDetail,
                     Assignee = item.Assignee,
                     RequestMemo = item.RequestMemo,
-                    ActionMemo = item.ActionMemo
+                    ActionMemo = item.ActionMemo,
+                    CreatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                 });
             }
         }

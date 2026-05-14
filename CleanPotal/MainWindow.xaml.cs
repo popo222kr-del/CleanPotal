@@ -27,7 +27,6 @@ namespace CleanPotal
         private bool _isSidebarOpen = true;
 
         private DispatcherTimer? _pollingTimer;
-        private int _lastReqCount = 0;
         private int _unreadReqCount = 0;
 
         public MainWindow()
@@ -69,7 +68,9 @@ namespace CleanPotal
 
         private void InitializePollingTimer()
         {
-            try { _lastReqCount = DatabaseHelper.GetAllProdReqs().Count; } catch { _lastReqCount = 0; }
+            string username = SessionManager.CurrentUsername ?? "";
+            if (!string.IsNullOrEmpty(username))
+                DatabaseHelper.InitProdReqReadStateIfNew(username);
 
             _pollingTimer = new DispatcherTimer();
             _pollingTimer.Interval = TimeSpan.FromSeconds(15);
@@ -79,32 +80,24 @@ namespace CleanPotal
 
         private void PollingTimer_Tick(object? sender, EventArgs e)
         {
-            // ProdReq 배지/토스트 알림 (백그라운드 체크)
+            // ProdReq 개인별 미읽음 배지/토스트
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    var currentList = DatabaseHelper.GetAllProdReqs();
-                    int currentCount = currentList.Count;
+                    string username = SessionManager.CurrentUsername ?? "";
+                    if (string.IsNullOrEmpty(username)) return;
+
+                    int unread = DatabaseHelper.GetUnreadProdReqCount(username);
 
                     Dispatcher.Invoke(() =>
                     {
-                        if (currentCount > _lastReqCount && _lastReqCount != 0)
-                        {
-                            int newItemsCount = currentCount - _lastReqCount;
-                            _lastReqCount = currentCount;
+                        int prev = _unreadReqCount;
+                        _unreadReqCount = unread;
+                        UpdateBadge();
 
-                            if (_currentViewName != "ProdReq")
-                            {
-                                _unreadReqCount += newItemsCount;
-                                UpdateBadge();
-                                ShowToast($"방금 새로운 요청사항 {newItemsCount}건이 등록되었습니다.");
-                            }
-                        }
-                        else if (currentCount != _lastReqCount)
-                        {
-                            _lastReqCount = currentCount;
-                        }
+                        if (unread > prev && _currentViewName != "ProdReq")
+                            ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
                     });
                 }
                 catch { }
@@ -428,6 +421,8 @@ namespace CleanPotal
             ApplySectionMeta("생산팀 요청사항", "생산팀의 부자재/수리 요청을 기록하고 조치 결과를 관리합니다.");
             UpdateNavSelection("ProdReq");
 
+            string username = SessionManager.CurrentUsername ?? "";
+            if (!string.IsNullOrEmpty(username)) DatabaseHelper.MarkProdReqAsRead(username);
             _unreadReqCount = 0; UpdateBadge(); ToastNotification.Visibility = Visibility.Collapsed;
 
             if (_prodReqView == null) _prodReqView = new ProdReqView();
