@@ -9,7 +9,6 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
 
 namespace CleanPotal
 {
@@ -96,9 +95,9 @@ namespace CleanPotal
         private PersonalNote? _selectedNote;
         private readonly ObservableCollection<PersonalNoteGroup> _groupedNotes = new();
 
-        // === 자동 저장 디바운스 ===
-        private readonly DispatcherTimer _autoSaveTimer;
+        // === 편집 상태 ===
         private bool _suppressEditorEvents = false;
+        private bool _isDirty = false;
 
         // === 사용자 정보 ===
         private readonly string _userId;       // 파일 저장 키 (영문 ID)
@@ -114,14 +113,6 @@ namespace CleanPotal
             // 로그인 사용자 정보 가져오기 (기존 SessionManager 사용)
             _userId = SessionManager.IsLoggedIn ? (SessionManager.CurrentUsername ?? "").Trim() : "";
             _userName = SessionManager.IsLoggedIn ? (SessionManager.CurrentRealName ?? "") : "";
-
-            // 자동 저장 타이머 (1.5초 debounce)
-            _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
-            _autoSaveTimer.Tick += (_, __) =>
-            {
-                _autoSaveTimer.Stop();
-                SaveSelectedNote(showStatus: true);
-            };
 
             GroupedNotesControl.ItemsSource = _groupedNotes;
 
@@ -148,11 +139,13 @@ namespace CleanPotal
 
         private void PersonalMemoView_Unloaded(object sender, RoutedEventArgs e)
         {
-            // 화면 떠날 때 미저장 변경 즉시 저장
-            if (_autoSaveTimer.IsEnabled)
+            if (_isDirty && _selectedNote != null)
             {
-                _autoSaveTimer.Stop();
-                SaveSelectedNote(showStatus: false);
+                var result = MessageBox.Show(
+                    $"\"{_selectedNote.DisplayTitle}\" 메모에 저장되지 않은 변경사항이 있습니다.\n저장하시겠습니까?",
+                    "저장 확인", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
+                    SaveSelectedNote(showStatus: false);
             }
         }
 
@@ -181,7 +174,8 @@ namespace CleanPotal
 
         public void TryRefresh()
         {
-            try { LoadNotesFromDisk(); }
+            if (_isDirty) return; // 미저장 변경사항 있으면 새로고침 건너뜀
+            try { LoadNotesFromDisk(); RebuildGroupedList(); }
             catch { }
         }
 
@@ -295,11 +289,14 @@ namespace CleanPotal
         {
             if (sender is Button btn && btn.Tag is PersonalNote note)
             {
-                // 변경사항 즉시 저장 후 이동
-                if (_autoSaveTimer.IsEnabled)
+                if (note == _selectedNote) return;
+                if (_isDirty && _selectedNote != null)
                 {
-                    _autoSaveTimer.Stop();
-                    SaveSelectedNote(showStatus: false);
+                    var result = MessageBox.Show(
+                        $"\"{_selectedNote.DisplayTitle}\" 메모에 저장되지 않은 변경사항이 있습니다.\n저장하시겠습니까?",
+                        "저장 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Cancel) return;
+                    if (result == MessageBoxResult.Yes) SaveSelectedNote(showStatus: false);
                 }
                 SelectNote(note);
             }
@@ -312,6 +309,7 @@ namespace CleanPotal
 
             _selectedNote = note;
             _selectedNote.IsSelectedInList = true;
+            _isDirty = false;
 
             // 편집 영역 채우기
             _suppressEditorEvents = true;
@@ -341,8 +339,14 @@ namespace CleanPotal
                 return;
             }
 
-            // 진행 중인 자동 저장 즉시 처리
-            if (_autoSaveTimer.IsEnabled) { _autoSaveTimer.Stop(); SaveSelectedNote(showStatus: false); }
+            if (_isDirty && _selectedNote != null)
+            {
+                var result = MessageBox.Show(
+                    $"\"{_selectedNote.DisplayTitle}\" 메모에 저장되지 않은 변경사항이 있습니다.\n저장하시겠습니까?",
+                    "저장 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Cancel) return;
+                if (result == MessageBoxResult.Yes) SaveSelectedNote(showStatus: false);
+            }
 
             // 중복 제목 회피
             string baseTitle = "새 메모";
@@ -378,11 +382,11 @@ namespace CleanPotal
             _selectedNote.Title = TxtTitle.Text;
             _selectedNote.Content = TxtContent.Text;
 
-            TxtSaveStatus.Text = "저장 중...";
-
-            // debounce: 1.5초 후 저장
-            _autoSaveTimer.Stop();
-            _autoSaveTimer.Start();
+            if (!_isDirty)
+            {
+                _isDirty = true;
+                TxtSaveStatus.Text = "저장되지 않은 변경사항";
+            }
         }
 
         private void SaveSelectedNote(bool showStatus)
@@ -392,6 +396,8 @@ namespace CleanPotal
 
             _selectedNote.UpdatedAt = DateTime.Now;
             SaveAllToDisk();
+
+            _isDirty = false;
 
             // 메타 정보 갱신
             TxtMetaUpdated.Text = $"수정일 {_selectedNote.UpdatedAt:yyyy-MM-dd HH:mm}";
@@ -405,7 +411,6 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            _autoSaveTimer.Stop();
             SaveSelectedNote(showStatus: true);
         }
 
@@ -415,7 +420,7 @@ namespace CleanPotal
             var result = MessageBox.Show($"\"{_selectedNote.DisplayTitle}\" 메모를 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result != MessageBoxResult.Yes) return;
 
-            _autoSaveTimer.Stop();
+            _isDirty = false;
 
             // 휴지통 방식 - IsDeleted 플래그
             _selectedNote.IsDeleted = true;

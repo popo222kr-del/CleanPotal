@@ -330,7 +330,7 @@
                                                     </Border>
                                                     <!-- 교육 정보 -->
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827">
+                                                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827" TextWrapping="Wrap">
                                                             <Run Text="{Binding DateRangeStr, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
                                                             <Run Text="  "/>
                                                             <Run Text="{Binding MemberName, Mode=OneWay}"/>
@@ -338,9 +338,9 @@
                                                             <Run Text="{Binding TeamName, Mode=OneWay}" Foreground="#6B7280"/>
                                                             <Run Text="   "/>
                                                             <Run Text="{Binding CourseName, Mode=OneWay}"/>
-                                                        </TextBlock>
-                                                        <TextBlock FontSize="11" Foreground="#6B7280" Margin="0,2,0,0">
-                                                            <Run Text="{Binding EduMethod, Mode=OneWay}"/>
+                                                            <Run Text=" (" Foreground="#9CA3AF" FontWeight="Normal"/>
+                                                            <Run Text="{Binding EduMethod, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
+                                                            <Run Text=")" Foreground="#9CA3AF" FontWeight="Normal"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                 </Grid>
