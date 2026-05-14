@@ -4,7 +4,9 @@
         Title="인원 추가" Height="420" Width="340"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#F8FAFC">
+        Background="#F8FAFC"
+        SnapsToDevicePixels="True" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

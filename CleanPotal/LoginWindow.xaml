@@ -3,6 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="CleanPotal 로그인" Height="560" Width="400" 
         WindowStartupLocation="CenterScreen" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        SnapsToDevicePixels="True" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality"
         Loaded="Window_Loaded">
 
     <Border Background="#F8FAFC" CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" Margin="10">

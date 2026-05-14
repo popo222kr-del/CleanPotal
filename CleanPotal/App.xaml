@@ -9,6 +9,18 @@
             <Setter Property="UseLayoutRounding" Value="True"/>
         </Style>
 
+        <Style TargetType="TextBox">
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+        </Style>
+
+        <Style TargetType="Label">
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
         <Style x:Key="ModernCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="CornerRadius" Value="16"/>

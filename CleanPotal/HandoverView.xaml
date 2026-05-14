@@ -330,17 +330,17 @@
                                                     </Border>
                                                     <!-- 교육 정보 -->
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock FontSize="12" Foreground="#6B7280" Margin="0,0,0,2">
-                                                            <Run Text="{Binding DateRangeStr, Mode=OneWay}"/>
-                                                            <Run Text=" · " Foreground="#9CA3AF"/>
-                                                            <Run Text="{Binding EduMethod, Mode=OneWay}"/>
-                                                        </TextBlock>
                                                         <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827">
+                                                            <Run Text="{Binding DateRangeStr, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
+                                                            <Run Text="  "/>
                                                             <Run Text="{Binding MemberName, Mode=OneWay}"/>
                                                             <Run Text=" · " Foreground="#9CA3AF"/>
                                                             <Run Text="{Binding TeamName, Mode=OneWay}" Foreground="#6B7280"/>
                                                             <Run Text="   "/>
                                                             <Run Text="{Binding CourseName, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="11" Foreground="#6B7280" Margin="0,2,0,0">
+                                                            <Run Text="{Binding EduMethod, Mode=OneWay}"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                 </Grid>
