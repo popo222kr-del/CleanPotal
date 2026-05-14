@@ -478,34 +478,10 @@ namespace CleanPotal
 
         public static List<ProdReqItem> GetAllProdReqs()
         {
-            var list = new List<ProdReqItem>();
-            using (var db = GetConnection())
-            {
-                string query = "SELECT * FROM ProdReqs ORDER BY RequestDate DESC, DueDate ASC";
-                var rawData = db.Query(query);
-
-                foreach (var row in rawData)
-                {
-                    list.Add(new ProdReqItem
-                    {
-                        Id = Guid.Parse(Convert.ToString(row.Id)),
-                        RequestDate = string.IsNullOrEmpty(Convert.ToString(row.RequestDate)) ? null : DateTime.Parse(Convert.ToString(row.RequestDate)),
-                        DueDate = string.IsNullOrEmpty(Convert.ToString(row.DueDate)) ? null : DateTime.Parse(Convert.ToString(row.DueDate)),
-                        Status = Convert.ToString(row.Status) ?? "진행",
-                        Category = Convert.ToString(row.Category) ?? "",
-                        Location = Convert.ToString(row.Location) ?? "",
-                        RequestDetail = Convert.ToString(row.RequestDetail) ?? "",
-                        Requester = Convert.ToString(row.Requester) ?? "",
-                        ActionDate = string.IsNullOrEmpty(Convert.ToString(row.ActionDate)) ? null : DateTime.Parse(Convert.ToString(row.ActionDate)),
-                        ActionDetail = Convert.ToString(row.ActionDetail) ?? "",
-                        Assignee = Convert.ToString(row.Assignee) ?? "",
-                        RequestMemo = Convert.ToString(row.RequestMemo) ?? "",
-                        ActionMemo = Convert.ToString(row.ActionMemo) ?? "",
-                        ManageChecked = false
-                    });
-                }
-            }
-            return list;
+            using var db = GetConnection();
+            return db.Query<ProdReqItem>(
+                "SELECT * FROM ProdReqs ORDER BY RequestDate DESC, DueDate ASC"
+            ).AsList();
         }
 
         public static void InsertProdReq(ProdReqItem item)

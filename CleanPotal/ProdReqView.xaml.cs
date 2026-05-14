@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -244,19 +245,24 @@ namespace CleanPotal
         {
             InitializeComponent();
             DataContext = this;
-            LoadDataFromDB();
-            ApplyFilters();
             UpdateSubLocations();
             EditRequester = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
-            HookManageCheckedEvents();
+            _ = LoadAndApplyAsync();
         }
 
-        public void TryRefresh() { LoadDataFromDB(); ApplyFilters(); }
+        public void TryRefresh() { _ = LoadAndApplyAsync(); }
 
-        private void LoadDataFromDB()
+        private async Task LoadAndApplyAsync()
         {
-            RequestList.Clear();
-            try { DatabaseHelper.CreateProdReqTable(); foreach (var item in DatabaseHelper.GetAllProdReqs()) RequestList.Add(item); } catch { }
+            try
+            {
+                var items = await Task.Run(() => DatabaseHelper.GetAllProdReqs());
+                RequestList.Clear();
+                foreach (var item in items) RequestList.Add(item);
+                ApplyFilters();
+                HookManageCheckedEvents();
+            }
+            catch { }
         }
 
         private void FilterTab_Checked(object sender, RoutedEventArgs e) => ApplyFilters();
