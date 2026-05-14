@@ -284,8 +284,21 @@
                                                     <Border Background="{Binding StatusBg}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding DateLabel}" FontSize="13" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding FullContent}" FontSize="13" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding DateLabel}" FontSize="13" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding Content}" FontSize="13" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center"/>
+                                                    <TextBlock FontSize="13" Foreground="#6B7280" VerticalAlignment="Center" TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Detail}" Value="">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                        <Run Text="  -  "/><Run Text="{Binding Detail, Mode=OneWay}"/>
+                                                    </TextBlock>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
@@ -317,6 +330,11 @@
                                                     </Border>
                                                     <!-- 교육 정보 -->
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock FontSize="12" Foreground="#6B7280" Margin="0,0,0,2">
+                                                            <Run Text="{Binding DateRangeStr, Mode=OneWay}"/>
+                                                            <Run Text=" · " Foreground="#9CA3AF"/>
+                                                            <Run Text="{Binding EduMethod, Mode=OneWay}"/>
+                                                        </TextBlock>
                                                         <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827">
                                                             <Run Text="{Binding MemberName, Mode=OneWay}"/>
                                                             <Run Text=" · " Foreground="#9CA3AF"/>
@@ -324,11 +342,6 @@
                                                             <Run Text="   "/>
                                                             <Run Text="{Binding CourseName, Mode=OneWay}"/>
                                                         </TextBlock>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                            <TextBlock Text="{Binding DateRangeStr}" FontSize="11" Foreground="#6B7280"/>
-                                                            <TextBlock Text=" · " FontSize="11" Foreground="#9CA3AF" Margin="4,0"/>
-                                                            <TextBlock Text="{Binding EduMethod}" FontSize="11" Foreground="#6B7280"/>
-                                                        </StackPanel>
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>
