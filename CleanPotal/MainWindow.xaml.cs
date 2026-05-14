@@ -11,6 +11,7 @@ namespace CleanPotal
     {
         private string _currentViewName = "Portal";
         private HandoverView? _handoverView;
+        private HandoverView? _weeklyHandoverView;
         private ScheduleBoardView? _scheduleBoardView;
         private TeamScheduleView? _teamScheduleView;
         private WeeklyReportView? _weeklyReportView;
@@ -239,7 +240,7 @@ namespace CleanPotal
         {
             _isUpdatingNav = true;
             if (_currentViewName == "Report" || _currentViewName == "DispatchCert") ExpanderEtc.IsExpanded = true;
-            else if (_currentViewName == "Handover" || _currentViewName == "ProdReq" || _currentViewName == "Schedule") ExpanderProduction.IsExpanded = true;
+            else if (_currentViewName == "Handover" || _currentViewName == "WeeklyHandover" || _currentViewName == "ProdReq" || _currentViewName == "Schedule") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
@@ -249,7 +250,7 @@ namespace CleanPotal
         }
 
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
-        private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
+        private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment") OpenWeeklyReport_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
         private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
@@ -257,6 +258,7 @@ namespace CleanPotal
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
         private void OpenHandover(object sender, RoutedEventArgs e) { OpenSidebar(); ShowHandover(); }
+        private void OpenWeeklyHandover_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowWeeklyHandover(); }
         private void OpenSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowSchedule(); }
         private void OpenTeamSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowTeamSchedule(); }
         private void OpenProdReq_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProdReq(); }
@@ -415,6 +417,19 @@ namespace CleanPotal
             BtnCommandVendor.Content = "업체 정보 관리"; BtnCommandVendor.Visibility = Visibility.Visible;
         }
 
+        private void ShowWeeklyHandover()
+        {
+            _currentViewName = "WeeklyHandover";
+            ApplySectionMeta("주간세정 현황", "주간팀 담당 업체의 진행 상황을 기록하고 배차를 관리합니다.");
+            UpdateNavSelection("WeeklyHandover");
+            if (_weeklyHandoverView == null) _weeklyHandoverView = new HandoverView(weeklyMode: true);
+            else _weeklyHandoverView.TryRefresh();
+            MainContent.Content = _weeklyHandoverView;
+            HideAllHeaderButtons();
+            BtnCommandSecondary.Content = "완료 목록 조회"; BtnCommandSecondary.Visibility = Visibility.Visible;
+            BtnCommandVendor.Content = "업체 정보 관리"; BtnCommandVendor.Visibility = Visibility.Visible;
+        }
+
         private void ShowProdReq()
         {
             _currentViewName = "ProdReq";
@@ -540,7 +555,7 @@ namespace CleanPotal
             var subNormal = (Style)FindResource("ErpSubButtonStyle"); var subSelected = (Style)FindResource("ErpSubButtonSelectedStyle");
             var expNormal = (Style)FindResource("SidebarExpanderStyle"); var expActive = (Style)FindResource("SidebarExpanderActiveStyle");
 
-            BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
+            BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavWeeklyHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
@@ -554,6 +569,7 @@ namespace CleanPotal
                 case "Portal": BtnNavPortal.Style = mainSelected; break;
                 case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
                 case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
+                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
                 case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;

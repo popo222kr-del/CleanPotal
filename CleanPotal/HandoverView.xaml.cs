@@ -70,6 +70,9 @@ namespace CleanPotal
             => new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
 
+        private readonly bool _weeklyMode;
+        private HashSet<string> _weeklyVendorNames = new(StringComparer.OrdinalIgnoreCase);
+
         private AutoSyncManager _noticeSyncManager;
         private AutoSyncManager _dbSyncManager;
         private AutoSyncManager _vendorSyncManager;
@@ -81,8 +84,9 @@ namespace CleanPotal
         private string _activeSearchKeyword = "";
         private string _doneSearchKeyword = "";
 
-        public HandoverView()
+        public HandoverView(bool weeklyMode = false)
         {
+            _weeklyMode = weeklyMode;
             InitializeComponent();
             DataContext = this;
 
@@ -95,14 +99,18 @@ namespace CleanPotal
             EditStatus = "진행";
             EditDeliveryMethod = "➖ 미정";
 
+            if (_weeklyMode)
+            {
+                TopDashboardArea.Visibility = Visibility.Collapsed;
+                DashboardToggleRow.Visibility = Visibility.Collapsed;
+            }
+
             HookManageCheckedEvents();
             HookDoneCheckedEvents();
 
             LoadNotices();
             LoadHandoverAll();
-            LoadTodayStatus();
-            LoadUpcomingEdu();
-            LoadUpcomingTeamEvents();
+            if (!_weeklyMode) { LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }
 
             _activeView = CollectionViewSource.GetDefaultView(ActiveItems);
             _activeView.Filter = FilterActiveItem;
@@ -320,7 +328,7 @@ namespace CleanPotal
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
-        public void TryRefresh() { LoadHandoverAll(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }
+        public void TryRefresh() { LoadHandoverAll(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
 
         private void LoadUpcomingTeamEvents()
         {
@@ -382,7 +390,33 @@ namespace CleanPotal
         private void DoneItem_PropertyChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(HandoverItem.ManageChecked)) UpdateDoneSelectAllState(); }
         private void UpdateDoneSelectAllState() { if (DoneItems.Count == 0) { DoneSelectAll = false; return; } bool all = DoneItems.All(x => x.ManageChecked); bool none = DoneItems.All(x => !x.ManageChecked); _doneSelectAll = all ? true : (none ? false : null); OnPropertyChanged(nameof(DoneSelectAll)); }
 
-        private void LoadHandoverAll() { foreach (var it in ActiveItems) it.PropertyChanged -= ActiveItem_PropertyChanged; ActiveItems.Clear(); DoneItems.Clear(); try { var vendors = VendorStore.Load(); var dbItems = DatabaseHelper.GetAllHandovers(); foreach (var item in dbItems) { var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase)); item.Category = DetermineCategory(item.Vendor, match?.Category); item.ManageChecked = false; item.NotifyProgress(); if (item.IsDone) DoneItems.Add(item); else ActiveItems.Add(item); } ReorderDone(); _activeView?.Refresh(); _doneView?.Refresh(); } catch (Exception ex) { MessageBox.Show($"DB 데이터 로드 실패: {ex.Message}", "오류"); } }
+        private void LoadHandoverAll()
+        {
+            foreach (var it in ActiveItems) it.PropertyChanged -= ActiveItem_PropertyChanged;
+            ActiveItems.Clear(); DoneItems.Clear();
+            try
+            {
+                var vendors = VendorStore.Load();
+                _weeklyVendorNames = new HashSet<string>(
+                    vendors.Where(v => v.IsWeekly).Select(v => v.VendorName ?? ""),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var dbItems = DatabaseHelper.GetAllHandovers();
+                foreach (var item in dbItems)
+                {
+                    bool isWeekly = _weeklyVendorNames.Contains(item.Vendor);
+                    if (_weeklyMode != isWeekly) continue; // weekly view shows only weekly; normal view excludes weekly
+
+                    var match = vendors.FirstOrDefault(v => string.Equals(v.VendorName, item.Vendor, StringComparison.OrdinalIgnoreCase));
+                    item.Category = DetermineCategory(item.Vendor, match?.Category);
+                    item.ManageChecked = false;
+                    item.NotifyProgress();
+                    if (item.IsDone) DoneItems.Add(item); else ActiveItems.Add(item);
+                }
+                ReorderDone(); _activeView?.Refresh(); _doneView?.Refresh();
+            }
+            catch (Exception ex) { MessageBox.Show($"DB 데이터 로드 실패: {ex.Message}", "오류"); }
+        }
         private void ReorderDone() { var ordered = DoneItems.OrderByDescending(x => x.OutDate ?? DateTime.MinValue).ToList(); DoneItems.Clear(); foreach (var item in ordered) DoneItems.Add(item); }
 
         private void ActiveGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ActiveGrid.SelectedItem is HandoverItem item) MarkAsRead(item); }

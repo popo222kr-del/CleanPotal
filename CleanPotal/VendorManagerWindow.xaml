@@ -235,6 +235,9 @@
                                 <ComboBoxItem Content="QTZ"/>
                             </ComboBox>
                         </Border>
+                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="White" Padding="10,0" Margin="12,0,0,0" Height="32">
+                            <CheckBox Content="주간팀" IsChecked="{Binding IsWeekly, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#334155"/>
+                        </Border>
                     </StackPanel>
                     <Button Grid.Row="0" Grid.Column="1" Content="이 업체 삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="34" VerticalAlignment="Center" Click="DeleteVendor_Click"/>
                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">

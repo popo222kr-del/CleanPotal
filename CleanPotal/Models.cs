@@ -25,6 +25,9 @@ namespace CleanPotal
         private string _basePath = "";
         public string BasePath { get => _basePath; set { _basePath = value; OnPropertyChanged(); } }
 
+        private bool _isWeekly = false;
+        public bool IsWeekly { get => _isWeekly; set { _isWeekly = value; OnPropertyChanged(); } }
+
         public ObservableCollection<AddressModel> Addresses { get; set; } = new();
         public ObservableCollection<ManagerModel> Managers { get; set; } = new();
 

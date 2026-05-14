@@ -403,7 +403,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="1" Margin="8,12,8,12">
+        <Grid x:Name="DashboardToggleRow" Grid.Row="1" Margin="8,12,8,12">
             <Rectangle Height="1" Fill="{StaticResource BorderLight}" VerticalAlignment="Center"/>
             <Button x:Name="BtnToggleDashboard" Content="대시보드 접기 ▲" HorizontalAlignment="Center" Padding="24,6" Background="#FFFFFF" Foreground="#64748B" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" FontSize="13" FontWeight="Bold" Cursor="Hand" Click="BtnToggleDashboard_Click">
                 <Button.Resources>

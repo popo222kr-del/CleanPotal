@@ -133,6 +133,7 @@ namespace CleanPotal
                 VendorName = source.VendorName?.Trim() ?? string.Empty,
                 Category = source.Category?.Trim() == "일반" ? "" : (source.Category?.Trim() ?? ""),
                 BasePath = source.BasePath?.Trim() ?? string.Empty,
+                IsWeekly = source.IsWeekly,
                 Addresses = new ObservableCollection<AddressModel>(safeAddresses.Select(a => new AddressModel { IsMain = a.IsMain, LocationName = a.LocationName?.Trim() ?? "", FullAddress = a.FullAddress?.Trim() ?? "" })),
                 Managers = new ObservableCollection<ManagerModel>(safeManagers.Select(m => new ManagerModel { ManagerName = m.ManagerName?.Trim() ?? "", ContactNumber = m.ContactNumber?.Trim() ?? "" }))
             };
