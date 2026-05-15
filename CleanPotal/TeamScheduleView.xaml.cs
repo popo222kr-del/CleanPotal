@@ -40,7 +40,11 @@ namespace CleanPotal
             _ = BuildCalendarAsync(_currentDate);
         }
 
-        public void TryRefresh() => _ = BuildCalendarAsync(_currentDate);
+        public void TryRefresh()
+        {
+            if (_editingTeamEventItem != null || _editingShiftItem != null) return;
+            _ = BuildCalendarAsync(_currentDate);
+        }
 
         private async System.Threading.Tasks.Task BuildCalendarAsync(DateTime targetDate)
         {
