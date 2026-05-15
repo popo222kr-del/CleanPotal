@@ -575,7 +575,7 @@
 
                         <DataGridTextColumn x:Name="OwnerColumn" Header="담당자" Binding="{Binding Owner}" Width="0.6*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
 
-                        <DataGridTemplateColumn Header="납품" Width="50">
+                        <DataGridTemplateColumn Header="납품" Width="65">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
