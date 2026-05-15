@@ -552,7 +552,7 @@
                         <DataGridTextColumn x:Name="OutDateColumn" Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                         <DataGridTextColumn x:Name="StatusColumn" Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
 
-                        <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="1.9*">
+                        <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="2.8*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,6">
@@ -573,9 +573,9 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTextColumn x:Name="OwnerColumn" Header="담당자" Binding="{Binding Owner}" Width="0.9*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="OwnerColumn" Header="담당자" Binding="{Binding Owner}" Width="0.6*" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
 
-                        <DataGridTemplateColumn Header="납품" Width="60">
+                        <DataGridTemplateColumn Header="납품" Width="50">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
@@ -583,7 +583,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn x:Name="ProgressColumn" Header="진행률" Width="1.2*">
+                        <DataGridTemplateColumn x:Name="ProgressColumn" Header="진행률" Width="0.8*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid Margin="10,0" VerticalAlignment="Center">
