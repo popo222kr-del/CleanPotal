@@ -372,7 +372,7 @@ namespace CleanPotal
 
         private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
-        public void TryRefresh() { LoadHandoverAll(); RefreshVendorSuggestions(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
+        public void TryRefresh() { if (IsRegisterModalOpen || IsEditModalOpen) return; LoadHandoverAll(); RefreshVendorSuggestions(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
 
         private void LoadUpcomingTeamEvents()
         {

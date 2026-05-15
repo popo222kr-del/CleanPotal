@@ -238,7 +238,24 @@ namespace CleanPotal
             StartAutoReload();
         }
 
-        public void TryRefresh() => LoadFromStorage();
+        public void TryRefresh()
+        {
+            if (_isDirty) return;
+            try
+            {
+                if (!File.Exists(StoragePath)) return;
+                var lastModified = File.GetLastWriteTime(StoragePath);
+                if (lastModified <= _lastFileModified) return;
+                string? currentReportId = _currentReport?.Id;
+                LoadFromStorage();
+                if (currentReportId != null)
+                {
+                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
+                    if (restored != null) SetCurrentReport(restored);
+                }
+            }
+            catch { }
+        }
 
         // 🔥 새 창(Window) 호출 로직. 모달 대신 WeeklyReportTableWindow를 띄움
         public void ShowReportTable()
@@ -519,19 +536,19 @@ namespace CleanPotal
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
 
-            if (string.IsNullOrEmpty(SearchBox.Text))
+            // Always sync draft → current regardless of search filter state.
+            // _draftReport.Blocks is the full underlying collection; the filter
+            // only affects the CollectionView, so all blocks are always present.
+            _currentReport.Memo = _draftReport.Memo;
+            _currentReport.Blocks.Clear();
+            foreach (var block in _draftReport.Blocks)
             {
-                _currentReport.Memo = _draftReport.Memo;
-                _currentReport.Blocks.Clear();
-                foreach (var block in _draftReport.Blocks)
-                {
-                    var clonedBlock = new WeeklyBlockModel { Number = block.Number, Category = block.Category, Status = block.Status, Content = block.Content, FollowUp = block.FollowUp };
-                    foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
-                    _currentReport.Blocks.Add(clonedBlock);
-                }
-                _currentReport.MemoAttachments.Clear();
-                foreach (var attachment in _draftReport.MemoAttachments) _currentReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
+                var clonedBlock = new WeeklyBlockModel { Number = block.Number, Category = block.Category, Status = block.Status, Content = block.Content, FollowUp = block.FollowUp };
+                foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
+                _currentReport.Blocks.Add(clonedBlock);
             }
+            _currentReport.MemoAttachments.Clear();
+            foreach (var attachment in _draftReport.MemoAttachments) _currentReport.MemoAttachments.Add(new WeeklyAttachmentModel { FilePath = attachment.FilePath });
 
             _isDirty = false;
             SaveToStorage();

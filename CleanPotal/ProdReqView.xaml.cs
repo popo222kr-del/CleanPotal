@@ -250,7 +250,7 @@ namespace CleanPotal
             _ = LoadAndApplyAsync();
         }
 
-        public void TryRefresh() { _ = LoadAndApplyAsync(); }
+        public void TryRefresh() { if (IsRegisterModalOpen || IsActionModalOpen) return; _ = LoadAndApplyAsync(); }
 
         private async Task LoadAndApplyAsync()
         {
