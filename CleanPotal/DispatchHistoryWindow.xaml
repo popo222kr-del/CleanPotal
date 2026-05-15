@@ -250,6 +250,7 @@
                                 <DataTemplate>
                                     <TextBox Text="{Binding IncomingDetails, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource PlainTextBoxStyle}"
+                                             TextAlignment="Left"
                                              PreviewKeyDown="TextBox_PreviewKeyDown"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -328,7 +329,7 @@
                                                   Text="{Binding FullAddress, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                   Style="{StaticResource EditorComboStyle}"
                                                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-                                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                  HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
                                                   SelectionChanged="AddressCombo_SelectionChanged"
                                                   LostFocus="AddressCombo_LostFocus"/>
                                     </Border>
