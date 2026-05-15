@@ -85,14 +85,7 @@ namespace CleanPotal
         public ObservableCollection<QuotationLineItem> LineItems { get; set; } = new();
 
         [JsonIgnore]
-        public string DisplayTitle
-        {
-            get
-            {
-                string main = !string.IsNullOrWhiteSpace(Company) ? Company : "새 견적서";
-                return $"{main}  ({CreatedAt[..10]})";
-            }
-        }
+        public string DisplayTitle => !string.IsNullOrWhiteSpace(Company) ? Company : "(새 견적서)";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
