@@ -698,9 +698,14 @@ namespace CleanPotal
             var newReport = new WeeklyReportModel { Title = title, ShortTitle = $"{week}주차", DateRange = dateRange };
 
             var lastReport = GroupedHistory.SelectMany(g => g.Reports).OrderByDescending(r => r.DateRange).FirstOrDefault();
-            if (lastReport != null)
+            // Use the live draft if the user is currently editing the most recent report
+            // (unsaved status changes must be reflected when copying to the new report)
+            var sourceBlocks = (_draftReport != null && _currentReport == lastReport)
+                ? _draftReport.Blocks
+                : lastReport?.Blocks;
+            if (sourceBlocks != null)
             {
-                foreach (var b in lastReport.Blocks.Where(x => x.Status != "종결" && x.Status != "보류"))
+                foreach (var b in sourceBlocks.Where(x => x.Status != "종결" && x.Status != "보류"))
                 {
                     var copied = new WeeklyBlockModel { Category = b.Category, Content = b.Content, FollowUp = b.FollowUp, Status = b.Status };
                     foreach (var att in b.FollowUpAttachments) copied.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
