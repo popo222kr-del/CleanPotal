@@ -191,7 +191,7 @@
                                     <Border Padding="4">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="CornerRadius" Value="0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsVendorMissing}" Value="True">
@@ -237,7 +237,7 @@
                                     <Border Padding="4">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="CornerRadius" Value="0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsManagerMissing}" Value="True">
@@ -263,7 +263,7 @@
                                     <Border Padding="4">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="CornerRadius" Value="0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsContactMissing}" Value="True">
@@ -289,7 +289,7 @@
                                     <Border Padding="4">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="CornerRadius" Value="0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsAddressMissing}" Value="True">
@@ -315,7 +315,7 @@
                                     <Border Padding="0">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="CornerRadius" Value="0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsUrgentNote}" Value="True">
