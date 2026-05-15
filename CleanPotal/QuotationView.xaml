@@ -159,9 +159,9 @@
                                Foreground="#1E3A8A" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button Content="단가 관리" Style="{StaticResource MacSecondaryButtonStyle}"
-                                Height="36" Click="BtnProductMaster_Click"/>
+                                Height="38" Padding="18,0" Click="BtnProductMaster_Click"/>
                         <Button Content="저장" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="36" Margin="8,0,0,0" Click="BtnSave_Click"/>
+                                Height="38" Padding="22,0" Margin="10,0,0,0" Click="BtnSave_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -215,12 +215,12 @@
                                     <TextBlock Text="고객사 정보" FontSize="13" FontWeight="Bold"
                                                Foreground="#475569" Margin="0,0,0,16"/>
 
-                                    <TextBlock Text="담당자" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
                                     <TextBlock Text="회사명" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FieldInputStyle}"/>
+
+                                    <TextBlock Text="담당자" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
                                     <TextBlock Text="E-Mail" Style="{StaticResource FieldLabelStyle}"/>
@@ -256,14 +256,15 @@
                                     <TextBox Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
-                                    <Grid Margin="0,0,0,0">
+                                    <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="사업자등록번호" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="기본값 저장" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="24" FontSize="11" Padding="8,0"
+                                        <TextBlock Text="사업자등록번호" Style="{StaticResource FieldLabelStyle}"
+                                                   VerticalAlignment="Center" Margin="0"/>
+                                        <Button Grid.Column="1" Content="기본값으로 저장" Style="{StaticResource MacSecondaryButtonStyle}"
+                                                Height="26" FontSize="11" Padding="10,0"
                                                 VerticalAlignment="Center" Click="BtnSaveBusinessNo_Click"/>
                                     </Grid>
                                     <TextBox Text="{Binding BusinessNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -281,11 +282,11 @@
                                                Foreground="#475569" VerticalAlignment="Center"/>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button Content="단가에서 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="32" FontSize="12" Click="BtnInsertFromMasterInline_Click"/>
+                                                Height="34" Padding="14,0" Click="BtnInsertFromMasterInline_Click"/>
                                         <Button Content="+ 행 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="32" FontSize="12" Margin="6,0,0,0" Click="BtnAddLineItem_Click"/>
+                                                Height="34" Padding="14,0" Margin="8,0,0,0" Click="BtnAddLineItem_Click"/>
                                         <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                                Height="32" FontSize="12" Margin="6,0,0,0" Click="BtnDeleteLineItem_Click"/>
+                                                Height="34" Padding="14,0" Margin="8,0,0,0" Click="BtnDeleteLineItem_Click"/>
                                     </StackPanel>
                                 </Grid>
 
@@ -454,11 +455,11 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                    Height="36" Click="BtnAddMasterItem_Click"/>
+                                    Height="38" Padding="18,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                    Height="36" Margin="8,0,0,0" Click="BtnDeleteMasterItem_Click"/>
+                                    Height="38" Padding="18,0" Margin="8,0,0,0" Click="BtnDeleteMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
-                                    Height="36" Margin="8,0,0,0" Click="BtnInsertFromMasterModal_Click"/>
+                                    Height="38" Padding="18,0" Margin="8,0,0,0" Click="BtnInsertFromMasterModal_Click"/>
                         </StackPanel>
                     </Grid>
 
@@ -543,7 +544,7 @@
                         <TextBlock Text="※ 항목 선택 후 '견적에 추가' 버튼을 클릭하면 현재 견적서에 추가됩니다."
                                    FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
                         <Button Content="닫기 및 저장" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="40" HorizontalAlignment="Right" Click="BtnCloseProductMaster_Click"/>
+                                Height="40" Padding="24,0" HorizontalAlignment="Right" Click="BtnCloseProductMaster_Click"/>
                     </Grid>
                 </Grid>
             </Border>

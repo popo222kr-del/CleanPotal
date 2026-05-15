@@ -118,11 +118,17 @@ namespace CleanPotal
 
         private void BtnNewQuotation_Click(object sender, RoutedEventArgs e)
         {
+            // AETS 담당자: 이름 + 직위 조합
+            string managerName = SessionManager.CurrentRealName;
+            string jobTitle    = SessionManager.CurrentJobTitle;
+            string aetsManager = string.IsNullOrWhiteSpace(jobTitle)
+                ? managerName
+                : $"{managerName} {jobTitle}";
+
             var q = new QuotationModel
             {
-                // 작성자 기준으로 AETS 담당자 자동 입력
-                AetsManager = SessionManager.CurrentRealName,
-                AetsPhone   = _config.AetsPhone,
+                AetsManager = aetsManager,
+                AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
                 Date        = DateTime.Today.ToString("yyyy-MM-dd")
             };
@@ -154,16 +160,15 @@ namespace CleanPotal
             catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); }
         }
 
-        // 사업자등록번호 + AETS Phone을 기본값으로 저장
+        // 사업자등록번호를 기본값으로 저장 (새 견적서 생성 시 자동 입력)
         private void BtnSaveBusinessNo_Click(object sender, RoutedEventArgs e)
         {
             if (CurrentQuotation == null) return;
             _config.BusinessNo = CurrentQuotation.BusinessNo;
-            _config.AetsPhone  = CurrentQuotation.AetsPhone;
             try
             {
                 QuotationStore.SaveConfig(_config);
-                MessageBox.Show("사업자등록번호와 AETS Phone이 기본값으로 저장되었습니다.\n새 견적서 생성 시 자동 입력됩니다.");
+                MessageBox.Show("사업자등록번호가 기본값으로 저장되었습니다.\n이후 새 견적서 생성 시 자동 입력됩니다.");
             }
             catch (Exception ex) { MessageBox.Show("설정 저장 오류: " + ex.Message); }
         }

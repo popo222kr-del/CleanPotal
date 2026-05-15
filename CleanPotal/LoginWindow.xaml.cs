@@ -45,6 +45,8 @@ namespace CleanPotal
                 SessionManager.CurrentUsername = user.Username;
                 SessionManager.CurrentRealName = user.RealName;
                 SessionManager.CurrentTeamName = user.TeamName;
+                SessionManager.CurrentJobTitle  = user.JobTitle;
+                SessionManager.CurrentPhoneNumber = user.PhoneNumber;
                 SessionManager.CanManageFiles = user.CanManageFiles;
                 SessionManager.CanManageNotices = user.CanManageNotices;
                 SessionManager.CanManageVendors = user.CanManageVendors;

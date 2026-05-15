@@ -119,6 +119,5 @@ namespace CleanPotal
     public class QuotationConfig
     {
         public string BusinessNo { get; set; } = "";
-        public string AetsPhone  { get; set; } = "";
     }
 }

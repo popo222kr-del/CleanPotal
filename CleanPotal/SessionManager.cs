@@ -50,6 +50,8 @@ namespace CleanPotal
         public static string CurrentUsername { get; set; } = "";
         public static string CurrentRealName { get; set; } = "";
         public static string CurrentTeamName { get; set; } = "";
+        public static string CurrentJobTitle  { get; set; } = "";
+        public static string CurrentPhoneNumber { get; set; } = "";
         public static bool CanManageFiles { get; set; } = false;
         public static bool CanManageNotices { get; set; } = false;
         public static bool CanManageVendors { get; set; } = false;
@@ -62,6 +64,7 @@ namespace CleanPotal
         public static void Logout()
         {
             CurrentUsername = ""; CurrentRealName = ""; CurrentTeamName = "";
+            CurrentJobTitle = ""; CurrentPhoneNumber = "";
             CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false;
 
             if (File.Exists(TokenPath)) File.Delete(TokenPath);
