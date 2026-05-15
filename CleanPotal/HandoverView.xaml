@@ -550,9 +550,9 @@
 
                         <DataGridTextColumn x:Name="InDateColumn" Header="입고일" Binding="{Binding InDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
                         <DataGridTextColumn x:Name="OutDateColumn" Header="출고일" Binding="{Binding OutDate, StringFormat=yyyy-MM-dd}" Width="110" ElementStyle="{StaticResource CenterTextBlockStyle}"/>
-                        <DataGridTextColumn x:Name="StatusColumn" Header="상태" Binding="{Binding Status}" Width="90" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
+                        <DataGridTextColumn x:Name="StatusColumn" Header="상태" Binding="{Binding Status}" Width="70" ElementStyle="{StaticResource StatusTextBlockStyle}"/>
 
-                        <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="2.8*">
+                        <DataGridTemplateColumn x:Name="MemoColumn" Header="메모" Width="3.2*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,6">
