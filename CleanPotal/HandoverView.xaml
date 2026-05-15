@@ -227,6 +227,11 @@
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderLight}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Style.Triggers>
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -490,7 +495,8 @@
                 <DataGrid x:Name="ActiveGrid" Grid.Row="1" VerticalAlignment="Top"
                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                           HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}"
-                          Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}" 
+                          Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
+                          AlternationCount="2"
                           MouseDoubleClick="ActiveGrid_MouseDoubleClick" SelectionChanged="ActiveGrid_SelectionChanged">
 
                     <DataGrid.Resources>
@@ -957,6 +963,7 @@
 
                     <DataGrid x:Name="DoneGrid" Grid.Row="2"
                               AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
+                              AlternationCount="2"
                               SelectionChanged="DoneGrid_SelectionChanged">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar">
