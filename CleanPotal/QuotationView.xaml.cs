@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace CleanPotal
             {
                 if (_currentQuotation != null)
                 {
+                    _currentQuotation.PropertyChanged -= CurrentQuotation_PropertyChanged;
                     _currentQuotation.LineItems.CollectionChanged -= LineItems_CollectionChanged;
                     foreach (var item in _currentQuotation.LineItems)
                         item.PropertyChanged -= LineItem_PropertyChanged;
@@ -26,10 +28,12 @@ namespace CleanPotal
                 _currentQuotation = value;
                 if (_currentQuotation != null)
                 {
+                    _currentQuotation.PropertyChanged += CurrentQuotation_PropertyChanged;
                     _currentQuotation.LineItems.CollectionChanged += LineItems_CollectionChanged;
                     foreach (var item in _currentQuotation.LineItems)
                         item.PropertyChanged += LineItem_PropertyChanged;
                     LineItemsGrid.ItemsSource = _currentQuotation.LineItems;
+                    RefreshAttentionSuggestions(_currentQuotation.Company);
                 }
                 else
                 {
@@ -49,6 +53,10 @@ namespace CleanPotal
         private int _totalQty;
         public int TotalQty { get => _totalQty; set { _totalQty = value; OnPropertyChanged(nameof(TotalQty)); } }
 
+        public ObservableCollection<string> VendorSuggestions   { get; } = new();
+        public ObservableCollection<string> AttentionSuggestions { get; } = new();
+        private List<VendorModel> _cachedVendors = new();
+
         private ObservableCollection<ProductMasterItem> _productMaster = new();
         private QuotationConfig _config = new();
 
@@ -67,9 +75,48 @@ namespace CleanPotal
 
             QuotationListBox.ItemsSource = Quotations;
             if (Quotations.Count > 0) QuotationListBox.SelectedIndex = 0;
+
+            RefreshVendorSuggestions();
+        }
+
+        private void RefreshVendorSuggestions()
+        {
+            _cachedVendors = VendorStore.Load().ToList();
+            VendorSuggestions.Clear();
+            foreach (var v in _cachedVendors.Select(v => v.VendorName).Where(n => !string.IsNullOrWhiteSpace(n)))
+                VendorSuggestions.Add(v);
+        }
+
+        private void RefreshAttentionSuggestions(string vendorName)
+        {
+            AttentionSuggestions.Clear();
+            var matched = _cachedVendors.FirstOrDefault(v =>
+                string.Equals(v.VendorName, vendorName, StringComparison.OrdinalIgnoreCase));
+            var managers = matched != null
+                ? matched.Managers.Select(m => m.ManagerName).Where(n => !string.IsNullOrWhiteSpace(n)).ToList()
+                : _cachedVendors.SelectMany(v => v.Managers).Select(m => m.ManagerName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().ToList();
+            foreach (var name in managers)
+                AttentionSuggestions.Add(name);
         }
 
         public void TryRefresh() { }
+
+        // ─── CurrentQuotation 필드 변경 감지 ───
+
+        private void CurrentQuotation_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(QuotationModel.Company))
+                RefreshAttentionSuggestions(CurrentQuotation?.Company ?? "");
+            else if (e.PropertyName == nameof(QuotationModel.Date))
+                AutoFillValidity();
+        }
+
+        private void AutoFillValidity()
+        {
+            if (CurrentQuotation == null) return;
+            if (DateTime.TryParse(CurrentQuotation.Date, out var date))
+                CurrentQuotation.Validity = date.AddDays(7).ToString("yyyy-MM-dd");
+        }
 
         // ─── 컬렉션/아이템 변경 이벤트 ───
 

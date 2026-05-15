@@ -87,6 +87,14 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="InlineLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
+
         <Style x:Key="CellTextStyle" TargetType="TextBlock">
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -202,74 +210,105 @@
                         </StackPanel.Style>
 
                         <!-- ── 고객사 / 견적 정보 카드 ── -->
-                        <Border Style="{StaticResource CardStyle}" Padding="28,24">
+                        <Border Style="{StaticResource CardStyle}" Padding="28,22">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="1"/>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="70"/>   <!-- 고객사 라벨 -->
+                                    <ColumnDefinition Width="*"/>    <!-- 고객사 입력 -->
+                                    <ColumnDefinition Width="24"/>   <!-- 구분선 -->
+                                    <ColumnDefinition Width="90"/>   <!-- 견적 라벨 -->
+                                    <ColumnDefinition Width="*"/>    <!-- 견적 입력 -->
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>   <!-- 헤더 -->
+                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="36"/>     <!-- Row1 -->
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="36"/>     <!-- Row2 -->
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="36"/>     <!-- Row3 -->
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="36"/>     <!-- Row4 -->
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="36"/>     <!-- Row5 (사업자) -->
+                                </Grid.RowDefinitions>
 
-                                <!-- 왼쪽: 고객사 정보 -->
-                                <StackPanel Grid.Column="0" Margin="0,0,28,0">
-                                    <TextBlock Text="고객사 정보" FontSize="13" FontWeight="Bold"
-                                               Foreground="#475569" Margin="0,0,0,16"/>
+                                <!-- 세로 구분선 -->
+                                <Border Grid.Column="2" Grid.Row="0" Grid.RowSpan="11"
+                                        Width="1" Background="#E2E8F0" HorizontalAlignment="Center"/>
 
-                                    <TextBlock Text="회사명" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <!-- ── 섹션 헤더 ── -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                           Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="2"
+                                           Text="견적 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
 
-                                    <TextBlock Text="담당자" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <!-- ── Row 1: 회사명 | 견적일 ── -->
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
+                                <local:AutoCompleteBox Grid.Row="2" Grid.Column="1"
+                                    Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    ItemsSource="{Binding VendorSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
 
-                                    <TextBlock Text="E-Mail" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="3"
+                                           Text="견적일" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="2" Grid.Column="4"
+                                         Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                    <TextBlock Text="Phone" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}" Margin="0,0,0,0"/>
-                                </StackPanel>
+                                <!-- ── Row 2: 담당자 | 유효기간 ── -->
+                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                           Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
+                                <local:AutoCompleteBox Grid.Row="4" Grid.Column="1"
+                                    Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    ItemsSource="{Binding AttentionSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
 
-                                <!-- 구분선 -->
-                                <Border Grid.Column="1" Background="#E2E8F0"/>
+                                <TextBlock Grid.Row="4" Grid.Column="3"
+                                           Text="유효기간" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="4" Grid.Column="4"
+                                         Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                <!-- 오른쪽: 견적 정보 -->
-                                <StackPanel Grid.Column="2" Margin="28,0,0,0">
-                                    <TextBlock Text="견적 정보" FontSize="13" FontWeight="Bold"
-                                               Foreground="#475569" Margin="0,0,0,16"/>
+                                <!-- ── Row 3: E-Mail | AETS 담당자 ── -->
+                                <TextBlock Grid.Row="6" Grid.Column="0"
+                                           Text="E-Mail" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="6" Grid.Column="1"
+                                         Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                    <TextBlock Text="견적일" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <TextBlock Grid.Row="6" Grid.Column="3"
+                                           Text="AETS 담당자" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="6" Grid.Column="4"
+                                         Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                    <TextBlock Text="유효기간" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <!-- ── Row 4: Phone | AETS Phone ── -->
+                                <TextBlock Grid.Row="8" Grid.Column="0"
+                                           Text="Phone" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="8" Grid.Column="1"
+                                         Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                    <TextBlock Text="AETS 담당자" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
+                                <TextBlock Grid.Row="8" Grid.Column="3"
+                                           Text="AETS Phone" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="8" Grid.Column="4"
+                                         Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
 
-                                    <TextBlock Text="AETS Phone" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="사업자등록번호" Style="{StaticResource FieldLabelStyle}"
-                                                   VerticalAlignment="Center" Margin="0"/>
-                                        <Button Grid.Column="1" Content="기본값으로 저장" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="26" FontSize="11" Padding="10,0"
-                                                VerticalAlignment="Center" Click="BtnSaveBusinessNo_Click"/>
-                                    </Grid>
+                                <!-- ── Row 5: (빈칸) | 사업자등록번호 ── -->
+                                <TextBlock Grid.Row="10" Grid.Column="3"
+                                           Text="사업자번호" Style="{StaticResource InlineLabelStyle}"/>
+                                <Grid Grid.Row="10" Grid.Column="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBox Text="{Binding BusinessNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}" Margin="0,0,0,0"/>
-                                </StackPanel>
+                                             Style="{StaticResource FieldInputStyle}" Margin="0" Height="36"/>
+                                    <Button Grid.Column="1" Content="기본값 저장" Style="{StaticResource MacSecondaryButtonStyle}"
+                                            Height="36" Padding="12,0" Margin="6,0,0,0"
+                                            Click="BtnSaveBusinessNo_Click"/>
+                                </Grid>
                             </Grid>
                         </Border>
 
