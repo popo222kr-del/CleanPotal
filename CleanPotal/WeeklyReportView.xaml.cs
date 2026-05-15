@@ -700,7 +700,7 @@ namespace CleanPotal
             var lastReport = GroupedHistory.SelectMany(g => g.Reports).OrderByDescending(r => r.DateRange).FirstOrDefault();
             if (lastReport != null)
             {
-                foreach (var b in lastReport.Blocks.Where(x => x.Status != "종결"))
+                foreach (var b in lastReport.Blocks.Where(x => x.Status != "종결" && x.Status != "보류"))
                 {
                     var copied = new WeeklyBlockModel { Category = b.Category, Content = b.Content, FollowUp = b.FollowUp, Status = b.Status };
                     foreach (var att in b.FollowUpAttachments) copied.FollowUpAttachments.Add(new WeeklyAttachmentModel { FilePath = att.FilePath });
