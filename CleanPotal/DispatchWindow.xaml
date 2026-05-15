@@ -135,9 +135,27 @@
                           Background="Transparent"
                           BorderThickness="0"
                           MinRowHeight="58" 
-                          AlternationCount="10000"
+                          AlternationCount="2"
                           ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                           CellStyle="{StaticResource GridCellStyle}">
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                    <Setter Property="Background" Value="#F8FAFC"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#EEF2FF"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E0E7FF"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
 
                     <DataGrid.Resources>
                         <Style TargetType="ScrollBar">
