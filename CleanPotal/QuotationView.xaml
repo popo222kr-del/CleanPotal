@@ -215,20 +215,12 @@
                                     <TextBlock Text="고객사 정보" FontSize="13" FontWeight="Bold"
                                                Foreground="#475569" Margin="0,0,0,16"/>
 
-                                    <TextBlock Text="R(F)Q No" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding RfqNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <TextBlock Text="Attention (담당자)" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="담당자" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
-                                    <TextBlock Text="Company (회사명)" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="회사명" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <TextBlock Text="PR No" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding PrNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
                                     <TextBlock Text="E-Mail" Style="{StaticResource FieldLabelStyle}"/>
@@ -237,10 +229,6 @@
 
                                     <TextBlock Text="Phone" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <TextBlock Text="Fax" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Fax, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}" Margin="0,0,0,0"/>
                                 </StackPanel>
 
@@ -252,19 +240,11 @@
                                     <TextBlock Text="견적 정보" FontSize="13" FontWeight="Bold"
                                                Foreground="#475569" Margin="0,0,0,16"/>
 
-                                    <TextBlock Text="Offer #" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding OfferNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <TextBlock Text="Date (견적일)" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="견적일" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
-                                    <TextBlock Text="Delivery (납기)" Style="{StaticResource FieldLabelStyle}"/>
-                                    <TextBox Text="{Binding Delivery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FieldInputStyle}"/>
-
-                                    <TextBlock Text="Validity (유효기간)" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="유효기간" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBox Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
@@ -272,7 +252,20 @@
                                     <TextBox Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}"/>
 
-                                    <TextBlock Text="사업자등록번호" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBlock Text="AETS Phone" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FieldInputStyle}"/>
+
+                                    <Grid Margin="0,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="사업자등록번호" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="기본값 저장" Style="{StaticResource MacSecondaryButtonStyle}"
+                                                Height="24" FontSize="11" Padding="8,0"
+                                                VerticalAlignment="Center" Click="BtnSaveBusinessNo_Click"/>
+                                    </Grid>
                                     <TextBox Text="{Binding BusinessNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FieldInputStyle}" Margin="0,0,0,0"/>
                                 </StackPanel>

@@ -50,11 +50,14 @@ namespace CleanPotal
         public int TotalQty { get => _totalQty; set { _totalQty = value; OnPropertyChanged(nameof(TotalQty)); } }
 
         private ObservableCollection<ProductMasterItem> _productMaster = new();
+        private QuotationConfig _config = new();
 
         public QuotationView()
         {
             InitializeComponent();
             DataContext = this;
+
+            _config = QuotationStore.LoadConfig();
 
             var saved = QuotationStore.LoadQuotations();
             foreach (var q in saved) Quotations.Add(q);
@@ -68,7 +71,7 @@ namespace CleanPotal
 
         public void TryRefresh() { }
 
-        // ─── 이벤트 핸들러: 컬렉션/아이템 변경 ───
+        // ─── 컬렉션/아이템 변경 이벤트 ───
 
         private void LineItems_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
@@ -94,7 +97,7 @@ namespace CleanPotal
         private void UpdateTotals()
         {
             if (CurrentQuotation == null) { TotalQty = 0; TotalAmount = 0; return; }
-            TotalQty = CurrentQuotation.LineItems.Sum(x => x.Qty);
+            TotalQty  = CurrentQuotation.LineItems.Sum(x => x.Qty);
             TotalAmount = CurrentQuotation.LineItems.Sum(x => x.Amount);
         }
 
@@ -105,7 +108,7 @@ namespace CleanPotal
                 CurrentQuotation.LineItems[i].No = i + 1;
         }
 
-        // ─── 목록 관련 ───
+        // ─── 목록 조작 ───
 
         private void QuotationListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -115,7 +118,14 @@ namespace CleanPotal
 
         private void BtnNewQuotation_Click(object sender, RoutedEventArgs e)
         {
-            var q = new QuotationModel();
+            var q = new QuotationModel
+            {
+                // 작성자 기준으로 AETS 담당자 자동 입력
+                AetsManager = SessionManager.CurrentRealName,
+                AetsPhone   = _config.AetsPhone,
+                BusinessNo  = _config.BusinessNo,
+                Date        = DateTime.Today.ToString("yyyy-MM-dd")
+            };
             Quotations.Insert(0, q);
             QuotationListBox.SelectedItem = q;
         }
@@ -142,6 +152,20 @@ namespace CleanPotal
                 MessageBox.Show("저장되었습니다.");
             }
             catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); }
+        }
+
+        // 사업자등록번호 + AETS Phone을 기본값으로 저장
+        private void BtnSaveBusinessNo_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentQuotation == null) return;
+            _config.BusinessNo = CurrentQuotation.BusinessNo;
+            _config.AetsPhone  = CurrentQuotation.AetsPhone;
+            try
+            {
+                QuotationStore.SaveConfig(_config);
+                MessageBox.Show("사업자등록번호와 AETS Phone이 기본값으로 저장되었습니다.\n새 견적서 생성 시 자동 입력됩니다.");
+            }
+            catch (Exception ex) { MessageBox.Show("설정 저장 오류: " + ex.Message); }
         }
 
         // ─── 품목 행 조작 ───
@@ -183,14 +207,12 @@ namespace CleanPotal
                 _productMaster.Remove(item);
         }
 
-        // 모달에서 "견적에 추가" 버튼
         private void BtnInsertFromMasterModal_Click(object sender, RoutedEventArgs e)
         {
             if (ProductMasterGrid.SelectedItem is ProductMasterItem master)
                 InsertMasterItem(master);
         }
 
-        // 품목 카드의 인라인 "단가에서 추가" 버튼 → 모달 열기
         private void BtnInsertFromMasterInline_Click(object sender, RoutedEventArgs e)
         {
             ProductMasterOverlay.Visibility = Visibility.Visible;
@@ -201,11 +223,11 @@ namespace CleanPotal
             if (CurrentQuotation == null) return;
             CurrentQuotation.LineItems.Add(new QuotationLineItem
             {
-                No = CurrentQuotation.LineItems.Count + 1,
-                Description = master.ProductName,
-                ListPrice = master.UnitPrice,
+                No           = CurrentQuotation.LineItems.Count + 1,
+                Description  = master.ProductName,
+                ListPrice    = master.UnitPrice,
                 StandardSpec = master.Spec,
-                Qty = 1
+                Qty          = 1
             });
         }
 

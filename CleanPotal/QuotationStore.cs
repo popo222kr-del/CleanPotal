@@ -11,6 +11,23 @@ namespace CleanPotal
         private static string DataDir => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
         private static string QuotationPath => Path.Combine(DataDir, "quotations.json");
         private static string ProductMasterPath => Path.Combine(DataDir, "product_master.json");
+        private static string ConfigPath => Path.Combine(DataDir, "quotation_config.json");
+
+        public static QuotationConfig LoadConfig()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath)) return new();
+                return JsonSerializer.Deserialize<QuotationConfig>(File.ReadAllText(ConfigPath)) ?? new();
+            }
+            catch { return new(); }
+        }
+
+        public static void SaveConfig(QuotationConfig config)
+        {
+            Directory.CreateDirectory(DataDir);
+            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, _opts));
+        }
 
         public static ObservableCollection<QuotationModel> LoadQuotations()
         {

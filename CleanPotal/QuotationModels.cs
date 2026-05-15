@@ -49,37 +49,37 @@ namespace CleanPotal
 
     public class QuotationModel : INotifyPropertyChanged
     {
-        private string _rfqNo = "";
+        // 고객사 정보
         private string _attention = "";
         private string _company = "";
-        private string _prNo = "";
         private string _email = "";
         private string _phone = "";
-        private string _fax = "";
-        private string _offerNo = "";
+
+        // 견적 정보
         private string _date = DateTime.Today.ToString("yyyy-MM-dd");
-        private string _delivery = "";
         private string _validity = "";
         private string _aetsManager = "";
+        private string _aetsPhone = "";
         private string _businessNo = "";
+
         private string _remarks = "1. VAT 별도.";
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
-        public string RfqNo { get => _rfqNo; set { _rfqNo = value; OnPropertyChanged(nameof(RfqNo)); OnPropertyChanged(nameof(DisplayTitle)); } }
+        // 고객사 정보
         public string Attention { get => _attention; set { _attention = value; OnPropertyChanged(nameof(Attention)); } }
-        public string Company { get => _company; set { _company = value; OnPropertyChanged(nameof(Company)); OnPropertyChanged(nameof(DisplayTitle)); } }
-        public string PrNo { get => _prNo; set { _prNo = value; OnPropertyChanged(nameof(PrNo)); } }
-        public string Email { get => _email; set { _email = value; OnPropertyChanged(nameof(Email)); } }
-        public string Phone { get => _phone; set { _phone = value; OnPropertyChanged(nameof(Phone)); } }
-        public string Fax { get => _fax; set { _fax = value; OnPropertyChanged(nameof(Fax)); } }
-        public string OfferNo { get => _offerNo; set { _offerNo = value; OnPropertyChanged(nameof(OfferNo)); OnPropertyChanged(nameof(DisplayTitle)); } }
-        public string Date { get => _date; set { _date = value; OnPropertyChanged(nameof(Date)); } }
-        public string Delivery { get => _delivery; set { _delivery = value; OnPropertyChanged(nameof(Delivery)); } }
-        public string Validity { get => _validity; set { _validity = value; OnPropertyChanged(nameof(Validity)); } }
+        public string Company   { get => _company;   set { _company = value;   OnPropertyChanged(nameof(Company)); OnPropertyChanged(nameof(DisplayTitle)); } }
+        public string Email     { get => _email;     set { _email = value;     OnPropertyChanged(nameof(Email)); } }
+        public string Phone     { get => _phone;     set { _phone = value;     OnPropertyChanged(nameof(Phone)); } }
+
+        // 견적 정보
+        public string Date        { get => _date;        set { _date = value;        OnPropertyChanged(nameof(Date)); } }
+        public string Validity    { get => _validity;    set { _validity = value;    OnPropertyChanged(nameof(Validity)); } }
         public string AetsManager { get => _aetsManager; set { _aetsManager = value; OnPropertyChanged(nameof(AetsManager)); } }
-        public string BusinessNo { get => _businessNo; set { _businessNo = value; OnPropertyChanged(nameof(BusinessNo)); } }
+        public string AetsPhone   { get => _aetsPhone;   set { _aetsPhone = value;   OnPropertyChanged(nameof(AetsPhone)); } }
+        public string BusinessNo  { get => _businessNo;  set { _businessNo = value;  OnPropertyChanged(nameof(BusinessNo)); } }
+
         public string Remarks { get => _remarks; set { _remarks = value; OnPropertyChanged(nameof(Remarks)); } }
 
         public ObservableCollection<QuotationLineItem> LineItems { get; set; } = new();
@@ -89,9 +89,7 @@ namespace CleanPotal
         {
             get
             {
-                string main = !string.IsNullOrWhiteSpace(Company) ? Company
-                            : !string.IsNullOrWhiteSpace(OfferNo) ? $"견적 {OfferNo}"
-                            : "새 견적서";
+                string main = !string.IsNullOrWhiteSpace(Company) ? Company : "새 견적서";
                 return $"{main}  ({CreatedAt[..10]})";
             }
         }
@@ -109,12 +107,18 @@ namespace CleanPotal
         private string _unit = "EA";
 
         public string ProductName { get => _productName; set { _productName = value; OnPropertyChanged(nameof(ProductName)); } }
-        public string Spec { get => _spec; set { _spec = value; OnPropertyChanged(nameof(Spec)); } }
-        public decimal UnitPrice { get => _unitPrice; set { _unitPrice = value; OnPropertyChanged(nameof(UnitPrice)); } }
-        public string Unit { get => _unit; set { _unit = value; OnPropertyChanged(nameof(Unit)); } }
+        public string Spec        { get => _spec;        set { _spec = value;        OnPropertyChanged(nameof(Spec)); } }
+        public decimal UnitPrice  { get => _unitPrice;   set { _unitPrice = value;   OnPropertyChanged(nameof(UnitPrice)); } }
+        public string Unit        { get => _unit;        set { _unit = value;        OnPropertyChanged(nameof(Unit)); } }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public class QuotationConfig
+    {
+        public string BusinessNo { get; set; } = "";
+        public string AetsPhone  { get; set; } = "";
     }
 }
