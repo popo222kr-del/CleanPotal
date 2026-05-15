@@ -172,9 +172,10 @@
                             DataContext="{Binding CurrentQuotation, RelativeSource={RelativeSource AncestorType=local:QuotationView}}">
 
                     <!-- 비어있을 때 안내 -->
-                    <Border Style="{StaticResource CardStyle}" Padding="0,80">
+                    <Border>
                         <Border.Style>
                             <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                <Setter Property="Padding" Value="0,80"/>
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasQuotation, RelativeSource={RelativeSource AncestorType=local:QuotationView}}" Value="False">
