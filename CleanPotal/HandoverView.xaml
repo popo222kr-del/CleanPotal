@@ -906,7 +906,7 @@
         </Border>
 
         <Border Background="#80111827" Visibility="{Binding IsDoneModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="22">
-            <Border Style="{StaticResource CardBorderStyle}" CornerRadius="20" MaxWidth="1600" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Border Style="{StaticResource CardBorderStyle}" CornerRadius="20" MaxWidth="1600" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -964,6 +964,8 @@
                     <DataGrid x:Name="DoneGrid" Grid.Row="2"
                               AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="1" BorderBrush="{StaticResource BorderLight}" Background="White" MinRowHeight="60" CellStyle="{StaticResource CenterCellStyle}"
                               AlternationCount="2"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
                               SelectionChanged="DoneGrid_SelectionChanged">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar">
