@@ -611,7 +611,7 @@
             </Grid>
         </Border>
 
-        <Border Background="#80111827" Visibility="{Binding IsRegisterModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="20">
+        <Border Background="#80111827" Visibility="{Binding IsRegisterModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="20" Grid.RowSpan="3">
             <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="900" MaxHeight="800" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Border.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
@@ -756,7 +756,7 @@
             </Border>
         </Border>
 
-        <Border Background="#80111827" Visibility="{Binding IsEditModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="21">
+        <Border Background="#80111827" Visibility="{Binding IsEditModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="21" Grid.RowSpan="3">
             <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="900" MaxHeight="800" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Border.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
@@ -905,8 +905,8 @@
             </Border>
         </Border>
 
-        <Border Background="#80111827" Visibility="{Binding IsDoneModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="22">
-            <Border Style="{StaticResource CardBorderStyle}" CornerRadius="20" MaxWidth="1600" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}">
+        <Border Background="#80111827" Visibility="{Binding IsDoneModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="22" Grid.RowSpan="3">
+            <Border Style="{StaticResource CardBorderStyle}" CornerRadius="20" MaxWidth="1600" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1063,7 +1063,7 @@
             </Border>
         </Border>
 
-        <Border Background="#80111827" Visibility="{Binding IsNoticeModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="23">
+        <Border Background="#80111827" Visibility="{Binding IsNoticeModalOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="23" Grid.RowSpan="3">
             <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="800" MaxHeight="700" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Border.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
