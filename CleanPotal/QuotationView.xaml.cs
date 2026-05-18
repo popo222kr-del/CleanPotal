@@ -623,28 +623,89 @@ namespace CleanPotal
             }
             else
             {
-                // ── 견적서 출력 형식 파싱 (우리 앱 템플릿: rows 22-44) ──
+                // ── 견적서 출력 형식 파싱 ──
+                // 헤더 행("Product Description" 또는 "품명" 포함)을 찾아 컬럼 위치를 동적으로 결정
                 string fileCompany = Get("E14").Trim();
                 if (!string.IsNullOrEmpty(fileCompany)) company = fileCompany;
                 attention = Get("E13").Trim();
-                phone     = Get("E17").Trim();
 
                 string dateStr = Get("K14").Trim();
                 if (dateStr.StartsWith(": ")) dateStr = dateStr[2..].Trim();
                 if (!string.IsNullOrEmpty(dateStr)) date = dateStr;
 
-                for (uint r = 22; r <= 44; r++)
+                // 기본값: 우리 앱 템플릿 레이아웃
+                string noCol = "A", descCol = "B", priceCol = "I", specCol = "J", qtyCol = "K";
+                uint dataStart = 22, dataEnd = 44;
+
+                // 헤더 행 탐색
+                foreach (Row hrow in sd.Elements<Row>())
                 {
-                    string bVal = Get($"B{r}").Trim();
-                    if (string.IsNullOrEmpty(bVal)) continue;
-                    int.TryParse(Get($"A{r}").Trim(), out int no);
-                    decimal.TryParse(Get($"I{r}").Trim(), System.Globalization.NumberStyles.Any,
+                    uint hri = hrow.RowIndex?.Value ?? 0;
+                    bool foundDesc = false;
+                    foreach (Cell hcell in hrow.Elements<Cell>())
+                    {
+                        string hval = XlsxCellText(hcell, ss).Trim();
+                        bool isDescHeader =
+                            hval.Equals("Product Description", StringComparison.OrdinalIgnoreCase) ||
+                            hval.Equals("품명", StringComparison.OrdinalIgnoreCase) ||
+                            hval.Equals("품목명", StringComparison.OrdinalIgnoreCase) ||
+                            hval.Equals("제품명", StringComparison.OrdinalIgnoreCase);
+                        if (!isDescHeader) continue;
+
+                        foundDesc = true;
+                        string descRef = hcell.CellReference?.Value ?? "B1";
+                        descCol = Regex.Match(descRef, @"[A-Z]+").Value;
+                        noCol   = ColPrev(descCol);
+                        dataStart = hri + 1;
+                        dataEnd   = hri + 60;
+
+                        // 같은 행에서 단가/규격/수량 컬럼 탐색
+                        foreach (Cell fc in hrow.Elements<Cell>())
+                        {
+                            string fref = fc.CellReference?.Value ?? "";
+                            string fcol = Regex.Match(fref, @"[A-Z]+").Value;
+                            string fval = XlsxCellText(fc, ss).Trim();
+                            if (fval.IndexOf("price", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                fval.IndexOf("단가", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                fval.IndexOf("list", StringComparison.OrdinalIgnoreCase) >= 0)
+                                priceCol = fcol;
+                            else if (fval.Equals("Q'ty", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("Qty", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("수량", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("Q'TY", StringComparison.OrdinalIgnoreCase))
+                                qtyCol = fcol;
+                            else if (fval.Equals("규격", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("SIZE", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("Spec", StringComparison.OrdinalIgnoreCase))
+                                specCol = fcol;
+                        }
+                        break;
+                    }
+                    if (foundDesc) break;
+                }
+
+                int seqNo = 0;
+                for (uint r = dataStart; r <= dataEnd; r++)
+                {
+                    string descVal = Get($"{descCol}{r}").Trim();
+                    if (string.IsNullOrEmpty(descVal)) continue;
+
+                    string noStr = Get($"{noCol}{r}").Trim();
+                    if (!int.TryParse(noStr, out int no)) { seqNo++; no = seqNo; }
+                    else seqNo = no;
+
+                    decimal.TryParse(Get($"{priceCol}{r}").Trim(),
+                        System.Globalization.NumberStyles.Any,
                         System.Globalization.CultureInfo.InvariantCulture, out decimal price);
-                    int.TryParse(Get($"K{r}").Trim(), out int qty);
+                    int.TryParse(Get($"{qtyCol}{r}").Trim(), out int qty);
+
+                    string specRaw = Get($"{specCol}{r}").Trim();
+                    var (partCode, spec) = ParseCodeAndSize("", specRaw);
+
                     items.Add(new QuotationLineItem
                     {
-                        No = no, Description = bVal, StandardSpec = Get($"J{r}").Trim(),
-                        ListPrice = price, Qty = qty > 0 ? qty : 1
+                        No = no, Description = descVal, PartCode = partCode,
+                        StandardSpec = spec, ListPrice = price, Qty = qty > 0 ? qty : 1
                     });
                 }
             }
@@ -915,6 +976,16 @@ namespace CleanPotal
                 return _productMaster.FirstOrDefault(p =>
                     string.Equals(p.ProductName, description, StringComparison.OrdinalIgnoreCase));
             return null;
+        }
+
+        // 엑셀 컬럼 문자에서 이전 컬럼 반환 (B→A, C→B, AA→Z 등)
+        private static string ColPrev(string col)
+        {
+            if (string.IsNullOrEmpty(col) || col == "A") return "A";
+            char last = col[^1];
+            if (last == 'A')
+                return col.Length > 1 ? ColPrev(col[..^1]) + "Z" : "A";
+            return col[..^1] + (char)(last - 1);
         }
 
         private static (string partCode, string standardSpec) ParseCodeAndSize(string dVal, string eVal)
