@@ -515,6 +515,13 @@ namespace CleanPotal
             if (totalQuotations > 0)
             {
                 QuotationStore.SaveQuotations(Quotations);
+
+                // 새로 발견된 업체명을 VendorStore에 자동 등록
+                AutoRegisterVendors(files.Select(f => f.company).Distinct());
+
+                // 업체 목록 갱신 후 현재 선택 유지
+                _allVendors = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
+                FilterVendors();
                 RefreshVendorQuotations();
             }
 
@@ -527,6 +534,25 @@ namespace CleanPotal
             }
 
             return (totalQuotations, totalNewPrices);
+        }
+
+        /// <summary>VendorStore에 없는 업체명을 자동 등록한다.</summary>
+        private static void AutoRegisterVendors(IEnumerable<string> companyNames)
+        {
+            var vendors = VendorStore.Load();
+            bool changed = false;
+            foreach (var name in companyNames)
+            {
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                bool exists = vendors.Any(v =>
+                    string.Equals(v.VendorName, name, StringComparison.OrdinalIgnoreCase));
+                if (!exists)
+                {
+                    vendors.Add(new VendorModel { VendorName = name });
+                    changed = true;
+                }
+            }
+            if (changed) VendorStore.Save(vendors);
         }
 
         /// <summary>
