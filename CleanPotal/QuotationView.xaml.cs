@@ -487,38 +487,23 @@ namespace CleanPotal
         {
             int totalQuotations = 0;
             int totalNewPrices  = 0;
+            bool masterChanged  = false;
 
-            // 업체 서브폴더 + 루트 직속 xlsx 모두 처리 (연도 폴더 건너뜀)
-            var scanTargets = new List<(string company, string folder)>();
-            foreach (var dir in Directory.GetDirectories(rootPath))
+            var files = CollectXlsxFiles(rootPath);
+
+            foreach (var (companyName, xlsxPath) in files)
             {
-                string folderName = Path.GetFileName(dir);
-                // "25년", "26년", "2025", "2026년" 등 연도 폴더 제외
-                if (Regex.IsMatch(folderName, @"^\d{2,4}년?$")) continue;
-                scanTargets.Add((folderName, dir));
-            }
-            // 루트에 직접 있는 파일은 폴더명을 회사명으로
-            if (!scanTargets.Any())
-                scanTargets.Add((Path.GetFileName(rootPath), rootPath));
-
-            bool masterChanged = false;
-
-            foreach (var (companyName, folderPath) in scanTargets)
-            {
-                foreach (var xlsxPath in Directory.GetFiles(folderPath, "*.xlsx"))
+                try
                 {
-                    try
-                    {
-                        var (q, newPrices) = ParseXlsxAsQuotation(xlsxPath, companyName);
-                        if (q == null) continue;
+                    var (q, newPrices) = ParseXlsxAsQuotation(xlsxPath, companyName);
+                    if (q == null) continue;
 
-                        Quotations.Insert(0, q);
-                        totalQuotations++;
-                        totalNewPrices += newPrices;
-                        if (newPrices > 0) masterChanged = true;
-                    }
-                    catch { /* 파싱 불가 파일은 건너뜀 */ }
+                    Quotations.Add(q);
+                    totalQuotations++;
+                    totalNewPrices += newPrices;
+                    if (newPrices > 0) masterChanged = true;
                 }
+                catch { /* 파싱 불가 파일은 건너뜀 */ }
             }
 
             if (masterChanged) QuotationStore.SaveProductMaster(_productMaster);
@@ -529,6 +514,49 @@ namespace CleanPotal
             }
 
             return (totalQuotations, totalNewPrices);
+        }
+
+        /// <summary>
+        /// 폴더를 재귀 탐색해 (업체명, xlsx경로) 목록을 수집한다.
+        /// 연도 폴더(25년, 26년, 2025 등)는 회사명으로 쓰지 않고 부모 폴더명을 업체명으로 사용한다.
+        /// </summary>
+        private static List<(string company, string filePath)> CollectXlsxFiles(string rootPath)
+        {
+            var result   = new List<(string, string)>();
+            string rootName = Path.GetFileName(rootPath);
+
+            // 루트 직속 xlsx
+            foreach (var f in Directory.GetFiles(rootPath, "*.xlsx"))
+                result.Add((rootName, f));
+
+            foreach (var dir in Directory.GetDirectories(rootPath))
+            {
+                string dirName    = Path.GetFileName(dir);
+                bool   isYearDir  = Regex.IsMatch(dirName, @"^\d{2,4}년?$");
+
+                if (isYearDir)
+                {
+                    // 연도 폴더 → 부모 폴더명을 업체명으로
+                    foreach (var f in Directory.GetFiles(dir, "*.xlsx"))
+                        result.Add((rootName, f));
+                }
+                else
+                {
+                    // 업체 폴더 → 직속 xlsx 수집
+                    foreach (var f in Directory.GetFiles(dir, "*.xlsx"))
+                        result.Add((dirName, f));
+
+                    // 업체 폴더 하위의 연도 폴더도 수집
+                    foreach (var yearDir in Directory.GetDirectories(dir))
+                    {
+                        if (Regex.IsMatch(Path.GetFileName(yearDir), @"^\d{2,4}년?$"))
+                            foreach (var f in Directory.GetFiles(yearDir, "*.xlsx"))
+                                result.Add((dirName, f));
+                    }
+                }
+            }
+
+            return result;
         }
 
         /// <summary>xlsx 파일 하나를 QuotationModel로 변환. 견적서 출력 형식과 세정 의뢰 양식 모두 지원.</summary>
