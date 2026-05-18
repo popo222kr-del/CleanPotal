@@ -489,6 +489,7 @@ namespace CleanPotal
             int totalQuotations = 0;
             int totalNewPrices  = 0;
             bool masterChanged  = false;
+            var errors          = new List<string>();
 
             var files = CollectXlsxFiles(rootPath);
 
@@ -504,7 +505,10 @@ namespace CleanPotal
                     totalNewPrices += newPrices;
                     if (newPrices > 0) masterChanged = true;
                 }
-                catch { /* 파싱 불가 파일은 건너뜀 */ }
+                catch (Exception ex)
+                {
+                    errors.Add($"{Path.GetFileName(xlsxPath)}: {ex.Message}");
+                }
             }
 
             if (masterChanged) QuotationStore.SaveProductMaster(_productMaster);
@@ -512,6 +516,14 @@ namespace CleanPotal
             {
                 QuotationStore.SaveQuotations(Quotations);
                 RefreshVendorQuotations();
+            }
+
+            if (errors.Count > 0)
+            {
+                string errMsg = $"다음 {errors.Count}개 파일을 처리하지 못했습니다:\n\n"
+                              + string.Join("\n", errors.Take(10));
+                if (errors.Count > 10) errMsg += $"\n... 외 {errors.Count - 10}개";
+                MessageBox.Show(errMsg, "가져오기 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 
             return (totalQuotations, totalNewPrices);
@@ -1020,37 +1032,80 @@ namespace CleanPotal
         }
 
         // DRM 컨테이너 감지: 표준 ZIP 매직(PK\x03\x04)이 아니면 DRM 파일로 판단.
-        // Excel COM Interop으로 열어 임시 plain xlsx로 저장 후 경로 반환.
+        // Excel COM으로 열어 값을 복사한 새 워크북을 임시 파일로 저장 후 경로 반환.
         private static string EnsurePlainXlsx(string filePath)
         {
-            using var fs = File.OpenRead(filePath);
-            Span<byte> magic = stackalloc byte[4];
-            int read = fs.Read(magic);
-            bool isZip = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
+            // 파일 스트림을 먼저 닫고 magic byte만 확인
+            bool isZip;
+            {
+                using var fs = File.OpenRead(filePath);
+                Span<byte> magic = stackalloc byte[4];
+                int read = fs.Read(magic);
+                isZip = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
                                    && magic[2] == 0x03 && magic[3] == 0x04;
-            if (isZip) return filePath; // 정상 xlsx
+            }
+            if (isZip) return filePath;
 
-            // DRM 컨테이너 → Excel을 통해 복호화
+            // DRM 파일 → Excel COM으로 읽어 새 워크북에 값 복사 후 저장
             string tempPath = Path.Combine(Path.GetTempPath(),
                 $"__drm_plain_{Guid.NewGuid():N}.xlsx");
 
             Microsoft.Office.Interop.Excel.Application? app = null;
-            Microsoft.Office.Interop.Excel.Workbook?    wb  = null;
+            Microsoft.Office.Interop.Excel.Workbook?    src = null;
+            Microsoft.Office.Interop.Excel.Workbook?    dst = null;
             try
             {
-                app = new Microsoft.Office.Interop.Excel.Application { Visible = false, DisplayAlerts = false };
-                wb  = app.Workbooks.Open(filePath,
-                    ReadOnly: true, Password: "", IgnoreReadOnlyRecommended: true);
-                wb.SaveAs(tempPath,
-                    FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook,
-                    ConflictResolution: Microsoft.Office.Interop.Excel.XlSaveConflictResolution.xlLocalSessionChanges);
+                app = new Microsoft.Office.Interop.Excel.Application
+                {
+                    Visible = false,
+                    DisplayAlerts = false,
+                    ScreenUpdating = false
+                };
+
+                src = app.Workbooks.Open(
+                    Filename: filePath,
+                    ReadOnly: true,
+                    IgnoreReadOnlyRecommended: true);
+
+                // 전략 1: 직접 SaveAs (DRM이 허용할 경우)
+                bool savedDirect = false;
+                try
+                {
+                    src.SaveAs(
+                        Filename: tempPath,
+                        FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
+                    savedDirect = true;
+                }
+                catch { /* DRM이 SaveAs를 막는 경우 전략 2로 */ }
+
+                if (!savedDirect)
+                {
+                    // 전략 2: 값만 복사해 새 워크북에 저장
+                    var srcWs = (Microsoft.Office.Interop.Excel.Worksheet)src.Sheets[1];
+                    var used  = srcWs.UsedRange;
+                    int rows  = used.Rows.Count;
+                    int cols  = used.Columns.Count;
+
+                    dst  = app.Workbooks.Add();
+                    var dstWs = (Microsoft.Office.Interop.Excel.Worksheet)dst.Sheets[1];
+                    dstWs.Range["A1"]
+                         .Resize[rows, cols]
+                         .Value2 = used.Value2;
+
+                    dst.SaveAs(
+                        Filename: tempPath,
+                        FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
+                }
+
                 return tempPath;
             }
             finally
             {
-                try { wb?.Close(SaveChanges: false); } catch { }
+                try { dst?.Close(false); } catch { }
+                try { src?.Close(false); } catch { }
                 try { app?.Quit(); } catch { }
-                if (wb  != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+                if (dst != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(dst);
+                if (src != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(src);
                 if (app != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
             }
         }
