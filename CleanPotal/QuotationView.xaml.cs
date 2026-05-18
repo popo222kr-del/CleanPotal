@@ -559,14 +559,15 @@ namespace CleanPotal
                     if (int.TryParse(bVal, out int no) && no > 0)
                     {
                         string name = Get($"C{ri}").Trim();
-                        string code = Get($"D{ri}").Trim();
-                        string size = Get($"E{ri}").Trim();
+                        string dVal = Get($"D{ri}").Trim();
+                        string eVal = Get($"E{ri}").Trim();
                         int.TryParse(Get($"F{ri}").Trim(), out int qty);
+                        var (partCode, spec) = ParseCodeAndSize(dVal, eVal);
                         if (!string.IsNullOrEmpty(name))
                             items.Add(new QuotationLineItem
                             {
-                                No = no, Description = name, PartCode = code,
-                                StandardSpec = size, Qty = qty > 0 ? qty : 1
+                                No = no, Description = name, PartCode = partCode,
+                                StandardSpec = spec, Qty = qty > 0 ? qty : 1
                             });
                     }
                     // 담당자 정보 셀 탐색
@@ -616,7 +617,7 @@ namespace CleanPotal
             if (items.Count == 0) return (null, 0);
 
             // 자동 가격 적용 + 신규 단가 등록
-            int newPrices = ApplyAndRegisterPrices(items, save: false);
+            int newPrices = ApplyAndRegisterPrices(items, save: false, vendorName: companyName);
 
             var q = new QuotationModel { Company = company, Attention = attention, Phone = phone, Date = date };
             foreach (var item in items) q.LineItems.Add(item);
@@ -676,15 +677,16 @@ namespace CleanPotal
                 if (int.TryParse(bVal, out int no) && no > 0)
                 {
                     string name = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"C{ri}") is Cell cc ? XlsxCellText(cc, ss) : "").Trim();
-                    string code = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"D{ri}") is Cell dc ? XlsxCellText(dc, ss) : "").Trim();
-                    string size = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"E{ri}") is Cell ec ? XlsxCellText(ec, ss) : "").Trim();
+                    string dVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"D{ri}") is Cell dc ? XlsxCellText(dc, ss) : "").Trim();
+                    string eVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"E{ri}") is Cell ec ? XlsxCellText(ec, ss) : "").Trim();
                     int.TryParse((row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"F{ri}") is Cell fc ? XlsxCellText(fc, ss) : "").Trim(), out int qty);
+                    var (partCode, spec) = ParseCodeAndSize(dVal, eVal);
 
                     if (!string.IsNullOrEmpty(name))
                         newItems.Add(new QuotationLineItem
                         {
-                            No = no, Description = name, PartCode = code,
-                            StandardSpec = size, Qty = qty > 0 ? qty : 1
+                            No = no, Description = name, PartCode = partCode,
+                            StandardSpec = spec, Qty = qty > 0 ? qty : 1
                         });
                 }
 
@@ -712,7 +714,7 @@ namespace CleanPotal
             }
 
             // 단가 자동 적용 (ProductMaster 참조)
-            ApplyAndRegisterPrices(newItems, save: true);
+            ApplyAndRegisterPrices(newItems, save: true, vendorName: _selectedVendor?.VendorName ?? "");
 
             // 반출 정보 파싱
             string managerName = "", managerPhone = "";
@@ -788,12 +790,12 @@ namespace CleanPotal
         // ─── 단가 자동 적용 / 신규 등록 ───
 
         /// <summary>품목 목록에 ProductMaster 가격 자동 적용 + 신규 품목 자동 등록. 등록 수 반환.</summary>
-        private int ApplyAndRegisterPrices(IList<QuotationLineItem> items, bool save)
+        private int ApplyAndRegisterPrices(IList<QuotationLineItem> items, bool save, string vendorName = "")
         {
             int newCount = 0;
             foreach (var item in items)
             {
-                var master = FindMasterItem(item.Description, item.PartCode);
+                var master = FindMasterItem(item.Description, item.PartCode, vendorName);
                 if (master != null)
                 {
                     // 기존 단가 있으면 적용 (ListPrice가 0이거나 없을 때만)
@@ -809,7 +811,8 @@ namespace CleanPotal
                         PartCode    = item.PartCode,
                         Spec        = item.StandardSpec,
                         UnitPrice   = item.ListPrice,
-                        Unit        = "EA"
+                        Unit        = "EA",
+                        VendorName  = vendorName
                     });
                     newCount++;
                 }
@@ -822,11 +825,12 @@ namespace CleanPotal
         private int AutoRegisterNewPrices()
         {
             if (CurrentQuotation == null) return 0;
+            string vendorName = _selectedVendor?.VendorName ?? "";
             int count = 0;
             foreach (var item in CurrentQuotation.LineItems.Where(i => i.ListPrice > 0 &&
                 (!string.IsNullOrEmpty(i.Description) || !string.IsNullOrEmpty(i.PartCode))))
             {
-                if (FindMasterItem(item.Description, item.PartCode) == null)
+                if (FindMasterItem(item.Description, item.PartCode, vendorName) == null)
                 {
                     _productMaster.Add(new ProductMasterItem
                     {
@@ -834,7 +838,8 @@ namespace CleanPotal
                         PartCode    = item.PartCode,
                         Spec        = item.StandardSpec,
                         UnitPrice   = item.ListPrice,
-                        Unit        = "EA"
+                        Unit        = "EA",
+                        VendorName  = vendorName
                     });
                     count++;
                 }
@@ -843,8 +848,27 @@ namespace CleanPotal
             return count;
         }
 
-        private ProductMasterItem? FindMasterItem(string description, string partCode)
+        private ProductMasterItem? FindMasterItem(string description, string partCode, string vendorName = "")
         {
+            // 업체명이 지정된 경우 해당 업체 항목 우선 탐색
+            if (!string.IsNullOrEmpty(vendorName))
+            {
+                if (!string.IsNullOrEmpty(partCode))
+                {
+                    var byCode = _productMaster.FirstOrDefault(p =>
+                        string.Equals(p.VendorName, vendorName, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(p.PartCode, partCode, StringComparison.OrdinalIgnoreCase));
+                    if (byCode != null) return byCode;
+                }
+                if (!string.IsNullOrEmpty(description))
+                {
+                    var byName = _productMaster.FirstOrDefault(p =>
+                        string.Equals(p.VendorName, vendorName, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(p.ProductName, description, StringComparison.OrdinalIgnoreCase));
+                    if (byName != null) return byName;
+                }
+            }
+            // 업체 미지정 또는 업체별 매칭 실패 시 전체 탐색
             if (!string.IsNullOrEmpty(partCode))
             {
                 var byCode = _productMaster.FirstOrDefault(p =>
@@ -855,6 +879,15 @@ namespace CleanPotal
                 return _productMaster.FirstOrDefault(p =>
                     string.Equals(p.ProductName, description, StringComparison.OrdinalIgnoreCase));
             return null;
+        }
+
+        private static (string partCode, string standardSpec) ParseCodeAndSize(string dVal, string eVal)
+        {
+            bool eIsSize = Regex.IsMatch(eVal, @"^\d+(\.\d+)?\s*mm$", RegexOptions.IgnoreCase);
+            string partCode = !string.IsNullOrEmpty(dVal) ? dVal
+                            : (!eIsSize && !string.IsNullOrEmpty(eVal)) ? eVal : "";
+            string standardSpec = eIsSize ? eVal : "";
+            return (partCode, standardSpec);
         }
 
         // ─── 담당자/연락처 파싱 ───

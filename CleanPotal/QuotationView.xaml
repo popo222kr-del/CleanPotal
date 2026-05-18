@@ -669,7 +669,7 @@
                             <DataGridTemplateColumn Header="Part's Name" Width="2*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding ProductName}" Style="{StaticResource CellTextStyle}"/>
+                                        <TextBlock Text="{Binding DisplayName}" Style="{StaticResource CellTextStyle}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>

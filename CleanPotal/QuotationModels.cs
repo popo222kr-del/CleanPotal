@@ -107,13 +107,18 @@ namespace CleanPotal
         private string _partCode = "";
         private string _spec = "";
         private decimal _unitPrice;
+        private string _vendorName = "";
 
-        public string ProductName { get => _productName; set { _productName = value; OnPropertyChanged(nameof(ProductName)); } }
+        public string ProductName { get => _productName; set { _productName = value; OnPropertyChanged(nameof(ProductName)); OnPropertyChanged(nameof(DisplayName)); } }
         public string PartCode    { get => _partCode;    set { _partCode = value;    OnPropertyChanged(nameof(PartCode)); } }
         public string Spec        { get => _spec;        set { _spec = value;        OnPropertyChanged(nameof(Spec)); } }
         public decimal UnitPrice  { get => _unitPrice;   set { _unitPrice = value;   OnPropertyChanged(nameof(UnitPrice)); } }
+        public string VendorName  { get => _vendorName;  set { _vendorName = value;  OnPropertyChanged(nameof(VendorName)); OnPropertyChanged(nameof(DisplayName)); } }
         // 단위는 항상 EA (1EA 기준)
         public string Unit { get; set; } = "EA";
+
+        [JsonIgnore]
+        public string DisplayName => !string.IsNullOrWhiteSpace(VendorName) ? $"[{VendorName}] {ProductName}" : ProductName;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
