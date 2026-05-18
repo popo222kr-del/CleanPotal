@@ -488,10 +488,15 @@ namespace CleanPotal
             int totalQuotations = 0;
             int totalNewPrices  = 0;
 
-            // 업체 서브폴더 + 루트 직속 xlsx 모두 처리
+            // 업체 서브폴더 + 루트 직속 xlsx 모두 처리 (연도 폴더 건너뜀)
             var scanTargets = new List<(string company, string folder)>();
             foreach (var dir in Directory.GetDirectories(rootPath))
-                scanTargets.Add((Path.GetFileName(dir), dir));
+            {
+                string folderName = Path.GetFileName(dir);
+                // "25년", "26년", "2025", "2026년" 등 연도 폴더 제외
+                if (Regex.IsMatch(folderName, @"^\d{2,4}년?$")) continue;
+                scanTargets.Add((folderName, dir));
+            }
             // 루트에 직접 있는 파일은 폴더명을 회사명으로
             if (!scanTargets.Any())
                 scanTargets.Add((Path.GetFileName(rootPath), rootPath));
