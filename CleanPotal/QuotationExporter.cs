@@ -1,15 +1,21 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using XL = Microsoft.Office.Interop.Excel;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace CleanPotal
 {
     /// <summary>
-    /// Office Interop으로 템플릿을 열어 값을 채운 뒤 xlsx / pdf로 저장.
-    /// 이미지·스타일·수식이 템플릿 그대로 보존된다.
+    /// Open XML SDK 로 템플릿 XML 을 직접 수정 → xlsx 저장.
+    /// COM/Interop 레이어를 거치지 않으므로 병합 셀 오류가 없고
+    /// 이미지·스타일·수식 구조가 원본 그대로 보존된다.
+    /// PDF 변환은 Excel Interop 으로 별도 처리 (Excel 설치 필요).
     /// </summary>
     public static class QuotationExporter
     {
@@ -21,7 +27,19 @@ namespace CleanPotal
 
         public static void ExportToExcel(QuotationModel q, string savePath)
         {
-            RunWithTemplate(q, xlsxPath: savePath, pdfPath: null);
+            // 템플릿을 그대로 savePath 에 복사 후 XML 만 수정
+            byte[] templateBytes = ReadTemplateBytes();
+            File.WriteAllBytes(savePath, templateBytes);
+
+            using var doc = SpreadsheetDocument.Open(savePath, isEditable: true);
+            var wbPart = doc.WorkbookPart!;
+            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
+            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
+            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+
+            FillSheetData(sd, q);
+
+            wsPart.Worksheet.Save();
         }
 
         public static void ExportToPdf(QuotationModel q, string pdfPath)
@@ -29,92 +47,36 @@ namespace CleanPotal
             string tempXlsx = TempPath("qpdf", ".xlsx");
             try
             {
-                RunWithTemplate(q, xlsxPath: tempXlsx, pdfPath: pdfPath);
+                ExportToExcel(q, tempXlsx);
+                ConvertToPdf(tempXlsx, pdfPath);
             }
-            finally
-            {
-                TryDelete(tempXlsx);
-            }
-        }
-
-        // ─── 핵심 로직 ────────────────────────────────────────────────────
-
-        private static void RunWithTemplate(QuotationModel q, string xlsxPath, string? pdfPath)
-        {
-            string tmpl = ExtractTemplate();
-            XL.Application? app = null;
-            XL.Workbook?    wb  = null;
-            try
-            {
-                app = new XL.Application { Visible = false, DisplayAlerts = false };
-
-                wb = app.Workbooks.Open(
-                    Filename:    tmpl,
-                    UpdateLinks: false,
-                    ReadOnly:    false);
-
-                var ws = (XL.Worksheet)wb.Worksheets[1];
-                FillWorksheet(ws, q);
-                Marshal.ReleaseComObject(ws);
-
-                // Excel 파일 저장
-                wb.SaveAs(
-                    Filename:   xlsxPath,
-                    FileFormat: XL.XlFileFormat.xlOpenXMLWorkbook);
-
-                // PDF도 요청된 경우
-                if (pdfPath != null)
-                {
-                    wb.ExportAsFixedFormat(
-                        Type:             XL.XlFixedFormatType.xlTypePDF,
-                        Filename:         pdfPath,
-                        Quality:          XL.XlFixedFormatQuality.xlQualityStandard,
-                        IncludeDocProperties: true,
-                        IgnorePrintAreas: false,
-                        OpenAfterPublish: false);
-                }
-            }
-            finally
-            {
-                try { wb?.Close(false); } catch { }
-                try { app?.Quit();      } catch { }
-                if (wb  != null) Marshal.FinalReleaseComObject(wb);
-                if (app != null) Marshal.FinalReleaseComObject(app);
-                TryDelete(tmpl);
-            }
+            finally { TryDelete(tempXlsx); }
         }
 
         // ─── 데이터 채우기 ────────────────────────────────────────────────
 
-        private static void FillWorksheet(XL.Worksheet ws, QuotationModel q)
+        private static void FillSheetData(SheetData sd, QuotationModel q)
         {
-            // ── 고객사 정보 (왼쪽) ──────────────────────────────────────────
-            // Interop으로 열면 인접 셀이 진짜 빈 셀이므로 E열 텍스트가 overflow됨
-            SetText(ws, "E13", q.Attention);
-            SetText(ws, "E14", q.Company);
-            SetText(ws, "E16", q.Email);
-            SetText(ws, "E17", q.Phone);
+            // 고객사 정보 (왼쪽)
+            SetStr(sd, "E13", q.Attention);
+            SetStr(sd, "E14", q.Company);
+            SetStr(sd, "E16", q.Email);
+            SetStr(sd, "E17", q.Phone);
 
-            // ── 견적 정보 (오른쪽) ──────────────────────────────────────────
-            // K14:M14, K16:M16 는 템플릿에서 이미 병합된 셀
-            SetText(ws, "K14", string.IsNullOrWhiteSpace(q.Date)
+            // 견적 정보 (오른쪽)
+            // K14:M14 / K16:M16 는 템플릿에서 병합된 셀 - 마스터(K14,K16)에만 기록
+            SetStr(sd, "K14", string.IsNullOrWhiteSpace(q.Date)
                 ? ":" : $": {q.Date}");
-            SetText(ws, "K16", string.IsNullOrWhiteSpace(q.Validity)
+            SetStr(sd, "K16", string.IsNullOrWhiteSpace(q.Validity)
                 ? ":" : $": {q.Validity}");
 
-            string manager = q.AetsManager;
+            string mgr = q.AetsManager;
             if (!string.IsNullOrWhiteSpace(q.AetsPhone))
-                manager += $"  {q.AetsPhone}";
-            SetText(ws, "L17", manager);
+                mgr += $"  {q.AetsPhone}";
+            SetStr(sd, "L17", mgr);
+            SetStr(sd, "L18", q.BusinessNo);
 
-            // 사업자등록번호: 숫자로 해석되지 않도록 텍스트 서식 지정
-            var bizCell = ws.Range["L18"];
-            bizCell.NumberFormat = "@";
-            bizCell.Value2 = q.BusinessNo;
-            bizCell.Font.ColorIndex = 1;
-            Marshal.ReleaseComObject(bizCell);
-
-            // ── 품목 (행 22~44) ─────────────────────────────────────────────
+            // 품목 행 22~44
             var items = q.LineItems.Take(MaxItems).ToList();
             for (int i = 0; i < MaxItems; i++)
             {
@@ -122,77 +84,152 @@ namespace CleanPotal
                 if (i < items.Count)
                 {
                     var item = items[i];
-                    SetNum(ws, $"A{row}", item.No);
-                    SetText(ws, $"B{row}", item.Description);
-                    SetNum(ws, $"I{row}", (double)item.ListPrice);
-                    SetText(ws, $"J{row}", item.StandardSpec);
-                    SetNum(ws, $"K{row}", item.Qty);
-                    SetNum(ws, $"L{row}", (double)item.Amount);
+                    SetNum(sd, $"A{row}", item.No);
+                    SetStr(sd, $"B{row}", item.Description);   // B~H 병합 마스터
+                    SetNum(sd, $"I{row}", (double)item.ListPrice);
+                    SetStr(sd, $"J{row}", item.StandardSpec);
+                    SetNum(sd, $"K{row}", item.Qty);
+                    SetNum(sd, $"L{row}", (double)item.Amount);
                 }
                 else
                 {
-                    Clear(ws, $"A{row}");
-                    Clear(ws, $"B{row}");
-                    Clear(ws, $"I{row}");
-                    Clear(ws, $"J{row}");
-                    Clear(ws, $"K{row}");
-                    Clear(ws, $"L{row}");
+                    ClearCell(sd, $"A{row}");
+                    ClearCell(sd, $"B{row}");
+                    ClearCell(sd, $"I{row}");
+                    ClearCell(sd, $"J{row}");
+                    ClearCell(sd, $"K{row}");
+                    ClearCell(sd, $"L{row}");
                 }
             }
 
-            // ── 합계 ────────────────────────────────────────────────────────
-            SetNum(ws, "K45", items.Sum(x => x.Qty));
-            SetNum(ws, "L45", (double)items.Sum(x => x.Amount));
+            // 합계 (SUM 수식을 값으로 교체)
+            SetNum(sd, "K45", items.Sum(x => x.Qty));
+            SetNum(sd, "L45", (double)items.Sum(x => x.Amount));
 
-            // ── 비고 ────────────────────────────────────────────────────────
-            SetText(ws, "C47", q.Remarks);
+            // 비고
+            SetStr(sd, "C47", q.Remarks);
         }
 
         // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
 
-        private static void SetText(XL.Worksheet ws, string addr, string val)
+        private static void SetStr(SheetData sd, string cellRef, string? value)
         {
-            var r = ws.Range[addr];
-            r.Value2 = val ?? "";
-            r.Font.ColorIndex = 1;
-            Marshal.ReleaseComObject(r);
+            var cell = GetOrCreateCell(sd, cellRef);
+            cell.RemoveAllChildren();
+            cell.DataType  = CellValues.InlineString;
+            cell.CellValue = null;
+            cell.Append(new InlineString(new Text { Text = value ?? "" }));
         }
 
-        private static void SetNum(XL.Worksheet ws, string addr, object val)
+        private static void SetNum(SheetData sd, string cellRef, double value)
         {
-            var r = ws.Range[addr];
-            r.Value2 = val;
-            Marshal.ReleaseComObject(r);
+            var cell = GetOrCreateCell(sd, cellRef);
+            cell.RemoveAllChildren();
+            cell.DataType = null; // numeric
+            cell.Append(new CellValue(
+                value.ToString("G", CultureInfo.InvariantCulture)));
         }
 
-        private static void Clear(XL.Worksheet ws, string addr)
+        private static void SetNum(SheetData sd, string cellRef, int value) =>
+            SetNum(sd, cellRef, (double)value);
+
+        private static void ClearCell(SheetData sd, string cellRef)
         {
-            var r = ws.Range[addr];
-            r.ClearContents();
-            Marshal.ReleaseComObject(r);
+            uint rowIdx = ParseRow(cellRef);
+            var row  = sd.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == rowIdx);
+            var cell = row?.Elements<Cell>().FirstOrDefault(
+                c => c.CellReference?.Value == cellRef);
+            if (cell == null) return;
+            cell.RemoveAllChildren();
+            cell.DataType = null;
         }
 
-        // ─── 템플릿 추출 ─────────────────────────────────────────────────
+        // ─── 셀 조회/생성 ────────────────────────────────────────────────
 
-        private static string ExtractTemplate()
+        private static Cell GetOrCreateCell(SheetData sd, string cellRef)
         {
-            string path = TempPath("qtmpl", ".xlsx");
-            using var src = GetTemplateStream();
-            using var dst = File.Create(path);
-            src.CopyTo(dst);
-            return path;
+            uint rowIdx = ParseRow(cellRef);
+
+            // 행 조회/생성 (행 번호 순서 유지)
+            Row? row = sd.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == rowIdx);
+            if (row == null)
+            {
+                row = new Row { RowIndex = rowIdx };
+                var nextRow = sd.Elements<Row>()
+                    .FirstOrDefault(r => r.RowIndex?.Value > rowIdx);
+                if (nextRow != null) sd.InsertBefore(row, nextRow);
+                else                 sd.Append(row);
+            }
+
+            // 셀 조회/생성 (열 순서 유지)
+            var cell = row.Elements<Cell>()
+                .FirstOrDefault(c => c.CellReference?.Value == cellRef);
+            if (cell == null)
+            {
+                cell = new Cell { CellReference = cellRef };
+                var nextCell = row.Elements<Cell>()
+                    .FirstOrDefault(c => ColOrder(c.CellReference?.Value) > ColOrder(cellRef));
+                if (nextCell != null) row.InsertBefore(cell, nextCell);
+                else                  row.Append(cell);
+            }
+            return cell;
         }
 
-        private static Stream GetTemplateStream()
+        private static uint ParseRow(string cellRef) =>
+            uint.Parse(new string(cellRef.SkipWhile(char.IsLetter).ToArray()));
+
+        // 열 문자(A-Z, AA-AZ ...) → 정수 순서
+        private static int ColOrder(string? cellRef)
         {
-            var asm = Assembly.GetExecutingAssembly();
-            const string name = "CleanPotal.Resources.quotation_template.xlsx";
-            return asm.GetManifestResourceStream(name)
-                ?? throw new InvalidOperationException(
-                    "견적서 템플릿 리소스를 찾을 수 없습니다.");
+            if (cellRef == null) return int.MaxValue;
+            string col = new string(cellRef.TakeWhile(char.IsLetter).ToArray()).ToUpperInvariant();
+            int n = 0;
+            foreach (char c in col) n = n * 26 + (c - 'A' + 1);
+            return n;
+        }
+
+        // ─── PDF 변환 (Excel Interop) ─────────────────────────────────────
+
+        private static void ConvertToPdf(string xlsxPath, string pdfPath)
+        {
+            Microsoft.Office.Interop.Excel.Application? app = null;
+            Microsoft.Office.Interop.Excel.Workbook?    wb  = null;
+            try
+            {
+                app = new Microsoft.Office.Interop.Excel.Application
+                {
+                    Visible = false, DisplayAlerts = false
+                };
+                wb = app.Workbooks.Open(xlsxPath, ReadOnly: true);
+                wb.ExportAsFixedFormat(
+                    Type:             Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
+                    Filename:         pdfPath,
+                    Quality:          Microsoft.Office.Interop.Excel.XlFixedFormatQuality.xlQualityStandard,
+                    IncludeDocProperties: true,
+                    IgnorePrintAreas: false,
+                    OpenAfterPublish: false);
+            }
+            finally
+            {
+                try { wb?.Close(false); } catch { }
+                try { app?.Quit();      } catch { }
+                if (wb  != null) Marshal.FinalReleaseComObject(wb);
+                if (app != null) Marshal.FinalReleaseComObject(app);
+            }
         }
 
         // ─── 유틸 ────────────────────────────────────────────────────────
+
+        private static byte[] ReadTemplateBytes()
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            const string name = "CleanPotal.Resources.quotation_template.xlsx";
+            using var stream = asm.GetManifestResourceStream(name)
+                ?? throw new InvalidOperationException("견적서 템플릿 리소스를 찾을 수 없습니다.");
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return ms.ToArray();
+        }
 
         private static string TempPath(string prefix, string ext) =>
             Path.Combine(Path.GetTempPath(), $"{prefix}_{Guid.NewGuid():N}{ext}");
