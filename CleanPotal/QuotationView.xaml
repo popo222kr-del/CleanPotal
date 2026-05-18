@@ -8,6 +8,8 @@
              UseLayoutRounding="True" SnapsToDevicePixels="True">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="CornerRadius" Value="12"/>
@@ -112,48 +114,46 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="260"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ── 왼쪽: 견적서 목록 ── -->
+        <!-- ── 왼쪽: 업체 목록 ── -->
         <Border Grid.Column="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Padding="14,16,14,14" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                <!-- 헤더 + 검색 -->
+                <Border Grid.Row="0" Padding="14,16,14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <TextBlock Text="견적서 목록" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
-                        <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="38" MinWidth="160" Click="BtnNewQuotation_Click"/>
+                        <TextBlock Text="업체 목록" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                        <TextBox x:Name="VendorSearchBox"
+                                 Text="{Binding VendorSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource MacInputTextBoxStyle}"
+                                 Height="36" FontSize="13"
+                                 Tag="업체명 검색..."/>
                     </StackPanel>
                 </Border>
 
-                <ListBox Grid.Row="1" x:Name="QuotationListBox"
+                <!-- 업체 리스트 -->
+                <ListBox Grid.Row="1" x:Name="VendorListBox"
                          BorderThickness="0" Background="Transparent" Padding="8,8,8,0"
+                         ItemsSource="{Binding FilteredVendors}"
                          ItemContainerStyle="{StaticResource ListItemStyle}"
-                         SelectionChanged="QuotationListBox_SelectionChanged">
+                         SelectionChanged="VendorListBox_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <TextBlock Text="{Binding Company}" FontSize="13" FontWeight="SemiBold"
+                                <TextBlock Text="{Binding VendorName}" FontSize="14" FontWeight="Bold"
                                            Foreground="#1E293B" TextWrapping="Wrap"/>
-                                <TextBlock FontSize="11" Foreground="#64748B" Margin="0,2,0,0">
-                                    <Run Text="{Binding Attention}"/>
-                                    <Run Text=" · "/>
-                                    <Run Text="{Binding CreatedAt}"/>
-                                </TextBlock>
+                                <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-
-                <Button Grid.Row="2" Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
-                        Margin="12,8,12,14" Height="36" MinWidth="160" Click="BtnDeleteQuotation_Click"/>
             </Grid>
         </Border>
 
@@ -165,14 +165,25 @@
             </Grid.RowDefinitions>
 
             <!-- 상단 툴바 -->
-            <Border Grid.Row="0" Background="White" Padding="28,14,24,14"
+            <Border Grid.Row="0" Background="White" Padding="20,14,24,14"
                     BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                 <Grid>
-                    <TextBlock Text="FIRM QUOTATION" FontSize="20" FontWeight="ExtraBold"
-                               Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                    <!-- 왼쪽: 뒤로가기 버튼 + 타이틀 -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="← 목록" Style="{StaticResource MacSecondaryButtonStyle}"
+                                Height="38" MinWidth="90" Margin="0,0,12,0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Click="BtnBackToList_Click"/>
+                        <TextBlock Text="{Binding ToolbarTitle}" FontSize="18" FontWeight="ExtraBold"
+                                   Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- 오른쪽: 액션 버튼들 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button Content="단가 관리" Style="{StaticResource MacSecondaryButtonStyle}"
-                                Height="38" MinWidth="110" Click="BtnProductMaster_Click"/>
+                        <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
+                                Height="38" MinWidth="110"
+                                IsEnabled="{Binding HasSelectedVendor}"
+                                Click="BtnNewQuotation_Click"/>
                         <Button Content="엑셀 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
                                 Height="38" MinWidth="120" Margin="10,0,0,0" Click="BtnExportExcel_Click"/>
                         <Button Content="PDF 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
@@ -183,307 +194,381 @@
                 </Grid>
             </Border>
 
-            <!-- 폼 영역 -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- ── 뷰 상태 1: 업체 미선택 ── -->
+            <Grid Grid.Row="1"
+                  Visibility="{Binding IsNoneView, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="왼쪽에서 업체를 선택하세요."
+                           FontSize="15" Foreground="#94A3B8"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- ── 뷰 상태 2: 견적 목록 ── -->
+            <Grid Grid.Row="1"
+                  Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 건수 표시 -->
+                <Border Grid.Row="0" Padding="28,16,28,0">
+                    <TextBlock FontSize="13" Foreground="#64748B">
+                        <Run Text="총 "/>
+                        <Run Text="{Binding VendorQuotations.Count, Mode=OneWay}"/>
+                        <Run Text="건"/>
+                    </TextBlock>
+                </Border>
+
+                <!-- 견적 목록 그리드 -->
+                <DataGrid Grid.Row="1" x:Name="VendorQuotationsGrid"
+                          ItemsSource="{Binding VendorQuotations}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          MinRowHeight="44"
+                          BorderThickness="0"
+                          BorderBrush="#E2E8F0"
+                          Background="Transparent"
+                          AlternationCount="2"
+                          RowStyle="{StaticResource GridRowStyle}"
+                          ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
+                          CellStyle="{StaticResource GridCellStyle}"
+                          Margin="28,12,28,28"
+                          MouseDoubleClick="QuotationListGrid_DoubleClick">
+                    <DataGrid.Columns>
+                        <!-- 견적일 -->
+                        <DataGridTextColumn Header="견적일" Binding="{Binding Date}" IsReadOnly="True" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- 담당자 -->
+                        <DataGridTextColumn Header="담당자" Binding="{Binding Attention}" IsReadOnly="True" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- 연락처 -->
+                        <DataGridTextColumn Header="연락처" Binding="{Binding Phone}" IsReadOnly="True" Width="140">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- 합계금액 -->
+                        <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0} ₩}" IsReadOnly="True" Width="160">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="10,0,14,0"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#1E40AF"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- 관리 -->
+                        <DataGridTemplateColumn Header="관리" Width="*" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
+                                        <Button Content="편집" Style="{StaticResource MacSecondaryButtonStyle}"
+                                                Height="32" MinWidth="60"
+                                                DataContext="{Binding}"
+                                                Click="BtnEditQuotation_Click"/>
+                                        <Button Content="삭제" Style="{StaticResource MacDangerButtonStyle}"
+                                                Height="32" MinWidth="60" Margin="6,0,0,0"
+                                                DataContext="{Binding}"
+                                                Click="BtnDeleteQuotationInList_Click"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <!-- ── 뷰 상태 3: 폼 편집기 ── -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel x:Name="FormPanel" Margin="28,24,28,28"
                             DataContext="{Binding CurrentQuotation, RelativeSource={RelativeSource AncestorType=local:QuotationView}}">
 
-                    <!-- 비어있을 때 안내 -->
-                    <Border>
-                        <Border.Style>
-                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
-                                <Setter Property="Padding" Value="0,80"/>
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasQuotation, RelativeSource={RelativeSource AncestorType=local:QuotationView}}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
+                    <!-- ── 고객사 / 견적 정보 카드 ── -->
+                    <Border Style="{StaticResource CardStyle}" Padding="24,20">
+                        <Border.Resources>
+                            <!-- AutoCompleteBox가 Height=42이므로 TextBox도 42px로 통일 -->
+                            <Style TargetType="TextBox" BasedOn="{StaticResource MacInputTextBoxStyle}">
+                                <Setter Property="Height" Value="42"/>
+                                <Setter Property="FontSize" Value="14"/>
                             </Style>
-                        </Border.Style>
-                        <TextBlock Text="왼쪽에서 견적서를 선택하거나 새 견적서를 만드세요."
-                                   FontSize="15" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                    </Border>
+                        </Border.Resources>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                    <!-- 폼 콘텐츠 (견적서 선택 시 표시) -->
-                    <StackPanel>
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Visible"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasQuotation, RelativeSource={RelativeSource AncestorType=local:QuotationView}}" Value="False">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-
-                        <!-- ── 고객사 / 견적 정보 카드 ── -->
-                        <Border Style="{StaticResource CardStyle}" Padding="24,20">
-                            <Border.Resources>
-                                <!-- AutoCompleteBox가 Height=42이므로 TextBox도 42px로 통일 -->
-                                <Style TargetType="TextBox" BasedOn="{StaticResource MacInputTextBoxStyle}">
-                                    <Setter Property="Height" Value="42"/>
-                                    <Setter Property="FontSize" Value="14"/>
-                                </Style>
-                            </Border.Resources>
-                            <Grid>
+                            <!-- ── 고객사 정보 (왼쪽) ── -->
+                            <Grid Grid.Column="0" Margin="0,0,20,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="1"/>
+                                    <ColumnDefinition Width="65"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                                <!-- ── 고객사 정보 (왼쪽) ── -->
-                                <Grid Grid.Column="0" Margin="0,0,20,0">
+                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                                           Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
+                                <local:AutoCompleteBox Grid.Row="2" Grid.Column="1"
+                                    Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    ItemsSource="{Binding VendorSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
+                                <local:AutoCompleteBox Grid.Row="4" Grid.Column="1"
+                                    Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    ItemsSource="{Binding AttentionSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="E-Mail" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="6" Grid.Column="1"
+                                         Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="8" Grid.Column="1"
+                                         Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+
+                            <!-- 구분선 -->
+                            <Border Grid.Column="1" Background="#E2E8F0"/>
+
+                            <!-- ── 견적 정보 (오른쪽) ── -->
+                            <Grid Grid.Column="2" Margin="20,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                                           Text="견적 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="견적일" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="2" Grid.Column="1"
+                                         Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="유효기간" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1"
+                                         Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="AETS 담당자" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="6" Grid.Column="1"
+                                         Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="AETS Phone" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="8" Grid.Column="1"
+                                         Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Grid.Row="10" Grid.Column="0" Text="사업자번호" Style="{StaticResource InlineLabelStyle}"/>
+                                <Grid Grid.Row="10" Grid.Column="1">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="65"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="14"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                                               Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
-                                    <local:AutoCompleteBox Grid.Row="2" Grid.Column="1"
-                                        Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        ItemsSource="{Binding VendorSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
-
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                    <local:AutoCompleteBox Grid.Row="4" Grid.Column="1"
-                                        Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        ItemsSource="{Binding AttentionSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
-
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="E-Mail" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="6" Grid.Column="1"
-                                             Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="8" Grid.Column="1"
-                                             Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                </Grid>
-
-                                <!-- 구분선 -->
-                                <Border Grid.Column="1" Background="#E2E8F0"/>
-
-                                <!-- ── 견적 정보 (오른쪽) ── -->
-                                <Grid Grid.Column="2" Margin="20,0,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="14"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="10"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                                               Text="견적 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="견적일" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="2" Grid.Column="1"
-                                             Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="유효기간" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="4" Grid.Column="1"
-                                             Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="AETS 담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="6" Grid.Column="1"
-                                             Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="AETS Phone" Style="{StaticResource InlineLabelStyle}"/>
-                                    <TextBox Grid.Row="8" Grid.Column="1"
-                                             Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="사업자번호" Style="{StaticResource InlineLabelStyle}"/>
-                                    <Grid Grid.Row="10" Grid.Column="1">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox Text="{Binding BusinessNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <Button Grid.Column="1" Content="기본값 저장"
-                                                Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="42" MinWidth="100" Margin="8,0,0,0"
-                                                Click="BtnSaveBusinessNo_Click"/>
-                                    </Grid>
+                                    <TextBox Text="{Binding BusinessNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Grid.Column="1" Content="기본값 저장"
+                                            Style="{StaticResource MacSecondaryButtonStyle}"
+                                            Height="42" MinWidth="100" Margin="8,0,0,0"
+                                            Click="BtnSaveBusinessNo_Click"/>
                                 </Grid>
                             </Grid>
-                        </Border>
+                        </Grid>
+                    </Border>
 
-                        <!-- ── 견적 품목 카드 ── -->
-                        <Border Style="{StaticResource CardStyle}" Padding="24,20,24,0">
-                            <StackPanel>
-                                <!-- 카드 헤더 -->
-                                <Grid Margin="0,0,0,14">
-                                    <TextBlock Text="견적 품목" FontSize="13" FontWeight="Bold"
-                                               Foreground="#475569" VerticalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Content="단가에서 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="36" MinWidth="110" Click="BtnInsertFromMasterInline_Click"/>
-                                        <Button Content="+ 행 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="36" MinWidth="90" Margin="8,0,0,0" Click="BtnAddLineItem_Click"/>
-                                        <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                                Height="36" MinWidth="90" Margin="8,0,0,0" Click="BtnDeleteLineItem_Click"/>
+                    <!-- ── 견적 품목 카드 ── -->
+                    <Border Style="{StaticResource CardStyle}" Padding="24,20,24,0">
+                        <StackPanel>
+                            <!-- 카드 헤더 -->
+                            <Grid Margin="0,0,0,14">
+                                <TextBlock Text="견적 품목" FontSize="13" FontWeight="Bold"
+                                           Foreground="#475569" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="단가에서 추가" Style="{StaticResource MacSecondaryButtonStyle}"
+                                            Height="36" MinWidth="110" Click="BtnInsertFromMasterInline_Click"/>
+                                    <Button Content="+ 행 추가" Style="{StaticResource MacSecondaryButtonStyle}"
+                                            Height="36" MinWidth="90" Margin="8,0,0,0" Click="BtnAddLineItem_Click"/>
+                                    <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
+                                            Height="36" MinWidth="90" Margin="8,0,0,0" Click="BtnDeleteLineItem_Click"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 품목 그리드 -->
+                            <DataGrid x:Name="LineItemsGrid"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      MinRowHeight="42"
+                                      BorderThickness="1"
+                                      BorderBrush="#E2E8F0"
+                                      Background="Transparent"
+                                      AlternationCount="2"
+                                      RowStyle="{StaticResource GridRowStyle}"
+                                      ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
+                                      CellStyle="{StaticResource GridCellStyle}">
+                                <DataGrid.Columns>
+                                    <!-- No -->
+                                    <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="50">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                <Setter Property="Foreground" Value="#64748B"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- 제품명/설명 -->
+                                    <DataGridTemplateColumn Header="제품명 / 설명" Width="2.5*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextWrapping="Wrap" AcceptsReturn="True"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- 규격/사양 -->
+                                    <DataGridTemplateColumn Header="규격 / 사양" Width="1.5*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- 단가 -->
+                                    <DataGridTemplateColumn Header="단가 (₩)" Width="130">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding ListPrice, StringFormat={}{0:N0}}"
+                                                           Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- 수량 -->
+                                    <DataGridTemplateColumn Header="수량" Width="70">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- 금액 (자동계산, 읽기전용) -->
+                                    <DataGridTemplateColumn Header="금액 (₩)" Width="140" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}"
+                                                           Style="{StaticResource CellTextStyle}"
+                                                           HorizontalAlignment="Right" Padding="10,0,14,0"
+                                                           FontWeight="SemiBold" Foreground="#1E40AF"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 합계 행 -->
+                            <Border Background="#EFF6FF" Padding="20,14"
+                                    BorderBrush="#BFDBFE" BorderThickness="1,0,1,1"
+                                    CornerRadius="0,0,8,8" Margin="0,0,0,0">
+                                <Grid>
+                                    <TextBlock Text="합계 (Total)" FontSize="14" FontWeight="Bold"
+                                               Foreground="#1D4ED8" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="수량  " FontSize="13" Foreground="#3B82F6" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding TotalQty, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"
+                                                   FontSize="14" Foreground="#1D4ED8" FontWeight="Bold" Margin="0,0,32,0"/>
+                                        <TextBlock Text="금액  " FontSize="13" Foreground="#3B82F6" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding TotalAmount, RelativeSource={RelativeSource AncestorType=local:QuotationView}, StringFormat={}{0:N0} ₩}"
+                                                   FontSize="15" Foreground="#1D4ED8" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Grid>
+                            </Border>
 
-                                <!-- 품목 그리드 -->
-                                <DataGrid x:Name="LineItemsGrid"
-                                          AutoGenerateColumns="False"
-                                          CanUserAddRows="False"
-                                          CanUserDeleteRows="False"
-                                          HeadersVisibility="Column"
-                                          GridLinesVisibility="Horizontal"
-                                          MinRowHeight="42"
-                                          BorderThickness="1"
-                                          BorderBrush="#E2E8F0"
-                                          Background="Transparent"
-                                          AlternationCount="2"
-                                          RowStyle="{StaticResource GridRowStyle}"
-                                          ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                          CellStyle="{StaticResource GridCellStyle}">
-                                    <DataGrid.Columns>
-                                        <!-- No -->
-                                        <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="50">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
-                                                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
+                            <Border Height="24" Background="Transparent"/>
+                        </StackPanel>
+                    </Border>
 
-                                        <!-- 제품명/설명 -->
-                                        <DataGridTemplateColumn Header="제품명 / 설명" Width="2.5*">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                            <DataGridTemplateColumn.CellEditingTemplate>
-                                                <DataTemplate>
-                                                    <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Style="{StaticResource CellEditStyle}" TextWrapping="Wrap" AcceptsReturn="True"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellEditingTemplate>
-                                        </DataGridTemplateColumn>
-
-                                        <!-- 규격/사양 -->
-                                        <DataGridTemplateColumn Header="규격 / 사양" Width="1.5*">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                            <DataGridTemplateColumn.CellEditingTemplate>
-                                                <DataTemplate>
-                                                    <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellEditingTemplate>
-                                        </DataGridTemplateColumn>
-
-                                        <!-- 단가 -->
-                                        <DataGridTemplateColumn Header="단가 (₩)" Width="130">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding ListPrice, StringFormat={}{0:N0}}"
-                                                               Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                            <DataGridTemplateColumn.CellEditingTemplate>
-                                                <DataTemplate>
-                                                    <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellEditingTemplate>
-                                        </DataGridTemplateColumn>
-
-                                        <!-- 수량 -->
-                                        <DataGridTemplateColumn Header="수량" Width="70">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                            <DataGridTemplateColumn.CellEditingTemplate>
-                                                <DataTemplate>
-                                                    <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellEditingTemplate>
-                                        </DataGridTemplateColumn>
-
-                                        <!-- 금액 (자동계산, 읽기전용) -->
-                                        <DataGridTemplateColumn Header="금액 (₩)" Width="140" IsReadOnly="True">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}"
-                                                               Style="{StaticResource CellTextStyle}"
-                                                               HorizontalAlignment="Right" Padding="10,0,14,0"
-                                                               FontWeight="SemiBold" Foreground="#1E40AF"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- 합계 행 -->
-                                <Border Background="#EFF6FF" Padding="20,14"
-                                        BorderBrush="#BFDBFE" BorderThickness="1,0,1,1"
-                                        CornerRadius="0,0,8,8" Margin="0,0,0,0">
-                                    <Grid>
-                                        <TextBlock Text="합계 (Total)" FontSize="14" FontWeight="Bold"
-                                                   Foreground="#1D4ED8" VerticalAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock Text="수량  " FontSize="13" Foreground="#3B82F6" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding TotalQty, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"
-                                                       FontSize="14" Foreground="#1D4ED8" FontWeight="Bold" Margin="0,0,32,0"/>
-                                            <TextBlock Text="금액  " FontSize="13" Foreground="#3B82F6" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding TotalAmount, RelativeSource={RelativeSource AncestorType=local:QuotationView}, StringFormat={}{0:N0} ₩}"
-                                                       FontSize="15" Foreground="#1D4ED8" FontWeight="Bold"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-
-                                <Border Height="24" Background="Transparent"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- ── 비고 카드 ── -->
-                        <Border Style="{StaticResource CardStyle}" Padding="24,20">
-                            <StackPanel>
-                                <TextBlock Text="비고 (Remarks)" FontSize="13" FontWeight="Bold"
-                                           Foreground="#475569" Margin="0,0,0,12"/>
-                                <TextBox Text="{Binding Remarks, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
-                                         Padding="12" BorderBrush="#E2E8F0" BorderThickness="1"
-                                         FontSize="14" VerticalScrollBarVisibility="Auto"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                    <!-- ── 비고 카드 ── -->
+                    <Border Style="{StaticResource CardStyle}" Padding="24,20">
+                        <StackPanel>
+                            <TextBlock Text="비고 (Remarks)" FontSize="13" FontWeight="Bold"
+                                       Foreground="#475569" Margin="0,0,0,12"/>
+                            <TextBox Text="{Binding Remarks, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
+                                     Padding="12" BorderBrush="#E2E8F0" BorderThickness="1"
+                                     FontSize="14" VerticalScrollBarVisibility="Auto"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

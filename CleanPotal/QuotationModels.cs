@@ -85,6 +85,9 @@ namespace CleanPotal
         public ObservableCollection<QuotationLineItem> LineItems { get; set; } = new();
 
         [JsonIgnore]
+        public decimal TotalAmount => LineItems.Sum(x => x.Amount);
+
+        [JsonIgnore]
         public string DisplayTitle => !string.IsNullOrWhiteSpace(Company) ? Company : "(새 견적서)";
 
         public event PropertyChangedEventHandler? PropertyChanged;

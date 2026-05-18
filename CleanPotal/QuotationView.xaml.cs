@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace CleanPotal
@@ -14,6 +15,59 @@ namespace CleanPotal
     public partial class QuotationView : UserControl, INotifyPropertyChanged
     {
         public ObservableCollection<QuotationModel> Quotations { get; } = new();
+
+        // ─── 업체 검색 / 목록 ───
+
+        private string _vendorSearch = "";
+        public string VendorSearch
+        {
+            get => _vendorSearch;
+            set { _vendorSearch = value; OnPropertyChanged(nameof(VendorSearch)); FilterVendors(); }
+        }
+
+        private List<VendorModel> _allVendors = new();
+        public ObservableCollection<VendorModel> FilteredVendors { get; } = new();
+
+        private VendorModel? _selectedVendor;
+        public VendorModel? SelectedVendor
+        {
+            get => _selectedVendor;
+            set
+            {
+                _selectedVendor = value;
+                OnPropertyChanged(nameof(SelectedVendor));
+                OnPropertyChanged(nameof(HasSelectedVendor));
+                OnPropertyChanged(nameof(IsNoneView));
+                OnPropertyChanged(nameof(IsListView));
+                OnPropertyChanged(nameof(IsEditing));
+                OnPropertyChanged(nameof(ToolbarTitle));
+                CurrentQuotation = null;
+                RefreshVendorQuotations();
+            }
+        }
+
+        public bool HasSelectedVendor => _selectedVendor != null;
+
+        public ObservableCollection<QuotationModel> VendorQuotations { get; } = new();
+
+        // ─── 뷰 상태 ───
+
+        public bool IsNoneView => !HasSelectedVendor;
+        public bool IsListView => HasSelectedVendor && CurrentQuotation == null;
+        public bool IsEditing  => HasSelectedVendor && CurrentQuotation != null;
+
+        public string ToolbarTitle
+        {
+            get
+            {
+                if (IsEditing) return "FIRM QUOTATION";
+                if (IsListView && SelectedVendor != null)
+                    return $"{SelectedVendor.VendorName}  ·  견적 {VendorQuotations.Count}건";
+                return "업체 견적서";
+            }
+        }
+
+        // ─── 현재 견적서 ───
 
         private QuotationModel? _currentQuotation;
         public QuotationModel? CurrentQuotation
@@ -44,6 +98,10 @@ namespace CleanPotal
                 }
                 OnPropertyChanged(nameof(CurrentQuotation));
                 OnPropertyChanged(nameof(HasQuotation));
+                OnPropertyChanged(nameof(IsNoneView));
+                OnPropertyChanged(nameof(IsListView));
+                OnPropertyChanged(nameof(IsEditing));
+                OnPropertyChanged(nameof(ToolbarTitle));
                 UpdateTotals();
             }
         }
@@ -76,10 +134,32 @@ namespace CleanPotal
             _productMaster = QuotationStore.LoadProductMaster();
             ProductMasterGrid.ItemsSource = _productMaster;
 
-            QuotationListBox.ItemsSource = Quotations;
-            if (Quotations.Count > 0) QuotationListBox.SelectedIndex = 0;
-
             RefreshVendorSuggestions();
+
+            // 업체 목록 초기 로드
+            _allVendors = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
+            FilterVendors();
+        }
+
+        // ─── 업체 필터링 ───
+
+        private void FilterVendors()
+        {
+            FilteredVendors.Clear();
+            foreach (var v in _allVendors.Where(v =>
+                string.IsNullOrWhiteSpace(VendorSearch) ||
+                (v.VendorName?.Contains(VendorSearch, StringComparison.OrdinalIgnoreCase) == true)))
+                FilteredVendors.Add(v);
+        }
+
+        private void RefreshVendorQuotations()
+        {
+            VendorQuotations.Clear();
+            if (_selectedVendor == null) return;
+            foreach (var q in Quotations.Where(q =>
+                string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase)))
+                VendorQuotations.Add(q);
+            OnPropertyChanged(nameof(ToolbarTitle));
         }
 
         private void RefreshVendorSuggestions()
@@ -147,7 +227,7 @@ namespace CleanPotal
         private void UpdateTotals()
         {
             if (CurrentQuotation == null) { TotalQty = 0; TotalAmount = 0; return; }
-            TotalQty  = CurrentQuotation.LineItems.Sum(x => x.Qty);
+            TotalQty    = CurrentQuotation.LineItems.Sum(x => x.Qty);
             TotalAmount = CurrentQuotation.LineItems.Sum(x => x.Amount);
         }
 
@@ -158,13 +238,22 @@ namespace CleanPotal
                 CurrentQuotation.LineItems[i].No = i + 1;
         }
 
-        // ─── 목록 조작 ───
+        // ─── 업체 선택 ───
 
-        private void QuotationListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void VendorListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (QuotationListBox.SelectedItem is QuotationModel q)
-                CurrentQuotation = q;
+            if (VendorListBox.SelectedItem is VendorModel v)
+                SelectedVendor = v;
         }
+
+        // ─── 툴바 / 뷰 전환 ───
+
+        private void BtnBackToList_Click(object sender, RoutedEventArgs e)
+        {
+            CurrentQuotation = null;
+        }
+
+        // ─── 새 견적서 ───
 
         private void BtnNewQuotation_Click(object sender, RoutedEventArgs e)
         {
@@ -175,27 +264,61 @@ namespace CleanPotal
                 ? managerName
                 : $"{managerName} {jobTitle}";
 
+            // 선택된 업체 정보로 미리 채우기
+            string company   = _selectedVendor?.VendorName ?? "";
+            string attention = "";
+            string phone     = "";
+            if (_selectedVendor != null)
+            {
+                var firstManager = _selectedVendor.Managers.FirstOrDefault();
+                if (firstManager != null)
+                {
+                    attention = firstManager.ManagerName;
+                    phone     = firstManager.ContactNumber;
+                }
+            }
+
             var q = new QuotationModel
             {
+                Company     = company,
+                Attention   = attention,
+                Phone       = phone,
                 AetsManager = aetsManager,
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
                 Date        = DateTime.Today.ToString("yyyy-MM-dd")
             };
             Quotations.Insert(0, q);
-            QuotationListBox.SelectedItem = q;
+            RefreshVendorQuotations();
+            CurrentQuotation = q;
         }
 
-        private void BtnDeleteQuotation_Click(object sender, RoutedEventArgs e)
-        {
-            if (QuotationListBox.SelectedItem is not QuotationModel q) return;
-            if (MessageBox.Show($"'{q.DisplayTitle}' 견적서를 삭제하시겠습니까?", "확인",
-                MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        // ─── 견적 목록에서 편집/삭제 ───
 
-            Quotations.Remove(q);
-            QuotationStore.SaveQuotations(Quotations);
-            CurrentQuotation = Quotations.Count > 0 ? Quotations[0] : null;
-            if (CurrentQuotation != null) QuotationListBox.SelectedItem = CurrentQuotation;
+        private void BtnEditQuotation_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is QuotationModel q)
+                CurrentQuotation = q;
+        }
+
+        private void BtnDeleteQuotationInList_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is QuotationModel q)
+            {
+                if (MessageBox.Show($"'{q.DisplayTitle}' 견적서를 삭제하시겠습니까?", "확인",
+                    MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+
+                Quotations.Remove(q);
+                VendorQuotations.Remove(q);
+                QuotationStore.SaveQuotations(Quotations);
+                OnPropertyChanged(nameof(ToolbarTitle));
+            }
+        }
+
+        private void QuotationListGrid_DoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (VendorQuotationsGrid.SelectedItem is QuotationModel q)
+                CurrentQuotation = q;
         }
 
         // ─── 내보내기 ───
@@ -206,9 +329,9 @@ namespace CleanPotal
 
             var dlg = new SaveFileDialog
             {
-                Title      = "엑셀 파일로 저장",
-                Filter     = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName   = QuotationExporter.MakeSafeFileName(
+                Title    = "엑셀 파일로 저장",
+                Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = QuotationExporter.MakeSafeFileName(
                     $"FIRM_QUOTATION_{CurrentQuotation.Company}_{CurrentQuotation.Date}.xlsx")
             };
             if (dlg.ShowDialog() != true) return;
@@ -273,6 +396,7 @@ namespace CleanPotal
             try
             {
                 QuotationStore.SaveQuotations(Quotations);
+                RefreshVendorQuotations();
                 MessageBox.Show("저장되었습니다.");
             }
             catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); }
