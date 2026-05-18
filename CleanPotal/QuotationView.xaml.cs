@@ -12,6 +12,7 @@ using System.Windows.Input;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
+using WpfBorder = System.Windows.Controls.Border;
 
 namespace CleanPotal
 {
@@ -423,13 +424,13 @@ namespace CleanPotal
         private void LineItemsCard_DragEnter(object sender, DragEventArgs e)
         {
             if (CurrentQuotation != null && IsXlsxDrop(e))
-                ((Border)sender).BorderBrush = new System.Windows.Media.SolidColorBrush(
+                ((WpfBorder)sender).BorderBrush = new System.Windows.Media.SolidColorBrush(
                     System.Windows.Media.Color.FromRgb(99, 102, 241));
         }
 
         private void LineItemsCard_DragLeave(object sender, DragEventArgs e)
         {
-            ((Border)sender).ClearValue(Border.BorderBrushProperty);
+            ((WpfBorder)sender).ClearValue(WpfBorder.BorderBrushProperty);
         }
 
         private void LineItemsCard_DragOver(object sender, DragEventArgs e)
@@ -442,7 +443,7 @@ namespace CleanPotal
 
         private void LineItemsCard_Drop(object sender, DragEventArgs e)
         {
-            ((Border)sender).ClearValue(Border.BorderBrushProperty);
+            ((WpfBorder)sender).ClearValue(WpfBorder.BorderBrushProperty);
             if (CurrentQuotation == null || !IsXlsxDrop(e)) return;
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             var xlsx  = files.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
