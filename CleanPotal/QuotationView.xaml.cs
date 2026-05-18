@@ -530,33 +530,17 @@ namespace CleanPotal
             }
 
             // 반출 정보: 담당자(연락처) 파싱
-            // 형식 예: "  2) 담당자 (연락처) : 홍길동 (010-1234-5678)\n..."
             string managerName = "";
             string managerPhone = "";
 
             if (!string.IsNullOrEmpty(contactRaw))
             {
-                // 담당자 (연락처) : 뒤 텍스트를 줄 단위로 추출
                 var lineMatch = Regex.Match(contactRaw,
                     @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)",
                     RegexOptions.IgnoreCase);
                 if (lineMatch.Success)
                 {
-                    string raw = lineMatch.Groups[1].Value.Trim();
-                    if (!string.IsNullOrEmpty(raw))
-                    {
-                        // "이름 (010-xxxx-xxxx)" 또는 "이름 010-xxxx-xxxx"
-                        var phoneMatch = Regex.Match(raw, @"^(.+?)\s*[\(（]?([\d][\d\-]{7,}[\d])[\)）]?\s*$");
-                        if (phoneMatch.Success)
-                        {
-                            managerName  = phoneMatch.Groups[1].Value.Trim();
-                            managerPhone = phoneMatch.Groups[2].Value.Trim();
-                        }
-                        else
-                        {
-                            managerName = raw;
-                        }
-                    }
+                    (managerName, managerPhone) = ParseManagerContact(lineMatch.Groups[1].Value.Trim());
                 }
             }
 
@@ -604,6 +588,39 @@ namespace CleanPotal
             if (!string.IsNullOrEmpty(managerName))
                 sb.AppendLine($"• 담당자: {managerName}" + (string.IsNullOrEmpty(managerPhone) ? "" : $" ({managerPhone})"));
             MessageBox.Show(sb.ToString().Trim(), "완료");
+        }
+
+        // ─── 담당자/연락처 파싱 ───
+
+        /// <summary>
+        /// "박주언 과장 /010-4083-8713" 같은 원본 문자열에서 이름과 전화번호를 분리한다.
+        /// 지원 형식: (010 4083 8713)  (010-4083-8713)  /01040838713  /010-4083-8713  등
+        /// </summary>
+        private static (string name, string phone) ParseManagerContact(string raw)
+        {
+            raw = raw.Trim();
+            if (string.IsNullOrEmpty(raw)) return ("", "");
+
+            // 전화번호 세그먼트: 선택적 구분자(/, (, 공백) + 0으로 시작하는 10-11자리 숫자군
+            // 숫자 사이에는 공백, 하이픈 허용
+            var phoneRx = new Regex(
+                @"(?<sep>[\/（(\s]+)?(?<num>0\d{1,2}[\s\-]?\d{3,4}[\s\-]?\d{4})(?<suf>[）)\s]*)");
+
+            var m = phoneRx.Match(raw);
+            if (!m.Success) return (raw, "");
+
+            // 숫자만 추출 후 010-XXXX-XXXX 형식으로 정규화
+            string digits = Regex.Replace(m.Groups["num"].Value, @"[\s\-]", "");
+            string phone = digits.Length switch
+            {
+                11 => $"{digits[..3]}-{digits[3..7]}-{digits[7..]}",
+                10 => $"{digits[..3]}-{digits[3..6]}-{digits[6..]}",
+                _  => m.Groups["num"].Value
+            };
+
+            // 이름 = 전화번호 세그먼트 앞부분 (구분자 제거)
+            string name = raw[..m.Index].TrimEnd('/', '(', '（', ' ', '\t');
+            return (name, phone);
         }
 
         // ─── 품목 행 조작 ───
