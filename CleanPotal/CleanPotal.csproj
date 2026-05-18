@@ -35,6 +35,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\quotation_template.xlsx"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.95.0" />
     <PackageReference Include="ClosedXML.Parser" Version="2.0.0" />
     <PackageReference Include="Dapper" Version="2.0.123" />

@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 
 namespace CleanPotal
 {
@@ -193,6 +196,67 @@ namespace CleanPotal
             QuotationStore.SaveQuotations(Quotations);
             CurrentQuotation = Quotations.Count > 0 ? Quotations[0] : null;
             if (CurrentQuotation != null) QuotationListBox.SelectedItem = CurrentQuotation;
+        }
+
+        // ─── 내보내기 ───
+
+        private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentQuotation == null) { MessageBox.Show("내보낼 견적서를 선택하세요."); return; }
+
+            var dlg = new SaveFileDialog
+            {
+                Title      = "엑셀 파일로 저장",
+                Filter     = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName   = QuotationExporter.MakeSafeFileName(
+                    $"FIRM_QUOTATION_{CurrentQuotation.Company}_{CurrentQuotation.Date}.xlsx")
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                QuotationExporter.ExportToExcel(CurrentQuotation, dlg.FileName);
+                var result = MessageBox.Show(
+                    "엑셀 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
+                    "완료", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                    Process.Start(new ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("엑셀 내보내기 오류: " + ex.Message);
+            }
+        }
+
+        private void BtnExportPdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentQuotation == null) { MessageBox.Show("내보낼 견적서를 선택하세요."); return; }
+
+            var dlg = new SaveFileDialog
+            {
+                Title    = "PDF 파일로 저장",
+                Filter   = "PDF 파일 (*.pdf)|*.pdf",
+                FileName = QuotationExporter.MakeSafeFileName(
+                    $"FIRM_QUOTATION_{CurrentQuotation.Company}_{CurrentQuotation.Date}.pdf")
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                QuotationExporter.ExportToPdf(CurrentQuotation, dlg.FileName);
+                var result = MessageBox.Show(
+                    "PDF 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
+                    "완료", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                    Process.Start(new ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "PDF 내보내기 오류: " + ex.Message + "\n\n" +
+                    "PDF 내보내기는 Microsoft Excel이 설치되어 있어야 합니다.\n" +
+                    "Excel이 없다면 엑셀 파일로 내보낸 후 PDF로 변환해 주세요.");
+            }
         }
 
         // ─── 저장 ───
