@@ -766,75 +766,36 @@ namespace CleanPotal
 
         private void ImportFromExcel(string filePath)
         {
-            filePath = EnsurePlainXlsx(filePath);
-            using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
-            var wbPart  = doc.WorkbookPart!;
-            var sheet   = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
-            var wsPart  = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
-            var sd      = wsPart.Worksheet.GetFirstChild<SheetData>()!;
-            var ss      = BuildSharedStrings(wbPart);
+            if (CurrentQuotation == null) return;
+            string vendorName = _selectedVendor?.VendorName ?? "";
 
-            var newItems  = new List<QuotationLineItem>();
-            string contactRaw = "";
+            // ParseXlsxAsQuotation 재사용 → 세정 의뢰 양식 + AETS 출력 형식 모두 지원
+            var (parsed, newPrices) = ParseXlsxAsQuotation(filePath, vendorName);
 
-            foreach (Row row in sd.Elements<Row>())
+            if (parsed == null || parsed.LineItems.Count == 0)
             {
-                uint ri    = row.RowIndex?.Value ?? 0;
-                string bVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"B{ri}") is Cell bc
-                              ? XlsxCellText(bc, ss) : "").Trim();
-
-                if (int.TryParse(bVal, out int no) && no > 0)
-                {
-                    string name = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"C{ri}") is Cell cc ? XlsxCellText(cc, ss) : "").Trim();
-                    string dVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"D{ri}") is Cell dc ? XlsxCellText(dc, ss) : "").Trim();
-                    string eVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"E{ri}") is Cell ec ? XlsxCellText(ec, ss) : "").Trim();
-                    int.TryParse((row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"F{ri}") is Cell fc ? XlsxCellText(fc, ss) : "").Trim(), out int qty);
-                    var (partCode, spec) = ParseCodeAndSize(dVal, eVal);
-
-                    if (!string.IsNullOrEmpty(name))
-                        newItems.Add(new QuotationLineItem
-                        {
-                            No = no, Description = name, PartCode = partCode,
-                            StandardSpec = spec, Qty = qty > 0 ? qty : 1
-                        });
-                }
-
-                if (string.IsNullOrEmpty(contactRaw))
-                {
-                    foreach (Cell cell in row.Elements<Cell>())
-                    {
-                        string val = XlsxCellText(cell, ss);
-                        if (val.Contains("담당자") && val.Contains("연락처")) { contactRaw = val; break; }
-                    }
-                }
+                MessageBox.Show("가져올 품목을 찾을 수 없습니다.\n지원 형식: 세정 의뢰 양식 / AETS 견적서 출력");
+                return;
             }
 
-            if (newItems.Count > 0)
-            {
-                bool replace = CurrentQuotation!.LineItems.Count == 0 ||
-                    MessageBox.Show(
-                        $"기존 품목 {CurrentQuotation.LineItems.Count}개를 삭제하고 가져온 {newItems.Count}개로 교체하시겠습니까?",
-                        "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
-                if (!replace) return;
+            bool replace = CurrentQuotation.LineItems.Count == 0 ||
+                MessageBox.Show(
+                    $"기존 품목 {CurrentQuotation.LineItems.Count}개를 삭제하고 가져온 {parsed.LineItems.Count}개로 교체하시겠습니까?",
+                    "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+            if (!replace) return;
 
-                CurrentQuotation.LineItems.Clear();
-                foreach (var item in newItems)
-                    CurrentQuotation.LineItems.Add(item);
-            }
+            CurrentQuotation.LineItems.Clear();
+            foreach (var item in parsed.LineItems)
+                CurrentQuotation.LineItems.Add(item);
 
-            // 단가 자동 적용 (ProductMaster 참조)
-            ApplyAndRegisterPrices(newItems, save: true, vendorName: _selectedVendor?.VendorName ?? "");
+            // 단가 저장 (ParseXlsxAsQuotation은 save:false로 호출되므로 여기서 저장)
+            if (newPrices > 0) QuotationStore.SaveProductMaster(_productMaster);
 
-            // 반출 정보 파싱
-            string managerName = "", managerPhone = "";
-            if (!string.IsNullOrEmpty(contactRaw))
-            {
-                var lm = Regex.Match(contactRaw, @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)", RegexOptions.IgnoreCase);
-                if (lm.Success) (managerName, managerPhone) = ParseManagerContact(lm.Groups[1].Value.Trim());
-            }
-
-            if (!string.IsNullOrEmpty(managerName)) CurrentQuotation!.Attention = managerName;
-            if (!string.IsNullOrEmpty(managerPhone)) CurrentQuotation!.Phone     = managerPhone;
+            // 담당자 정보 적용
+            string managerName  = parsed.Attention;
+            string managerPhone = parsed.Phone;
+            if (!string.IsNullOrEmpty(managerName))  CurrentQuotation.Attention = managerName;
+            if (!string.IsNullOrEmpty(managerPhone)) CurrentQuotation.Phone     = managerPhone;
 
             // 거래처 담당자 자동 등록
             if (!string.IsNullOrEmpty(managerName) && _selectedVendor != null)
@@ -859,7 +820,8 @@ namespace CleanPotal
             }
 
             var sb = new System.Text.StringBuilder("가져오기 완료\n");
-            if (newItems.Count > 0)    sb.AppendLine($"• 품목 {newItems.Count}개 반영");
+            sb.AppendLine($"• 품목 {parsed.LineItems.Count}개 반영");
+            if (newPrices > 0) sb.AppendLine($"• 신규 단가 {newPrices}개 등록");
             if (!string.IsNullOrEmpty(managerName))
                 sb.AppendLine($"• 담당자: {managerName}" + (string.IsNullOrEmpty(managerPhone) ? "" : $" ({managerPhone})"));
             MessageBox.Show(sb.ToString().Trim(), "완료");
