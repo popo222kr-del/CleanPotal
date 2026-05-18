@@ -139,6 +139,7 @@ namespace CleanPotal
             foreach (var q in saved) Quotations.Add(q);
 
             _productMaster = QuotationStore.LoadProductMaster();
+            MigrateSpecToPartCode(_productMaster);
             ProductMasterGrid.ItemsSource = _productMaster;
 
             RefreshVendorSuggestions();
@@ -923,6 +924,28 @@ namespace CleanPotal
                             : (!eIsSize && !string.IsNullOrEmpty(eVal)) ? eVal : "";
             string standardSpec = eIsSize ? eVal : "";
             return (partCode, standardSpec);
+        }
+
+        /// <summary>
+        /// 기존 ProductMaster 데이터 마이그레이션: Spec 값이 mm 형식이 아니면 PartCode로 이동.
+        /// </summary>
+        private void MigrateSpecToPartCode(ObservableCollection<ProductMasterItem> master)
+        {
+            bool changed = false;
+            foreach (var item in master)
+            {
+                if (string.IsNullOrEmpty(item.Spec)) continue;
+                bool specIsMm = Regex.IsMatch(item.Spec, @"^\d+(\.\d+)?\s*mm$", RegexOptions.IgnoreCase);
+                if (!specIsMm)
+                {
+                    // Spec이 mm 형식이 아니면 → PartCode로 이동 (PartCode가 비어있을 때만)
+                    if (string.IsNullOrEmpty(item.PartCode))
+                        item.PartCode = item.Spec;
+                    item.Spec = "";
+                    changed = true;
+                }
+            }
+            if (changed) QuotationStore.SaveProductMaster(master);
         }
 
         // DRM 컨테이너 감지: 표준 ZIP 매직(PK\x03\x04)이 아니면 DRM 파일로 판단.
