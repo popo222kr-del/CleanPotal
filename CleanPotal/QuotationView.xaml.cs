@@ -5,9 +5,12 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
 
 namespace CleanPotal
@@ -413,6 +416,194 @@ namespace CleanPotal
                 MessageBox.Show("사업자등록번호가 기본값으로 저장되었습니다.\n이후 새 견적서 생성 시 자동 입력됩니다.");
             }
             catch (Exception ex) { MessageBox.Show("설정 저장 오류: " + ex.Message); }
+        }
+
+        // ─── 엑셀 가져오기 ───
+
+        private void BtnImportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentQuotation == null) { MessageBox.Show("먼저 견적서를 선택하거나 새로 생성하세요."); return; }
+
+            var dlg = new OpenFileDialog
+            {
+                Title  = "세정 의뢰 양식 가져오기",
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                ImportFromExcel(dlg.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("가져오기 오류: " + ex.Message);
+            }
+        }
+
+        private void ImportFromExcel(string filePath)
+        {
+            using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
+            var wbPart = doc.WorkbookPart!;
+            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
+            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
+            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+
+            // 공유 문자열 테이블 구성
+            var sharedStrings = new List<string>();
+            if (wbPart.SharedStringTablePart != null)
+                foreach (SharedStringItem item in wbPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>())
+                    sharedStrings.Add(item.InnerText);
+
+            string GetVal(Cell? cell)
+            {
+                if (cell == null) return "";
+                if (cell.DataType?.Value == CellValues.SharedString &&
+                    int.TryParse(cell.InnerText, out int idx) && idx < sharedStrings.Count)
+                    return sharedStrings[idx];
+                if (cell.GetFirstChild<InlineString>() is InlineString istr)
+                    return istr.InnerText;
+                return cell.CellValue?.Text ?? "";
+            }
+
+            Cell? FindCell(Row row, string col)
+            {
+                string key = $"{col}{row.RowIndex?.Value}";
+                return row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == key);
+            }
+
+            var newItems  = new List<QuotationLineItem>();
+            string contactRaw = "";
+
+            foreach (Row row in sd.Elements<Row>())
+            {
+                string bVal = GetVal(FindCell(row, "B")).Trim();
+
+                // 품목 행: B열이 양의 정수
+                if (int.TryParse(bVal, out int no) && no > 0)
+                {
+                    string partName = GetVal(FindCell(row, "C")).Trim();
+                    string partCode = GetVal(FindCell(row, "D")).Trim();
+                    string size     = GetVal(FindCell(row, "E")).Trim();
+                    string qtyStr   = GetVal(FindCell(row, "F")).Trim();
+                    int.TryParse(qtyStr, out int qty);
+
+                    if (!string.IsNullOrEmpty(partName))
+                        newItems.Add(new QuotationLineItem
+                        {
+                            No           = no,
+                            Description  = partName,
+                            PartCode     = partCode,
+                            StandardSpec = size,
+                            Qty          = qty > 0 ? qty : 1,
+                            ListPrice    = 0
+                        });
+                }
+
+                // 반출 정보 셀 탐색 (담당자/연락처 포함 여부)
+                if (string.IsNullOrEmpty(contactRaw))
+                {
+                    foreach (Cell cell in row.Elements<Cell>())
+                    {
+                        string val = GetVal(cell);
+                        if (val.Contains("담당자") && val.Contains("연락처"))
+                        {
+                            contactRaw = val;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 품목 적용
+            if (newItems.Count > 0)
+            {
+                bool replace = CurrentQuotation.LineItems.Count == 0 ||
+                    MessageBox.Show(
+                        $"기존 품목 {CurrentQuotation.LineItems.Count}개를 삭제하고 가져온 {newItems.Count}개로 교체하시겠습니까?",
+                        "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+                if (!replace) return;
+
+                CurrentQuotation.LineItems.Clear();
+                foreach (var item in newItems)
+                    CurrentQuotation.LineItems.Add(item);
+            }
+
+            // 반출 정보: 담당자(연락처) 파싱
+            // 형식 예: "  2) 담당자 (연락처) : 홍길동 (010-1234-5678)\n..."
+            string managerName = "";
+            string managerPhone = "";
+
+            if (!string.IsNullOrEmpty(contactRaw))
+            {
+                // 담당자 (연락처) : 뒤 텍스트를 줄 단위로 추출
+                var lineMatch = Regex.Match(contactRaw,
+                    @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)",
+                    RegexOptions.IgnoreCase);
+                if (lineMatch.Success)
+                {
+                    string raw = lineMatch.Groups[1].Value.Trim();
+                    if (!string.IsNullOrEmpty(raw))
+                    {
+                        // "이름 (010-xxxx-xxxx)" 또는 "이름 010-xxxx-xxxx"
+                        var phoneMatch = Regex.Match(raw, @"^(.+?)\s*[\(（]?([\d][\d\-]{7,}[\d])[\)）]?\s*$");
+                        if (phoneMatch.Success)
+                        {
+                            managerName  = phoneMatch.Groups[1].Value.Trim();
+                            managerPhone = phoneMatch.Groups[2].Value.Trim();
+                        }
+                        else
+                        {
+                            managerName = raw;
+                        }
+                    }
+                }
+            }
+
+            // 고객사 정보 자동 반영
+            if (!string.IsNullOrEmpty(managerName))
+                CurrentQuotation.Attention = managerName;
+            if (!string.IsNullOrEmpty(managerPhone))
+                CurrentQuotation.Phone = managerPhone;
+
+            // 거래처 담당자 자동 등록
+            if (!string.IsNullOrEmpty(managerName) && _selectedVendor != null)
+            {
+                bool exists = _selectedVendor.Managers.Any(m =>
+                    string.Equals(m.ManagerName?.Trim(), managerName, StringComparison.OrdinalIgnoreCase));
+
+                if (!exists)
+                {
+                    var allVendors = VendorStore.Load();
+                    var target = allVendors.FirstOrDefault(v =>
+                        string.Equals(v.VendorName, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
+                    if (target != null)
+                    {
+                        target.Managers.Add(new ManagerModel
+                        {
+                            ManagerName   = managerName,
+                            ContactNumber = managerPhone
+                        });
+                        VendorStore.Save(allVendors);
+                        // 로컬 캐시도 갱신
+                        _selectedVendor.Managers.Add(new ManagerModel
+                        {
+                            ManagerName   = managerName,
+                            ContactNumber = managerPhone
+                        });
+                        _allVendors = VendorStore.Load().ToList();
+                        RefreshVendorSuggestions();
+                        RefreshAttentionSuggestions(_selectedVendor.VendorName);
+                    }
+                }
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("가져오기 완료");
+            if (newItems.Count > 0) sb.AppendLine($"• 품목 {newItems.Count}개 반영");
+            if (!string.IsNullOrEmpty(managerName))
+                sb.AppendLine($"• 담당자: {managerName}" + (string.IsNullOrEmpty(managerPhone) ? "" : $" ({managerPhone})"));
+            MessageBox.Show(sb.ToString().Trim(), "완료");
         }
 
         // ─── 품목 행 조작 ───

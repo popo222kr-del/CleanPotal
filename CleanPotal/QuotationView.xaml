@@ -426,8 +426,10 @@
                                 <TextBlock Text="견적 품목" FontSize="13" FontWeight="Bold"
                                            Foreground="#475569" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="📂 엑셀 가져오기" Style="{StaticResource MacSecondaryButtonStyle}"
+                                            Height="36" MinWidth="120" Click="BtnImportExcel_Click"/>
                                     <Button Content="단가에서 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                            Height="36" MinWidth="110" Click="BtnInsertFromMasterInline_Click"/>
+                                            Height="36" MinWidth="110" Margin="8,0,0,0" Click="BtnInsertFromMasterInline_Click"/>
                                     <Button Content="+ 행 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                             Height="36" MinWidth="90" Margin="8,0,0,0" Click="BtnAddLineItem_Click"/>
                                     <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
@@ -452,7 +454,7 @@
                                       CellStyle="{StaticResource GridCellStyle}">
                                 <DataGrid.Columns>
                                     <!-- No -->
-                                    <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="50">
+                                    <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
                                                 <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -461,8 +463,8 @@
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
 
-                                    <!-- 제품명/설명 -->
-                                    <DataGridTemplateColumn Header="제품명 / 설명" Width="2.5*">
+                                    <!-- Part's Name -->
+                                    <DataGridTemplateColumn Header="Part's Name" Width="2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"/>
@@ -476,8 +478,23 @@
                                         </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <!-- 규격/사양 -->
-                                    <DataGridTemplateColumn Header="규격 / 사양" Width="1.5*">
+                                    <!-- 품목코드 -->
+                                    <DataGridTemplateColumn Header="품목코드" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- 규격(SIZE) -->
+                                    <DataGridTemplateColumn Header="규격 (SIZE)" Width="1.2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
@@ -486,6 +503,21 @@
                                         <DataGridTemplateColumn.CellEditingTemplate>
                                             <DataTemplate>
                                                 <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <!-- Q'ty -->
+                                    <DataGridTemplateColumn Header="Q'ty" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellEditingTemplate>
@@ -503,21 +535,6 @@
                                             <DataTemplate>
                                                 <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
-                                    </DataGridTemplateColumn>
-
-                                    <!-- 수량 -->
-                                    <DataGridTemplateColumn Header="수량" Width="70">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>

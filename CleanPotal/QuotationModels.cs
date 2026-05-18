@@ -9,6 +9,7 @@ namespace CleanPotal
     {
         private int _no = 1;
         private string _description = "";
+        private string _partCode = "";
         private decimal _listPrice;
         private string _standardSpec = "";
         private int _qty = 1;
@@ -22,6 +23,11 @@ namespace CleanPotal
         {
             get => _description;
             set { _description = value; OnPropertyChanged(nameof(Description)); }
+        }
+        public string PartCode
+        {
+            get => _partCode;
+            set { _partCode = value; OnPropertyChanged(nameof(PartCode)); }
         }
         public decimal ListPrice
         {
