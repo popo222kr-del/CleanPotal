@@ -55,9 +55,10 @@ namespace CleanPotal
 
         // ─── 뷰 상태 ───
 
-        public bool IsNoneView => !HasSelectedVendor;
-        public bool IsListView => HasSelectedVendor && CurrentQuotation == null;
-        public bool IsEditing  => HasSelectedVendor && CurrentQuotation != null;
+        public bool IsNoneView    => !HasSelectedVendor;
+        public bool IsListView    => HasSelectedVendor && CurrentQuotation == null;
+        public bool IsEditing     => HasSelectedVendor && CurrentQuotation != null;
+        public bool IsNotEditing  => !IsEditing;
 
         public string ToolbarTitle
         {
@@ -104,6 +105,7 @@ namespace CleanPotal
                 OnPropertyChanged(nameof(IsNoneView));
                 OnPropertyChanged(nameof(IsListView));
                 OnPropertyChanged(nameof(IsEditing));
+                OnPropertyChanged(nameof(IsNotEditing));
                 OnPropertyChanged(nameof(ToolbarTitle));
                 UpdateTotals();
             }
@@ -392,9 +394,13 @@ namespace CleanPotal
         {
             try
             {
+                int newPrices = AutoRegisterNewPrices();
                 QuotationStore.SaveQuotations(Quotations);
                 RefreshVendorQuotations();
-                MessageBox.Show("저장되었습니다.");
+                string msg = newPrices > 0
+                    ? $"저장되었습니다.\n(신규 단가 {newPrices}개 단가 관리에 자동 등록)"
+                    : "저장되었습니다.";
+                MessageBox.Show(msg);
             }
             catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); }
         }
@@ -410,6 +416,210 @@ namespace CleanPotal
                 MessageBox.Show("사업자등록번호가 기본값으로 저장되었습니다.\n이후 새 견적서 생성 시 자동 입력됩니다.");
             }
             catch (Exception ex) { MessageBox.Show("설정 저장 오류: " + ex.Message); }
+        }
+
+        // ─── 드래그앤드롭 ───
+
+        private void LineItemsCard_DragEnter(object sender, DragEventArgs e)
+        {
+            if (CurrentQuotation != null && IsXlsxDrop(e))
+                ((Border)sender).BorderBrush = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(99, 102, 241));
+        }
+
+        private void LineItemsCard_DragLeave(object sender, DragEventArgs e)
+        {
+            ((Border)sender).ClearValue(Border.BorderBrushProperty);
+        }
+
+        private void LineItemsCard_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = (CurrentQuotation != null && IsXlsxDrop(e))
+                ? DragDropEffects.Copy
+                : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void LineItemsCard_Drop(object sender, DragEventArgs e)
+        {
+            ((Border)sender).ClearValue(Border.BorderBrushProperty);
+            if (CurrentQuotation == null || !IsXlsxDrop(e)) return;
+            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var xlsx  = files.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
+            if (xlsx == null) return;
+            try { ImportFromExcel(xlsx); }
+            catch (Exception ex) { MessageBox.Show("가져오기 오류: " + ex.Message); }
+        }
+
+        private static bool IsXlsxDrop(DragEventArgs e) =>
+            e.Data.GetDataPresent(DataFormats.FileDrop) &&
+            ((string[])e.Data.GetData(DataFormats.FileDrop))
+                .Any(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
+
+        // ─── 폴더 일괄 가져오기 ───
+
+        private void BtnImportFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "견적서 폴더 선택 (상위 폴더를 선택하세요)"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            Mouse.OverrideCursor = Cursors.Wait;
+            try
+            {
+                var (quotations, newPrices) = ImportFolderBatch(dlg.FolderName);
+                Mouse.OverrideCursor = null;
+                MessageBox.Show(
+                    $"일괄 가져오기 완료\n• 견적서: {quotations}건\n• 신규 단가 등록: {newPrices}개",
+                    "완료");
+            }
+            catch (Exception ex)
+            {
+                Mouse.OverrideCursor = null;
+                MessageBox.Show("가져오기 오류: " + ex.Message);
+            }
+        }
+
+        private (int quotations, int newPrices) ImportFolderBatch(string rootPath)
+        {
+            int totalQuotations = 0;
+            int totalNewPrices  = 0;
+
+            // 업체 서브폴더 + 루트 직속 xlsx 모두 처리
+            var scanTargets = new List<(string company, string folder)>();
+            foreach (var dir in Directory.GetDirectories(rootPath))
+                scanTargets.Add((Path.GetFileName(dir), dir));
+            // 루트에 직접 있는 파일은 폴더명을 회사명으로
+            if (!scanTargets.Any())
+                scanTargets.Add((Path.GetFileName(rootPath), rootPath));
+
+            bool masterChanged = false;
+
+            foreach (var (companyName, folderPath) in scanTargets)
+            {
+                foreach (var xlsxPath in Directory.GetFiles(folderPath, "*.xlsx"))
+                {
+                    try
+                    {
+                        var (q, newPrices) = ParseXlsxAsQuotation(xlsxPath, companyName);
+                        if (q == null) continue;
+
+                        Quotations.Insert(0, q);
+                        totalQuotations++;
+                        totalNewPrices += newPrices;
+                        if (newPrices > 0) masterChanged = true;
+                    }
+                    catch { /* 파싱 불가 파일은 건너뜀 */ }
+                }
+            }
+
+            if (masterChanged) QuotationStore.SaveProductMaster(_productMaster);
+            if (totalQuotations > 0)
+            {
+                QuotationStore.SaveQuotations(Quotations);
+                RefreshVendorQuotations();
+            }
+
+            return (totalQuotations, totalNewPrices);
+        }
+
+        /// <summary>xlsx 파일 하나를 QuotationModel로 변환. 견적서 출력 형식과 세정 의뢰 양식 모두 지원.</summary>
+        private (QuotationModel? q, int newPrices) ParseXlsxAsQuotation(string filePath, string companyName)
+        {
+            using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
+            var wbPart = doc.WorkbookPart!;
+            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
+            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
+            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+            var ss     = BuildSharedStrings(wbPart);
+            var cellMap = BuildCellMap(sd, ss);
+
+            string Get(string r) => cellMap.TryGetValue(r, out var v) ? v : "";
+
+            // 형식 감지: B6 에 "세정 의뢰" 포함 → 세정 의뢰 양식
+            bool isRequestForm = Get("B6").Contains("세정 의뢰", StringComparison.OrdinalIgnoreCase);
+
+            var items     = new List<QuotationLineItem>();
+            string company   = companyName;
+            string attention = "";
+            string phone     = "";
+            string date      = File.GetLastWriteTime(filePath).ToString("yyyy-MM-dd");
+
+            if (isRequestForm)
+            {
+                // ── 세정 의뢰 양식 파싱 (B=No, C=Name, D=Code, E=Size, F=Qty) ──
+                foreach (Row row in sd.Elements<Row>())
+                {
+                    uint ri    = row.RowIndex?.Value ?? 0;
+                    string bVal = Get($"B{ri}").Trim();
+
+                    if (int.TryParse(bVal, out int no) && no > 0)
+                    {
+                        string name = Get($"C{ri}").Trim();
+                        string code = Get($"D{ri}").Trim();
+                        string size = Get($"E{ri}").Trim();
+                        int.TryParse(Get($"F{ri}").Trim(), out int qty);
+                        if (!string.IsNullOrEmpty(name))
+                            items.Add(new QuotationLineItem
+                            {
+                                No = no, Description = name, PartCode = code,
+                                StandardSpec = size, Qty = qty > 0 ? qty : 1
+                            });
+                    }
+                    // 담당자 정보 셀 탐색
+                    if (string.IsNullOrEmpty(attention))
+                    {
+                        foreach (Cell cell in row.Elements<Cell>())
+                        {
+                            string val = XlsxCellText(cell, ss);
+                            if (val.Contains("담당자") && val.Contains("연락처"))
+                            {
+                                var lm = Regex.Match(val, @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)", RegexOptions.IgnoreCase);
+                                if (lm.Success) (attention, phone) = ParseManagerContact(lm.Groups[1].Value.Trim());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // ── 견적서 출력 형식 파싱 (우리 앱 템플릿: rows 22-44) ──
+                string fileCompany = Get("E14").Trim();
+                if (!string.IsNullOrEmpty(fileCompany)) company = fileCompany;
+                attention = Get("E13").Trim();
+                phone     = Get("E17").Trim();
+
+                string dateStr = Get("K14").Trim();
+                if (dateStr.StartsWith(": ")) dateStr = dateStr[2..].Trim();
+                if (!string.IsNullOrEmpty(dateStr)) date = dateStr;
+
+                for (uint r = 22; r <= 44; r++)
+                {
+                    string bVal = Get($"B{r}").Trim();
+                    if (string.IsNullOrEmpty(bVal)) continue;
+                    int.TryParse(Get($"A{r}").Trim(), out int no);
+                    decimal.TryParse(Get($"I{r}").Trim(), System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal price);
+                    int.TryParse(Get($"K{r}").Trim(), out int qty);
+                    items.Add(new QuotationLineItem
+                    {
+                        No = no, Description = bVal, StandardSpec = Get($"J{r}").Trim(),
+                        ListPrice = price, Qty = qty > 0 ? qty : 1
+                    });
+                }
+            }
+
+            if (items.Count == 0) return (null, 0);
+
+            // 자동 가격 적용 + 신규 단가 등록
+            int newPrices = ApplyAndRegisterPrices(items, save: false);
+
+            var q = new QuotationModel { Company = company, Attention = attention, Phone = phone, Date = date };
+            foreach (var item in items) q.LineItems.Add(item);
+            return (q, newPrices);
         }
 
         // ─── 담당자 드롭다운 선택 → 연락처 자동 연동 ───
@@ -447,81 +657,49 @@ namespace CleanPotal
         private void ImportFromExcel(string filePath)
         {
             using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
-            var wbPart = doc.WorkbookPart!;
-            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
-            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
-            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
-
-            // 공유 문자열 테이블 구성
-            var sharedStrings = new List<string>();
-            if (wbPart.SharedStringTablePart != null)
-                foreach (SharedStringItem item in wbPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>())
-                    sharedStrings.Add(item.InnerText);
-
-            string GetVal(Cell? cell)
-            {
-                if (cell == null) return "";
-                if (cell.DataType?.Value == CellValues.SharedString &&
-                    int.TryParse(cell.InnerText, out int idx) && idx < sharedStrings.Count)
-                    return sharedStrings[idx];
-                if (cell.GetFirstChild<InlineString>() is InlineString istr)
-                    return istr.InnerText;
-                return cell.CellValue?.Text ?? "";
-            }
-
-            Cell? FindCell(Row row, string col)
-            {
-                string key = $"{col}{row.RowIndex?.Value}";
-                return row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == key);
-            }
+            var wbPart  = doc.WorkbookPart!;
+            var sheet   = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
+            var wsPart  = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
+            var sd      = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+            var ss      = BuildSharedStrings(wbPart);
 
             var newItems  = new List<QuotationLineItem>();
             string contactRaw = "";
 
             foreach (Row row in sd.Elements<Row>())
             {
-                string bVal = GetVal(FindCell(row, "B")).Trim();
+                uint ri    = row.RowIndex?.Value ?? 0;
+                string bVal = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"B{ri}") is Cell bc
+                              ? XlsxCellText(bc, ss) : "").Trim();
 
-                // 품목 행: B열이 양의 정수
                 if (int.TryParse(bVal, out int no) && no > 0)
                 {
-                    string partName = GetVal(FindCell(row, "C")).Trim();
-                    string partCode = GetVal(FindCell(row, "D")).Trim();
-                    string size     = GetVal(FindCell(row, "E")).Trim();
-                    string qtyStr   = GetVal(FindCell(row, "F")).Trim();
-                    int.TryParse(qtyStr, out int qty);
+                    string name = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"C{ri}") is Cell cc ? XlsxCellText(cc, ss) : "").Trim();
+                    string code = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"D{ri}") is Cell dc ? XlsxCellText(dc, ss) : "").Trim();
+                    string size = (row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"E{ri}") is Cell ec ? XlsxCellText(ec, ss) : "").Trim();
+                    int.TryParse((row.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == $"F{ri}") is Cell fc ? XlsxCellText(fc, ss) : "").Trim(), out int qty);
 
-                    if (!string.IsNullOrEmpty(partName))
+                    if (!string.IsNullOrEmpty(name))
                         newItems.Add(new QuotationLineItem
                         {
-                            No           = no,
-                            Description  = partName,
-                            PartCode     = partCode,
-                            StandardSpec = size,
-                            Qty          = qty > 0 ? qty : 1,
-                            ListPrice    = 0
+                            No = no, Description = name, PartCode = code,
+                            StandardSpec = size, Qty = qty > 0 ? qty : 1
                         });
                 }
 
-                // 반출 정보 셀 탐색 (담당자/연락처 포함 여부)
                 if (string.IsNullOrEmpty(contactRaw))
                 {
                     foreach (Cell cell in row.Elements<Cell>())
                     {
-                        string val = GetVal(cell);
-                        if (val.Contains("담당자") && val.Contains("연락처"))
-                        {
-                            contactRaw = val;
-                            break;
-                        }
+                        string val = XlsxCellText(cell, ss);
+                        if (val.Contains("담당자") && val.Contains("연락처")) { contactRaw = val; break; }
                     }
                 }
             }
 
-            // 품목 적용
             if (newItems.Count > 0)
             {
-                bool replace = CurrentQuotation.LineItems.Count == 0 ||
+                bool replace = CurrentQuotation!.LineItems.Count == 0 ||
                     MessageBox.Show(
                         $"기존 품목 {CurrentQuotation.LineItems.Count}개를 삭제하고 가져온 {newItems.Count}개로 교체하시겠습니까?",
                         "확인", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
@@ -532,33 +710,25 @@ namespace CleanPotal
                     CurrentQuotation.LineItems.Add(item);
             }
 
-            // 반출 정보: 담당자(연락처) 파싱
-            string managerName = "";
-            string managerPhone = "";
+            // 단가 자동 적용 (ProductMaster 참조)
+            ApplyAndRegisterPrices(newItems, save: true);
 
+            // 반출 정보 파싱
+            string managerName = "", managerPhone = "";
             if (!string.IsNullOrEmpty(contactRaw))
             {
-                var lineMatch = Regex.Match(contactRaw,
-                    @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)",
-                    RegexOptions.IgnoreCase);
-                if (lineMatch.Success)
-                {
-                    (managerName, managerPhone) = ParseManagerContact(lineMatch.Groups[1].Value.Trim());
-                }
+                var lm = Regex.Match(contactRaw, @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)", RegexOptions.IgnoreCase);
+                if (lm.Success) (managerName, managerPhone) = ParseManagerContact(lm.Groups[1].Value.Trim());
             }
 
-            // 고객사 정보 자동 반영
-            if (!string.IsNullOrEmpty(managerName))
-                CurrentQuotation.Attention = managerName;
-            if (!string.IsNullOrEmpty(managerPhone))
-                CurrentQuotation.Phone = managerPhone;
+            if (!string.IsNullOrEmpty(managerName)) CurrentQuotation!.Attention = managerName;
+            if (!string.IsNullOrEmpty(managerPhone)) CurrentQuotation!.Phone     = managerPhone;
 
             // 거래처 담당자 자동 등록
             if (!string.IsNullOrEmpty(managerName) && _selectedVendor != null)
             {
                 bool exists = _selectedVendor.Managers.Any(m =>
                     string.Equals(m.ManagerName?.Trim(), managerName, StringComparison.OrdinalIgnoreCase));
-
                 if (!exists)
                 {
                     var allVendors = VendorStore.Load();
@@ -566,18 +736,9 @@ namespace CleanPotal
                         string.Equals(v.VendorName, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
                     if (target != null)
                     {
-                        target.Managers.Add(new ManagerModel
-                        {
-                            ManagerName   = managerName,
-                            ContactNumber = managerPhone
-                        });
+                        target.Managers.Add(new ManagerModel { ManagerName = managerName, ContactNumber = managerPhone });
                         VendorStore.Save(allVendors);
-                        // 로컬 캐시도 갱신
-                        _selectedVendor.Managers.Add(new ManagerModel
-                        {
-                            ManagerName   = managerName,
-                            ContactNumber = managerPhone
-                        });
+                        _selectedVendor.Managers.Add(new ManagerModel { ManagerName = managerName, ContactNumber = managerPhone });
                         _allVendors = VendorStore.Load().ToList();
                         RefreshVendorSuggestions();
                         RefreshAttentionSuggestions(_selectedVendor.VendorName);
@@ -585,12 +746,114 @@ namespace CleanPotal
                 }
             }
 
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("가져오기 완료");
-            if (newItems.Count > 0) sb.AppendLine($"• 품목 {newItems.Count}개 반영");
+            var sb = new System.Text.StringBuilder("가져오기 완료\n");
+            if (newItems.Count > 0)    sb.AppendLine($"• 품목 {newItems.Count}개 반영");
             if (!string.IsNullOrEmpty(managerName))
                 sb.AppendLine($"• 담당자: {managerName}" + (string.IsNullOrEmpty(managerPhone) ? "" : $" ({managerPhone})"));
             MessageBox.Show(sb.ToString().Trim(), "완료");
+        }
+
+        // ─── xlsx 공통 헬퍼 ───
+
+        private static List<string> BuildSharedStrings(WorkbookPart wbPart)
+        {
+            var list = new List<string>();
+            if (wbPart.SharedStringTablePart != null)
+                foreach (SharedStringItem item in wbPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>())
+                    list.Add(item.InnerText);
+            return list;
+        }
+
+        private static Dictionary<string, string> BuildCellMap(SheetData sd, List<string> ss)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Row row in sd.Elements<Row>())
+                foreach (Cell cell in row.Elements<Cell>())
+                    if (cell.CellReference?.Value is string r)
+                        map[r] = XlsxCellText(cell, ss);
+            return map;
+        }
+
+        private static string XlsxCellText(Cell cell, List<string> ss)
+        {
+            if (cell.DataType?.Value == CellValues.SharedString &&
+                int.TryParse(cell.InnerText, out int idx) && idx < ss.Count)
+                return ss[idx];
+            if (cell.GetFirstChild<InlineString>() is InlineString istr)
+                return istr.InnerText;
+            return cell.CellValue?.Text ?? "";
+        }
+
+        // ─── 단가 자동 적용 / 신규 등록 ───
+
+        /// <summary>품목 목록에 ProductMaster 가격 자동 적용 + 신규 품목 자동 등록. 등록 수 반환.</summary>
+        private int ApplyAndRegisterPrices(IList<QuotationLineItem> items, bool save)
+        {
+            int newCount = 0;
+            foreach (var item in items)
+            {
+                var master = FindMasterItem(item.Description, item.PartCode);
+                if (master != null)
+                {
+                    // 기존 단가 있으면 적용 (ListPrice가 0이거나 없을 때만)
+                    if (item.ListPrice == 0)
+                        item.ListPrice = master.UnitPrice;
+                }
+                else if (item.ListPrice > 0)
+                {
+                    // 신규 단가 등록 (1EA 기준)
+                    _productMaster.Add(new ProductMasterItem
+                    {
+                        ProductName = item.Description,
+                        PartCode    = item.PartCode,
+                        Spec        = item.StandardSpec,
+                        UnitPrice   = item.ListPrice,
+                        Unit        = "EA"
+                    });
+                    newCount++;
+                }
+            }
+            if (newCount > 0 && save) QuotationStore.SaveProductMaster(_productMaster);
+            return newCount;
+        }
+
+        /// <summary>현재 견적서 품목 중 ProductMaster에 없는 가격>0 항목을 자동 등록.</summary>
+        private int AutoRegisterNewPrices()
+        {
+            if (CurrentQuotation == null) return 0;
+            int count = 0;
+            foreach (var item in CurrentQuotation.LineItems.Where(i => i.ListPrice > 0 &&
+                (!string.IsNullOrEmpty(i.Description) || !string.IsNullOrEmpty(i.PartCode))))
+            {
+                if (FindMasterItem(item.Description, item.PartCode) == null)
+                {
+                    _productMaster.Add(new ProductMasterItem
+                    {
+                        ProductName = item.Description,
+                        PartCode    = item.PartCode,
+                        Spec        = item.StandardSpec,
+                        UnitPrice   = item.ListPrice,
+                        Unit        = "EA"
+                    });
+                    count++;
+                }
+            }
+            if (count > 0) QuotationStore.SaveProductMaster(_productMaster);
+            return count;
+        }
+
+        private ProductMasterItem? FindMasterItem(string description, string partCode)
+        {
+            if (!string.IsNullOrEmpty(partCode))
+            {
+                var byCode = _productMaster.FirstOrDefault(p =>
+                    string.Equals(p.PartCode, partCode, StringComparison.OrdinalIgnoreCase));
+                if (byCode != null) return byCode;
+            }
+            if (!string.IsNullOrEmpty(description))
+                return _productMaster.FirstOrDefault(p =>
+                    string.Equals(p.ProductName, description, StringComparison.OrdinalIgnoreCase));
+            return null;
         }
 
         // ─── 담당자/연락처 파싱 ───
@@ -683,6 +946,7 @@ namespace CleanPotal
             {
                 No           = CurrentQuotation.LineItems.Count + 1,
                 Description  = master.ProductName,
+                PartCode     = master.PartCode,
                 ListPrice    = master.UnitPrice,
                 StandardSpec = master.Spec,
                 Qty          = 1

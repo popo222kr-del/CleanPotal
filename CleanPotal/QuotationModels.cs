@@ -104,14 +104,16 @@ namespace CleanPotal
     public class ProductMasterItem : INotifyPropertyChanged
     {
         private string _productName = "";
+        private string _partCode = "";
         private string _spec = "";
         private decimal _unitPrice;
-        private string _unit = "EA";
 
         public string ProductName { get => _productName; set { _productName = value; OnPropertyChanged(nameof(ProductName)); } }
+        public string PartCode    { get => _partCode;    set { _partCode = value;    OnPropertyChanged(nameof(PartCode)); } }
         public string Spec        { get => _spec;        set { _spec = value;        OnPropertyChanged(nameof(Spec)); } }
         public decimal UnitPrice  { get => _unitPrice;   set { _unitPrice = value;   OnPropertyChanged(nameof(UnitPrice)); } }
-        public string Unit        { get => _unit;        set { _unit = value;        OnPropertyChanged(nameof(Unit)); } }
+        // 단위는 항상 EA (1EA 기준)
+        public string Unit { get; set; } = "EA";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
