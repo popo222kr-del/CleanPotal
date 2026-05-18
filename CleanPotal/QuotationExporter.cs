@@ -89,11 +89,11 @@ namespace CleanPotal
         private static void FillWorksheet(XL.Worksheet ws, QuotationModel q)
         {
             // ── 고객사 정보 (왼쪽) ──────────────────────────────────────────
-            // E열은 너무 좁으므로 E:I를 병합해 충분한 폭 확보
-            SetMergedText(ws, "E13", "I13", q.Attention);
-            SetMergedText(ws, "E14", "I14", q.Company);
-            SetMergedText(ws, "E16", "I16", q.Email);
-            SetMergedText(ws, "E17", "I17", q.Phone);
+            // Interop으로 열면 인접 셀이 진짜 빈 셀이므로 E열 텍스트가 overflow됨
+            SetText(ws, "E13", q.Attention);
+            SetText(ws, "E14", q.Company);
+            SetText(ws, "E16", q.Email);
+            SetText(ws, "E17", q.Phone);
 
             // ── 견적 정보 (오른쪽) ──────────────────────────────────────────
             // K14:M14, K16:M16 는 템플릿에서 이미 병합된 셀
@@ -149,16 +149,6 @@ namespace CleanPotal
         }
 
         // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
-
-        /// <summary>범위를 병합하고 텍스트를 기록 (좌측 값 셀처럼 폭이 좁은 경우 사용)</summary>
-        private static void SetMergedText(XL.Worksheet ws, string from, string to, string val)
-        {
-            var r = ws.Range[from, to];
-            r.Merge();
-            r.Value2 = val ?? "";
-            r.Font.ColorIndex = 1; // 검정
-            Marshal.ReleaseComObject(r);
-        }
 
         private static void SetText(XL.Worksheet ws, string addr, string val)
         {
