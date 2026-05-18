@@ -562,6 +562,7 @@ namespace CleanPotal
         /// <summary>xlsx 파일 하나를 QuotationModel로 변환. 견적서 출력 형식과 세정 의뢰 양식 모두 지원.</summary>
         private (QuotationModel? q, int newPrices) ParseXlsxAsQuotation(string filePath, string companyName)
         {
+            filePath = EnsurePlainXlsx(filePath);
             using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
             var wbPart = doc.WorkbookPart!;
             var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
@@ -691,6 +692,7 @@ namespace CleanPotal
 
         private void ImportFromExcel(string filePath)
         {
+            filePath = EnsurePlainXlsx(filePath);
             using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
             var wbPart  = doc.WorkbookPart!;
             var sheet   = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
@@ -921,6 +923,42 @@ namespace CleanPotal
                             : (!eIsSize && !string.IsNullOrEmpty(eVal)) ? eVal : "";
             string standardSpec = eIsSize ? eVal : "";
             return (partCode, standardSpec);
+        }
+
+        // DRM 컨테이너 감지: 표준 ZIP 매직(PK\x03\x04)이 아니면 DRM 파일로 판단.
+        // Excel COM Interop으로 열어 임시 plain xlsx로 저장 후 경로 반환.
+        private static string EnsurePlainXlsx(string filePath)
+        {
+            using var fs = File.OpenRead(filePath);
+            Span<byte> magic = stackalloc byte[4];
+            int read = fs.Read(magic);
+            bool isZip = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
+                                   && magic[2] == 0x03 && magic[3] == 0x04;
+            if (isZip) return filePath; // 정상 xlsx
+
+            // DRM 컨테이너 → Excel을 통해 복호화
+            string tempPath = Path.Combine(Path.GetTempPath(),
+                $"__drm_plain_{Guid.NewGuid():N}.xlsx");
+
+            Microsoft.Office.Interop.Excel.Application? app = null;
+            Microsoft.Office.Interop.Excel.Workbook?    wb  = null;
+            try
+            {
+                app = new Microsoft.Office.Interop.Excel.Application { Visible = false, DisplayAlerts = false };
+                wb  = app.Workbooks.Open(filePath,
+                    ReadOnly: true, Password: "", IgnoreReadOnlyRecommended: true);
+                wb.SaveAs(tempPath,
+                    FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook,
+                    ConflictResolution: Microsoft.Office.Interop.Excel.XlSaveConflictResolution.xlLocalSessionChanges);
+                return tempPath;
+            }
+            finally
+            {
+                try { wb?.Close(SaveChanges: false); } catch { }
+                try { app?.Quit(); } catch { }
+                if (wb  != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+                if (app != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+            }
         }
 
         // ─── 담당자/연락처 파싱 ───
