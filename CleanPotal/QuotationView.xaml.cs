@@ -213,9 +213,11 @@ namespace CleanPotal
             };
             if (dlg.ShowDialog() != true) return;
 
+            System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait;
             try
             {
                 QuotationExporter.ExportToExcel(CurrentQuotation, dlg.FileName);
+                System.Windows.Input.Mouse.OverrideCursor = null;
                 var result = MessageBox.Show(
                     "엑셀 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
                     "완료", MessageBoxButton.YesNo);
@@ -224,7 +226,10 @@ namespace CleanPotal
             }
             catch (Exception ex)
             {
-                MessageBox.Show("엑셀 내보내기 오류: " + ex.Message);
+                System.Windows.Input.Mouse.OverrideCursor = null;
+                MessageBox.Show(
+                    "엑셀 내보내기 오류: " + ex.Message + "\n\n" +
+                    "Microsoft Excel이 설치되어 있어야 합니다.");
             }
         }
 
@@ -241,9 +246,11 @@ namespace CleanPotal
             };
             if (dlg.ShowDialog() != true) return;
 
+            System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait;
             try
             {
                 QuotationExporter.ExportToPdf(CurrentQuotation, dlg.FileName);
+                System.Windows.Input.Mouse.OverrideCursor = null;
                 var result = MessageBox.Show(
                     "PDF 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
                     "완료", MessageBoxButton.YesNo);
@@ -252,10 +259,10 @@ namespace CleanPotal
             }
             catch (Exception ex)
             {
+                System.Windows.Input.Mouse.OverrideCursor = null;
                 MessageBox.Show(
                     "PDF 내보내기 오류: " + ex.Message + "\n\n" +
-                    "PDF 내보내기는 Microsoft Excel이 설치되어 있어야 합니다.\n" +
-                    "Excel이 없다면 엑셀 파일로 내보낸 후 PDF로 변환해 주세요.");
+                    "Microsoft Excel이 설치되어 있어야 합니다.");
             }
         }
 

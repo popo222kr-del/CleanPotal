@@ -2,103 +2,196 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using ClosedXML.Excel;
+using System.Runtime.InteropServices;
+using XL = Microsoft.Office.Interop.Excel;
 
 namespace CleanPotal
 {
+    /// <summary>
+    /// Office Interop으로 템플릿을 열어 값을 채운 뒤 xlsx / pdf로 저장.
+    /// 이미지·스타일·수식이 템플릿 그대로 보존된다.
+    /// </summary>
     public static class QuotationExporter
     {
         private const int ItemStartRow = 22;
         private const int ItemEndRow   = 44;
         private const int MaxItems     = ItemEndRow - ItemStartRow + 1; // 23
 
-        // ─── Excel 내보내기 ───────────────────────────────────────────────
+        // ─── 공개 API ─────────────────────────────────────────────────────
 
         public static void ExportToExcel(QuotationModel q, string savePath)
         {
-            using var templateStream = GetTemplateStream();
-            using var wb = new XLWorkbook(templateStream);
-            var ws = wb.Worksheets.First();
-
-            FillWorksheet(ws, q);
-            wb.SaveAs(savePath);
+            RunWithTemplate(q, xlsxPath: savePath, pdfPath: null);
         }
-
-        // ─── PDF 내보내기 (Excel Interop 이용, Office 설치 필요) ──────────
 
         public static void ExportToPdf(QuotationModel q, string pdfPath)
         {
-            string tempXlsx = Path.Combine(
-                Path.GetTempPath(),
-                $"qtemp_{Guid.NewGuid():N}.xlsx");
+            string tempXlsx = TempPath("qpdf", ".xlsx");
             try
             {
-                ExportToExcel(q, tempXlsx);
-                SaveAsPdfViaInterop(tempXlsx, pdfPath);
+                RunWithTemplate(q, xlsxPath: tempXlsx, pdfPath: pdfPath);
             }
             finally
             {
-                if (File.Exists(tempXlsx)) File.Delete(tempXlsx);
+                TryDelete(tempXlsx);
+            }
+        }
+
+        // ─── 핵심 로직 ────────────────────────────────────────────────────
+
+        private static void RunWithTemplate(QuotationModel q, string xlsxPath, string? pdfPath)
+        {
+            string tmpl = ExtractTemplate();
+            XL.Application? app = null;
+            XL.Workbook?    wb  = null;
+            try
+            {
+                app = new XL.Application { Visible = false, DisplayAlerts = false };
+
+                wb = app.Workbooks.Open(
+                    Filename:    tmpl,
+                    UpdateLinks: false,
+                    ReadOnly:    false);
+
+                var ws = (XL.Worksheet)wb.Worksheets[1];
+                FillWorksheet(ws, q);
+                Marshal.ReleaseComObject(ws);
+
+                // Excel 파일 저장
+                wb.SaveAs(
+                    Filename:   xlsxPath,
+                    FileFormat: XL.XlFileFormat.xlOpenXMLWorkbook);
+
+                // PDF도 요청된 경우
+                if (pdfPath != null)
+                {
+                    wb.ExportAsFixedFormat(
+                        Type:             XL.XlFixedFormatType.xlTypePDF,
+                        Filename:         pdfPath,
+                        Quality:          XL.XlFixedFormatQuality.xlQualityStandard,
+                        IncludeDocProperties: true,
+                        IgnorePrintAreas: false,
+                        OpenAfterPublish: false);
+                }
+            }
+            finally
+            {
+                try { wb?.Close(false); } catch { }
+                try { app?.Quit();      } catch { }
+                if (wb  != null) Marshal.FinalReleaseComObject(wb);
+                if (app != null) Marshal.FinalReleaseComObject(app);
+                TryDelete(tmpl);
             }
         }
 
         // ─── 데이터 채우기 ────────────────────────────────────────────────
 
-        private static void FillWorksheet(IXLWorksheet ws, QuotationModel q)
+        private static void FillWorksheet(XL.Worksheet ws, QuotationModel q)
         {
-            // 고객사 정보 (왼쪽)
-            ws.Cell("E13").Value = q.Attention;
-            ws.Cell("E14").Value = q.Company;
-            ws.Cell("E16").Value = q.Email;
-            ws.Cell("E17").Value = q.Phone;
+            // ── 고객사 정보 (왼쪽) ──────────────────────────────────────────
+            // E열은 너무 좁으므로 E:I를 병합해 충분한 폭 확보
+            SetMergedText(ws, "E13", "I13", q.Attention);
+            SetMergedText(ws, "E14", "I14", q.Company);
+            SetMergedText(ws, "E16", "I16", q.Email);
+            SetMergedText(ws, "E17", "I17", q.Phone);
 
-            // 견적 정보 (오른쪽)
-            // K14:M14 merged → master cell K14 에 직접 기록
-            ws.Cell("K14").Value = string.IsNullOrWhiteSpace(q.Date) ? ":" : $": {q.Date}";
-            // K16:M16 merged → master cell K16
-            ws.Cell("K16").Value = string.IsNullOrWhiteSpace(q.Validity) ? ":" : $": {q.Validity}";
-            // AETS 담당자 (이름 + 전화번호 조합)
-            string managerCell = q.AetsManager;
+            // ── 견적 정보 (오른쪽) ──────────────────────────────────────────
+            // K14:M14, K16:M16 는 템플릿에서 이미 병합된 셀
+            SetText(ws, "K14", string.IsNullOrWhiteSpace(q.Date)
+                ? ":" : $": {q.Date}");
+            SetText(ws, "K16", string.IsNullOrWhiteSpace(q.Validity)
+                ? ":" : $": {q.Validity}");
+
+            string manager = q.AetsManager;
             if (!string.IsNullOrWhiteSpace(q.AetsPhone))
-                managerCell += $"  {q.AetsPhone}";
-            ws.Cell("L17").Value = managerCell;
-            ws.Cell("L18").Value = q.BusinessNo;
+                manager += $"  {q.AetsPhone}";
+            SetText(ws, "L17", manager);
 
-            // 품목 (행 22~44)
+            // 사업자등록번호: 숫자로 해석되지 않도록 텍스트 서식 지정
+            var bizCell = ws.Range["L18"];
+            bizCell.NumberFormat = "@";
+            bizCell.Value2 = q.BusinessNo;
+            bizCell.Font.ColorIndex = 1;
+            Marshal.ReleaseComObject(bizCell);
+
+            // ── 품목 (행 22~44) ─────────────────────────────────────────────
             var items = q.LineItems.Take(MaxItems).ToList();
-            for (int row = ItemStartRow; row <= ItemEndRow; row++)
+            for (int i = 0; i < MaxItems; i++)
             {
-                int idx = row - ItemStartRow;
-                if (idx < items.Count)
+                int row = ItemStartRow + i;
+                if (i < items.Count)
                 {
-                    var item = items[idx];
-                    ws.Cell(row, 1).Value  = item.No;
-                    ws.Cell(row, 2).Value  = item.Description;   // B (B-H merged)
-                    ws.Cell(row, 9).Value  = item.ListPrice;      // I
-                    ws.Cell(row, 10).Value = item.StandardSpec;   // J
-                    ws.Cell(row, 11).Value = item.Qty;            // K
-                    ws.Cell(row, 12).Value = item.Amount;         // L
+                    var item = items[i];
+                    SetNum(ws, $"A{row}", item.No);
+                    SetText(ws, $"B{row}", item.Description);
+                    SetNum(ws, $"I{row}", (double)item.ListPrice);
+                    SetText(ws, $"J{row}", item.StandardSpec);
+                    SetNum(ws, $"K{row}", item.Qty);
+                    SetNum(ws, $"L{row}", (double)item.Amount);
                 }
                 else
                 {
-                    ws.Cell(row, 1).Value  = "";
-                    ws.Cell(row, 2).Value  = "";
-                    ws.Cell(row, 9).Value  = "";
-                    ws.Cell(row, 10).Value = "";
-                    ws.Cell(row, 11).Value = "";
-                    ws.Cell(row, 12).Value = "";
+                    Clear(ws, $"A{row}");
+                    Clear(ws, $"B{row}");
+                    Clear(ws, $"I{row}");
+                    Clear(ws, $"J{row}");
+                    Clear(ws, $"K{row}");
+                    Clear(ws, $"L{row}");
                 }
             }
 
-            // 합계 (수식을 값으로 교체)
-            ws.Cell("K45").Value = items.Sum(x => x.Qty);
-            ws.Cell("L45").Value = items.Sum(x => x.Amount);
+            // ── 합계 ────────────────────────────────────────────────────────
+            SetNum(ws, "K45", items.Sum(x => x.Qty));
+            SetNum(ws, "L45", (double)items.Sum(x => x.Amount));
 
-            // 비고
-            ws.Cell("C47").Value = q.Remarks;
+            // ── 비고 ────────────────────────────────────────────────────────
+            SetText(ws, "C47", q.Remarks);
         }
 
-        // ─── 템플릿 스트림 ────────────────────────────────────────────────
+        // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
+
+        /// <summary>범위를 병합하고 텍스트를 기록 (좌측 값 셀처럼 폭이 좁은 경우 사용)</summary>
+        private static void SetMergedText(XL.Worksheet ws, string from, string to, string val)
+        {
+            var r = ws.Range[from, to];
+            r.Merge();
+            r.Value2 = val ?? "";
+            r.Font.ColorIndex = 1; // 검정
+            Marshal.ReleaseComObject(r);
+        }
+
+        private static void SetText(XL.Worksheet ws, string addr, string val)
+        {
+            var r = ws.Range[addr];
+            r.Value2 = val ?? "";
+            r.Font.ColorIndex = 1;
+            Marshal.ReleaseComObject(r);
+        }
+
+        private static void SetNum(XL.Worksheet ws, string addr, object val)
+        {
+            var r = ws.Range[addr];
+            r.Value2 = val;
+            Marshal.ReleaseComObject(r);
+        }
+
+        private static void Clear(XL.Worksheet ws, string addr)
+        {
+            var r = ws.Range[addr];
+            r.ClearContents();
+            Marshal.ReleaseComObject(r);
+        }
+
+        // ─── 템플릿 추출 ─────────────────────────────────────────────────
+
+        private static string ExtractTemplate()
+        {
+            string path = TempPath("qtmpl", ".xlsx");
+            using var src = GetTemplateStream();
+            using var dst = File.Create(path);
+            src.CopyTo(dst);
+            return path;
+        }
 
         private static Stream GetTemplateStream()
         {
@@ -106,45 +199,18 @@ namespace CleanPotal
             const string name = "CleanPotal.Resources.quotation_template.xlsx";
             return asm.GetManifestResourceStream(name)
                 ?? throw new InvalidOperationException(
-                    "견적서 템플릿 리소스를 찾을 수 없습니다.\n" +
-                    "프로젝트 빌드 후 다시 시도하세요.");
+                    "견적서 템플릿 리소스를 찾을 수 없습니다.");
         }
 
-        // ─── Excel → PDF (Interop) ────────────────────────────────────────
+        // ─── 유틸 ────────────────────────────────────────────────────────
 
-        private static void SaveAsPdfViaInterop(string xlsxPath, string pdfPath)
+        private static string TempPath(string prefix, string ext) =>
+            Path.Combine(Path.GetTempPath(), $"{prefix}_{Guid.NewGuid():N}{ext}");
+
+        private static void TryDelete(string path)
         {
-            Microsoft.Office.Interop.Excel.Application? app = null;
-            Microsoft.Office.Interop.Excel.Workbook?    wb  = null;
-            try
-            {
-                app = new Microsoft.Office.Interop.Excel.Application();
-                app.Visible       = false;
-                app.DisplayAlerts = false;
-
-                wb = app.Workbooks.Open(
-                    xlsxPath,
-                    UpdateLinks: false,
-                    ReadOnly:    true);
-
-                wb.ExportAsFixedFormat(
-                    Type:             Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
-                    Filename:         pdfPath,
-                    Quality:          Microsoft.Office.Interop.Excel.XlFixedFormatQuality.xlQualityStandard,
-                    IncludeDocProperties: true,
-                    IgnorePrintAreas: false,
-                    OpenAfterPublish: false);
-            }
-            finally
-            {
-                try { wb?.Close(false); } catch { }
-                try { app?.Quit();      } catch { }
-                if (wb  != null) System.Runtime.InteropServices.Marshal.FinalReleaseComObject(wb);
-                if (app != null) System.Runtime.InteropServices.Marshal.FinalReleaseComObject(app);
-            }
+            try { if (File.Exists(path)) File.Delete(path); } catch { }
         }
-
-        // ─── 파일명 안전화 ────────────────────────────────────────────────
 
         public static string MakeSafeFileName(string name)
         {
