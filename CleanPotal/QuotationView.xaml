@@ -342,14 +342,34 @@
                                            Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
-                                <local:AutoCompleteBox Grid.Row="2" Grid.Column="1"
-                                    Text="{Binding Company, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    ItemsSource="{Binding VendorSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
+                                <TextBox Grid.Row="2" Grid.Column="1"
+                                         Text="{Binding Company, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource MacInputTextBoxStyle}"
+                                         Height="42" FontSize="14"
+                                         Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                <local:AutoCompleteBox Grid.Row="4" Grid.Column="1"
-                                    Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    ItemsSource="{Binding AttentionSuggestions, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"/>
+                                <ComboBox Grid.Row="4" Grid.Column="1"
+                                          IsEditable="True"
+                                          IsTextSearchEnabled="True"
+                                          TextSearch.TextPath="ManagerName"
+                                          Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          ItemsSource="{Binding CurrentVendorManagers, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"
+                                          SelectionChanged="AttentionComboBox_SelectionChanged"
+                                          Height="42" FontSize="14" Padding="10,0"
+                                          BorderBrush="#E2E8F0" BorderThickness="1"
+                                          VerticalContentAlignment="Center">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2,3">
+                                                <TextBlock Text="{Binding ManagerName}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"/>
+                                                <TextBlock Text=" · " FontSize="13" Foreground="#94A3B8"/>
+                                                <TextBlock Text="{Binding ContactNumber}" FontSize="13" Foreground="#64748B"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
 
                                 <TextBlock Grid.Row="6" Grid.Column="0" Text="E-Mail" Style="{StaticResource InlineLabelStyle}"/>
                                 <TextBox Grid.Row="6" Grid.Column="1"

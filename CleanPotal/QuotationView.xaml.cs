@@ -119,6 +119,7 @@ namespace CleanPotal
 
         public ObservableCollection<string> VendorSuggestions   { get; } = new();
         public ObservableCollection<string> AttentionSuggestions { get; } = new();
+        public ObservableCollection<ManagerModel> CurrentVendorManagers { get; } = new();
         private List<VendorModel> _cachedVendors = new();
 
         private ObservableCollection<ProductMasterItem> _productMaster = new();
@@ -176,13 +177,22 @@ namespace CleanPotal
         private void RefreshAttentionSuggestions(string vendorName)
         {
             AttentionSuggestions.Clear();
+            CurrentVendorManagers.Clear();
+
             var matched = _cachedVendors.FirstOrDefault(v =>
                 string.Equals(v.VendorName, vendorName, StringComparison.OrdinalIgnoreCase));
             var managers = matched != null
-                ? matched.Managers.Select(m => m.ManagerName).Where(n => !string.IsNullOrWhiteSpace(n)).ToList()
-                : _cachedVendors.SelectMany(v => v.Managers).Select(m => m.ManagerName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().ToList();
-            foreach (var name in managers)
-                AttentionSuggestions.Add(name);
+                ? matched.Managers.Where(m => !string.IsNullOrWhiteSpace(m.ManagerName)).ToList()
+                : _cachedVendors.SelectMany(v => v.Managers)
+                    .Where(m => !string.IsNullOrWhiteSpace(m.ManagerName))
+                    .GroupBy(m => m.ManagerName, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First()).ToList();
+
+            foreach (var mgr in managers)
+            {
+                AttentionSuggestions.Add(mgr.ManagerName);
+                CurrentVendorManagers.Add(mgr);
+            }
         }
 
         public void TryRefresh() { }
@@ -267,25 +277,9 @@ namespace CleanPotal
                 ? managerName
                 : $"{managerName} {jobTitle}";
 
-            // 선택된 업체 정보로 미리 채우기
-            string company   = _selectedVendor?.VendorName ?? "";
-            string attention = "";
-            string phone     = "";
-            if (_selectedVendor != null)
-            {
-                var firstManager = _selectedVendor.Managers.FirstOrDefault();
-                if (firstManager != null)
-                {
-                    attention = firstManager.ManagerName;
-                    phone     = firstManager.ContactNumber;
-                }
-            }
-
             var q = new QuotationModel
             {
-                Company     = company,
-                Attention   = attention,
-                Phone       = phone,
+                Company     = _selectedVendor?.VendorName ?? "",
                 AetsManager = aetsManager,
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
@@ -416,6 +410,15 @@ namespace CleanPotal
                 MessageBox.Show("사업자등록번호가 기본값으로 저장되었습니다.\n이후 새 견적서 생성 시 자동 입력됩니다.");
             }
             catch (Exception ex) { MessageBox.Show("설정 저장 오류: " + ex.Message); }
+        }
+
+        // ─── 담당자 드롭다운 선택 → 연락처 자동 연동 ───
+
+        private void AttentionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CurrentQuotation == null) return;
+            if (((ComboBox)sender).SelectedItem is ManagerModel mgr && !string.IsNullOrWhiteSpace(mgr.ContactNumber))
+                CurrentQuotation.Phone = mgr.ContactNumber;
         }
 
         // ─── 엑셀 가져오기 ───
