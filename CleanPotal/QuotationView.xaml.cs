@@ -662,14 +662,55 @@ namespace CleanPotal
             else
             {
                 // ── 견적서 출력 형식 파싱 ──
-                // 헤더 행("Product Description" 또는 "품명" 포함)을 찾아 컬럼 위치를 동적으로 결정
-                string fileCompany = Get("E14").Trim();
-                if (!string.IsNullOrEmpty(fileCompany)) company = fileCompany;
-                attention = Get("E13").Trim();
+                // 행 1~25 스캔: 레이블 셀(Attention/Company/Phone/Date)과
+                // 바로 오른쪽 값 셀(": xxx")을 좌→우 순서로 페어링
+                static string StripColon(string s) => s.TrimStart(':').Trim();
 
-                string dateStr = Get("K14").Trim();
-                if (dateStr.StartsWith(": ")) dateStr = dateStr[2..].Trim();
-                if (!string.IsNullOrEmpty(dateStr)) date = dateStr;
+                for (uint r = 1; r <= 25; r++)
+                {
+                    // 이 행의 A~N 열을 컬럼 순서대로 수집
+                    var rowCells = new SortedDictionary<int, string>();
+                    for (char c = 'A'; c <= 'N'; c++)
+                    {
+                        string v = Get($"{c}{r}").Trim();
+                        if (!string.IsNullOrEmpty(v)) rowCells[c - 'A'] = v;
+                    }
+
+                    string? curLabel = null;
+                    foreach (var (colIdx, val) in rowCells)
+                    {
+                        // 레이블 감지
+                        if (val.StartsWith("Attention", StringComparison.OrdinalIgnoreCase))
+                            curLabel = "Attention";
+                        else if (val.StartsWith("Company", StringComparison.OrdinalIgnoreCase))
+                            curLabel = "Company";
+                        else if (val.Equals("Phone", StringComparison.OrdinalIgnoreCase) ||
+                                 val.Equals("Tel", StringComparison.OrdinalIgnoreCase))
+                            curLabel = "Phone";
+                        else if (val.Equals("Date", StringComparison.OrdinalIgnoreCase))
+                            curLabel = "Date";
+                        // 값 셀 감지(": "로 시작)
+                        else if (curLabel != null && val.StartsWith(":"))
+                        {
+                            string extracted = StripColon(val);
+                            if (!string.IsNullOrEmpty(extracted))
+                            {
+                                switch (curLabel)
+                                {
+                                    case "Attention":
+                                        attention = CleanPersonName(extracted); break;
+                                    case "Company":
+                                        if (string.IsNullOrEmpty(company) || company == companyName)
+                                            company = extracted;
+                                        break;
+                                    case "Phone": phone = extracted; break;
+                                    case "Date":  date  = extracted; break;
+                                }
+                            }
+                            curLabel = null; // 다음 레이블로
+                        }
+                    }
+                }
 
                 // 기본값: 우리 앱 템플릿 레이아웃
                 string noCol = "A", descCol = "B", priceCol = "I", specCol = "J", qtyCol = "K";
@@ -986,6 +1027,15 @@ namespace CleanPotal
             if (last == 'A')
                 return col.Length > 1 ? ColPrev(col[..^1]) + "Z" : "A";
             return col[..^1] + (char)(last - 1);
+        }
+
+        // "손석원 님", "박주언 대리", "이재훈과장" 등에서 이름만 추출
+        private static string CleanPersonName(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            return Regex.Replace(raw.Trim(),
+                @"\s*(님|대리|과장|차장|부장|팀장|이사|상무|전무|사장|회장|프로|주임|사원|선임|책임|수석|본부장|센터장|실장|소장|원장|박사|기사|기술사)\s*$",
+                "", RegexOptions.IgnoreCase).Trim();
         }
 
         private static (string partCode, string standardSpec) ParseCodeAndSize(string dVal, string eVal)
