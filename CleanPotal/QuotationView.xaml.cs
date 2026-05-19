@@ -1069,41 +1069,18 @@ namespace CleanPotal
             if (changed) QuotationStore.SaveProductMaster(master);
         }
 
-        // DRM 컨테이너 감지: ZIP 매직 확인 + 실제 ZIP 열기 검증.
-        // Softcamp DRM 파일은 PK 매직으로 시작하지만 내부가 암호화되어 있어 ZIP으로 열리지 않음.
-        // 유효한 ZIP(=일반 xlsx)이면 그대로 반환, 아니면 Excel COM으로 복호화.
+        // DRM 감지: SpreadsheetDocument로 실제 열기 시도.
+        // 열리면 정상 xlsx → 원본 경로 반환. 실패하면 DRM → Excel COM으로 복호화 후 임시 경로 반환.
         private static string EnsurePlainXlsx(string filePath)
         {
-            // 파일 스트림을 먼저 닫고 magic byte 확인 후 ZIP 유효성 검사
-            bool isValidZip;
+            // 실제로 OpenXML로 열 수 있는지 확인 (가장 확실한 DRM 감지)
+            try
             {
-                using var fs = File.OpenRead(filePath);
-                Span<byte> magic = stackalloc byte[4];
-                int read = fs.Read(magic);
-                bool hasPkMagic = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
-                                             && magic[2] == 0x03 && magic[3] == 0x04;
-                if (!hasPkMagic)
-                {
-                    isValidZip = false;
-                }
-                else
-                {
-                    // PK 매직이 있어도 xlsx 필수 항목 [Content_Types].xml 이 있는지 확인.
-                    // Softcamp DRM 파일은 ZIP 구조는 유지하지만 항목명/내용이 암호화되어 이 항목이 없음.
-                    fs.Seek(0, SeekOrigin.Begin);
-                    try
-                    {
-                        using var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
-                        isValidZip = zip.Entries.Any(e =>
-                            e.FullName.Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase));
-                    }
-                    catch
-                    {
-                        isValidZip = false;
-                    }
-                }
+                using var test = SpreadsheetDocument.Open(filePath, isEditable: false);
+                // 정상 xlsx: 그대로 사용
+                return filePath;
             }
-            if (isValidZip) return filePath;
+            catch { /* DRM이거나 손상 → Excel COM으로 시도 */ }
 
             // DRM 파일 → Excel COM으로 읽어 새 워크북에 값 복사 후 저장
             string tempPath = Path.Combine(Path.GetTempPath(),
@@ -1131,6 +1108,7 @@ namespace CleanPotal
 
                 // 전략 1: 직접 SaveAs (DRM이 허용할 경우)
                 bool savedDirect = false;
+                string? saveAsError = null;
                 try
                 {
                     src.SaveAs(
@@ -1138,25 +1116,35 @@ namespace CleanPotal
                         FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
                     savedDirect = true;
                 }
-                catch { /* DRM이 SaveAs를 막는 경우 전략 2로 */ }
+                catch (Exception ex) { saveAsError = ex.Message; }
 
                 if (!savedDirect)
                 {
                     // 전략 2: 값만 복사해 새 워크북에 저장
-                    var srcWs = (Microsoft.Office.Interop.Excel.Worksheet)src.Sheets[1];
-                    var used  = srcWs.UsedRange;
-                    int rows  = used.Rows.Count;
-                    int cols  = used.Columns.Count;
+                    try
+                    {
+                        var srcWs = (Microsoft.Office.Interop.Excel.Worksheet)src.Sheets[1];
+                        var used  = srcWs.UsedRange;
+                        int rows  = used.Rows.Count;
+                        int cols  = used.Columns.Count;
 
-                    dst  = app.Workbooks.Add();
-                    var dstWs = (Microsoft.Office.Interop.Excel.Worksheet)dst.Sheets[1];
-                    dstWs.Range["A1"]
-                         .Resize[rows, cols]
-                         .Value2 = used.Value2;
+                        dst  = app.Workbooks.Add();
+                        var dstWs = (Microsoft.Office.Interop.Excel.Worksheet)dst.Sheets[1];
+                        dstWs.Range["A1"]
+                             .Resize[rows, cols]
+                             .Value2 = used.Value2;
 
-                    dst.SaveAs(
-                        Filename: tempPath,
-                        FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
+                        dst.SaveAs(
+                            Filename: tempPath,
+                            FileFormat: Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook);
+                    }
+                    catch (Exception ex2)
+                    {
+                        throw new InvalidOperationException(
+                            $"DRM 파일을 Excel COM으로 변환 실패.\n" +
+                            $"SaveAs 오류: {saveAsError}\n" +
+                            $"값복사 오류: {ex2.Message}", ex2);
+                    }
                 }
 
                 return tempPath;
