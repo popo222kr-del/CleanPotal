@@ -1069,20 +1069,39 @@ namespace CleanPotal
             if (changed) QuotationStore.SaveProductMaster(master);
         }
 
-        // DRM 컨테이너 감지: 표준 ZIP 매직(PK\x03\x04)이 아니면 DRM 파일로 판단.
-        // Excel COM으로 열어 값을 복사한 새 워크북을 임시 파일로 저장 후 경로 반환.
+        // DRM 컨테이너 감지: ZIP 매직 확인 + 실제 ZIP 열기 검증.
+        // Softcamp DRM 파일은 PK 매직으로 시작하지만 내부가 암호화되어 있어 ZIP으로 열리지 않음.
+        // 유효한 ZIP(=일반 xlsx)이면 그대로 반환, 아니면 Excel COM으로 복호화.
         private static string EnsurePlainXlsx(string filePath)
         {
-            // 파일 스트림을 먼저 닫고 magic byte만 확인
-            bool isZip;
+            // 파일 스트림을 먼저 닫고 magic byte 확인 후 ZIP 유효성 검사
+            bool isValidZip;
             {
                 using var fs = File.OpenRead(filePath);
                 Span<byte> magic = stackalloc byte[4];
                 int read = fs.Read(magic);
-                isZip = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
-                                   && magic[2] == 0x03 && magic[3] == 0x04;
+                bool hasPkMagic = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
+                                             && magic[2] == 0x03 && magic[3] == 0x04;
+                if (!hasPkMagic)
+                {
+                    isValidZip = false;
+                }
+                else
+                {
+                    // PK 매직이 있어도 실제 ZIP 구조인지 확인 (Softcamp DRM은 내부가 암호화됨)
+                    fs.Seek(0, SeekOrigin.Begin);
+                    try
+                    {
+                        using var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+                        isValidZip = zip.Entries.Count > 0;
+                    }
+                    catch
+                    {
+                        isValidZip = false;
+                    }
+                }
             }
-            if (isZip) return filePath;
+            if (isValidZip) return filePath;
 
             // DRM 파일 → Excel COM으로 읽어 새 워크북에 값 복사 후 저장
             string tempPath = Path.Combine(Path.GetTempPath(),
