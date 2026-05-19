@@ -1088,12 +1088,14 @@ namespace CleanPotal
                 }
                 else
                 {
-                    // PK 매직이 있어도 실제 ZIP 구조인지 확인 (Softcamp DRM은 내부가 암호화됨)
+                    // PK 매직이 있어도 xlsx 필수 항목 [Content_Types].xml 이 있는지 확인.
+                    // Softcamp DRM 파일은 ZIP 구조는 유지하지만 항목명/내용이 암호화되어 이 항목이 없음.
                     fs.Seek(0, SeekOrigin.Begin);
                     try
                     {
                         using var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
-                        isValidZip = zip.Entries.Count > 0;
+                        isValidZip = zip.Entries.Any(e =>
+                            e.FullName.Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase));
                     }
                     catch
                     {
@@ -1114,7 +1116,9 @@ namespace CleanPotal
             {
                 app = new Microsoft.Office.Interop.Excel.Application
                 {
-                    Visible = false,
+                    // DRM 소프트웨어는 사용자 세션에서 동작하는 Excel만 복호화 허용하는 경우가 있어
+                    // 숨기지 않고 실행. 처리 완료 후 app.Quit()으로 닫힘.
+                    Visible = true,
                     DisplayAlerts = false,
                     ScreenUpdating = false
                 };
@@ -1122,7 +1126,8 @@ namespace CleanPotal
                 src = app.Workbooks.Open(
                     Filename: filePath,
                     ReadOnly: true,
-                    IgnoreReadOnlyRecommended: true);
+                    IgnoreReadOnlyRecommended: true,
+                    UpdateLinks: false);
 
                 // 전략 1: 직접 SaveAs (DRM이 허용할 경우)
                 bool savedDirect = false;
