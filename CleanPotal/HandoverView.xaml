@@ -337,11 +337,11 @@
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#111827" TextWrapping="Wrap">
                                                             <Run Text="{Binding DateRangeStr, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
-                                                            <Run Text="  "/>
+                                                            <Run Text=" "/>
                                                             <Run Text="{Binding MemberName, Mode=OneWay}"/>
                                                             <Run Text=" · " Foreground="#9CA3AF"/>
                                                             <Run Text="{Binding TeamName, Mode=OneWay}" Foreground="#6B7280"/>
-                                                            <Run Text="   "/>
+                                                            <Run Text=" · " Foreground="#9CA3AF"/>
                                                             <Run Text="{Binding CourseName, Mode=OneWay}"/>
                                                             <Run Text=" (" Foreground="#9CA3AF" FontWeight="Normal"/>
                                                             <Run Text="{Binding EduMethod, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
