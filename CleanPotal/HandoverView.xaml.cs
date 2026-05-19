@@ -350,7 +350,7 @@ namespace CleanPotal
                     string endDow   = korCul.DateTimeFormat.GetAbbreviatedDayName(e.EndDate.DayOfWeek);
                     string dateRange = e.StartDate.Date == e.EndDate.Date
                         ? $"{e.StartDate:MM-dd} ({startDow})"
-                        : $"{e.StartDate:MM-dd} ({startDow}) ~ {e.EndDate:MM-dd} ({endDow})";
+                        : $"{e.StartDate:MM-dd} ~ {e.EndDate:dd} ({startDow},{endDow})";
 
                     var user = users.FirstOrDefault(u => u.RealName == e.MemberName);
                     UpcomingEduItems.Add(new UpcomingEduItem
@@ -380,12 +380,14 @@ namespace CleanPotal
             var today = DateTime.Today;
             try
             {
-                var events = DatabaseHelper.GetTeamEventsInRange(today.AddMonths(-1), today.AddYears(1));
+                var events = DatabaseHelper.GetTeamEventsInRange(today, today.AddYears(1));
                 var korCulture = new System.Globalization.CultureInfo("ko-KR");
                 foreach (var te in events.OrderBy(t => t.StartDate))
                 {
                     DateTime start = DateTime.Parse(te.StartDate);
                     DateTime end = DateTime.Parse(te.EndDate);
+                    // 종료일 기준 어제까지 완료된 일정은 표시 안 함
+                    if (end.Date < today) continue;
 
                     string startDow = korCulture.DateTimeFormat.GetAbbreviatedDayName(start.DayOfWeek);
                     string endDow   = korCulture.DateTimeFormat.GetAbbreviatedDayName(end.DayOfWeek);
