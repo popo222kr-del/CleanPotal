@@ -313,17 +313,17 @@ namespace CleanPotal
                 if (result == MessageBoxResult.Cancel) return;
                 if (result == MessageBoxResult.Yes)
                 {
+                    // Quotations에 아직 없으면 추가 후 저장
+                    if (!Quotations.Contains(CurrentQuotation))
+                        Quotations.Insert(0, CurrentQuotation);
                     try { AutoRegisterNewPrices(); QuotationStore.SaveQuotations(Quotations); }
                     catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); return; }
                 }
-                else
-                {
-                    // No: 미저장 새 견적서 제거
-                    Quotations.Remove(CurrentQuotation);
-                }
+                // No: 그냥 버림 — Quotations에 추가한 적 없으므로 별도 제거 불필요
             }
             _isNewUnsaved = false;
             CurrentQuotation = null;
+            RefreshVendorQuotations();
         }
 
         // ─── 새 견적서 ───
@@ -345,8 +345,7 @@ namespace CleanPotal
                 BusinessNo  = _config.BusinessNo,
                 Date        = DateTime.Today.ToString("yyyy-MM-dd")
             };
-            Quotations.Insert(0, q);
-            RefreshVendorQuotations();
+            // Quotations에 아직 추가하지 않음 — 저장 시에만 추가
             _isNewUnsaved = true;
             CurrentQuotation = q;
         }
@@ -451,8 +450,13 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (CurrentQuotation == null) return;
             try
             {
+                // 새 견적서면 저장 시 처음으로 Quotations에 추가
+                if (_isNewUnsaved && !Quotations.Contains(CurrentQuotation))
+                    Quotations.Insert(0, CurrentQuotation);
+
                 int newPrices = AutoRegisterNewPrices();
                 QuotationStore.SaveQuotations(Quotations);
                 _isNewUnsaved = false;
