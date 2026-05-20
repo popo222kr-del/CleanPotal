@@ -126,7 +126,42 @@ namespace CleanPotal
         private List<VendorModel> _cachedVendors = new();
 
         private ObservableCollection<ProductMasterItem> _productMaster = new();
+        private List<ProductMasterItem> _allProductMaster = new();
         private QuotationConfig _config = new();
+
+        // ─── 단가 관리 업체 필터 ───
+        private string _masterVendorFilter = "전체";
+        public string MasterVendorFilter
+        {
+            get => _masterVendorFilter;
+            set { _masterVendorFilter = value; OnPropertyChanged(nameof(MasterVendorFilter)); ApplyMasterFilter(); }
+        }
+        public ObservableCollection<string> MasterVendorOptions { get; } = new();
+
+        private void ApplyMasterFilter()
+        {
+            _productMaster.Clear();
+            var filtered = string.IsNullOrEmpty(_masterVendorFilter) || _masterVendorFilter == "전체"
+                ? _allProductMaster
+                : _allProductMaster.Where(x =>
+                    string.Equals(x.VendorName, _masterVendorFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            foreach (var item in filtered) _productMaster.Add(item);
+        }
+
+        private void RefreshMasterVendorOptions()
+        {
+            var current = MasterVendorFilter;
+            MasterVendorOptions.Clear();
+            MasterVendorOptions.Add("전체");
+            foreach (var v in _allProductMaster
+                .Select(x => x.VendorName).Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(v => v))
+                MasterVendorOptions.Add(v);
+            MasterVendorFilter = MasterVendorOptions.Contains(current) ? current : "전체";
+        }
+
+        // ─── 새 견적서 미저장 감지 ───
+        private bool _isNewUnsaved = false;
 
         public QuotationView()
         {
@@ -138,9 +173,12 @@ namespace CleanPotal
             var saved = QuotationStore.LoadQuotations();
             foreach (var q in saved) Quotations.Add(q);
 
-            _productMaster = QuotationStore.LoadProductMaster();
-            MigrateSpecToPartCode(_productMaster);
+            var loadedMaster = QuotationStore.LoadProductMaster();
+            MigrateSpecToPartCode(loadedMaster);
+            _allProductMaster = loadedMaster.ToList();
+            _productMaster = loadedMaster;
             ProductMasterGrid.ItemsSource = _productMaster;
+            RefreshMasterVendorOptions();
 
             RefreshVendorSuggestions();
 
@@ -267,6 +305,24 @@ namespace CleanPotal
 
         private void BtnBackToList_Click(object sender, RoutedEventArgs e)
         {
+            if (_isNewUnsaved && CurrentQuotation != null)
+            {
+                var result = MessageBox.Show(
+                    "저장하지 않은 새 견적서입니다. 저장하시겠습니까?",
+                    "저장 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Cancel) return;
+                if (result == MessageBoxResult.Yes)
+                {
+                    try { AutoRegisterNewPrices(); QuotationStore.SaveQuotations(Quotations); }
+                    catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); return; }
+                }
+                else
+                {
+                    // No: 미저장 새 견적서 제거
+                    Quotations.Remove(CurrentQuotation);
+                }
+            }
+            _isNewUnsaved = false;
             CurrentQuotation = null;
         }
 
@@ -291,6 +347,7 @@ namespace CleanPotal
             };
             Quotations.Insert(0, q);
             RefreshVendorQuotations();
+            _isNewUnsaved = true;
             CurrentQuotation = q;
         }
 
@@ -398,6 +455,7 @@ namespace CleanPotal
             {
                 int newPrices = AutoRegisterNewPrices();
                 QuotationStore.SaveQuotations(Quotations);
+                _isNewUnsaved = false;
                 RefreshVendorQuotations();
                 string msg = newPrices > 0
                     ? $"저장되었습니다.\n(신규 단가 {newPrices}개 단가 관리에 자동 등록)"
@@ -1248,11 +1306,18 @@ namespace CleanPotal
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
         {
+            // 모달 열기 전 전체 목록 복원 후 필터 옵션 갱신
+            _allProductMaster = _productMaster.ToList();
+            MasterVendorFilter = "전체";
+            RefreshMasterVendorOptions();
             ProductMasterOverlay.Visibility = Visibility.Visible;
         }
 
         private void BtnCloseProductMaster_Click(object sender, RoutedEventArgs e)
         {
+            // 필터 해제 후 전체 저장
+            _allProductMaster = _productMaster.ToList();
+            MasterVendorFilter = "전체";
             try { QuotationStore.SaveProductMaster(_productMaster); }
             catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); }
             ProductMasterOverlay.Visibility = Visibility.Collapsed;
@@ -1260,7 +1325,13 @@ namespace CleanPotal
 
         private void BtnAddMasterItem_Click(object sender, RoutedEventArgs e)
         {
-            _productMaster.Add(new ProductMasterItem());
+            var newItem = new ProductMasterItem
+            {
+                VendorName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter
+            };
+            _allProductMaster.Add(newItem);
+            _productMaster.Add(newItem);
+            RefreshMasterVendorOptions();
         }
 
         private void BtnDeleteMasterItem_Click(object sender, RoutedEventArgs e)

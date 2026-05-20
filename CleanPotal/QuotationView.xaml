@@ -650,10 +650,13 @@
                                        FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- 업체 필터 -->
+                            <ComboBox ItemsSource="{Binding MasterVendorOptions}"
+                                      SelectedItem="{Binding MasterVendorFilter, Mode=TwoWay}"
+                                      Height="38" MinWidth="120" Margin="0,0,8,0"
+                                      VerticalContentAlignment="Center" FontSize="13"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="38" MinWidth="110" Click="BtnAddMasterItem_Click"/>
-                            <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                    Height="38" MinWidth="100" Margin="8,0,0,0" Click="BtnDeleteMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
                                     Height="38" MinWidth="110" Margin="8,0,0,0" Click="BtnInsertFromMasterModal_Click"/>
                         </StackPanel>
