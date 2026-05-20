@@ -192,18 +192,32 @@ namespace CleanPotal
         private void FilterVendors()
         {
             FilteredVendors.Clear();
-            foreach (var v in _allVendors.Where(v =>
+            var filtered = _allVendors.Where(v =>
                 string.IsNullOrWhiteSpace(VendorSearch) ||
-                (v.VendorName?.Contains(VendorSearch, StringComparison.OrdinalIgnoreCase) == true)))
+                (v.VendorName?.Contains(VendorSearch, StringComparison.OrdinalIgnoreCase) == true));
+            // 즐겨찾기 우선, 같은 그룹 내에서는 이름순
+            foreach (var v in filtered.OrderByDescending(v => v.IsFavorite).ThenBy(v => v.VendorName))
                 FilteredVendors.Add(v);
+        }
+
+        private void BtnToggleFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not VendorModel vendor) return;
+            vendor.IsFavorite = !vendor.IsFavorite;
+            VendorStore.Save(_allVendors);
+            FilterVendors();
+            // 선택 유지
+            VendorListBox.SelectedItem = FilteredVendors.FirstOrDefault(v =>
+                v.VendorName == vendor.VendorName);
         }
 
         private void RefreshVendorQuotations()
         {
             VendorQuotations.Clear();
             if (_selectedVendor == null) return;
-            foreach (var q in Quotations.Where(q =>
-                string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase)))
+            foreach (var q in Quotations
+                .Where(q => string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(q => q.Date))
                 VendorQuotations.Add(q);
             OnPropertyChanged(nameof(ToolbarTitle));
         }

@@ -88,6 +88,9 @@ namespace CleanPotal
 
         public string Remarks { get => _remarks; set { _remarks = value; OnPropertyChanged(nameof(Remarks)); } }
 
+        private string _memo = "";
+        public string Memo { get => _memo; set { _memo = value; OnPropertyChanged(nameof(Memo)); } }
+
         public string SourceFileName { get; set; } = "";
 
         public ObservableCollection<QuotationLineItem> LineItems { get; set; } = new();

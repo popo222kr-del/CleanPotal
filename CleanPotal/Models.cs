@@ -28,6 +28,9 @@ namespace CleanPotal
         private bool _isWeekly = false;
         public bool IsWeekly { get => _isWeekly; set { _isWeekly = value; OnPropertyChanged(); } }
 
+        private bool _isFavorite = false;
+        public bool IsFavorite { get => _isFavorite; set { _isFavorite = value; OnPropertyChanged(); } }
+
         public ObservableCollection<AddressModel> Addresses { get; set; } = new();
         public ObservableCollection<ManagerModel> Managers { get; set; } = new();
 

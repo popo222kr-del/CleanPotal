@@ -146,11 +146,36 @@
                          SelectionChanged="VendorListBox_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding VendorName}" FontSize="14" FontWeight="Bold"
-                                           Foreground="#1E293B" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding VendorName}" FontSize="14" FontWeight="Bold"
+                                               Foreground="#1E293B" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <!-- 즐겨찾기 토글 버튼 -->
+                                <Button Grid.Column="1" Width="28" Height="28" Background="Transparent"
+                                        BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"
+                                        ToolTip="즐겨찾기" Click="BtnToggleFavorite_Click">
+                                    <TextBlock FontSize="15" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="☆"/>
+                                                <Setter Property="Foreground" Value="#CBD5E1"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                        <Setter Property="Text" Value="★"/>
+                                                        <Setter Property="Foreground" Value="#F59E0B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Button>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -279,7 +304,7 @@
                         </DataGridTextColumn>
 
                         <!-- 합계금액 -->
-                        <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0} ₩}" IsReadOnly="True" Width="160">
+                        <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0} ₩}" IsReadOnly="True" Width="150">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -290,17 +315,33 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
-                        <!-- 관리 -->
-                        <DataGridTemplateColumn Header="관리" Width="*" IsReadOnly="True">
+                        <!-- 비고 -->
+                        <DataGridTemplateColumn Header="비고" Width="*" IsReadOnly="False">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock Text="{Binding Memo}" Style="{StaticResource CellTextStyle}"
+                                               Foreground="#64748B" TextTrimming="CharacterEllipsis" Margin="8,0"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Memo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource CellEditStyle}" Margin="4,0"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- 관리 -->
+                        <DataGridTemplateColumn Header="관리" Width="Auto" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,0">
                                         <Button Content="편집" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="32" MinWidth="60"
+                                                Height="30" Padding="10,0"
                                                 DataContext="{Binding}"
                                                 Click="BtnEditQuotation_Click"/>
                                         <Button Content="삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                                Height="32" MinWidth="60" Margin="6,0,0,0"
+                                                Height="30" Padding="10,0" Margin="4,0,0,0"
                                                 DataContext="{Binding}"
                                                 Click="BtnDeleteQuotationInList_Click"/>
                                     </StackPanel>
