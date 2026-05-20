@@ -320,7 +320,8 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Memo}" Style="{StaticResource CellTextStyle}"
-                                               Foreground="#64748B" TextTrimming="CharacterEllipsis" Margin="8,0"/>
+                                               Foreground="#64748B" TextTrimming="CharacterEllipsis" Margin="8,0"
+                                               MouseLeftButtonDown="MemoCell_MouseLeftButtonDown"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate>
@@ -332,16 +333,16 @@
                         </DataGridTemplateColumn>
 
                         <!-- 관리 -->
-                        <DataGridTemplateColumn Header="관리" Width="Auto" IsReadOnly="True">
+                        <DataGridTemplateColumn Header="관리" Width="148" IsReadOnly="True">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,0">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
                                         <Button Content="편집" Style="{StaticResource MacSecondaryButtonStyle}"
-                                                Height="30" Padding="10,0"
+                                                Height="32" MinWidth="60"
                                                 DataContext="{Binding}"
                                                 Click="BtnEditQuotation_Click"/>
                                         <Button Content="삭제" Style="{StaticResource MacDangerButtonStyle}"
-                                                Height="30" Padding="10,0" Margin="4,0,0,0"
+                                                Height="32" MinWidth="60" Margin="6,0,0,0"
                                                 DataContext="{Binding}"
                                                 Click="BtnDeleteQuotationInList_Click"/>
                                     </StackPanel>

@@ -388,8 +388,28 @@ namespace CleanPotal
 
         private void QuotationListGrid_DoubleClick(object sender, MouseButtonEventArgs e)
         {
+            // 비고 셀 위에서 더블클릭하면 편집 모드 진입(셀 편집) — 견적 편집으로 이동하지 않음
+            if (e.OriginalSource is FrameworkElement src &&
+                src.FindAncestorOfType<DataGridCell>() is DataGridCell cell &&
+                cell.Column?.Header?.ToString() == "비고")
+                return;
+
             if (VendorQuotationsGrid.SelectedItem is QuotationModel q)
                 CurrentQuotation = q;
+        }
+
+        private void MemoCell_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 비고 셀 단순 클릭이 DataGrid 행 더블클릭으로 버블링되지 않도록 차단
+            e.Handled = true;
+            // 해당 셀을 편집 모드로 직접 진입
+            if (sender is FrameworkElement fe &&
+                fe.FindAncestorOfType<DataGridCell>() is DataGridCell cell)
+            {
+                cell.IsSelected = true;
+                VendorQuotationsGrid.CurrentCell = new DataGridCellInfo(cell.DataContext, cell.Column);
+                VendorQuotationsGrid.BeginEdit();
+            }
         }
 
         // ─── 내보내기 ───
@@ -1388,5 +1408,19 @@ namespace CleanPotal
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    internal static class VisualTreeExtensions
+    {
+        public static T? FindAncestorOfType<T>(this DependencyObject obj) where T : DependencyObject
+        {
+            var current = System.Windows.Media.VisualTreeHelper.GetParent(obj);
+            while (current != null)
+            {
+                if (current is T typed) return typed;
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
     }
 }
