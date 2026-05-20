@@ -304,7 +304,7 @@
                         </DataGridTextColumn>
 
                         <!-- 합계금액 -->
-                        <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0} ₩}" IsReadOnly="True" Width="150">
+                        <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0}}" IsReadOnly="True" Width="150">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -321,7 +321,8 @@
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Memo}" Style="{StaticResource CellTextStyle}"
                                                Foreground="#64748B" TextTrimming="CharacterEllipsis" Margin="8,0"
-                                               MouseLeftButtonDown="MemoCell_MouseLeftButtonDown"/>
+                                               MouseLeftButtonDown="MemoCell_MouseLeftButtonDown"
+                                               MouseLeftButtonUp="MemoCell_MouseLeftButtonUp"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate>
@@ -642,7 +643,7 @@
                                         <TextBlock Text="{Binding TotalQty, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"
                                                    FontSize="14" Foreground="#1D4ED8" FontWeight="Bold" Margin="0,0,32,0"/>
                                         <TextBlock Text="금액  " FontSize="13" Foreground="#3B82F6" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding TotalAmount, RelativeSource={RelativeSource AncestorType=local:QuotationView}, StringFormat={}{0:N0} ₩}"
+                                        <TextBlock Text="{Binding TotalAmount, RelativeSource={RelativeSource AncestorType=local:QuotationView}, StringFormat={}{0:N0}}"
                                                    FontSize="15" Foreground="#1D4ED8" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Grid>

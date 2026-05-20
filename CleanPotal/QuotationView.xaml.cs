@@ -400,14 +400,23 @@ namespace CleanPotal
 
         private void MemoCell_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 비고 셀 단순 클릭이 DataGrid 행 더블클릭으로 버블링되지 않도록 차단
+            // 비고 셀 클릭이 DataGrid 행 더블클릭으로 버블링되지 않도록 차단
             e.Handled = true;
-            // 해당 셀을 편집 모드로 직접 진입
+        }
+
+        private void MemoCell_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 마우스 업 시점에 편집 모드 진입 (SelectionUnit=FullRow 환경에서 CurrentCell 직접 조작 불가)
+            e.Handled = true;
             if (sender is FrameworkElement fe &&
                 fe.FindAncestorOfType<DataGridCell>() is DataGridCell cell)
             {
-                cell.IsSelected = true;
-                VendorQuotationsGrid.CurrentCell = new DataGridCellInfo(cell.DataContext, cell.Column);
+                var row = fe.FindAncestorOfType<DataGridRow>();
+                if (row != null)
+                {
+                    VendorQuotationsGrid.SelectedItem = row.Item;
+                    VendorQuotationsGrid.ScrollIntoView(row.Item, cell.Column);
+                }
                 VendorQuotationsGrid.BeginEdit();
             }
         }
