@@ -500,9 +500,13 @@ namespace CleanPotal
                     var (q, newPrices) = ParseXlsxAsQuotation(xlsxPath, companyName);
                     if (q == null) continue;
 
+                    // 배치 가져오기: 폴더명을 회사명으로 고정 (파일 내 Company 값이 달라도 무시)
+                    // → RefreshVendorQuotations 필터(q.Company == vendor.VendorName)와 일치하도록
+                    q.Company = companyName;
+
                     // 같은 업체 + 같은 날짜가 이미 있으면 빈 필드만 채우고 skip
                     var existing = Quotations.FirstOrDefault(x =>
-                        string.Equals(x.Company, q.Company, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(x.Company, companyName, StringComparison.OrdinalIgnoreCase) &&
                         x.Date == q.Date);
                     if (existing != null)
                     {
@@ -765,9 +769,11 @@ namespace CleanPotal
                                 fval.IndexOf("list", StringComparison.OrdinalIgnoreCase) >= 0)
                                 priceCol = fcol;
                             else if (fval.Equals("Q'ty", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.Equals("Q\"ty", StringComparison.OrdinalIgnoreCase) ||
                                      fval.Equals("Qty", StringComparison.OrdinalIgnoreCase) ||
                                      fval.Equals("수량", StringComparison.OrdinalIgnoreCase) ||
-                                     fval.Equals("Q'TY", StringComparison.OrdinalIgnoreCase))
+                                     fval.StartsWith("Q'", StringComparison.OrdinalIgnoreCase) ||
+                                     fval.StartsWith("Q\"", StringComparison.OrdinalIgnoreCase))
                                 qtyCol = fcol;
                             else if (fval.Equals("규격", StringComparison.OrdinalIgnoreCase) ||
                                      fval.Equals("SIZE", StringComparison.OrdinalIgnoreCase) ||
