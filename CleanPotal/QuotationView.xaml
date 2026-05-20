@@ -269,6 +269,15 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
 
+                        <!-- 총 수량 -->
+                        <DataGridTextColumn Header="총 수량" Binding="{Binding TotalQty}" IsReadOnly="True" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
                         <!-- 합계금액 -->
                         <DataGridTextColumn Header="합계금액" Binding="{Binding TotalAmount, StringFormat={}{0:#,##0} ₩}" IsReadOnly="True" Width="160">
                             <DataGridTextColumn.ElementStyle>

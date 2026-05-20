@@ -500,8 +500,24 @@ namespace CleanPotal
                     var (q, newPrices) = ParseXlsxAsQuotation(xlsxPath, companyName);
                     if (q == null) continue;
 
-                    Quotations.Add(q);
-                    totalQuotations++;
+                    // 같은 업체 + 같은 날짜가 이미 있으면 빈 필드만 채우고 skip
+                    var existing = Quotations.FirstOrDefault(x =>
+                        string.Equals(x.Company, q.Company, StringComparison.OrdinalIgnoreCase) &&
+                        x.Date == q.Date);
+                    if (existing != null)
+                    {
+                        if (string.IsNullOrEmpty(existing.Attention) && !string.IsNullOrEmpty(q.Attention))
+                            existing.Attention = q.Attention;
+                        if (string.IsNullOrEmpty(existing.Phone) && !string.IsNullOrEmpty(q.Phone))
+                            existing.Phone = q.Phone;
+                        if (existing.LineItems.Count == 0 && q.LineItems.Count > 0)
+                            foreach (var li in q.LineItems) existing.LineItems.Add(li);
+                    }
+                    else
+                    {
+                        Quotations.Add(q);
+                        totalQuotations++;
+                    }
                     totalNewPrices += newPrices;
                     if (newPrices > 0) masterChanged = true;
                 }
@@ -794,7 +810,14 @@ namespace CleanPotal
             // 자동 가격 적용 + 신규 단가 등록
             int newPrices = ApplyAndRegisterPrices(items, save: false, vendorName: companyName);
 
-            var q = new QuotationModel { Company = company, Attention = attention, Phone = phone, Date = date };
+            var q = new QuotationModel
+            {
+                Company        = company,
+                Attention      = attention,
+                Phone          = phone,
+                Date           = date,
+                SourceFileName = Path.GetFileName(filePath)
+            };
             foreach (var item in items) q.LineItems.Add(item);
             return (q, newPrices);
         }
@@ -1038,9 +1061,19 @@ namespace CleanPotal
                 "", RegexOptions.IgnoreCase).Trim();
         }
 
+        // 규격으로 인정되는 패턴:
+        //   300mm, 1.5mm               → NNN mm
+        //   300x300, 300x300x50        → NxN, NxNxN (구분자 x X ×)
+        private static readonly Regex _sizeRegex = new(
+            @"^(\d+(\.\d+)?\s*mm|\d+(\.\d+)?(\s*[xX×]\s*\d+(\.\d+)?)+)$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static bool IsSpecValue(string v) =>
+            !string.IsNullOrEmpty(v) && _sizeRegex.IsMatch(v.Trim());
+
         private static (string partCode, string standardSpec) ParseCodeAndSize(string dVal, string eVal)
         {
-            bool eIsSize = Regex.IsMatch(eVal, @"^\d+(\.\d+)?\s*mm$", RegexOptions.IgnoreCase);
+            bool eIsSize = IsSpecValue(eVal);
             string partCode = !string.IsNullOrEmpty(dVal) ? dVal
                             : (!eIsSize && !string.IsNullOrEmpty(eVal)) ? eVal : "";
             string standardSpec = eIsSize ? eVal : "";
@@ -1048,7 +1081,7 @@ namespace CleanPotal
         }
 
         /// <summary>
-        /// 기존 ProductMaster 데이터 마이그레이션: Spec 값이 mm 형식이 아니면 PartCode로 이동.
+        /// 기존 ProductMaster 데이터 마이그레이션: 규격 패턴이 아닌 Spec 값은 PartCode로 이동.
         /// </summary>
         private void MigrateSpecToPartCode(ObservableCollection<ProductMasterItem> master)
         {
@@ -1056,10 +1089,8 @@ namespace CleanPotal
             foreach (var item in master)
             {
                 if (string.IsNullOrEmpty(item.Spec)) continue;
-                bool specIsMm = Regex.IsMatch(item.Spec, @"^\d+(\.\d+)?\s*mm$", RegexOptions.IgnoreCase);
-                if (!specIsMm)
+                if (!IsSpecValue(item.Spec))
                 {
-                    // Spec이 mm 형식이 아니면 → PartCode로 이동 (PartCode가 비어있을 때만)
                     if (string.IsNullOrEmpty(item.PartCode))
                         item.PartCode = item.Spec;
                     item.Spec = "";

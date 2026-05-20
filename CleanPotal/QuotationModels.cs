@@ -88,10 +88,15 @@ namespace CleanPotal
 
         public string Remarks { get => _remarks; set { _remarks = value; OnPropertyChanged(nameof(Remarks)); } }
 
+        public string SourceFileName { get; set; } = "";
+
         public ObservableCollection<QuotationLineItem> LineItems { get; set; } = new();
 
         [JsonIgnore]
         public decimal TotalAmount => LineItems.Sum(x => x.Amount);
+
+        [JsonIgnore]
+        public int TotalQty => LineItems.Sum(x => x.Qty);
 
         [JsonIgnore]
         public string DisplayTitle => !string.IsNullOrWhiteSpace(Company) ? Company : "(새 견적서)";
