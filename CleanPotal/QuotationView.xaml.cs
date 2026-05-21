@@ -1410,6 +1410,32 @@ namespace CleanPotal
                 ProductMasterGrid.ScrollIntoView(_productMaster[^1]);
         }
 
+        private void BtnRebuildProductMaster_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show(
+                    "저장된 모든 견적서에서 단가를 재구성합니다.\n기존 단가 목록에 누락된 항목이 추가됩니다. 계속하시겠습니까?",
+                    "단가 재구성", MessageBoxButton.YesNo, MessageBoxImage.Question)
+                != MessageBoxResult.Yes) return;
+
+            int added = 0;
+            foreach (var q in Quotations)
+            {
+                string vendor = q.Company ?? "";
+                added += ApplyAndRegisterPrices(q.LineItems, save: false, vendorName: vendor);
+            }
+
+            if (added > 0)
+            {
+                QuotationStore.SaveProductMaster(_allProductMaster);
+                _isMasterDirty = false;
+                RefreshMasterVendorOptions();
+                ApplyMasterFilter();
+            }
+
+            MessageBox.Show($"재구성 완료: {added}개 항목이 추가되었습니다.", "단가 재구성",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void BtnSaveProductMaster_Click(object sender, RoutedEventArgs e)
         {
             // 필터 상태와 무관하게 전체(_allProductMaster) 저장

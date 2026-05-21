@@ -722,12 +722,15 @@
                             <TextBlock Text="제품 단가를 등록하면 견적서 작성 시 빠르게 추가할 수 있습니다."
                                        FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <!-- 관리자(1004)만 삭제 가능 -->
                             <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
                                     Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Click="BtnDeleteMasterItem_Click"/>
+                            <Button Content="견적서에서 재구성" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="36" MinWidth="120" Margin="0,0,8,0"
+                                    Click="BtnRebuildProductMaster_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
