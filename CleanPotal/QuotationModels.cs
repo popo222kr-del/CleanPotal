@@ -72,6 +72,7 @@ namespace CleanPotal
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        public string QuoteNo { get; set; } = "";
 
         // 고객사 정보
         public string Attention { get => _attention; set { _attention = value; OnPropertyChanged(nameof(Attention)); } }

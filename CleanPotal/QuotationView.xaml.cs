@@ -342,6 +342,22 @@ namespace CleanPotal
 
         // ─── 새 견적서 ───
 
+        /// <summary>당일 견적번호 생성: AETS{YYMMDD}-{NN} (전체 업체 통합 일련번호)</summary>
+        private string GenerateQuoteNo()
+        {
+            string prefix = "AETS" + DateTime.Today.ToString("yyMMdd");
+            int maxSeq = Quotations
+                .Where(q => q.QuoteNo.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                .Select(q =>
+                {
+                    var parts = q.QuoteNo.Split('-');
+                    return parts.Length >= 2 && int.TryParse(parts[^1], out int n) ? n : 0;
+                })
+                .DefaultIfEmpty(0)
+                .Max();
+            return $"{prefix}-{(maxSeq + 1):D2}";
+        }
+
         private void BtnNewQuotation_Click(object sender, RoutedEventArgs e)
         {
             // AETS 담당자: 이름 + 직위 조합
@@ -357,7 +373,8 @@ namespace CleanPotal
                 AetsManager = aetsManager,
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
-                Date        = DateTime.Today.ToString("yyyy-MM-dd")
+                Date        = DateTime.Today.ToString("yyyy-MM-dd"),
+                QuoteNo     = GenerateQuoteNo()
             };
             // Quotations에 아직 추가하지 않음 — 저장 시에만 추가
             _isNewUnsaved = true;

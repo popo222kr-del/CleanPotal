@@ -267,6 +267,16 @@
                           Margin="28,12,28,28"
                           MouseDoubleClick="QuotationListGrid_DoubleClick">
                     <DataGrid.Columns>
+                        <!-- 견적번호 -->
+                        <DataGridTextColumn Header="견적번호" Binding="{Binding QuoteNo}" IsReadOnly="True" Width="150">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="Consolas, Courier New"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
                         <!-- 견적일 -->
                         <DataGridTextColumn Header="견적일" Binding="{Binding Date}" IsReadOnly="True" Width="110">
                             <DataGridTextColumn.ElementStyle>
@@ -397,16 +407,22 @@
                                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
                                            Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
+                                <!-- 견적번호 (회사명 위) -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="견적번호" Style="{StaticResource InlineLabelStyle}"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
+                                         Text="{Binding QuoteNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         FontFamily="Consolas, Courier New" FontSize="13" FontWeight="SemiBold"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1"
                                          Text="{Binding Company, Mode=OneWay}"
                                          IsReadOnly="True"
                                          Style="{StaticResource MacInputTextBoxStyle}"
                                          Height="42" FontSize="14"
                                          Background="#F1F5F9" Foreground="#64748B"/>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                <ComboBox Grid.Row="4" Grid.Column="1"
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
+                                <ComboBox Grid.Row="6" Grid.Column="1"
                                           IsEditable="True"
                                           IsTextSearchEnabled="True"
                                           TextSearch.TextPath="ManagerName"
@@ -426,10 +442,6 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="E-Mail" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="6" Grid.Column="1"
-                                         Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone" Style="{StaticResource InlineLabelStyle}"/>
                                 <TextBox Grid.Row="8" Grid.Column="1"
