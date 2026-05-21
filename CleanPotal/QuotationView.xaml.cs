@@ -475,7 +475,7 @@ namespace CleanPotal
                 Title    = "엑셀 파일로 저장",
                 Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
                 FileName = QuotationExporter.MakeSafeFileName(
-                    $"FIRM_QUOTATION_{CurrentQuotation.Company}_{CurrentQuotation.Date}.xlsx")
+                    $"{CurrentQuotation.QuoteNo}_{CurrentQuotation.Company}({CurrentQuotation.Attention})_{FormatDateShort(CurrentQuotation.Date)}.xlsx")
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -508,7 +508,7 @@ namespace CleanPotal
                 Title    = "PDF 파일로 저장",
                 Filter   = "PDF 파일 (*.pdf)|*.pdf",
                 FileName = QuotationExporter.MakeSafeFileName(
-                    $"FIRM_QUOTATION_{CurrentQuotation.Company}_{CurrentQuotation.Date}.pdf")
+                    $"{CurrentQuotation.QuoteNo}_{CurrentQuotation.Company}({CurrentQuotation.Attention})_{FormatDateShort(CurrentQuotation.Date)}.pdf")
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -1530,6 +1530,12 @@ namespace CleanPotal
                 Qty          = 1
             });
         }
+
+        // ─── 파일명 헬퍼 ───
+
+        /// <summary>"yyyy-MM-dd" → "YYMMDD" (예: "2026-05-21" → "260521")</summary>
+        private static string FormatDateShort(string date) =>
+            DateTime.TryParse(date, out var d) ? d.ToString("yyMMdd") : date.Replace("-", "");
 
         // ─── 비고 자동 저장 ───
 

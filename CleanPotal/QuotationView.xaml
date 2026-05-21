@@ -421,16 +421,21 @@
                                 <TextBox Grid.Row="0" Grid.Column="1"
                                          Text="{Binding QuoteNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <!-- 회사명 -->
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bill To (회사명)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <!-- R(F)Q No -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="R(F)Q No" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
+                                         Text="{Binding RfqNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- 회사명 -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Bill To (회사명)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="4" Grid.Column="1"
                                          Text="{Binding Company, Mode=OneWay}"
                                          IsReadOnly="True"
                                          Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <!-- 담당자 -->
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Attention (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
-                                <ComboBox Grid.Row="4" Grid.Column="1"
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Attention (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <ComboBox Grid.Row="6" Grid.Column="1"
                                           IsEditable="True"
                                           IsTextSearchEnabled="True"
                                           TextSearch.TextPath="ManagerName"
@@ -452,14 +457,9 @@
                                 </ComboBox>
 
                                 <!-- 연락처 -->
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
-                                <TextBox Grid.Row="6" Grid.Column="1"
-                                         Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                <!-- R(F)Q No -->
-                                <TextBlock Grid.Row="8" Grid.Column="0" Text="R(F)Q No" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="8" Grid.Column="1"
-                                         Text="{Binding RfqNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                         Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </Grid>
 
                             <!-- 구분선 -->
@@ -728,9 +728,6 @@
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
                                     Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Click="BtnDeleteMasterItem_Click"/>
-                            <Button Content="견적서에서 재구성" Style="{StaticResource MacSecondaryButtonStyle}"
-                                    Height="36" MinWidth="120" Margin="0,0,8,0"
-                                    Click="BtnRebuildProductMaster_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
