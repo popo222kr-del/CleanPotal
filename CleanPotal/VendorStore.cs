@@ -19,7 +19,7 @@ namespace CleanPotal
             AllowTrailingCommas = true
         };
 
-        private static string GlobalTemplatesFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "global_templates.json");
+        private static string GlobalTemplatesFilePath => AppPaths.GlobalTemplatesPath;
 
         public static ObservableCollection<VendorModel> Load()
         {
@@ -90,7 +90,7 @@ namespace CleanPotal
 
         public static void SaveGlobalTemplates(IEnumerable<GlobalTemplateModel> templates)
         {
-            Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"));
+            Directory.CreateDirectory(AppPaths.DataRoot);
             string json = JsonSerializer.Serialize(templates, JsonOptions);
             File.WriteAllText(GlobalTemplatesFilePath, json);
         }

@@ -495,6 +495,7 @@ namespace CleanPotal
             {
                 Title    = "엑셀 파일로 저장",
                 Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
+                InitialDirectory = GetDefaultSaveFolder(),
                 FileName = QuotationExporter.MakeSafeFileName(
                     $"{CurrentQuotation.QuoteNo}_{CurrentQuotation.Company}({CurrentQuotation.Attention})_{FormatDateShort(CurrentQuotation.Date)}.xlsx")
             };
@@ -528,6 +529,7 @@ namespace CleanPotal
             {
                 Title    = "PDF 파일로 저장",
                 Filter   = "PDF 파일 (*.pdf)|*.pdf",
+                InitialDirectory = GetDefaultSaveFolder(),
                 FileName = QuotationExporter.MakeSafeFileName(
                     $"{CurrentQuotation.QuoteNo}_{CurrentQuotation.Company}({CurrentQuotation.Attention})_{FormatDateShort(CurrentQuotation.Date)}.pdf")
             };
@@ -1565,6 +1567,20 @@ namespace CleanPotal
         /// <summary>"yyyy-MM-dd" → "YYMMDD" (예: "2026-05-21" → "260521")</summary>
         private static string FormatDateShort(string date) =>
             DateTime.TryParse(date, out var d) ? d.ToString("yyMMdd") : date.Replace("-", "");
+
+        private static string GetDefaultSaveFolder()
+        {
+            try
+            {
+                if (File.Exists(AppPaths.DefaultSaveFolderPath))
+                {
+                    string folder = File.ReadAllText(AppPaths.DefaultSaveFolderPath).Trim();
+                    if (Directory.Exists(folder)) return folder;
+                }
+            }
+            catch { }
+            return Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
 
         // ─── 비고 자동 저장 ───
 

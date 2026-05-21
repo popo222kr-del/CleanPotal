@@ -21,7 +21,7 @@ namespace CleanPotal
         public ObservableCollection<GlobalTemplateModel> GlobalTemplates { get; set; } = new();
         private ICollectionView _vendorView;
         private string _currentFilter = "전체";
-        private string ConfigFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "master_db_config.txt");
+        private string ConfigFilePath => AppPaths.MasterDbConfigPath;
 
         [DllImport("mpr.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int WNetGetConnection([MarshalAs(UnmanagedType.LPTStr)] string localName, [MarshalAs(UnmanagedType.LPTStr)] StringBuilder remoteName, ref int length);
@@ -64,20 +64,43 @@ namespace CleanPotal
             {
                 string uncPath = GetUNCPath(dialog.FileName ?? "");
                 TxtMasterDbPath.Text = uncPath;
-                Directory.CreateDirectory(Path.GetDirectoryName(ConfigFilePath)!);
+                Directory.CreateDirectory(AppPaths.DataRoot);
                 File.WriteAllText(ConfigFilePath, uncPath);
+            }
+        }
+
+        private void BtnChangeDefaultSaveFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "기본 저장 폴더를 선택하세요",
+                UseDescriptionForTitle = true,
+                SelectedPath = TxtDefaultSaveFolder.Text
+            };
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                TxtDefaultSaveFolder.Text = dialog.SelectedPath;
             }
         }
 
         private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
         {
             if (File.Exists(ConfigFilePath)) TxtMasterDbPath.Text = File.ReadAllText(ConfigFilePath).Trim();
+            if (File.Exists(AppPaths.DefaultSaveFolderPath)) TxtDefaultSaveFolder.Text = File.ReadAllText(AppPaths.DefaultSaveFolderPath).Trim();
             SettingsOverlay.Visibility = Visibility.Visible;
         }
 
         private void BtnCloseSettings_Click(object sender, RoutedEventArgs e)
         {
-            try { VendorStore.SaveGlobalTemplates(GlobalTemplates); SettingsOverlay.Visibility = Visibility.Collapsed; Keyboard.Focus(this); }
+            try
+            {
+                Directory.CreateDirectory(AppPaths.DataRoot);
+                // 기본 저장 폴더 저장
+                File.WriteAllText(AppPaths.DefaultSaveFolderPath, TxtDefaultSaveFolder.Text.Trim());
+                VendorStore.SaveGlobalTemplates(GlobalTemplates);
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+                Keyboard.Focus(this);
+            }
             catch (Exception ex) { MessageBox.Show("템플릿 저장 오류: " + ex.Message); }
         }
 

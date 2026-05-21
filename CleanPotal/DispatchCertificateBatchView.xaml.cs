@@ -81,7 +81,7 @@ namespace CleanPotal
         {
             get
             {
-                string config = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "master_db_config.txt");
+                string config = AppPaths.MasterDbConfigPath;
                 return File.Exists(config) ? File.ReadAllText(config).Trim() : "";
             }
         }

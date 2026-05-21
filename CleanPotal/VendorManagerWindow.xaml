@@ -326,6 +326,17 @@
                         </Border>
                         <Button Grid.Column="1" Content="경로 변경" Focusable="False" Width="80" Margin="8,0,0,0" Style="{StaticResource SecondaryButton}" Click="BtnChangeMasterDb_Click"/>
                     </Grid>
+                    <TextBlock Text="기본 저장 폴더 (내보내기 파일 기본 경로)" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="#F8FAFC">
+                            <TextBox x:Name="TxtDefaultSaveFolder" Height="36" VerticalContentAlignment="Center" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="12,0"/>
+                        </Border>
+                        <Button Grid.Column="1" Content="폴더 변경" Focusable="False" Width="80" Margin="8,0,0,0" Style="{StaticResource SecondaryButton}" Click="BtnChangeDefaultSaveFolder_Click"/>
+                    </Grid>
                     <TextBlock Text="공통 성적서 템플릿 매핑 (제품 구분별)" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
                     <DataGrid x:Name="GlobalTemplatesGrid" Style="{StaticResource ModernDataGridStyle}" Height="550" Margin="0,0,0,24">
                         <DataGrid.Resources>
