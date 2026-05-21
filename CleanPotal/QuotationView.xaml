@@ -423,7 +423,8 @@
                                 <!-- 견적번호 -->
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Quote No. (견적번호)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding QuoteNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                         Text="{Binding QuoteNo, Mode=OneWay}"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <!-- R(F)Q No -->
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="R(F)Q No" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
@@ -431,7 +432,7 @@
                                          Text="{Binding RfqNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <!-- 회사명 -->
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Bill To (회사명)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Company (회사명)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="4" Grid.Column="1"
                                          Text="{Binding Company, Mode=OneWay}"
                                          IsReadOnly="True"
