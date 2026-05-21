@@ -87,9 +87,25 @@ namespace CleanPotal
 
         private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
         {
+            // 네트워크 경로에 없으면 구 로컬 경로에서 마이그레이션
+            MigrateConfigIfNeeded(ConfigFilePath,
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "master_db_config.txt"));
             if (File.Exists(ConfigFilePath)) TxtMasterDbPath.Text = File.ReadAllText(ConfigFilePath).Trim();
             if (File.Exists(AppPaths.DefaultSaveFolderPath)) TxtDefaultSaveFolder.Text = File.ReadAllText(AppPaths.DefaultSaveFolderPath).Trim();
             SettingsOverlay.Visibility = Visibility.Visible;
+        }
+
+        private static void MigrateConfigIfNeeded(string newPath, string oldPath)
+        {
+            try
+            {
+                if (!File.Exists(newPath) && File.Exists(oldPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+                    File.Copy(oldPath, newPath);
+                }
+            }
+            catch { }
         }
 
         private void BtnCloseSettings_Click(object sender, RoutedEventArgs e)

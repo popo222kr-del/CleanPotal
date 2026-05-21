@@ -60,6 +60,14 @@ namespace CleanPotal
         {
             try
             {
+                // 네트워크 경로에 파일 없으면 구 로컬 경로에서 마이그레이션
+                string oldPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "global_templates.json");
+                if (!File.Exists(GlobalTemplatesFilePath) && File.Exists(oldPath))
+                {
+                    Directory.CreateDirectory(AppPaths.DataRoot);
+                    File.Copy(oldPath, GlobalTemplatesFilePath);
+                }
+
                 ObservableCollection<GlobalTemplateModel> templates;
                 if (!File.Exists(GlobalTemplatesFilePath))
                 {

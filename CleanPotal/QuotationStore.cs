@@ -8,7 +8,7 @@ namespace CleanPotal
     public static class QuotationStore
     {
         private static readonly JsonSerializerOptions _opts = new() { WriteIndented = true };
-        private static string DataDir => AppPaths.DataRoot;
+        private static string DataDir => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
         private static string QuotationPath => Path.Combine(DataDir, "quotations.json");
         private static string ProductMasterPath => Path.Combine(DataDir, "product_master.json");
         private static string ConfigPath => Path.Combine(DataDir, "quotation_config.json");
