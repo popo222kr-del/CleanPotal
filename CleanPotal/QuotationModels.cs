@@ -68,11 +68,13 @@ namespace CleanPotal
         private string _aetsPhone = "";
         private string _businessNo = "";
 
+        private string _rfqNo = "";
         private string _remarks = "1. VAT 별도.";
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         public string QuoteNo { get; set; } = "";
+        public string RfqNo { get => _rfqNo; set { _rfqNo = value; OnPropertyChanged(nameof(RfqNo)); } }
 
         // 고객사 정보
         public string Attention { get => _attention; set { _attention = value; OnPropertyChanged(nameof(Attention)); } }

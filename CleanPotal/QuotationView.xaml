@@ -444,11 +444,10 @@
                                 <TextBox Grid.Row="6" Grid.Column="1"
                                          Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <!-- R(F)Q No — 비워둠 (내부용) -->
+                                <!-- R(F)Q No -->
                                 <TextBlock Grid.Row="8" Grid.Column="0" Text="R(F)Q No" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="8" Grid.Column="1"
-                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#94A3B8"
-                                         Text="(미사용)"/>
+                                         Text="{Binding RfqNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </Grid>
 
                             <!-- 구분선 -->
