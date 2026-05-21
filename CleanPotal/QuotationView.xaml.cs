@@ -679,7 +679,7 @@ namespace CleanPotal
                 }
             }
 
-            if (masterChanged) QuotationStore.SaveProductMaster(_productMaster);
+            if (masterChanged) QuotationStore.SaveProductMaster(_allProductMaster);
             if (totalQuotations > 0)
             {
                 QuotationStore.SaveQuotations(Quotations);
@@ -1033,7 +1033,7 @@ namespace CleanPotal
                 CurrentQuotation.LineItems.Add(item);
 
             // 단가 저장 (ParseXlsxAsQuotation은 save:false로 호출되므로 여기서 저장)
-            if (newPrices > 0) QuotationStore.SaveProductMaster(_productMaster);
+            if (newPrices > 0) QuotationStore.SaveProductMaster(_allProductMaster);
 
             // 담당자 정보 적용
             string managerName  = parsed.Attention;
@@ -1119,8 +1119,7 @@ namespace CleanPotal
                 }
                 else if (item.ListPrice > 0)
                 {
-                    // 신규 단가 등록 (1EA 기준)
-                    _productMaster.Add(new ProductMasterItem
+                    var newMaster = new ProductMasterItem
                     {
                         ProductName = item.Description,
                         PartCode    = item.PartCode,
@@ -1128,11 +1127,13 @@ namespace CleanPotal
                         UnitPrice   = item.ListPrice,
                         Unit        = "EA",
                         VendorName  = vendorName
-                    });
+                    };
+                    _allProductMaster.Add(newMaster);
+                    _productMaster.Add(newMaster);
                     newCount++;
                 }
             }
-            if (newCount > 0 && save) QuotationStore.SaveProductMaster(_productMaster);
+            if (newCount > 0 && save) QuotationStore.SaveProductMaster(_allProductMaster);
             return newCount;
         }
 
@@ -1147,7 +1148,7 @@ namespace CleanPotal
             {
                 if (FindMasterItem(item.Description, item.PartCode, vendorName) == null)
                 {
-                    _productMaster.Add(new ProductMasterItem
+                    var newMaster = new ProductMasterItem
                     {
                         ProductName = item.Description,
                         PartCode    = item.PartCode,
@@ -1155,11 +1156,13 @@ namespace CleanPotal
                         UnitPrice   = item.ListPrice,
                         Unit        = "EA",
                         VendorName  = vendorName
-                    });
+                    };
+                    _allProductMaster.Add(newMaster);
+                    _productMaster.Add(newMaster);
                     count++;
                 }
             }
-            if (count > 0) QuotationStore.SaveProductMaster(_productMaster);
+            if (count > 0) QuotationStore.SaveProductMaster(_allProductMaster);
             return count;
         }
 
@@ -1396,9 +1399,9 @@ namespace CleanPotal
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            _allProductMaster = _productMaster.ToList();
+            // _allProductMaster 는 항상 전체 목록을 유지 — 덮어쓰지 않음
             MasterSearch = "";
-            MasterVendorFilter = "전체";
+            MasterVendorFilter = "전체";   // ApplyMasterFilter 호출 → _productMaster 갱신
             RefreshMasterVendorOptions();
             _isMasterDirty = false;
             ProductMasterOverlay.Visibility = Visibility.Visible;
@@ -1409,10 +1412,10 @@ namespace CleanPotal
 
         private void BtnSaveProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            _allProductMaster = _productMaster.ToList();
+            // 필터 상태와 무관하게 전체(_allProductMaster) 저장
             try
             {
-                QuotationStore.SaveProductMaster(_productMaster);
+                QuotationStore.SaveProductMaster(_allProductMaster);
                 _isMasterDirty = false;
             }
             catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); }
@@ -1427,11 +1430,11 @@ namespace CleanPotal
                 if (r == MessageBoxResult.Cancel) return;
                 if (r == MessageBoxResult.Yes)
                 {
-                    try { QuotationStore.SaveProductMaster(_productMaster); }
+                    try { QuotationStore.SaveProductMaster(_allProductMaster); }
                     catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); return; }
                 }
             }
-            _allProductMaster = _productMaster.ToList();
+            // 필터 초기화 — _allProductMaster 는 건드리지 않음
             MasterSearch = "";
             MasterVendorFilter = "전체";
             _isMasterDirty = false;
