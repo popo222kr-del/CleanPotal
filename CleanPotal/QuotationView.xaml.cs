@@ -102,6 +102,7 @@ namespace CleanPotal
                         item.PropertyChanged -= LineItem_PropertyChanged;
                 }
                 _currentQuotation = value;
+                _isDirty = false;
                 if (_currentQuotation != null)
                 {
                     _currentQuotation.PropertyChanged += CurrentQuotation_PropertyChanged;
@@ -200,8 +201,9 @@ namespace CleanPotal
             MasterVendorFilter = MasterVendorOptions.Contains(current) ? current : "전체";
         }
 
-        // ─── 새 견적서 미저장 감지 ───
+        // ─── 변경 추적 ───
         private bool _isNewUnsaved = false;
+        private bool _isDirty = false;
 
         public QuotationView()
         {
@@ -297,6 +299,7 @@ namespace CleanPotal
 
         private void CurrentQuotation_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            _isDirty = true;
             if (e.PropertyName == nameof(QuotationModel.Company))
                 RefreshAttentionSuggestions(CurrentQuotation?.Company ?? "");
             else if (e.PropertyName == nameof(QuotationModel.Date))
@@ -327,6 +330,7 @@ namespace CleanPotal
 
         private void LineItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            _isDirty = true;
             if (e.PropertyName is nameof(QuotationLineItem.Amount)
                 or nameof(QuotationLineItem.Qty)
                 or nameof(QuotationLineItem.ListPrice))
@@ -359,23 +363,30 @@ namespace CleanPotal
 
         private void BtnBackToList_Click(object sender, RoutedEventArgs e)
         {
-            if (_isNewUnsaved && CurrentQuotation != null)
+            if (_isDirty && CurrentQuotation != null)
             {
-                var result = MessageBox.Show(
-                    "저장하지 않은 새 견적서입니다. 저장하시겠습니까?",
-                    "저장 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                string msg = _isNewUnsaved
+                    ? "저장하지 않은 새 견적서입니다. 저장하시겠습니까?"
+                    : "저장하지 않은 변경사항이 있습니다. 저장하시겠습니까?";
+
+                var result = MessageBox.Show(msg, "저장 확인",
+                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
                 if (result == MessageBoxResult.Cancel) return;
                 if (result == MessageBoxResult.Yes)
                 {
-                    // Quotations에 아직 없으면 추가 후 저장
                     if (!Quotations.Contains(CurrentQuotation))
                         Quotations.Insert(0, CurrentQuotation);
                     try { AutoRegisterNewPrices(); QuotationStore.SaveQuotations(Quotations); }
                     catch (Exception ex) { MessageBox.Show("저장 오류: " + ex.Message); return; }
                 }
-                // No: 그냥 버림 — Quotations에 추가한 적 없으므로 별도 제거 불필요
+                else if (_isNewUnsaved)
+                {
+                    // 새 견적서 취소: 목록에서 제거
+                    Quotations.Remove(CurrentQuotation);
+                }
             }
             _isNewUnsaved = false;
+            _isDirty = false;
             CurrentQuotation = null;
             RefreshVendorQuotations();
         }
@@ -577,6 +588,7 @@ namespace CleanPotal
                 int newPrices = AutoRegisterNewPrices();
                 QuotationStore.SaveQuotations(Quotations);
                 _isNewUnsaved = false;
+                _isDirty = false;
                 RefreshVendorQuotations();
                 string msg = newPrices > 0
                     ? $"저장되었습니다.\n(신규 단가 {newPrices}개 단가 관리에 자동 등록)"
@@ -1575,10 +1587,7 @@ namespace CleanPotal
 
         private void RemarksTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (CurrentQuotation == null || _isNewUnsaved) return;
-            if (!Quotations.Contains(CurrentQuotation)) return;
-            try { QuotationStore.SaveQuotations(Quotations); }
-            catch { /* 자동 저장 실패는 무시 */ }
+            // 자동 저장 제거 — 저장 버튼으로만 저장
         }
 
         // ─── INotifyPropertyChanged ───
