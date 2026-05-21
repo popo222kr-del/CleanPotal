@@ -103,6 +103,9 @@ namespace CleanPotal
                 }
                 _currentQuotation = value;
                 _isDirty = false;
+                _editSnapshot = (_currentQuotation != null && !_isNewUnsaved)
+                    ? System.Text.Json.JsonSerializer.Serialize(_currentQuotation)
+                    : null;
                 if (_currentQuotation != null)
                 {
                     _currentQuotation.PropertyChanged += CurrentQuotation_PropertyChanged;
@@ -204,6 +207,7 @@ namespace CleanPotal
         // ─── 변경 추적 ───
         private bool _isNewUnsaved = false;
         private bool _isDirty = false;
+        private string? _editSnapshot = null;
 
         public QuotationView()
         {
@@ -383,6 +387,16 @@ namespace CleanPotal
                 {
                     // 새 견적서 취소: 목록에서 제거
                     Quotations.Remove(CurrentQuotation);
+                }
+                else if (_editSnapshot != null)
+                {
+                    // 기존 견적서 변경 취소: 스냅샷으로 원상 복구
+                    var original = System.Text.Json.JsonSerializer.Deserialize<QuotationModel>(_editSnapshot);
+                    if (original != null)
+                    {
+                        int idx = Quotations.IndexOf(CurrentQuotation);
+                        if (idx >= 0) Quotations[idx] = original;
+                    }
                 }
             }
             _isNewUnsaved = false;
