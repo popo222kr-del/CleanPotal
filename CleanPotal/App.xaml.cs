@@ -32,6 +32,9 @@ namespace CleanPotal
 
             base.OnStartup(e);
 
+            // 로컬 bin/Data 에 있던 견적 데이터를 네트워크 경로로 마이그레이션
+            QuotationStore.MigrateFromLocalIfNeeded();
+
             CreateDesktopShortcutIfMissing();
 
             // 1. 계정 DB 초기화 (없으면 users.db 생성 및 admin 계정 자동 추가)
