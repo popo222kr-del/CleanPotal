@@ -63,19 +63,23 @@ namespace CleanPotal
         private static void FillSheetData(SheetData sd, QuotationModel q)
         {
             // 고객사 정보 (왼쪽 A12-A16)
-            // D12:G12 병합 마스터=D12 (Quote No.), D13:G13 병합 마스터=D13 (R(F)Q No)
-            SetStr(sd, "D12", q.QuoteNo);
-            SetStr(sd, "E14", q.Company);      // Bill To
-            SetStr(sd, "E15", q.Attention);    // Attention
-            SetStr(sd, "E16", q.Phone);        // Phone (customer)
+            // D12:G12 / K14:M14 / K15:M15 는 병합 셀이고 템플릿에 `: ` 텍스트가 있었음
+            // → 덮어쓰면 콜론이 사라지므로 `: value` 형식으로 기록
+            // 나머지(E14,E15,E16,L12,L13,L16)는 인접 셀에 `:` 가 있어 값만 기록
+            static string WithColon(string? v) =>
+                string.IsNullOrWhiteSpace(v) ? ":" : $": {v}";
+
+            SetStr(sd, "D12", WithColon(q.QuoteNo));   // D12:G12 병합 마스터
+            SetStr(sd, "E14", q.Company);              // Bill To  (D14=`:` 인접)
+            SetStr(sd, "E15", q.Attention);            // Attention (D15=`:` 인접)
+            SetStr(sd, "E16", q.Phone);                // Phone    (D16=`:` 인접)
 
             // 견적 정보 (오른쪽 J12-J16)
-            // K14:M14 / K15:M15 는 병합 셀 - 마스터(K14,K15)에만 기록
-            SetStr(sd, "L12", q.Date);
-            SetStr(sd, "L13", q.Validity);
-            SetStr(sd, "K14", q.AetsManager);
-            SetStr(sd, "K15", q.AetsPhone);
-            SetStr(sd, "L16", q.BusinessNo);
+            SetStr(sd, "L12", q.Date);                 // Date      (K12=`:` 인접)
+            SetStr(sd, "L13", q.Validity);             // Valid Until (K13=`:` 인접)
+            SetStr(sd, "K14", WithColon(q.AetsManager)); // K14:M14 병합 마스터
+            SetStr(sd, "K15", WithColon(q.AetsPhone));   // K15:M15 병합 마스터
+            SetStr(sd, "L16", q.BusinessNo);           // Biz. No.  (K16=`:` 인접)
 
             // 품목 행 20~42
             var items = q.LineItems.Take(MaxItems).ToList();
