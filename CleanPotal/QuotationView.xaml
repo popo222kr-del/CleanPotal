@@ -209,10 +209,13 @@
 
                     <!-- 오른쪽: 액션 버튼들 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- 폴더 가져오기: 비활성화 -->
+                        <!--
                         <Button Content="📁 폴더 가져오기" Style="{StaticResource MacSecondaryButtonStyle}"
                                 Height="38" MinWidth="130"
                                 Visibility="{Binding IsNotEditing, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Click="BtnImportFolder_Click"/>
+                        -->
                         <!-- 목록 화면: + 새 견적서만 표시 -->
                         <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
                                 Height="38" MinWidth="110"
