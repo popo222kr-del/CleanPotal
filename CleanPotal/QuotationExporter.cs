@@ -74,7 +74,6 @@ namespace CleanPotal
             // 왼쪽 — 모두 D열 시작 (Quote No. 기준)
             SetStr(sd, "D12", WithColon(q.QuoteNo));     // D12:G12 병합 마스터
             SetStr(sd, "D13", WithColon(q.RfqNo));       // D13:G13 병합 마스터
-            SetStr(sd, "C14", "Company");                 // Bill To → Company 레이블 교체
             SetStr(sd, "D14", WithColon(q.Company));     // Company (D14 `:` 덮어쓰기)
             SetStr(sd, "D15", WithColon(q.Attention));   // Attention
             SetStr(sd, "D16", WithColon(q.Phone));       // Phone (customer)
