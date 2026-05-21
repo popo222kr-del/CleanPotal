@@ -71,16 +71,18 @@ namespace CleanPotal
 
         private void BtnChangeDefaultSaveFolder_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new System.Windows.Forms.FolderBrowserDialog
+            var dlg = new Microsoft.Win32.SaveFileDialog
             {
-                Description = "기본 저장 폴더를 선택하세요",
-                UseDescriptionForTitle = true,
-                SelectedPath = TxtDefaultSaveFolder.Text
+                Title = "기본 저장 폴더 선택 — 파일명은 무시됩니다",
+                FileName = "여기에 저장",
+                Filter = "폴더 선택|*.this.directory",
+                ValidateNames = false,
+                CheckFileExists = false,
+                CheckPathExists = true,
+                InitialDirectory = TxtDefaultSaveFolder.Text
             };
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                TxtDefaultSaveFolder.Text = dialog.SelectedPath;
-            }
+            if (dlg.ShowDialog() == true)
+                TxtDefaultSaveFolder.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
         }
 
         private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
