@@ -19,8 +19,8 @@ namespace CleanPotal
     /// </summary>
     public static class QuotationExporter
     {
-        private const int ItemStartRow = 22;
-        private const int ItemEndRow   = 44;
+        private const int ItemStartRow = 20;
+        private const int ItemEndRow   = 42;
         private const int MaxItems     = ItemEndRow - ItemStartRow + 1; // 23
 
         // ─── 공개 API ─────────────────────────────────────────────────────
@@ -57,26 +57,22 @@ namespace CleanPotal
 
         private static void FillSheetData(SheetData sd, QuotationModel q)
         {
-            // 고객사 정보 (왼쪽)
-            SetStr(sd, "E13", q.Attention);
-            SetStr(sd, "E14", q.Company);
-            SetStr(sd, "E16", q.Email);
-            SetStr(sd, "E17", q.Phone);
+            // 고객사 정보 (왼쪽 A12-A16)
+            // D12:G12 병합 마스터=D12 (Quote No.), D13:G13 병합 마스터=D13 (R(F)Q No)
+            SetStr(sd, "D12", q.QuoteNo);
+            SetStr(sd, "E14", q.Company);      // Bill To
+            SetStr(sd, "E15", q.Attention);    // Attention
+            SetStr(sd, "E16", q.Phone);        // Phone (customer)
 
-            // 견적 정보 (오른쪽)
-            // K14:M14 / K16:M16 는 템플릿에서 병합된 셀 - 마스터(K14,K16)에만 기록
-            SetStr(sd, "K14", string.IsNullOrWhiteSpace(q.Date)
-                ? ":" : $": {q.Date}");
-            SetStr(sd, "K16", string.IsNullOrWhiteSpace(q.Validity)
-                ? ":" : $": {q.Validity}");
+            // 견적 정보 (오른쪽 J12-J16)
+            // K14:M14 / K15:M15 는 병합 셀 - 마스터(K14,K15)에만 기록
+            SetStr(sd, "L12", q.Date);
+            SetStr(sd, "L13", q.Validity);
+            SetStr(sd, "K14", q.AetsManager);
+            SetStr(sd, "K15", q.AetsPhone);
+            SetStr(sd, "L16", q.BusinessNo);
 
-            string mgr = q.AetsManager;
-            if (!string.IsNullOrWhiteSpace(q.AetsPhone))
-                mgr += $"  {q.AetsPhone}";
-            SetStr(sd, "L17", mgr);
-            SetStr(sd, "L18", q.BusinessNo);
-
-            // 품목 행 22~44
+            // 품목 행 20~42
             var items = q.LineItems.Take(MaxItems).ToList();
             for (int i = 0; i < MaxItems; i++)
             {
@@ -86,8 +82,8 @@ namespace CleanPotal
                     var item = items[i];
                     SetNum(sd, $"A{row}", item.No);
                     SetStr(sd, $"B{row}", item.Description);   // B~H 병합 마스터
-                    SetNum(sd, $"I{row}", (double)item.ListPrice);
-                    SetStr(sd, $"J{row}", item.StandardSpec);
+                    SetStr(sd, $"I{row}", item.StandardSpec);
+                    SetNum(sd, $"J{row}", (double)item.ListPrice);
                     SetNum(sd, $"K{row}", item.Qty);
                     SetNum(sd, $"L{row}", (double)item.Amount);
                 }
@@ -103,11 +99,11 @@ namespace CleanPotal
             }
 
             // 합계 (SUM 수식을 값으로 교체)
-            SetNum(sd, "K45", items.Sum(x => x.Qty));
-            SetNum(sd, "L45", (double)items.Sum(x => x.Amount));
+            SetNum(sd, "K43", items.Sum(x => x.Qty));
+            SetNum(sd, "L43", (double)items.Sum(x => x.Amount));
 
             // 비고
-            SetStr(sd, "C47", q.Remarks);
+            SetStr(sd, "C45", q.Remarks);
         }
 
         // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
