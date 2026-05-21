@@ -95,7 +95,7 @@ namespace CleanPotal
                     var item = items[i];
                     SetNum(sd, $"A{row}", item.No);
                     SetStr(sd, $"B{row}", item.Description);   // B~H 병합 마스터
-                    SetStr(sd, $"I{row}", item.StandardSpec);
+                    SetStr(sd, $"I{row}", item.PartCode);      // Standard Spec 열 = 품목코드
                     SetNum(sd, $"J{row}", (double)item.ListPrice);
                     SetNum(sd, $"K{row}", item.Qty);
                     SetNum(sd, $"L{row}", (double)item.Amount);
@@ -104,8 +104,8 @@ namespace CleanPotal
                 {
                     ClearCell(sd, $"A{row}");
                     ClearCell(sd, $"B{row}");
-                    ClearCell(sd, $"I{row}");
-                    ClearCell(sd, $"J{row}");
+                    ClearCell(sd, $"I{row}");  // PartCode
+                    ClearCell(sd, $"J{row}");  // ListPrice
                     ClearCell(sd, $"K{row}");
                     ClearCell(sd, $"L{row}");
                 }
