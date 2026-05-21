@@ -1407,8 +1407,8 @@ namespace CleanPotal
 
         private void BtnInsertFromMasterModal_Click(object sender, RoutedEventArgs e)
         {
-            if (ProductMasterGrid.SelectedItem is ProductMasterItem master)
-                InsertMasterItem(master);
+            foreach (var sel in ProductMasterGrid.SelectedItems.OfType<ProductMasterItem>())
+                InsertMasterItem(sel);
         }
 
         private void BtnInsertFromMasterInline_Click(object sender, RoutedEventArgs e)

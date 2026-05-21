@@ -205,20 +205,32 @@
 
                     <!-- 오른쪽: 액션 버튼들 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- 폴더 가져오기: 비활성화 (필요 시 재활성화) -->
+                        <!--
                         <Button Content="📁 폴더 가져오기" Style="{StaticResource MacSecondaryButtonStyle}"
                                 Height="38" MinWidth="130"
                                 Visibility="{Binding IsNotEditing, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Click="BtnImportFolder_Click"/>
+                        -->
+                        <!-- 목록 화면: + 새 견적서만 표시 -->
                         <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="38" MinWidth="110" Margin="10,0,0,0"
+                                Height="38" MinWidth="110"
+                                Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}"
                                 IsEnabled="{Binding HasSelectedVendor}"
                                 Click="BtnNewQuotation_Click"/>
+                        <!-- 편집 화면: 내보내기 + 저장만 표시 -->
                         <Button Content="엑셀 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
-                                Height="38" MinWidth="120" Margin="10,0,0,0" Click="BtnExportExcel_Click"/>
+                                Height="38" MinWidth="120"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Click="BtnExportExcel_Click"/>
                         <Button Content="PDF 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
-                                Height="38" MinWidth="120" Margin="10,0,0,0" Click="BtnExportPdf_Click"/>
+                                Height="38" MinWidth="120" Margin="10,0,0,0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Click="BtnExportPdf_Click"/>
                         <Button Content="저장" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="38" MinWidth="90" Margin="10,0,0,0" Click="BtnSave_Click"/>
+                                Height="38" MinWidth="90" Margin="10,0,0,0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Click="BtnSave_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -732,6 +744,7 @@
                               BorderBrush="#E2E8F0"
                               Background="Transparent"
                               AlternationCount="2"
+                              SelectionMode="Extended"
                               RowStyle="{StaticResource GridRowStyle}"
                               ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                               CellStyle="{StaticResource GridCellStyle}">
@@ -813,7 +826,7 @@
 
                     <!-- 모달 하단 -->
                     <Grid Grid.Row="2" Margin="0,20,0,0">
-                        <TextBlock Text="※ 항목 선택 후 '견적에 추가' 버튼을 클릭하면 현재 견적서에 추가됩니다."
+                        <TextBlock Text="※ Ctrl/Shift 로 복수 선택 후 '견적에 추가' 버튼을 클릭하면 현재 견적서에 추가됩니다."
                                    FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
                         <Button Content="닫기 및 저장" Style="{StaticResource MacPrimaryButtonStyle}"
                                 Height="40" MinWidth="130" HorizontalAlignment="Right" Click="BtnCloseProductMaster_Click"/>
