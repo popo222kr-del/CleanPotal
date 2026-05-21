@@ -373,10 +373,10 @@
                     <!-- ── 고객사 / 견적 정보 카드 ── -->
                     <Border Style="{StaticResource CardStyle}" Padding="24,20">
                         <Border.Resources>
-                            <!-- AutoCompleteBox가 Height=42이므로 TextBox도 42px로 통일 -->
                             <Style TargetType="TextBox" BasedOn="{StaticResource MacInputTextBoxStyle}">
                                 <Setter Property="Height" Value="42"/>
                                 <Setter Property="FontSize" Value="14"/>
+                                <Setter Property="FontFamily" Value="Malgun Gothic"/>
                             </Style>
                         </Border.Resources>
                         <Grid>
@@ -389,12 +389,12 @@
                             <!-- ── 고객사 정보 (왼쪽) ── -->
                             <Grid Grid.Column="0" Margin="0,0,20,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="130"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="14"/>
+                                    <RowDefinition Height="10"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="10"/>
                                     <RowDefinition Height="Auto"/>
@@ -404,25 +404,21 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                                           Text="고객사 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
+                                <!-- 견적번호 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Quote No. (견적번호)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="0" Grid.Column="1"
+                                         Text="{Binding QuoteNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <!-- 견적번호 (회사명 위) -->
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="견적번호" Style="{StaticResource InlineLabelStyle}"/>
+                                <!-- 회사명 -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bill To (회사명)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
-                                         Text="{Binding QuoteNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         FontFamily="Consolas, Courier New" FontSize="13" FontWeight="SemiBold"/>
-
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="회사명" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="4" Grid.Column="1"
                                          Text="{Binding Company, Mode=OneWay}"
                                          IsReadOnly="True"
-                                         Style="{StaticResource MacInputTextBoxStyle}"
-                                         Height="42" FontSize="14"
                                          Background="#F1F5F9" Foreground="#64748B"/>
 
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                <ComboBox Grid.Row="6" Grid.Column="1"
+                                <!-- 담당자 -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Attention (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <ComboBox Grid.Row="4" Grid.Column="1"
                                           IsEditable="True"
                                           IsTextSearchEnabled="True"
                                           TextSearch.TextPath="ManagerName"
@@ -443,9 +439,16 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
 
-                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="8" Grid.Column="1"
+                                <!-- 연락처 -->
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="6" Grid.Column="1"
                                          Text="{Binding Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <!-- R(F)Q No — 비워둠 (내부용) -->
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="R(F)Q No" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="8" Grid.Column="1"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#94A3B8"
+                                         Text="(미사용)"/>
                             </Grid>
 
                             <!-- 구분선 -->
@@ -454,12 +457,10 @@
                             <!-- ── 견적 정보 (오른쪽) ── -->
                             <Grid Grid.Column="2" Margin="20,0,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="130"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="14"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="10"/>
                                     <RowDefinition Height="Auto"/>
@@ -471,27 +472,30 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                                           Text="견적 정보" FontSize="12" FontWeight="Bold" Foreground="#64748B"/>
-
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="견적일" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="2" Grid.Column="1"
+                                <!-- 견적일 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Date (견적일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="0" Grid.Column="1"
                                          Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="유효기간" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="4" Grid.Column="1"
-                                         Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                <!-- 유효기간 (자동: 견적일 +7일) -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid Until (유효일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="2" Grid.Column="1"
+                                         Text="{Binding Validity, Mode=OneWay}"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="AETS 담당자" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="6" Grid.Column="1"
+                                <!-- AETS 담당자 -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Our Contact (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="4" Grid.Column="1"
                                          Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <TextBlock Grid.Row="8" Grid.Column="0" Text="AETS Phone" Style="{StaticResource InlineLabelStyle}"/>
-                                <TextBox Grid.Row="8" Grid.Column="1"
+                                <!-- AETS 연락처 -->
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="6" Grid.Column="1"
                                          Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <TextBlock Grid.Row="10" Grid.Column="0" Text="사업자번호" Style="{StaticResource InlineLabelStyle}"/>
-                                <Grid Grid.Row="10" Grid.Column="1">
+                                <!-- 사업자번호 -->
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="Biz. No. (사업자번호)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
+                                <Grid Grid.Row="8" Grid.Column="1">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>

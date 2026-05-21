@@ -374,6 +374,7 @@ namespace CleanPotal
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
                 Date        = DateTime.Today.ToString("yyyy-MM-dd"),
+                Validity    = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd"),
                 QuoteNo     = GenerateQuoteNo()
             };
             // Quotations에 아직 추가하지 않음 — 저장 시에만 추가
