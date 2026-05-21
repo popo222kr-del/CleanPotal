@@ -490,7 +490,8 @@
                                 <!-- 견적일 -->
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Date (견적일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding Date, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                         Text="{Binding Date, Mode=OneWay}"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <!-- 유효기간 (자동: 견적일 +7일) -->
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid Until (유효일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
@@ -501,12 +502,14 @@
                                 <!-- AETS 담당자 -->
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Our Contact (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="4" Grid.Column="1"
-                                         Text="{Binding AetsManager, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                         Text="{Binding AetsManager, Mode=OneWay}"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <!-- AETS 연락처 -->
                                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="6" Grid.Column="1"
-                                         Text="{Binding AetsPhone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                         Text="{Binding AetsPhone, Mode=OneWay}"
+                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
                                 <!-- 사업자번호 -->
                                 <TextBlock Grid.Row="8" Grid.Column="0" Text="Biz. No. (사업자번호)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
