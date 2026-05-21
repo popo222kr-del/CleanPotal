@@ -62,28 +62,26 @@ namespace CleanPotal
 
         private static void FillSheetData(SheetData sd, QuotationModel q)
         {
-            // ─ 정렬 기준 ─────────────────────────────────────────────────────
-            // 왼쪽: Quote No.(D12:G12 병합) 기준 → 모든 값을 D열에서 시작
-            //   D14/D15/D16 의 `:` 를 덮어써서 `: value` 기록, E14/E15/E16 비워둠
-            // 오른쪽: Our Contact(K14:M14 병합) 기준 → 모든 값을 K열에서 시작
-            //   K12/K13/K16 의 `:` 를 덮어써서 `: value` 기록, L12/L13/L16 비워둠
-            // ─────────────────────────────────────────────────────────────────
             static string WithColon(string? v) =>
                 string.IsNullOrWhiteSpace(v) ? ":" : $": {v}";
 
-            // 왼쪽 — 모두 D열 시작 (Quote No. 기준)
+            // 병합셀(D12:G12, D13:G13, K14:M14, K15:M15)은 셀 전체가 값 영역이므로 WithColon 사용.
+            // 비병합 구분자 셀(D14~D16, K12, K13, K16)은 템플릿의 `:` 를 그대로 두고
+            // 바로 오른쪽 셀(E, L)에 값만 기록한다.
+
+            // 왼쪽
             SetStr(sd, "D12", WithColon(q.QuoteNo));     // D12:G12 병합 마스터
             SetStr(sd, "D13", WithColon(q.RfqNo));       // D13:G13 병합 마스터
-            SetStr(sd, "D14", WithColon(q.Company));     // Company (D14 `:` 덮어쓰기)
-            SetStr(sd, "D15", WithColon(q.Attention));   // Attention
-            SetStr(sd, "D16", WithColon(q.Phone));       // Phone (customer)
+            SetStr(sd, "E14", q.Company);                // D14 `:` 유지
+            SetStr(sd, "E15", q.Attention);              // D15 `:` 유지
+            SetStr(sd, "E16", q.Phone);                  // D16 `:` 유지
 
-            // 오른쪽 — 모두 K열 시작 (Our Contact 기준)
-            SetStr(sd, "K12", WithColon(q.Date));        // Date     (K12 `:` 덮어쓰기)
-            SetStr(sd, "K13", WithColon(q.Validity));    // Valid Until
+            // 오른쪽
+            SetStr(sd, "L12", q.Date);                   // K12 `:` 유지
+            SetStr(sd, "L13", q.Validity);               // K13 `:` 유지
             SetStr(sd, "K14", WithColon(q.AetsManager)); // K14:M14 병합 마스터
             SetStr(sd, "K15", WithColon(q.AetsPhone));   // K15:M15 병합 마스터
-            SetStr(sd, "K16", WithColon(q.BusinessNo));  // Biz. No. (K16 `:` 덮어쓰기)
+            SetStr(sd, "L16", q.BusinessNo);             // K16 `:` 유지
 
             // 품목 행 20~42
             var items = q.LineItems.Take(MaxItems).ToList();
