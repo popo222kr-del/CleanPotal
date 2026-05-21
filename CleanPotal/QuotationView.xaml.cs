@@ -61,6 +61,20 @@ namespace CleanPotal
         public bool IsEditing     => HasSelectedVendor && CurrentQuotation != null;
         public bool IsNotEditing  => !IsEditing;
 
+        public string QuotationModifyInfo
+        {
+            get
+            {
+                var q = CurrentQuotation;
+                if (q == null) return "";
+                if (!string.IsNullOrEmpty(q.LastModifiedBy) && !string.IsNullOrEmpty(q.LastModifiedAt))
+                    return $"마지막 수정: {q.LastModifiedBy}  ·  {q.LastModifiedAt}";
+                if (!string.IsNullOrEmpty(q.CreatedBy))
+                    return $"작성: {q.CreatedBy}  ·  {q.CreatedAt}";
+                return "";
+            }
+        }
+
         public string ToolbarTitle
         {
             get
@@ -108,6 +122,7 @@ namespace CleanPotal
                 OnPropertyChanged(nameof(IsEditing));
                 OnPropertyChanged(nameof(IsNotEditing));
                 OnPropertyChanged(nameof(ToolbarTitle));
+                OnPropertyChanged(nameof(QuotationModifyInfo));
                 UpdateTotals();
             }
         }
@@ -392,15 +407,21 @@ namespace CleanPotal
                 ? managerName
                 : $"{managerName} {jobTitle}";
 
+            // 업체 주 담당자 자동 세팅
+            var firstMgr = _selectedVendor?.Managers?.FirstOrDefault();
+
             var q = new QuotationModel
             {
                 Company     = _selectedVendor?.VendorName ?? "",
+                Attention   = firstMgr?.ManagerName ?? "",
+                Phone       = firstMgr?.ContactNumber ?? "",
                 AetsManager = aetsManager,
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
                 Date        = DateTime.Today.ToString("yyyy-MM-dd"),
                 Validity    = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd"),
-                QuoteNo     = GenerateQuoteNo()
+                QuoteNo     = GenerateQuoteNo(),
+                CreatedBy   = SessionManager.CurrentRealName,
             };
             // Quotations에 아직 추가하지 않음 — 저장 시에만 추가
             _isNewUnsaved = true;
@@ -542,6 +563,14 @@ namespace CleanPotal
                 // 새 견적서면 저장 시 처음으로 Quotations에 추가
                 if (_isNewUnsaved && !Quotations.Contains(CurrentQuotation))
                     Quotations.Insert(0, CurrentQuotation);
+
+                // 수정자 기록
+                string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+                if (string.IsNullOrEmpty(CurrentQuotation.CreatedBy))
+                    CurrentQuotation.CreatedBy = SessionManager.CurrentRealName;
+                CurrentQuotation.LastModifiedBy = SessionManager.CurrentRealName;
+                CurrentQuotation.LastModifiedAt = now;
+                OnPropertyChanged(nameof(QuotationModifyInfo));
 
                 int newPrices = AutoRegisterNewPrices();
                 QuotationStore.SaveQuotations(Quotations);

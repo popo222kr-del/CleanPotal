@@ -193,7 +193,7 @@
             <Border Grid.Row="0" Background="White" Padding="20,14,24,14"
                     BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                 <Grid>
-                    <!-- 왼쪽: 뒤로가기 버튼 + 타이틀 -->
+                    <!-- 왼쪽: 뒤로가기 버튼 + 타이틀 + 수정자 -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="← 목록" Style="{StaticResource MacSecondaryButtonStyle}"
                                 Height="38" MinWidth="90" Margin="0,0,12,0"
@@ -201,6 +201,10 @@
                                 Click="BtnBackToList_Click"/>
                         <TextBlock Text="{Binding ToolbarTitle}" FontSize="18" FontWeight="ExtraBold"
                                    Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding QuotationModifyInfo}"
+                                   FontSize="11" Foreground="#94A3B8"
+                                   VerticalAlignment="Center" Margin="16,0,0,0"
+                                   Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     </StackPanel>
 
                     <!-- 오른쪽: 액션 버튼들 -->

@@ -73,6 +73,9 @@ namespace CleanPotal
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string CreatedAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        public string CreatedBy { get; set; } = "";
+        public string LastModifiedBy { get; set; } = "";
+        public string LastModifiedAt { get; set; } = "";
         public string QuoteNo { get; set; } = "";
         public string RfqNo { get => _rfqNo; set { _rfqNo = value; OnPropertyChanged(nameof(RfqNo)); } }
 
