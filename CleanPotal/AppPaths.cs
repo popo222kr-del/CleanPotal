@@ -17,7 +17,6 @@ namespace CleanPotal
         public static string VendorsFilePath => Path.Combine(DataRoot, "vendors.json");
         public static string MasterDbConfigPath => Path.Combine(DataRoot, "master_db_config.txt");
         public static string GlobalTemplatesPath => Path.Combine(DataRoot, "global_templates.json");
-        public static string DefaultSaveFolderPath => Path.Combine(DataRoot, "default_save_folder.txt");
         public static string WeeklyReportsFilePath => Path.Combine(DataRoot, "weekly_reports.json");
         public static string ProductionMeetingFilePath => Path.Combine(DataRoot, "production_meetings.json");
 

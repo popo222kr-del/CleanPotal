@@ -1568,19 +1568,8 @@ namespace CleanPotal
         private static string FormatDateShort(string date) =>
             DateTime.TryParse(date, out var d) ? d.ToString("yyMMdd") : date.Replace("-", "");
 
-        private static string GetDefaultSaveFolder()
-        {
-            try
-            {
-                if (File.Exists(AppPaths.DefaultSaveFolderPath))
-                {
-                    string folder = File.ReadAllText(AppPaths.DefaultSaveFolderPath).Trim();
-                    if (Directory.Exists(folder)) return folder;
-                }
-            }
-            catch { }
-            return Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        }
+        private static string GetDefaultSaveFolder() =>
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
         // ─── 비고 자동 저장 ───
 

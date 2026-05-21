@@ -69,29 +69,12 @@ namespace CleanPotal
             }
         }
 
-        private void BtnChangeDefaultSaveFolder_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new Microsoft.Win32.SaveFileDialog
-            {
-                Title = "기본 저장 폴더 선택 — 파일명은 무시됩니다",
-                FileName = "여기에 저장",
-                Filter = "폴더 선택|*.this.directory",
-                ValidateNames = false,
-                CheckFileExists = false,
-                CheckPathExists = true,
-                InitialDirectory = TxtDefaultSaveFolder.Text
-            };
-            if (dlg.ShowDialog() == true)
-                TxtDefaultSaveFolder.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
-        }
-
         private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
         {
             // 네트워크 경로에 없으면 구 로컬 경로에서 마이그레이션
             MigrateConfigIfNeeded(ConfigFilePath,
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "master_db_config.txt"));
             if (File.Exists(ConfigFilePath)) TxtMasterDbPath.Text = File.ReadAllText(ConfigFilePath).Trim();
-            if (File.Exists(AppPaths.DefaultSaveFolderPath)) TxtDefaultSaveFolder.Text = File.ReadAllText(AppPaths.DefaultSaveFolderPath).Trim();
             SettingsOverlay.Visibility = Visibility.Visible;
         }
 
@@ -113,8 +96,6 @@ namespace CleanPotal
             try
             {
                 Directory.CreateDirectory(AppPaths.DataRoot);
-                // 기본 저장 폴더 저장
-                File.WriteAllText(AppPaths.DefaultSaveFolderPath, TxtDefaultSaveFolder.Text.Trim());
                 VendorStore.SaveGlobalTemplates(GlobalTemplates);
                 SettingsOverlay.Visibility = Visibility.Collapsed;
                 Keyboard.Focus(this);
