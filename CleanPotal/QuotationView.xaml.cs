@@ -129,7 +129,7 @@ namespace CleanPotal
         private List<ProductMasterItem> _allProductMaster = new();
         private QuotationConfig _config = new();
 
-        // ─── 단가 관리 업체 필터 ───
+        // ─── 단가 관리 업체 필터 + 검색 ───
         private string _masterVendorFilter = "전체";
         public string MasterVendorFilter
         {
@@ -138,14 +138,39 @@ namespace CleanPotal
         }
         public ObservableCollection<string> MasterVendorOptions { get; } = new();
 
+        private string _masterSearch = "";
+        public string MasterSearch
+        {
+            get => _masterSearch;
+            set { _masterSearch = value; OnPropertyChanged(nameof(MasterSearch)); ApplyMasterFilter(); }
+        }
+
+        public bool IsQuotationAdmin => SessionManager.CurrentUsername == "1004";
+
+        private bool _isMasterDirty = false;
+
         private void ApplyMasterFilter()
         {
             _productMaster.Clear();
-            var filtered = string.IsNullOrEmpty(_masterVendorFilter) || _masterVendorFilter == "전체"
+            IEnumerable<ProductMasterItem> filtered = _masterVendorFilter == "전체"
                 ? _allProductMaster
                 : _allProductMaster.Where(x =>
-                    string.Equals(x.VendorName, _masterVendorFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-            foreach (var item in filtered) _productMaster.Add(item);
+                    string.Equals(x.VendorName, _masterVendorFilter, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(_masterSearch))
+            {
+                var s = _masterSearch.Trim();
+                var priority = filtered.Where(x =>
+                    (x.PartCode?.Contains(s, StringComparison.OrdinalIgnoreCase) == true) ||
+                    (x.ProductName?.Contains(s, StringComparison.OrdinalIgnoreCase) == true)).ToList();
+                var rest = filtered.Except(priority);
+                foreach (var item in priority) _productMaster.Add(item);
+                foreach (var item in rest)    _productMaster.Add(item);
+            }
+            else
+            {
+                foreach (var item in filtered) _productMaster.Add(item);
+            }
         }
 
         private void RefreshMasterVendorOptions()
@@ -1371,21 +1396,51 @@ namespace CleanPotal
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            // 모달 열기 전 전체 목록 복원 후 필터 옵션 갱신
             _allProductMaster = _productMaster.ToList();
+            MasterSearch = "";
             MasterVendorFilter = "전체";
             RefreshMasterVendorOptions();
+            _isMasterDirty = false;
             ProductMasterOverlay.Visibility = Visibility.Visible;
+            // 모달 열 때 마지막 행으로 스크롤
+            if (_productMaster.Count > 0)
+                ProductMasterGrid.ScrollIntoView(_productMaster[^1]);
+        }
+
+        private void BtnSaveProductMaster_Click(object sender, RoutedEventArgs e)
+        {
+            _allProductMaster = _productMaster.ToList();
+            try
+            {
+                QuotationStore.SaveProductMaster(_productMaster);
+                _isMasterDirty = false;
+            }
+            catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); }
         }
 
         private void BtnCloseProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            // 필터 해제 후 전체 저장
+            if (_isMasterDirty)
+            {
+                var r = MessageBox.Show("저장하지 않은 변경 사항이 있습니다. 저장하시겠습니까?",
+                    "저장 확인", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (r == MessageBoxResult.Cancel) return;
+                if (r == MessageBoxResult.Yes)
+                {
+                    try { QuotationStore.SaveProductMaster(_productMaster); }
+                    catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); return; }
+                }
+            }
             _allProductMaster = _productMaster.ToList();
+            MasterSearch = "";
             MasterVendorFilter = "전체";
-            try { QuotationStore.SaveProductMaster(_productMaster); }
-            catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); }
+            _isMasterDirty = false;
             ProductMasterOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void ProductMasterGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            _isMasterDirty = true;
         }
 
         private void BtnAddMasterItem_Click(object sender, RoutedEventArgs e)
@@ -1394,15 +1449,32 @@ namespace CleanPotal
             {
                 VendorName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter
             };
-            _allProductMaster.Add(newItem);
-            _productMaster.Add(newItem);
+            // 맨 앞에 삽입해 바로 보이게
+            _allProductMaster.Insert(0, newItem);
+            _productMaster.Insert(0, newItem);
             RefreshMasterVendorOptions();
+            _isMasterDirty = true;
+            // 맨 위로 스크롤 후 해당 행 선택
+            ProductMasterGrid.ScrollIntoView(newItem);
+            ProductMasterGrid.SelectedItem = newItem;
         }
 
         private void BtnDeleteMasterItem_Click(object sender, RoutedEventArgs e)
         {
-            if (ProductMasterGrid.SelectedItem is ProductMasterItem item)
+            if (!IsQuotationAdmin) return;
+            var selected = ProductMasterGrid.SelectedItems.OfType<ProductMasterItem>().ToList();
+            if (selected.Count == 0) return;
+            var msg = selected.Count == 1
+                ? $"'{selected[0].ProductName}' 항목을 삭제하시겠습니까?"
+                : $"선택한 {selected.Count}개 항목을 삭제하시겠습니까?";
+            if (MessageBox.Show(msg, "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning)
+                != MessageBoxResult.Yes) return;
+            foreach (var item in selected)
+            {
                 _productMaster.Remove(item);
+                _allProductMaster.Remove(item);
+            }
+            _isMasterDirty = true;
         }
 
         private void BtnInsertFromMasterModal_Click(object sender, RoutedEventArgs e)
@@ -1428,6 +1500,16 @@ namespace CleanPotal
                 StandardSpec = master.Spec,
                 Qty          = 1
             });
+        }
+
+        // ─── 비고 자동 저장 ───
+
+        private void RemarksTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (CurrentQuotation == null || _isNewUnsaved) return;
+            if (!Quotations.Contains(CurrentQuotation)) return;
+            try { QuotationStore.SaveQuotations(Quotations); }
+            catch { /* 자동 저장 실패는 무시 */ }
         }
 
         // ─── INotifyPropertyChanged ───

@@ -688,7 +688,8 @@
                             <TextBox Text="{Binding Remarks, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"
                                      Padding="12" BorderBrush="#E2E8F0" BorderThickness="1"
-                                     FontSize="14" VerticalScrollBarVisibility="Auto"/>
+                                     FontSize="14" VerticalScrollBarVisibility="Auto"
+                                     LostFocus="RemarksTextBox_LostFocus"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -699,7 +700,7 @@
         <Grid x:Name="ProductMasterOverlay" Grid.ColumnSpan="2"
               Background="#CC000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="16"
-                    Width="860" MaxHeight="620"
+                    Width="920" MaxHeight="680"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Padding="32,28">
                 <Border.Effect>
@@ -708,32 +709,95 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 모달 헤더 -->
-                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <!-- Row 0: 타이틀 + 액션 버튼 -->
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="단가 관리" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
                             <TextBlock Text="제품 단가를 등록하면 견적서 작성 시 빠르게 추가할 수 있습니다."
                                        FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <!-- 업체 필터 -->
-                            <ComboBox ItemsSource="{Binding MasterVendorOptions}"
-                                      SelectedItem="{Binding MasterVendorFilter, Mode=TwoWay}"
-                                      Height="38" MinWidth="120" Margin="0,0,8,0"
-                                      VerticalContentAlignment="Center" FontSize="13"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,0">
+                            <!-- 관리자(1004)만 삭제 가능 -->
+                            <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
+                                    Height="36" MinWidth="90" Margin="0,0,8,0"
+                                    Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Click="BtnDeleteMasterItem_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
-                                    Height="38" MinWidth="110" Click="BtnAddMasterItem_Click"/>
+                                    Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
-                                    Height="38" MinWidth="110" Margin="8,0,0,0" Click="BtnInsertFromMasterModal_Click"/>
+                                    Height="36" MinWidth="100" Click="BtnInsertFromMasterModal_Click"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- 단가 그리드 -->
-                    <DataGrid Grid.Row="1" x:Name="ProductMasterGrid"
+                    <!-- Row 1: 업체 칩 필터 (Notion 스타일) -->
+                    <Border Grid.Row="1" Margin="0,0,0,12"
+                            Background="#F8FAFC" CornerRadius="10" Padding="10,8">
+                        <ListBox ItemsSource="{Binding MasterVendorOptions}"
+                                 SelectedItem="{Binding MasterVendorFilter, Mode=TwoWay}"
+                                 BorderThickness="0" Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Margin" Value="3,3"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="Bd" CornerRadius="20" Padding="12,5"
+                                                        Background="#EFF1F5" Cursor="Hand">
+                                                    <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                                               FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="#64748B"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+                                                        <Setter TargetName="Txt" Property="Foreground" Value="#1D4ED8"/>
+                                                    </Trigger>
+                                                    <MultiTrigger>
+                                                        <MultiTrigger.Conditions>
+                                                            <Condition Property="IsMouseOver" Value="True"/>
+                                                            <Condition Property="IsSelected" Value="False"/>
+                                                        </MultiTrigger.Conditions>
+                                                        <Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/>
+                                                    </MultiTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </Border>
+
+                    <!-- Row 2: 검색 박스 -->
+                    <Border Grid.Row="2" Margin="0,0,0,12"
+                            Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                            CornerRadius="8" Padding="12,0" Height="38">
+                        <Grid>
+                            <TextBlock Text="🔍" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8"/>
+                            <TextBox Text="{Binding MasterSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" BorderThickness="0"
+                                     VerticalContentAlignment="Center" FontSize="13"
+                                     Foreground="#1E293B" Padding="24,0,0,0"
+                                     Tag="품목코드 또는 제품명 검색..."/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 3: 단가 그리드 -->
+                    <DataGrid Grid.Row="3" x:Name="ProductMasterGrid"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
@@ -747,9 +811,10 @@
                               SelectionMode="Extended"
                               RowStyle="{StaticResource GridRowStyle}"
                               ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                              CellStyle="{StaticResource GridCellStyle}">
+                              CellStyle="{StaticResource GridCellStyle}"
+                              CellEditEnding="ProductMasterGrid_CellEditEnding">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="업체" Width="120">
+                            <DataGridTemplateColumn Header="업체" Width="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding VendorName}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
@@ -777,7 +842,7 @@
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="품목코드" Width="120">
+                            <DataGridTemplateColumn Header="품목코드" Width="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
@@ -820,16 +885,21 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- 모달 하단 -->
-                    <Grid Grid.Row="2" Margin="0,20,0,0">
-                        <TextBlock Text="※ Ctrl/Shift 로 복수 선택 후 '견적에 추가' 버튼을 클릭하면 현재 견적서에 추가됩니다."
+                    <!-- Row 4: 모달 하단 -->
+                    <Grid Grid.Row="4" Margin="0,16,0,0">
+                        <TextBlock Text="※ Ctrl/Shift 로 복수 선택 후 '견적에 추가'"
                                    FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                        <Button Content="닫기 및 저장" Style="{StaticResource MacPrimaryButtonStyle}"
-                                Height="40" MinWidth="130" HorizontalAlignment="Right" Click="BtnCloseProductMaster_Click"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="저장" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="40" MinWidth="90" Margin="0,0,8,0"
+                                    Click="BtnSaveProductMaster_Click"/>
+                            <Button Content="닫기" Style="{StaticResource MacPrimaryButtonStyle}"
+                                    Height="40" MinWidth="90"
+                                    Click="BtnCloseProductMaster_Click"/>
+                        </StackPanel>
                     </Grid>
                 </Grid>
             </Border>
