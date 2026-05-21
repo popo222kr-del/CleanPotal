@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -10,6 +11,7 @@
         </Style>
 
         <Style TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -17,8 +19,21 @@
         </Style>
 
         <Style TargetType="Label">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="FontFamily" Value="Malgun Gothic"/>
         </Style>
 
         <Style x:Key="ModernCardStyle" TargetType="Border">
