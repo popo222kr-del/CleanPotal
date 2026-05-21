@@ -40,6 +40,11 @@ namespace CleanPotal
             FillSheetData(sd, q);
 
             wsPart.Worksheet.Save();
+
+            // 수식 셀을 값으로 교체하면 calcChain이 불일치 → Excel 복구 경고 발생
+            // calcChain 파트를 삭제하면 Excel이 열 때 자동 재계산하므로 경고 없음
+            if (wbPart.CalculationChainPart != null)
+                wbPart.DeletePart(wbPart.CalculationChainPart);
         }
 
         public static void ExportToPdf(QuotationModel q, string pdfPath)
