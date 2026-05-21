@@ -1035,11 +1035,49 @@ namespace CleanPotal
 
         // ─── 담당자 드롭다운 선택 → 연락처 자동 연동 ───
 
-        private void AttentionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private readonly ObservableCollection<ManagerModel> _filteredAttentionManagers = new();
+
+        private void AttentionTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (CurrentQuotation == null) return;
-            if (((ComboBox)sender).SelectedItem is ManagerModel mgr && !string.IsNullOrWhiteSpace(mgr.ContactNumber))
-                CurrentQuotation.Phone = mgr.ContactNumber;
+            var text = ((TextBox)sender).Text;
+
+            _filteredAttentionManagers.Clear();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                foreach (var m in CurrentVendorManagers.Where(m =>
+                    m.ManagerName.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                    _filteredAttentionManagers.Add(m);
+            }
+
+            AttentionSuggestionList.ItemsSource = _filteredAttentionManagers;
+            AttentionPopup.IsOpen = _filteredAttentionManagers.Count > 0;
+        }
+
+        private void AttentionTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!AttentionSuggestionList.IsKeyboardFocusWithin)
+                    AttentionPopup.IsOpen = false;
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void AttentionSuggestionList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Source is FrameworkElement fe && fe.DataContext is ManagerModel mgr)
+            {
+                if (CurrentQuotation != null)
+                {
+                    CurrentQuotation.Attention = mgr.ManagerName;
+                    if (!string.IsNullOrWhiteSpace(mgr.ContactNumber))
+                        CurrentQuotation.Phone = mgr.ContactNumber;
+                }
+                AttentionPopup.IsOpen = false;
+                AttentionTextBox.Focus();
+                AttentionTextBox.CaretIndex = AttentionTextBox.Text.Length;
+                e.Handled = true;
+            }
         }
 
         // ─── 엑셀 가져오기 ───

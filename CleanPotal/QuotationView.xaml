@@ -440,26 +440,59 @@
 
                                 <!-- 담당자 -->
                                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Attention (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
-                                <ComboBox Grid.Row="6" Grid.Column="1"
-                                          IsEditable="True"
-                                          IsTextSearchEnabled="True"
-                                          TextSearch.TextPath="ManagerName"
-                                          Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          ItemsSource="{Binding CurrentVendorManagers, RelativeSource={RelativeSource AncestorType=local:QuotationView}}"
-                                          SelectionChanged="AttentionComboBox_SelectionChanged"
-                                          Height="42" FontSize="14" Padding="10,0"
-                                          BorderBrush="#E2E8F0" BorderThickness="1"
-                                          VerticalContentAlignment="Center">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Margin="2,3">
-                                                <TextBlock Text="{Binding ManagerName}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"/>
-                                                <TextBlock Text=" · " FontSize="13" Foreground="#94A3B8"/>
-                                                <TextBlock Text="{Binding ContactNumber}" FontSize="13" Foreground="#64748B"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                <Grid Grid.Row="6" Grid.Column="1">
+                                    <TextBox x:Name="AttentionTextBox"
+                                             Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             TextChanged="AttentionTextBox_TextChanged"
+                                             LostFocus="AttentionTextBox_LostFocus"
+                                             Height="42" FontSize="14" Padding="10,0"
+                                             BorderBrush="#E2E8F0" BorderThickness="1"
+                                             VerticalContentAlignment="Center"/>
+                                    <Popup x:Name="AttentionPopup"
+                                           PlacementTarget="{Binding ElementName=AttentionTextBox}"
+                                           Placement="Bottom"
+                                           StaysOpen="True"
+                                           MinWidth="{Binding ActualWidth, ElementName=AttentionTextBox}">
+                                        <Border Background="White"
+                                                BorderBrush="#CBD5E1" BorderThickness="1"
+                                                CornerRadius="8" Padding="4">
+                                            <ListBox x:Name="AttentionSuggestionList"
+                                                     BorderThickness="0" Background="Transparent"
+                                                     MaxHeight="200"
+                                                     PreviewMouseLeftButtonDown="AttentionSuggestionList_PreviewMouseDown">
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="Padding" Value="10,7"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ListBoxItem">
+                                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Bd" Property="Background" Value="#EEF2FF"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding ManagerName}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"/>
+                                                            <TextBlock Text=" · " FontSize="13" Foreground="#94A3B8"/>
+                                                            <TextBlock Text="{Binding ContactNumber}" FontSize="13" Foreground="#64748B"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
 
                                 <!-- 연락처 -->
                                 <TextBlock Grid.Row="8" Grid.Column="0" Text="Phone (연락처)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
