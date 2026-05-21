@@ -57,7 +57,7 @@ namespace CleanPotal
             catch { return new(); }
         }
 
-        public static void SaveProductMaster(ObservableCollection<ProductMasterItem> list)
+        public static void SaveProductMaster(IEnumerable<ProductMasterItem> list)
         {
             Directory.CreateDirectory(DataDir);
             File.WriteAllText(ProductMasterPath, JsonSerializer.Serialize(list, _opts));
