@@ -115,8 +115,16 @@ namespace CleanPotal
             SetNum(sd, "K43", items.Sum(x => x.Qty));
             SetNum(sd, "L43", (double)items.Sum(x => x.Amount));
 
-            // 비고
-            SetStr(sd, "C45", q.Remarks);
+            // 비고 — 줄바꿈(\n)을 C45, C46, C47... 로 분산 기록 (최대 7줄)
+            var remarkLines = (q.Remarks ?? "")
+                .Split('\n')
+                .Select(l => l.TrimEnd('\r'))
+                .ToList();
+            for (int i = 0; i < 7; i++)
+            {
+                string line = i < remarkLines.Count ? remarkLines[i] : "";
+                SetStr(sd, $"C{45 + i}", line);
+            }
         }
 
         // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
@@ -127,7 +135,8 @@ namespace CleanPotal
             cell.RemoveAllChildren();
             cell.DataType  = CellValues.InlineString;
             cell.CellValue = null;
-            cell.Append(new InlineString(new Text { Text = value ?? "" }));
+            cell.Append(new InlineString(new Text(value ?? "")
+                { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
         }
 
         private static void SetNum(SheetData sd, string cellRef, double value)
