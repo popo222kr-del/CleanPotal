@@ -537,12 +537,17 @@ namespace CleanPotal
                 if (result == MessageBoxResult.Yes)
                     Process.Start(new ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
             }
-            catch (Exception ex)
+            catch (IOException)
             {
                 System.Windows.Input.Mouse.OverrideCursor = null;
                 MessageBox.Show(
-                    "엑셀 내보내기 오류: " + ex.Message + "\n\n" +
-                    "Microsoft Excel이 설치되어 있어야 합니다.");
+                    "파일이 다른 프로그램에서 열려 있습니다.\n파일을 닫은 후 다시 시도하세요.",
+                    "저장 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Input.Mouse.OverrideCursor = null;
+                MessageBox.Show("엑셀 내보내기 오류: " + ex.Message);
             }
         }
 
