@@ -604,20 +604,6 @@ namespace CleanPotal
 
         private static string GetAppVersion()
         {
-            try
-            {
-                // ClickOnce 배포 환경: 게시 버전을 ApplicationIdentity에서 파싱
-                // "CleanPotal.application, Version=1.2.3.4, Culture=neutral, ..."
-                var identity = AppDomain.CurrentDomain.ApplicationIdentity?.FullName;
-                if (!string.IsNullOrEmpty(identity))
-                {
-                    var m = System.Text.RegularExpressions.Regex.Match(identity, @"Version=(\d+\.\d+\.\d+)");
-                    if (m.Success) return $"v{m.Groups[1].Value}";
-                }
-            }
-            catch { }
-
-            // 개발 환경 fallback: 어셈블리 버전
             var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             if (v == null) return "v-";
 #if DEBUG
