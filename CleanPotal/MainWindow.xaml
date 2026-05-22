@@ -404,7 +404,7 @@
                 </ScrollViewer>
 
                 <!-- 🎨 하단 프로필 카드 (그라데이션 아바타 + 링) -->
-                <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,14">
+                <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -481,7 +481,7 @@
                            Text="v0.0.0"
                            FontSize="10" Foreground="#475569"
                            HorizontalAlignment="Center"
-                           Margin="0,2,0,6"/>
+                           Margin="0,0,0,4"/>
 
             </Grid>
         </Border>
