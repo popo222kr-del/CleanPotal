@@ -1036,12 +1036,19 @@ namespace CleanPotal
         // ─── 담당자 드롭다운 선택 → 연락처 자동 연동 ───
 
         private readonly ObservableCollection<ManagerModel> _filteredAttentionManagers = new();
+        private bool _attentionHasFocus = false;
+
+        private void AttentionTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            _attentionHasFocus = true;
+        }
 
         private void AttentionTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (CurrentQuotation == null) return;
-            var text = ((TextBox)sender).Text;
+            // 포커스 없이 바인딩으로 값이 세팅될 때는 팝업 무시
+            if (!_attentionHasFocus || CurrentQuotation == null) return;
 
+            var text = ((TextBox)sender).Text;
             _filteredAttentionManagers.Clear();
             if (!string.IsNullOrWhiteSpace(text))
             {
@@ -1056,6 +1063,7 @@ namespace CleanPotal
 
         private void AttentionTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
+            _attentionHasFocus = false;
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (!AttentionSuggestionList.IsKeyboardFocusWithin)
@@ -1065,7 +1073,12 @@ namespace CleanPotal
 
         private void AttentionSuggestionList_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.Source is FrameworkElement fe && fe.DataContext is ManagerModel mgr)
+            // OriginalSource에서 VisualTree를 타고 올라가 ListBoxItem 찾기
+            DependencyObject? dep = e.OriginalSource as DependencyObject;
+            while (dep != null && dep is not ListBoxItem)
+                dep = System.Windows.Media.VisualTreeHelper.GetParent(dep);
+
+            if (dep is ListBoxItem lbi && lbi.DataContext is ManagerModel mgr)
             {
                 if (CurrentQuotation != null)
                 {
@@ -1074,6 +1087,7 @@ namespace CleanPotal
                         CurrentQuotation.Phone = mgr.ContactNumber;
                 }
                 AttentionPopup.IsOpen = false;
+                _attentionHasFocus = false;
                 AttentionTextBox.Focus();
                 AttentionTextBox.CaretIndex = AttentionTextBox.Text.Length;
                 e.Handled = true;

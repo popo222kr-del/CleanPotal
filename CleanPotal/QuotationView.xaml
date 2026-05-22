@@ -443,6 +443,7 @@
                                 <Grid Grid.Row="6" Grid.Column="1">
                                     <TextBox x:Name="AttentionTextBox"
                                              Text="{Binding Attention, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             GotFocus="AttentionTextBox_GotFocus"
                                              TextChanged="AttentionTextBox_TextChanged"
                                              LostFocus="AttentionTextBox_LostFocus"
                                              Height="42" FontSize="14" Padding="10,0"
