@@ -218,8 +218,21 @@ namespace CleanPotal
                 var ws = wb.Sheets[1] as Microsoft.Office.Interop.Excel.Worksheet;
                 if (ws != null)
                 {
-                    // 값 셀이 가운데 정렬이라 텍스트가 왼쪽으로 넘쳐 레이블과 겹침
-                    // PDF 변환 전 임시 파일에만 왼쪽 정렬 적용 (Excel 저장 파일은 무변경)
+                    // 라벨 셀에 탭 문자(\t)가 있어 텍스트가 오른쪽으로 밀려 값 셀과 겹침.
+                    // 임시 파일에서만 탭 제거 (Excel 저장 파일 무변경).
+                    foreach (var addr in new[] { "A12","A13","A14","A15","A16",
+                                                 "J12","J13","J14","J15","J16" })
+                    {
+                        try
+                        {
+                            var r = ws.Range[addr];
+                            if (r.Value2 is string v && v.StartsWith("\t"))
+                                r.Value2 = v.TrimStart('\t');
+                        }
+                        catch { }
+                    }
+
+                    // 값 셀 왼쪽 정렬: 텍스트가 왼쪽으로 넘쳐 라벨과 겹치는 것 방지.
                     foreach (var addr in new[] { "D12","D13","D14","D15","D16",
                                                  "K12","K13","K14","K15","K16" })
                     {
