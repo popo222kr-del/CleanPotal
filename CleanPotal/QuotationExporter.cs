@@ -79,10 +79,9 @@ namespace CleanPotal
             var formats = cellFormats.Elements<CellFormat>().ToList();
             for (int i = 0; i < formats.Count; i++)
             {
-                var a = formats[i].Alignment;
-                if (a != null &&
-                    a.Horizontal?.Value == HorizontalAlignmentValues.Left &&
-                    a.ApplyAlignment?.Value == true)
+                var fmt = formats[i];
+                if (fmt.Alignment?.Horizontal?.Value == HorizontalAlignmentValues.Left &&
+                    fmt.ApplyAlignment?.Value == true)
                 {
                     leftAlignIdx = (uint)i;
                     break;
@@ -98,8 +97,7 @@ namespace CleanPotal
 
                 baseFormat.Alignment = new Alignment
                 {
-                    Horizontal    = HorizontalAlignmentValues.Left,
-                    ApplyAlignment = true
+                    Horizontal = HorizontalAlignmentValues.Left
                 };
                 baseFormat.ApplyAlignment = true;
 
