@@ -53,73 +53,9 @@ namespace CleanPotal
             try
             {
                 ExportToExcel(q, tempXlsx);
-                FixPdfAlignment(tempXlsx);
                 ConvertToPdf(tempXlsx, pdfPath);
             }
             finally { TryDelete(tempXlsx); }
-        }
-
-        // PDF 변환 전 임시 xlsx의 값 셀(D12-D16, K12-K16)을 왼쪽 정렬로 수정.
-        // Excel 출력용 파일은 건드리지 않음.
-        private static void FixPdfAlignment(string xlsxPath)
-        {
-            using var doc = SpreadsheetDocument.Open(xlsxPath, isEditable: true);
-            var wbPart = doc.WorkbookPart!;
-
-            // 스타일시트 로드 (없으면 아무것도 할 수 없음)
-            var stylesPart = wbPart.WorkbookStylesPart;
-            if (stylesPart?.Stylesheet == null) return;
-
-            var stylesheet = stylesPart.Stylesheet;
-            var cellFormats = stylesheet.CellFormats
-                ?? stylesheet.AppendChild(new CellFormats());
-
-            // 기존 CellFormat 중 왼쪽 정렬이 이미 있으면 재사용, 없으면 새로 추가
-            uint leftAlignIdx = uint.MaxValue;
-            var formats = cellFormats.Elements<CellFormat>().ToList();
-            for (int i = 0; i < formats.Count; i++)
-            {
-                var fmt = formats[i];
-                if (fmt.Alignment?.Horizontal?.Value == HorizontalAlignmentValues.Left &&
-                    fmt.ApplyAlignment?.Value == true)
-                {
-                    leftAlignIdx = (uint)i;
-                    break;
-                }
-            }
-
-            if (leftAlignIdx == uint.MaxValue)
-            {
-                // 새 CellFormat 추가: 기존 0번 포맷을 복사해 정렬만 변경
-                var baseFormat = formats.Count > 0
-                    ? (CellFormat)formats[0].CloneNode(true)
-                    : new CellFormat();
-
-                baseFormat.Alignment = new Alignment
-                {
-                    Horizontal = HorizontalAlignmentValues.Left
-                };
-                baseFormat.ApplyAlignment = true;
-
-                cellFormats.Append(baseFormat);
-                cellFormats.Count = (uint)cellFormats.Elements<CellFormat>().Count();
-                leftAlignIdx = cellFormats.Count.Value - 1;
-                stylesPart.Stylesheet.Save();
-            }
-
-            // 시트 데이터에서 대상 셀의 StyleIndex 변경
-            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
-            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
-            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
-
-            foreach (var addr in new[] { "D12","D13","D14","D15","D16",
-                                         "K12","K13","K14","K15","K16" })
-            {
-                var cell = GetOrCreateCell(sd, addr);
-                cell.StyleIndex = leftAlignIdx;
-            }
-
-            wsPart.Worksheet.Save();
         }
 
         // ─── 데이터 채우기 ────────────────────────────────────────────────
@@ -276,18 +212,37 @@ namespace CleanPotal
                 {
                     Visible = false, DisplayAlerts = false
                 };
-                wb = app.Workbooks.Open(xlsxPath, ReadOnly: true);
+
+                // 임시 파일이므로 ReadOnly: false 로 열어 정렬 수정 후 저장 없이 PDF 변환
+                wb = app.Workbooks.Open(xlsxPath, ReadOnly: false);
+                var ws = wb.Sheets[1] as Microsoft.Office.Interop.Excel.Worksheet;
+                if (ws != null)
+                {
+                    // 값 셀이 가운데 정렬이라 텍스트가 왼쪽으로 넘쳐 레이블과 겹침
+                    // PDF 변환 전 임시 파일에만 왼쪽 정렬 적용 (Excel 저장 파일은 무변경)
+                    foreach (var addr in new[] { "D12","D13","D14","D15","D16",
+                                                 "K12","K13","K14","K15","K16" })
+                    {
+                        try
+                        {
+                            ws.Range[addr].HorizontalAlignment =
+                                Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignLeft;
+                        }
+                        catch { }
+                    }
+                }
+
                 wb.ExportAsFixedFormat(
-                    Type:             Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
-                    Filename:         pdfPath,
-                    Quality:          Microsoft.Office.Interop.Excel.XlFixedFormatQuality.xlQualityStandard,
+                    Type:                 Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
+                    Filename:             pdfPath,
+                    Quality:              Microsoft.Office.Interop.Excel.XlFixedFormatQuality.xlQualityStandard,
                     IncludeDocProperties: true,
-                    IgnorePrintAreas: false,
-                    OpenAfterPublish: false);
+                    IgnorePrintAreas:     false,
+                    OpenAfterPublish:     false);
             }
             finally
             {
-                try { wb?.Close(false); } catch { }
+                try { wb?.Close(false); } catch { }   // false = 변경 내용 저장 안 함
                 try { app?.Quit();      } catch { }
                 if (wb  != null) Marshal.FinalReleaseComObject(wb);
                 if (app != null) Marshal.FinalReleaseComObject(app);
