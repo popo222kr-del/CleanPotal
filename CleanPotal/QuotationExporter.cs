@@ -150,9 +150,9 @@ namespace CleanPotal
 
         private static void ForceLeftAlign(Cell cell)
         {
-            // StyleIndex를 제거하면 Excel이 기본 서식(왼쪽 정렬)을 적용.
-            // 가운데 정렬 셀에 긴 텍스트를 쓸 때 왼쪽으로 넘쳐 레이블과 겹치는 현상 방지.
-            cell.StyleIndex = null;
+            // StyleIndex=null → 컬럼 기본 스타일(center) 상속됨
+            // 템플릿 styles.xml에서 s=14 = horizontal:left 확인됨 → 명시적으로 지정
+            cell.StyleIndex = 14;
         }
 
         private static void ClearCell(SheetData sd, string cellRef)
