@@ -39,29 +39,12 @@ namespace CleanPotal
 
             FillSheetData(sd, q);
 
-            // 변경 내용 추적(Track Changes) XML 파트 제거 — PDF 변환 시 ✓ 체크 마크 출력 방지
-            RemoveTrackChanges(wbPart);
-
             wsPart.Worksheet.Save();
 
             // 수식 셀을 값으로 교체하면 calcChain이 불일치 → Excel 복구 경고 발생
             // calcChain 파트를 삭제하면 Excel이 열 때 자동 재계산하므로 경고 없음
             if (wbPart.CalculationChainPart != null)
                 wbPart.DeletePart(wbPart.CalculationChainPart);
-        }
-
-        private static void RemoveTrackChanges(WorkbookPart wbPart)
-        {
-            try
-            {
-                // SharedWorkbookRevisionHeadersPart / WorkbookRevisionHeaderPart 제거
-                var revHeaders = wbPart.GetPartsOfType<DocumentFormat.OpenXml.Packaging.SharedWorkbookRevisionHeadersPart>().ToList();
-                foreach (var p in revHeaders) wbPart.DeletePart(p);
-
-                var revLog = wbPart.GetPartsOfType<DocumentFormat.OpenXml.Packaging.WorkbookRevisionHeaderPart>().ToList();
-                foreach (var p in revLog) wbPart.DeletePart(p);
-            }
-            catch { }
         }
 
         public static void ExportToPdf(QuotationModel q, string pdfPath)
@@ -229,11 +212,7 @@ namespace CleanPotal
                 {
                     Visible = false, DisplayAlerts = false
                 };
-                wb = app.Workbooks.Open(xlsxPath, ReadOnly: false);
-
-                // 템플릿에 남아있는 변경 내용 추적(Track Changes) 흔적 제거
-                try { wb.AcceptAllRevisions(); } catch { }
-
+                wb = app.Workbooks.Open(xlsxPath, ReadOnly: true);
                 wb.ExportAsFixedFormat(
                     Type:             Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
                     Filename:         pdfPath,
