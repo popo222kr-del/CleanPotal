@@ -18,7 +18,7 @@ namespace CleanPotal
 
         private static string QuotationPath     => Path.Combine(SharedDir,     "quotations.json");
         private static string ProductMasterPath => Path.Combine(SharedDir,     "product_master.json");
-        private static string ConfigPath        => Path.Combine(LocalConfigDir, "quotation_config.json");
+        private static string ConfigPath        => Path.Combine(SharedDir,     "quotation_config.json");
 
         /// <summary>
         /// 앱 시작 시 한 번 호출.
@@ -43,9 +43,12 @@ namespace CleanPotal
                 TryCopyFile(Path.Combine(src, "product_master.json"), ProductMasterPath);
             }
 
-            // 설정: 구 bin/Data에 있으면 로컬 APPDATA로 복사
+            // 설정: 구 bin/Data나 로컬 APPDATA에 있으면 네트워크로 복사
             TryCopyFile(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "quotation_config.json"),
+                ConfigPath);
+            TryCopyFile(
+                Path.Combine(LocalConfigDir, "quotation_config.json"),
                 ConfigPath);
         }
 
@@ -71,7 +74,7 @@ namespace CleanPotal
 
         public static void SaveConfig(QuotationConfig config)
         {
-            try { Directory.CreateDirectory(LocalConfigDir); } catch { }
+            try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, _opts));
         }
 
