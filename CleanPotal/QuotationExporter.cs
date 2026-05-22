@@ -129,9 +129,6 @@ namespace CleanPotal
             cell.RemoveAllChildren();
             cell.DataType  = CellValues.InlineString;
             cell.CellValue = null;
-            // 가운데/오른쪽 정렬 스타일이 남아있으면 왼쪽 정렬로 강제 지정
-            // (center-aligned 셀이 텍스트가 왼쪽으로 넘쳐 레이블과 겹치는 문제 방지)
-            ForceLeftAlign(cell);
             cell.Append(new InlineString(new Text(value ?? "")
                 { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
         }
@@ -147,13 +144,6 @@ namespace CleanPotal
 
         private static void SetNum(SheetData sd, string cellRef, int value) =>
             SetNum(sd, cellRef, (double)value);
-
-        private static void ForceLeftAlign(Cell cell)
-        {
-            // StyleIndex=null → 컬럼 기본 스타일(center) 상속됨
-            // 템플릿 styles.xml에서 s=14 = horizontal:left 확인됨 → 명시적으로 지정
-            cell.StyleIndex = 14;
-        }
 
         private static void ClearCell(SheetData sd, string cellRef)
         {
@@ -222,7 +212,20 @@ namespace CleanPotal
                 {
                     Visible = false, DisplayAlerts = false
                 };
-                wb = app.Workbooks.Open(xlsxPath, ReadOnly: true);
+                wb = app.Workbooks.Open(xlsxPath, ReadOnly: false);
+                var ws = wb.Sheets[1] as Microsoft.Office.Interop.Excel.Worksheet;
+                if (ws != null)
+                {
+                    // 값 셀이 가운데 정렬이라 텍스트가 왼쪽으로 넘쳐 레이블과 겹침
+                    // PDF 변환 직전에만 왼쪽 정렬로 수정 (엑셀 파일 서식은 건드리지 않음)
+                    foreach (var addr in new[] { "D12","D13","D14","D15","D16",
+                                                 "K12","K13","K14","K15","K16" })
+                    {
+                        try { ws.Range[addr].HorizontalAlignment =
+                            Microsoft.Office.Interop.Excel.XlHAlign.xlHAlignLeft; }
+                        catch { }
+                    }
+                }
                 wb.ExportAsFixedFormat(
                     Type:             Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF,
                     Filename:         pdfPath,
