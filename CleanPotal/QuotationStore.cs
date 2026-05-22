@@ -9,38 +9,44 @@ namespace CleanPotal
     {
         private static readonly JsonSerializerOptions _opts = new() { WriteIndented = true };
 
-        // %APPDATA%\CleanPotal\ — 패치·재배포와 무관하게 유지되는 경로
-        private static string DataDir =>
+        // 견적서·단가표는 네트워크 공유폴더 — 모든 사용자가 동일한 데이터를 봄
+        private static string SharedDir => AppPaths.DataRoot;
+
+        // 사용자별 설정(사업자번호 등)은 로컬 APPDATA — 패치와 무관하게 유지
+        private static string LocalConfigDir =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CleanPotal");
 
-        private static string QuotationPath     => Path.Combine(DataDir, "quotations.json");
-        private static string ProductMasterPath => Path.Combine(DataDir, "product_master.json");
-        private static string ConfigPath        => Path.Combine(DataDir, "quotation_config.json");
+        private static string QuotationPath     => Path.Combine(SharedDir,     "quotations.json");
+        private static string ProductMasterPath => Path.Combine(SharedDir,     "product_master.json");
+        private static string ConfigPath        => Path.Combine(LocalConfigDir, "quotation_config.json");
 
         /// <summary>
-        /// 앱 시작 시 한 번 호출. 구 경로(bin/Data, 네트워크)에 파일이 있으면 APPDATA로 복사.
+        /// 앱 시작 시 한 번 호출.
+        /// - 구 경로(bin/Data)나 로컬 APPDATA에 파일이 있으면 네트워크 공유폴더로 이전.
+        /// - 설정 파일은 로컬 APPDATA로 이전.
         /// </summary>
         public static void MigrateFromLocalIfNeeded()
         {
-            try
+            try { Directory.CreateDirectory(SharedDir); }     catch { }
+            try { Directory.CreateDirectory(LocalConfigDir); } catch { }
+
+            // 견적서·단가표: 구 bin/Data → 로컬 APPDATA 순으로 확인해 네트워크로 복사
+            string[] sharedCandidates =
             {
-                Directory.CreateDirectory(DataDir);
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"),
+                LocalConfigDir,
+            };
 
-                // 후보 경로: 구 bin/Data → 네트워크 DataRoot 순으로 확인
-                string[] candidateDirs =
-                {
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"),
-                    AppPaths.DataRoot
-                };
-
-                foreach (string src in candidateDirs)
-                {
-                    TryCopyFile(Path.Combine(src, "quotations.json"),     QuotationPath);
-                    TryCopyFile(Path.Combine(src, "product_master.json"), ProductMasterPath);
-                    TryCopyFile(Path.Combine(src, "quotation_config.json"), ConfigPath);
-                }
+            foreach (string src in sharedCandidates)
+            {
+                TryCopyFile(Path.Combine(src, "quotations.json"),     QuotationPath);
+                TryCopyFile(Path.Combine(src, "product_master.json"), ProductMasterPath);
             }
-            catch { }
+
+            // 설정: 구 bin/Data에 있으면 로컬 APPDATA로 복사
+            TryCopyFile(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "quotation_config.json"),
+                ConfigPath);
         }
 
         private static void TryCopyFile(string src, string dst)
@@ -65,7 +71,7 @@ namespace CleanPotal
 
         public static void SaveConfig(QuotationConfig config)
         {
-            Directory.CreateDirectory(DataDir);
+            try { Directory.CreateDirectory(LocalConfigDir); } catch { }
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, _opts));
         }
 
@@ -82,7 +88,7 @@ namespace CleanPotal
 
         public static void SaveQuotations(ObservableCollection<QuotationModel> list)
         {
-            Directory.CreateDirectory(DataDir);
+            try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(QuotationPath, JsonSerializer.Serialize(list, _opts));
         }
 
@@ -99,7 +105,7 @@ namespace CleanPotal
 
         public static void SaveProductMaster(IEnumerable<ProductMasterItem> list)
         {
-            Directory.CreateDirectory(DataDir);
+            try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(ProductMasterPath, JsonSerializer.Serialize(list, _opts));
         }
     }
