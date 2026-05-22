@@ -179,6 +179,12 @@ namespace CleanPotal
             if (cell == null)
             {
                 cell = new Cell { CellReference = cellRef };
+
+                // 같은 행의 기존 셀에서 StyleIndex를 복사 (서식 유지)
+                var refCell = row.Elements<Cell>().FirstOrDefault(c => c.StyleIndex != null);
+                if (refCell?.StyleIndex != null)
+                    cell.StyleIndex = refCell.StyleIndex;
+
                 var nextCell = row.Elements<Cell>()
                     .FirstOrDefault(c => ColOrder(c.CellReference?.Value) > ColOrder(cellRef));
                 if (nextCell != null) row.InsertBefore(cell, nextCell);
