@@ -129,6 +129,9 @@ namespace CleanPotal
             cell.RemoveAllChildren();
             cell.DataType  = CellValues.InlineString;
             cell.CellValue = null;
+            // 가운데/오른쪽 정렬 스타일이 남아있으면 왼쪽 정렬로 강제 지정
+            // (center-aligned 셀이 텍스트가 왼쪽으로 넘쳐 레이블과 겹치는 문제 방지)
+            ForceLeftAlign(cell);
             cell.Append(new InlineString(new Text(value ?? "")
                 { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
         }
@@ -144,6 +147,13 @@ namespace CleanPotal
 
         private static void SetNum(SheetData sd, string cellRef, int value) =>
             SetNum(sd, cellRef, (double)value);
+
+        private static void ForceLeftAlign(Cell cell)
+        {
+            // StyleIndex를 제거하면 Excel이 기본 서식(왼쪽 정렬)을 적용.
+            // 가운데 정렬 셀에 긴 텍스트를 쓸 때 왼쪽으로 넘쳐 레이블과 겹치는 현상 방지.
+            cell.StyleIndex = null;
+        }
 
         private static void ClearCell(SheetData sd, string cellRef)
         {
