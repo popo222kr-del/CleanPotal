@@ -61,6 +61,9 @@ namespace CleanPotal
 
             DatabaseHelper.InitializeDatabase();
 
+            // 버전 표시
+            VersionText.Text = GetAppVersion();
+
             this.Loaded += (s, e) => {
                 ShowPortal();
                 InitializePollingTimer();
@@ -597,6 +600,17 @@ namespace CleanPotal
             }
 
             _isUpdatingNav = false;
+        }
+
+        private static string GetAppVersion()
+        {
+            var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            if (v == null) return "v-";
+#if DEBUG
+            return $"v{v.Major}.{v.Minor}.{v.Build} (dev)";
+#else
+            return $"v{v.Major}.{v.Minor}.{v.Build}";
+#endif
         }
     }
 }

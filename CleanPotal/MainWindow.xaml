@@ -292,6 +292,7 @@
                     <RowDefinition Height="72"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- 🎨 로고 + 토글 영역 (현대화) -->
@@ -473,8 +474,14 @@
                         </StackPanel>
                     </Grid>
                 </Border>
-            </Grid>
-        </Border>
+
+                <!-- 버전 표시 -->
+                <TextBlock x:Name="VersionText"
+                           Grid.Row="3"
+                           Text="v0.0.0"
+                           FontSize="10" Foreground="#CBD5E1"
+                           HorizontalAlignment="Center"
+                           Margin="0,6,0,8"/>
 
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
