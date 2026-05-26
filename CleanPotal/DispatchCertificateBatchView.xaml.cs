@@ -334,17 +334,14 @@ namespace CleanPotal
                         int endSN = startSN + currentGroupQty - 1;
 
                         string fileName = $"{item.PartName} ({item.ItemCode})_{currentGroupQty}EA_{g}.xlsx";
-                        string fullFilePath = Path.Combine(finalPath, fileName);
+                        string fullFilePath = UniqueFilePath(finalPath, fileName);
 
-                        if (!File.Exists(fullFilePath))
-                        {
-                            File.Copy(tplPath, fullFilePath);
-                            FillPlateReportData(fullFilePath, item, currentGroupQty, startSN, endSN);
+                        File.Copy(tplPath, fullFilePath);
+                        FillPlateReportData(fullFilePath, item, currentGroupQty, startSN, endSN);
 
-                            total++;
-                            string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
-                            RegisterToDB(wsReg, wsHist, item, regNo, currentGroupQty, finalPath, pType, total);
-                        }
+                        total++;
+                        string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
+                        RegisterToDB(wsReg, wsHist, item, regNo, currentGroupQty, finalPath, pType, total);
                     }
                 }
                 else
@@ -353,18 +350,14 @@ namespace CleanPotal
                     {
                         string suffix = item.Qty > 1 ? $"_{i}" : "";
                         string fileName = $"{item.PartName} ({item.ItemCode}){suffix}.xlsx";
-                        string fullFilePath = Path.Combine(finalPath, fileName);
+                        string fullFilePath = UniqueFilePath(finalPath, fileName);
 
-                        if (!File.Exists(fullFilePath))
-                        {
-                            File.Copy(tplPath, fullFilePath);
+                        File.Copy(tplPath, fullFilePath);
+                        FillReportData(fullFilePath, item);
 
-                            FillReportData(fullFilePath, item);
-
-                            total++;
-                            string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
-                            RegisterToDB(wsReg, wsHist, item, regNo, 1, finalPath, pType, total);
-                        }
+                        total++;
+                        string regNo = $"AETS-{DateTime.Now:MMddHHmm}-{total:D3}";
+                        RegisterToDB(wsReg, wsHist, item, regNo, 1, finalPath, pType, total);
                     }
                 }
                 item.Result = "성공";
@@ -373,6 +366,20 @@ namespace CleanPotal
             }
             wbMaster.Save();
             return (total, createdFolders);
+        }
+
+        // 동일 파일명이 있으면 "파일명 (2).xlsx", "파일명 (3).xlsx" 형태로 고유 경로 반환
+        private static string UniqueFilePath(string folder, string fileName)
+        {
+            string fullPath = Path.Combine(folder, fileName);
+            if (!File.Exists(fullPath)) return fullPath;
+
+            string ext  = Path.GetExtension(fileName);
+            string name = Path.GetFileNameWithoutExtension(fileName);
+            int n = 2;
+            do { fullPath = Path.Combine(folder, $"{name} ({n++}){ext}"); }
+            while (File.Exists(fullPath));
+            return fullPath;
         }
 
         private static void RegisterToDB(IXLWorksheet wsReg, IXLWorksheet wsHist, AetsPreviewModel item, string regNo, int qty, string path, string pType, int total)
