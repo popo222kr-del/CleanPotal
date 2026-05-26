@@ -853,19 +853,46 @@ namespace CleanPotal
 
             if (isRequestForm)
             {
-                // ── 세정 의뢰 양식 파싱 (B=No, C=Name, D=Code, E=Size, F=Qty) ──
+                // ── 세정 의뢰 양식 파싱 ──
+                // 구조: "1. 반출 LIST" 섹션(품목)과 "2. 반출 정보" 섹션(메타)이 분리됨
+                // "1. 반출 LIST" 행에서 시작해 "2. 반출 정보" 또는 "Total" 행에서 품목 읽기 중단
+                bool inListSection  = false;
+                bool inInfoSection  = false;
+
                 foreach (Row row in sd.Elements<Row>())
                 {
                     uint ri    = row.RowIndex?.Value ?? 0;
                     string bVal = Get($"B{ri}").Trim();
 
-                    if (int.TryParse(bVal, out int no) && no > 0)
+                    // 섹션 경계 감지
+                    if (bVal.Contains("반출 LIST") || bVal.Contains("반출LIST"))
                     {
-                        string name = Get($"C{ri}").Trim();
-                        string dVal = Get($"D{ri}").Trim();
-                        string eVal = Get($"E{ri}").Trim();
-                        int.TryParse(Get($"F{ri}").Trim(), out int qty);
-                        var (partCode, spec) = ParseCodeAndSize(dVal, eVal);
+                        inListSection = true;
+                        inInfoSection = false;
+                        continue;
+                    }
+                    if (bVal.Contains("반출 정보") || bVal.Contains("반출정보"))
+                    {
+                        inListSection = false;
+                        inInfoSection = true;
+                        continue;
+                    }
+                    // "Total" 행은 반출 LIST 섹션 종료 신호
+                    if (inListSection && bVal.StartsWith("Total", StringComparison.OrdinalIgnoreCase))
+                    {
+                        inListSection = false;
+                        continue;
+                    }
+
+                    // ── 1. 반출 LIST 품목 파싱 ──
+                    if (inListSection && int.TryParse(bVal, out int no) && no > 0)
+                    {
+                        string name = Get($"D{ri}").Trim();   // D열: Part's Name
+                        string cVal = Get($"C{ri}").Trim();   // C열: 품목코드
+                        string eVal = Get($"E{ri}").Trim();   // E열: 규격
+                        string fVal = Get($"F{ri}").Trim();   // F열: 제품구분
+                        int.TryParse(Get($"G{ri}").Trim(), out int qty); // G열: Q'ty
+                        var (partCode, spec) = ParseCodeAndSize(cVal, eVal);
                         if (!string.IsNullOrEmpty(name))
                             items.Add(new QuotationLineItem
                             {
@@ -873,20 +900,33 @@ namespace CleanPotal
                                 StandardSpec = spec, Qty = qty > 0 ? qty : 1
                             });
                     }
-                    // 담당자 정보 셀 탐색
-                    if (string.IsNullOrEmpty(attention))
+
+                    // ── 2. 반출 정보 담당자 파싱 ──
+                    if (inInfoSection && string.IsNullOrEmpty(attention))
                     {
+                        string cVal = Get($"C{ri}").Trim();
+                        if (cVal.Replace(" ", "").Contains("담당자"))
+                        {
+                            string dVal = Get($"D{ri}").Trim();
+                            if (!string.IsNullOrEmpty(dVal))
+                                (attention, phone) = ParseManagerContact(dVal);
+                        }
+                    }
+                }
+
+                // 구형 양식 폴백: 섹션 구분 없이 셀 내 "담당자(연락처):" 패턴 탐색
+                if (string.IsNullOrEmpty(attention))
+                {
+                    foreach (Row row in sd.Elements<Row>())
                         foreach (Cell cell in row.Elements<Cell>())
                         {
                             string val = XlsxCellText(cell, ss);
                             if (val.Contains("담당자") && val.Contains("연락처"))
                             {
                                 var lm = Regex.Match(val, @"담당자\s*\(연락처\)\s*:\s*([^\n\r]*)", RegexOptions.IgnoreCase);
-                                if (lm.Success) (attention, phone) = ParseManagerContact(lm.Groups[1].Value.Trim());
-                                break;
+                                if (lm.Success) { (attention, phone) = ParseManagerContact(lm.Groups[1].Value.Trim()); break; }
                             }
                         }
-                    }
                 }
             }
             else
