@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Win32;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Excel = Microsoft.Office.Interop.Excel;
@@ -401,10 +402,59 @@ namespace CleanPotal
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // PDF 출력: Adobe Reader → SumatraPDF → 셸 print 동사 순서로 시도
+        // PDF 출력: 레지스트리 기본 핸들러 → Adobe Reader → SumatraPDF → 셸 print → 파일 열기
         private static void PrintPdf(string pdfPath)
         {
-            // 1순위: Adobe Acrobat Reader (가장 안정적인 커맨드라인 출력)
+            // 1순위: 레지스트리에서 .pdf 기본 핸들러 실행 경로 직접 조회
+            // 소프트캠프·기타 뷰어도 여기에 등록되어 있으면 자동 감지됨
+            string? registryExe = GetPdfHandlerExe();
+            if (registryExe != null && File.Exists(registryExe))
+            {
+                string lower = registryExe.ToLowerInvariant();
+
+                if (lower.Contains("acrord32") || lower.Contains("acrobat"))
+                {
+                    // Adobe Reader: /t = 인쇄, /h = 숨김
+                    var p = Process.Start(new ProcessStartInfo
+                    {
+                        FileName    = registryExe,
+                        Arguments   = $"/t /h \"{pdfPath}\"",
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    });
+                    p?.WaitForExit(20000);
+                    try { p?.Kill(); } catch { }
+                    return;
+                }
+
+                if (lower.Contains("sumatra"))
+                {
+                    var p = Process.Start(new ProcessStartInfo
+                    {
+                        FileName    = registryExe,
+                        Arguments   = $"-print-to-default \"{pdfPath}\"",
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    });
+                    p?.WaitForExit(20000);
+                    return;
+                }
+
+                // 소프트캠프 또는 기타 뷰어: 셸 print 동사로 시도
+                try
+                {
+                    var p = Process.Start(new ProcessStartInfo
+                    {
+                        FileName        = pdfPath,
+                        Verb            = "print",
+                        UseShellExecute = true,
+                        WindowStyle     = ProcessWindowStyle.Hidden
+                    });
+                    p?.WaitForExit(20000);
+                    return;
+                }
+                catch { /* 아래 폴백으로 이어짐 */ }
+            }
+
+            // 2순위: Adobe Reader 고정 경로
             string[] acroPaths =
             {
                 @"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
@@ -415,11 +465,10 @@ namespace CleanPotal
             foreach (var acro in acroPaths)
             {
                 if (!File.Exists(acro)) continue;
-                // /t = print, /h = hidden window
                 var p = Process.Start(new ProcessStartInfo
                 {
-                    FileName  = acro,
-                    Arguments = $"/t /h \"{pdfPath}\"",
+                    FileName    = acro,
+                    Arguments   = $"/t /h \"{pdfPath}\"",
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
                 p?.WaitForExit(20000);
@@ -427,7 +476,7 @@ namespace CleanPotal
                 return;
             }
 
-            // 2순위: SumatraPDF (무료, 커맨드라인 출력 지원)
+            // 3순위: SumatraPDF 고정 경로
             string[] sumatraPaths =
             {
                 @"C:\Program Files\SumatraPDF\SumatraPDF.exe",
@@ -448,7 +497,7 @@ namespace CleanPotal
                 return;
             }
 
-            // 3순위: 셸 print 동사 (Edge 등 기본 뷰어가 지원하는 경우)
+            // 4순위: 셸 print 동사
             try
             {
                 var p = Process.Start(new ProcessStartInfo
@@ -462,14 +511,38 @@ namespace CleanPotal
             }
             catch
             {
-                // 4순위: 파일 열기 (사용자가 직접 출력)
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName        = pdfPath,
-                    UseShellExecute = true
-                });
+                // 최후 폴백: 파일 열기
+                Process.Start(new ProcessStartInfo { FileName = pdfPath, UseShellExecute = true });
                 throw new InvalidOperationException("자동 출력 불가 — 파일을 열었습니다. 직접 출력해주세요.");
             }
+        }
+
+        // 레지스트리에서 .pdf 파일의 기본 핸들러 실행 파일 경로를 조회
+        private static string? GetPdfHandlerExe()
+        {
+            try
+            {
+                // HKCR\.pdf → ProgID → shell\open\command
+                using var extKey = Registry.ClassesRoot.OpenSubKey(".pdf");
+                string? progId = extKey?.GetValue(null) as string;
+                if (string.IsNullOrEmpty(progId)) return null;
+
+                using var cmdKey = Registry.ClassesRoot.OpenSubKey(
+                    $@"{progId}\shell\open\command");
+                string? cmd = cmdKey?.GetValue(null) as string;
+                if (string.IsNullOrEmpty(cmd)) return null;
+
+                // 경로 파싱: "C:\path\to\app.exe" "%1" 형태
+                cmd = cmd.Trim();
+                if (cmd.StartsWith("\""))
+                {
+                    int end = cmd.IndexOf('"', 1);
+                    return end > 1 ? cmd[1..end] : null;
+                }
+                int space = cmd.IndexOf(' ');
+                return space > 0 ? cmd[..space] : cmd;
+            }
+            catch { return null; }
         }
     }
 }
