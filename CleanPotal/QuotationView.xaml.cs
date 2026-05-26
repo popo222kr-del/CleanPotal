@@ -432,14 +432,11 @@ namespace CleanPotal
                 ? managerName
                 : $"{managerName} {jobTitle}";
 
-            // 업체 주 담당자 자동 세팅
-            var firstMgr = _selectedVendor?.Managers?.FirstOrDefault();
-
             var q = new QuotationModel
             {
                 Company     = _selectedVendor?.VendorName ?? "",
-                Attention   = firstMgr?.ManagerName ?? "",
-                Phone       = firstMgr?.ContactNumber ?? "",
+                Attention   = "",
+                Phone       = "",
                 AetsManager = aetsManager,
                 AetsPhone   = SessionManager.CurrentPhoneNumber,
                 BusinessNo  = _config.BusinessNo,
