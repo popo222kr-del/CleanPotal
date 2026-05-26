@@ -295,6 +295,8 @@ namespace CleanPotal
             var wsHist = wbMaster.Worksheet("생성이력");
             int total = 0;
             var createdFolders = new List<string>();
+            // 이번 배치 실행 내에서 동일한 기준 경로 → 같은 finalPath 재사용
+            var folderCache = new Dictionary<string, string>();
 
             foreach (var item in items)
             {
@@ -318,10 +320,20 @@ namespace CleanPotal
                 string yearFolder = Path.Combine(basePath, $"{item.OutDate:yy}년");
                 string monthFolder = Path.Combine(yearFolder, $"{item.OutDate.Month}월");
                 string dayFolder = Path.Combine(monthFolder, $"{item.OutDate.Day}일");
-                // 폴더가 이미 존재하면 _2, _3 ... 붙여 새 폴더 생성
-                string finalPath = string.IsNullOrEmpty(sub)
+
+                // 이번 배치 내에서 같은 키(날짜+담당자+공정)면 같은 폴더 재사용.
+                // 처음 만나는 키이고 폴더가 이미 존재하면 _2, _3 ... 새 폴더 생성.
+                string cacheKey = string.IsNullOrEmpty(sub)
                     ? dayFolder
-                    : UniqueFolderPath(dayFolder, sub);
+                    : Path.Combine(dayFolder, sub);
+
+                if (!folderCache.TryGetValue(cacheKey, out string? finalPath))
+                {
+                    finalPath = string.IsNullOrEmpty(sub)
+                        ? dayFolder
+                        : UniqueFolderPath(dayFolder, sub);
+                    folderCache[cacheKey] = finalPath;
+                }
 
                 Directory.CreateDirectory(finalPath);
 
