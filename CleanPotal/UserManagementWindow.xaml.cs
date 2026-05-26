@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using ClosedXML.Excel;
 
 namespace CleanPotal
 {
@@ -279,6 +281,86 @@ namespace CleanPotal
                 UserListBox.SelectedItem = null;
                 DetailPanel.Visibility = Visibility.Collapsed;
                 EmptyState.Visibility = Visibility.Visible;
+            }
+        }
+
+        // ── 엑셀 다운로드 ─────────────────────────────────────────
+        private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title    = "사용자 목록 엑셀 저장",
+                Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = $"사용자목록_{DateTime.Now:yyyyMMdd}.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                using var wb = new XLWorkbook();
+                var ws = wb.Worksheets.Add("사용자 목록");
+
+                string[] headers =
+                {
+                    "이름", "아이디", "소속팀", "직위", "사번",
+                    "입사일", "근속", "이메일", "전화번호",
+                    "파일관리", "공지관리", "업체관리", "일정관리"
+                };
+
+                for (int c = 0; c < headers.Length; c++)
+                {
+                    var hCell = ws.Cell(1, c + 1);
+                    hCell.Value = headers[c];
+                    hCell.Style.Font.Bold = true;
+                    hCell.Style.Fill.BackgroundColor = XLColor.FromHtml("#2563EB");
+                    hCell.Style.Font.FontColor = XLColor.White;
+                    hCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                }
+
+                var users = _allUsers.OrderBy(u => u.RealName).ToList();
+                for (int r = 0; r < users.Count; r++)
+                {
+                    var u = users[r];
+                    int row = r + 2;
+                    ws.Cell(row, 1).Value  = u.RealName;
+                    ws.Cell(row, 2).Value  = u.Username;
+                    ws.Cell(row, 3).Value  = u.TeamName ?? "";
+                    ws.Cell(row, 4).Value  = u.JobTitle ?? "";
+                    ws.Cell(row, 5).Value  = string.IsNullOrEmpty(u.EmployeeNumber) ? u.Username : u.EmployeeNumber;
+                    ws.Cell(row, 6).Value  = u.HireDate ?? "";
+                    ws.Cell(row, 7).Value  = CalcCareerStr(u.HireDate ?? "");
+                    ws.Cell(row, 8).Value  = u.Email ?? "";
+                    ws.Cell(row, 9).Value  = u.PhoneNumber ?? "";
+                    ws.Cell(row, 10).Value = u.CanManageFiles     ? "O" : "";
+                    ws.Cell(row, 11).Value = u.CanManageNotices   ? "O" : "";
+                    ws.Cell(row, 12).Value = u.CanManageVendors   ? "O" : "";
+                    ws.Cell(row, 13).Value = u.CanManageSchedule  ? "O" : "";
+
+                    // 짝수 행 연한 배경
+                    if (row % 2 == 0)
+                        ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
+                }
+
+                ws.Columns().AdjustToContents();
+                // 권한 열은 좁게 고정
+                foreach (int col in new[] { 10, 11, 12, 13 })
+                    ws.Column(col).Width = 8;
+
+                wb.SaveAs(dlg.FileName);
+
+                if (MessageBox.Show("엑셀 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
+                    "완료", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                    System.Diagnostics.Process.Start(
+                        new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (IOException)
+            {
+                MessageBox.Show("파일이 다른 프로그램에서 열려 있습니다.\n파일을 닫고 다시 시도하세요.",
+                    "저장 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("엑셀 저장 오류: " + ex.Message);
             }
         }
 

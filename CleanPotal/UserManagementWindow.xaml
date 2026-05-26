@@ -255,6 +255,13 @@
                                     <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
                                 </Button.Resources>
                             </Button>
+                            <Button x:Name="BtnExportExcel" Content="⬇ 엑셀" FontSize="10" Height="22" Padding="6,0"
+                                    Background="#DCFCE7" BorderThickness="0" Foreground="#16A34A"
+                                    Cursor="Hand" Margin="8,0,0,0" Click="BtnExportExcel_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                </Button.Resources>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Border>
