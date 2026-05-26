@@ -339,6 +339,43 @@ namespace CleanPotal
                 or nameof(QuotationLineItem.Qty)
                 or nameof(QuotationLineItem.ListPrice))
                 UpdateTotals();
+
+            // 단가가 직접 입력/변경된 경우 단가 관리에 즉시 반영
+            if (e.PropertyName == nameof(QuotationLineItem.ListPrice) && sender is QuotationLineItem item)
+                UpsertProductMasterPrice(item);
+        }
+
+        /// <summary>품목의 단가를 ProductMaster에 추가(신규) 또는 갱신(변경).</summary>
+        private void UpsertProductMasterPrice(QuotationLineItem item)
+        {
+            if (item.ListPrice <= 0) return;
+            if (string.IsNullOrEmpty(item.Description) && string.IsNullOrEmpty(item.PartCode)) return;
+
+            string vendorName = _selectedVendor?.VendorName ?? "";
+            var existing = FindMasterItem(item.Description, item.PartCode, vendorName);
+            if (existing != null)
+            {
+                if (existing.UnitPrice == item.ListPrice) return; // 변화 없으면 스킵
+                existing.UnitPrice = item.ListPrice;
+            }
+            else
+            {
+                var newMaster = new ProductMasterItem
+                {
+                    ProductName = item.Description,
+                    PartCode    = item.PartCode,
+                    Spec        = item.StandardSpec,
+                    UnitPrice   = item.ListPrice,
+                    Unit        = "EA",
+                    VendorName  = vendorName
+                };
+                _allProductMaster.Add(newMaster);
+                // 단가 관리 화면이 현재 업체 필터로 표시 중이면 목록에도 추가
+                if (_masterVendorFilter == "전체" ||
+                    string.Equals(_masterVendorFilter, vendorName, StringComparison.OrdinalIgnoreCase))
+                    _productMaster.Add(newMaster);
+            }
+            QuotationStore.SaveProductMaster(_allProductMaster);
         }
 
         private void UpdateTotals()
