@@ -139,12 +139,8 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- ── 헤더 ── -->
+        <!-- ── 상단 버튼 ── -->
         <Grid Grid.Row="0">
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="반출등록 성적서 생성" FontSize="22" FontWeight="Bold" Foreground="#0F172A"/>
-                <TextBlock Text="반출등록 시트 데이터를 기준으로 템플릿 성적서를 수량만큼 자동 생성하고 생성이력을 기록합니다." FontSize="13" Foreground="#94A3B8" Margin="0,4,0,0"/>
-            </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Content="⬇  세정 의뢰 양식" Height="36" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="BtnDownloadRequestForm_Click"/>
                 <Button Content="초기화" Height="36" Width="80" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="BtnReset_Click"/>
