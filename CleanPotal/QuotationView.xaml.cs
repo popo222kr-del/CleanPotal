@@ -1189,39 +1189,9 @@ namespace CleanPotal
             // 단가 저장 (ParseXlsxAsQuotation은 save:false로 호출되므로 여기서 저장)
             if (newPrices > 0) QuotationStore.SaveProductMaster(_allProductMaster);
 
-            // 담당자 정보 적용
-            string managerName  = parsed.Attention;
-            string managerPhone = parsed.Phone;
-            if (!string.IsNullOrEmpty(managerName))  CurrentQuotation.Attention = managerName;
-            if (!string.IsNullOrEmpty(managerPhone)) CurrentQuotation.Phone     = managerPhone;
-
-            // 거래처 담당자 자동 등록
-            if (!string.IsNullOrEmpty(managerName) && _selectedVendor != null)
-            {
-                bool exists = _selectedVendor.Managers.Any(m =>
-                    string.Equals(m.ManagerName?.Trim(), managerName, StringComparison.OrdinalIgnoreCase));
-                if (!exists)
-                {
-                    var allVendors = VendorStore.Load();
-                    var target = allVendors.FirstOrDefault(v =>
-                        string.Equals(v.VendorName, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
-                    if (target != null)
-                    {
-                        target.Managers.Add(new ManagerModel { ManagerName = managerName, ContactNumber = managerPhone });
-                        VendorStore.Save(allVendors);
-                        _selectedVendor.Managers.Add(new ManagerModel { ManagerName = managerName, ContactNumber = managerPhone });
-                        _allVendors = VendorStore.Load().ToList();
-                        RefreshVendorSuggestions();
-                        RefreshAttentionSuggestions(_selectedVendor.VendorName);
-                    }
-                }
-            }
-
             var sb = new System.Text.StringBuilder("가져오기 완료\n");
             sb.AppendLine($"• 품목 {parsed.LineItems.Count}개 반영");
             if (newPrices > 0) sb.AppendLine($"• 신규 단가 {newPrices}개 등록");
-            if (!string.IsNullOrEmpty(managerName))
-                sb.AppendLine($"• 담당자: {managerName}" + (string.IsNullOrEmpty(managerPhone) ? "" : $" ({managerPhone})"));
             MessageBox.Show(sb.ToString().Trim(), "완료");
         }
 
