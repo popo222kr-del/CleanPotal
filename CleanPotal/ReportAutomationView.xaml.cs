@@ -380,16 +380,7 @@ namespace CleanPotal
                                     break;
 
                                 case "PDF":
-                                    var psi = new ProcessStartInfo
-                                    {
-                                        FileName        = task.SourceFilePath,
-                                        Verb            = "print",
-                                        UseShellExecute = true,
-                                        WindowStyle     = ProcessWindowStyle.Hidden
-                                    };
-                                    var proc = Process.Start(psi);
-                                    // PDF 뷰어가 인쇄를 처리할 시간을 줌
-                                    proc?.WaitForExit(15000);
+                                    PrintPdf(task.SourceFilePath);
                                     break;
                             }
                             task.Status = "출력 완료";
@@ -408,6 +399,77 @@ namespace CleanPotal
             BtnRunPrint.Content   = "일괄출력 실행";
             MessageBox.Show("일괄출력 작업이 완료되었습니다.", "작업 완료",
                 MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // PDF 출력: Adobe Reader → SumatraPDF → 셸 print 동사 순서로 시도
+        private static void PrintPdf(string pdfPath)
+        {
+            // 1순위: Adobe Acrobat Reader (가장 안정적인 커맨드라인 출력)
+            string[] acroPaths =
+            {
+                @"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
+                @"C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
+                @"C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
+                @"C:\Program Files\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
+            };
+            foreach (var acro in acroPaths)
+            {
+                if (!File.Exists(acro)) continue;
+                // /t = print, /h = hidden window
+                var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName  = acro,
+                    Arguments = $"/t /h \"{pdfPath}\"",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(20000);
+                try { p?.Kill(); } catch { }
+                return;
+            }
+
+            // 2순위: SumatraPDF (무료, 커맨드라인 출력 지원)
+            string[] sumatraPaths =
+            {
+                @"C:\Program Files\SumatraPDF\SumatraPDF.exe",
+                @"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                             @"SumatraPDF\SumatraPDF.exe"),
+            };
+            foreach (var sumatra in sumatraPaths)
+            {
+                if (!File.Exists(sumatra)) continue;
+                var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName    = sumatra,
+                    Arguments   = $"-print-to-default \"{pdfPath}\"",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(20000);
+                return;
+            }
+
+            // 3순위: 셸 print 동사 (Edge 등 기본 뷰어가 지원하는 경우)
+            try
+            {
+                var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName        = pdfPath,
+                    Verb            = "print",
+                    UseShellExecute = true,
+                    WindowStyle     = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(15000);
+            }
+            catch
+            {
+                // 4순위: 파일 열기 (사용자가 직접 출력)
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName        = pdfPath,
+                    UseShellExecute = true
+                });
+                throw new InvalidOperationException("자동 출력 불가 — 파일을 열었습니다. 직접 출력해주세요.");
+            }
         }
     }
 }
