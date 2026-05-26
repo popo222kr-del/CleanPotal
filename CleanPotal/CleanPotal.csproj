@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\quotation_template.xlsx"/>
+    <EmbeddedResource Include="Resources\request_form_template.xlsx"/>
   </ItemGroup>
 
   <ItemGroup>

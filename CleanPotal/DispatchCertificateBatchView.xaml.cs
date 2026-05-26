@@ -98,6 +98,35 @@ namespace CleanPotal
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e) { }
 
+        private void BtnDownloadRequestForm_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title    = "세정 의뢰 양식 저장",
+                Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = "AETS_세정 의뢰 양식.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                var asm    = System.Reflection.Assembly.GetExecutingAssembly();
+                using var src = asm.GetManifestResourceStream("CleanPotal.Resources.request_form_template.xlsx")
+                    ?? throw new InvalidOperationException("양식 리소스를 찾을 수 없습니다.");
+                using var fs = System.IO.File.Create(dlg.FileName);
+                src.CopyTo(fs);
+
+                if (MessageBox.Show("세정 의뢰 양식이 저장되었습니다.\n바로 열어보시겠습니까?",
+                    "완료", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                    System.Diagnostics.Process.Start(
+                        new System.Diagnostics.ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("저장 오류: " + ex.Message, "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void BtnReset_Click(object sender, RoutedEventArgs e)
         {
             AetsPreviewList.Clear();

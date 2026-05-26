@@ -124,6 +124,7 @@
 
         <Grid Grid.Row="0" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="⬇ 세정 의뢰 양식" Width="130" Height="36" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="BtnDownloadRequestForm_Click"/>
                 <Button Content="초기화" Width="80" Height="36" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Click="BtnReset_Click"/>
                 <Button Content="생성이력 조회" Width="120" Height="36" Style="{StaticResource SecondaryButton}" Click="BtnShowHistory_Click"/>
             </StackPanel>
