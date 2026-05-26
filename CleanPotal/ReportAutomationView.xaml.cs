@@ -339,6 +339,12 @@ namespace CleanPotal
                 return;
             }
 
+            // 출력 설정 다이얼로그를 먼저 열어 프린터 선택
+            var printDialog = new System.Windows.Controls.PrintDialog();
+            if (printDialog.ShowDialog() != true) return;
+
+            string printerName = printDialog.PrintQueue.FullName;
+
             BtnRunPrint.IsEnabled = false;
             BtnRunPrint.Content   = "⏳ 출력 진행 중...";
 
@@ -361,7 +367,10 @@ namespace CleanPotal
                                 case "Excel":
                                     excelApp ??= new Excel.Application { Visible = false, DisplayAlerts = false };
                                     var wb = excelApp.Workbooks.Open(task.SourceFilePath, ReadOnly: true);
-                                    wb.PrintOut();
+                                    // 선택한 프린터로 변경 후 출력, 복원
+                                    string prevPrinter = excelApp.ActivePrinter;
+                                    try   { excelApp.ActivePrinter = printerName; wb.PrintOut(); }
+                                    finally { excelApp.ActivePrinter = prevPrinter; }
                                     wb.Close(false);
                                     Marshal.ReleaseComObject(wb);
                                     break;
@@ -375,18 +384,18 @@ namespace CleanPotal
                                     if (pptApp != null)
                                     {
                                         dynamic ppt = pptApp.Presentations.Open(task.SourceFilePath, -1, 0, 0);
-                                        ppt.PrintOut();
+                                        ppt.PrintOut(ActivePrinter: printerName);
                                         ppt.Close();
                                     }
                                     break;
 
                                 case "PDF":
-                                    PrintPdf(task.SourceFilePath);
+                                    PrintPdf(task.SourceFilePath, printerName);
                                     break;
                             }
                             task.Status = "출력 완료";
                         }
-                        catch { task.Status = "오류 발생"; }
+                        catch (Exception ex) { task.Status = $"오류: {ex.Message}"; }
                     }
                 }
                 finally
@@ -402,18 +411,58 @@ namespace CleanPotal
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // PDF 출력: 레지스트리 print 명령 → Adobe Reader → SumatraPDF → 오류 안내
-        private static void PrintPdf(string pdfPath)
+        // PDF 출력: 지정 프린터로 Adobe Reader → SumatraPDF → 레지스트리 명령 순 시도
+        private static void PrintPdf(string pdfPath, string printerName)
         {
-            // 1순위: 레지스트리 shell\print\command 확인
-            // (소프트캠프 등 뷰어가 print 동사를 등록한 경우에만 사용)
+            // 1순위: Adobe Reader (/t file printer)
+            string[] acroPaths =
+            {
+                @"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
+                @"C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
+                @"C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
+                @"C:\Program Files\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
+            };
+            foreach (var acro in acroPaths)
+            {
+                if (!File.Exists(acro)) continue;
+                var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName    = acro,
+                    Arguments   = $"/t /h \"{pdfPath}\" \"{printerName}\"",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(20000);
+                try { p?.Kill(); } catch { }
+                return;
+            }
+
+            // 2순위: SumatraPDF (-print-to 프린터명)
+            string[] sumatraPaths =
+            {
+                @"C:\Program Files\SumatraPDF\SumatraPDF.exe",
+                @"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                             @"SumatraPDF\SumatraPDF.exe"),
+            };
+            foreach (var sumatra in sumatraPaths)
+            {
+                if (!File.Exists(sumatra)) continue;
+                var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName    = sumatra,
+                    Arguments   = $"-print-to \"{printerName}\" \"{pdfPath}\"",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+                p?.WaitForExit(20000);
+                return;
+            }
+
+            // 3순위: 레지스트리 shell\print\command (프린터 지정 불가, 기본 프린터로 출력)
             string? printCmd = GetRegistryPrintCommand();
             if (printCmd != null)
             {
-                // %1 자리에 파일 경로 삽입
-                string args = printCmd.Replace("%1", $"\"{pdfPath}\"")
-                                      .Replace("\"%1\"", $"\"{pdfPath}\"");
-                // 실행 파일과 인수 분리
+                string args = printCmd.Replace("\"%1\"", $"\"{pdfPath}\"")
+                                      .Replace("%1",     $"\"{pdfPath}\"");
                 string exe, exeArgs;
                 if (args.StartsWith("\""))
                 {
@@ -427,7 +476,6 @@ namespace CleanPotal
                     exe     = sp > 0 ? args[..sp] : args;
                     exeArgs = sp > 0 ? args[(sp + 1)..] : "";
                 }
-
                 if (File.Exists(exe))
                 {
                     var p = Process.Start(new ProcessStartInfo
@@ -442,57 +490,12 @@ namespace CleanPotal
                 }
             }
 
-            // 2순위: Adobe Reader (커맨드라인 출력 지원)
-            string[] acroPaths =
-            {
-                @"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
-                @"C:\Program Files\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
-                @"C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
-                @"C:\Program Files\Adobe\Acrobat DC\Acrobat\Acrobat.exe",
-            };
-            foreach (var acro in acroPaths)
-            {
-                if (!File.Exists(acro)) continue;
-                var p = Process.Start(new ProcessStartInfo
-                {
-                    FileName    = acro,
-                    Arguments   = $"/t /h \"{pdfPath}\"",
-                    WindowStyle = ProcessWindowStyle.Hidden
-                });
-                p?.WaitForExit(20000);
-                try { p?.Kill(); } catch { }
-                return;
-            }
-
-            // 3순위: SumatraPDF (커맨드라인 출력 지원)
-            string[] sumatraPaths =
-            {
-                @"C:\Program Files\SumatraPDF\SumatraPDF.exe",
-                @"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                             @"SumatraPDF\SumatraPDF.exe"),
-            };
-            foreach (var sumatra in sumatraPaths)
-            {
-                if (!File.Exists(sumatra)) continue;
-                var p = Process.Start(new ProcessStartInfo
-                {
-                    FileName    = sumatra,
-                    Arguments   = $"-print-to-default \"{pdfPath}\"",
-                    WindowStyle = ProcessWindowStyle.Hidden
-                });
-                p?.WaitForExit(20000);
-                return;
-            }
-
-            // 지원 가능한 PDF 출력 프로그램 없음
             throw new InvalidOperationException(
                 "PDF 자동 출력을 위해 Adobe Reader 또는 SumatraPDF가 필요합니다.\n" +
                 "SumatraPDF는 무료로 설치할 수 있습니다.");
         }
 
-        // 레지스트리에서 .pdf의 shell\print\command 를 읽어 반환
-        // shell\open 만 있고 print 동사가 없으면 null 반환
+        // 레지스트리에서 .pdf의 shell\print\command 조회 (print 동사 없으면 null)
         private static string? GetRegistryPrintCommand()
         {
             try
