@@ -342,8 +342,9 @@ namespace CleanPotal
                           .Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
                 }
 
-                // 열 너비를 데이터 범위만 기준으로 조정
-                ws.Range(1, 1, users.Count + 1, headers.Length).Columns().AdjustToContents();
+                // 열 너비를 데이터 범위(행 1~마지막 데이터행)만 기준으로 조정
+                for (int c = 1; c <= headers.Length; c++)
+                    ws.Column(c).AdjustToContents(1, users.Count + 1);
                 // 권한 열은 좁게 고정
                 foreach (int col in new[] { 10, 11, 12, 13 })
                     ws.Column(col).Width = 8;
