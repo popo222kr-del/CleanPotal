@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,6 +37,7 @@ namespace CleanPotal
         // 양쪽 카드의 리스트 모델을 완벽하게 분리
         public ObservableCollection<ReportTaskModel> MesTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
         public ObservableCollection<ReportTaskModel> DirectTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
+        public ObservableCollection<ReportTaskModel> PrintTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
 
         // 🔥 요청: 신규/기존 경로 분리 적용
         private readonly string NEW_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Ori\";
@@ -45,8 +48,9 @@ namespace CleanPotal
         public ReportAutomationView()
         {
             InitializeComponent();
-            MesDataGrid.ItemsSource = MesTaskList;
+            MesDataGrid.ItemsSource   = MesTaskList;
             DirectDataGrid.ItemsSource = DirectTaskList;
+            PrintDataGrid.ItemsSource  = PrintTaskList;
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -284,8 +288,126 @@ namespace CleanPotal
                 }
             });
 
-            BtnRunDirect.IsEnabled = true; BtnRunDirect.Content = "다이렉트 변환 실행";
+            BtnRunDirect.IsEnabled = true; BtnRunDirect.Content = "변환 실행";
             MessageBox.Show("다이렉트 파일 PDF 변환 작업이 완료되었습니다.", "작업 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // ==========================================
+        // 3. 일괄출력 로직
+        // ==========================================
+        private void PrintDropZone_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void PrintDropZone_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+            foreach (var file in files)
+            {
+                string ext = Path.GetExtension(file).ToLowerInvariant();
+                string fileType = ext switch
+                {
+                    ".xls" or ".xlsx" => "Excel",
+                    ".ppt" or ".pptx" => "PPT",
+                    ".pdf"            => "PDF",
+                    _                 => ""
+                };
+                if (string.IsNullOrEmpty(fileType)) continue;
+
+                PrintTaskList.Add(new ReportTaskModel
+                {
+                    LotNumber      = Path.GetFileName(file),
+                    SourceFilePath = file,
+                    FileType       = fileType,
+                    Status         = "대기중"
+                });
+            }
+            e.Handled = true;
+        }
+
+        private void BtnClearPrint_Click(object sender, RoutedEventArgs e) => PrintTaskList.Clear();
+
+        private async void BtnRunPrint_Click(object sender, RoutedEventArgs e)
+        {
+            if (PrintTaskList.Count == 0)
+            {
+                MessageBox.Show("출력할 파일이 없습니다. 파일을 드래그하여 추가해주세요.", "알림",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            BtnRunPrint.IsEnabled = false;
+            BtnRunPrint.Content   = "⏳ 출력 진행 중...";
+
+            await Task.Run(() =>
+            {
+                Excel.Application? excelApp = null;
+                dynamic? pptApp = null;
+
+                try
+                {
+                    foreach (var task in PrintTaskList)
+                    {
+                        if (task.Status == "출력 완료") continue;
+                        task.Status = "인쇄중...";
+
+                        try
+                        {
+                            switch (task.FileType)
+                            {
+                                case "Excel":
+                                    excelApp ??= new Excel.Application { Visible = false, DisplayAlerts = false };
+                                    var wb = excelApp.Workbooks.Open(task.SourceFilePath, ReadOnly: true);
+                                    wb.PrintOut();
+                                    wb.Close(false);
+                                    Marshal.ReleaseComObject(wb);
+                                    break;
+
+                                case "PPT":
+                                    if (pptApp == null)
+                                    {
+                                        var pptType = Type.GetTypeFromProgID("PowerPoint.Application");
+                                        if (pptType != null) pptApp = Activator.CreateInstance(pptType);
+                                    }
+                                    if (pptApp != null)
+                                    {
+                                        dynamic ppt = pptApp.Presentations.Open(task.SourceFilePath, -1, 0, 0);
+                                        ppt.PrintOut();
+                                        ppt.Close();
+                                    }
+                                    break;
+
+                                case "PDF":
+                                    var psi = new ProcessStartInfo
+                                    {
+                                        FileName        = task.SourceFilePath,
+                                        Verb            = "print",
+                                        UseShellExecute = true,
+                                        WindowStyle     = ProcessWindowStyle.Hidden
+                                    };
+                                    var proc = Process.Start(psi);
+                                    // PDF 뷰어가 인쇄를 처리할 시간을 줌
+                                    proc?.WaitForExit(15000);
+                                    break;
+                            }
+                            task.Status = "출력 완료";
+                        }
+                        catch { task.Status = "오류 발생"; }
+                    }
+                }
+                finally
+                {
+                    if (excelApp != null) { excelApp.Quit(); Marshal.ReleaseComObject(excelApp); }
+                    if (pptApp   != null) { pptApp.Quit();   Marshal.ReleaseComObject(pptApp); }
+                }
+            });
+
+            BtnRunPrint.IsEnabled = true;
+            BtnRunPrint.Content   = "일괄출력 실행";
+            MessageBox.Show("일괄출력 작업이 완료되었습니다.", "작업 완료",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
