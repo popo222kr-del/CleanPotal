@@ -1186,9 +1186,15 @@ namespace CleanPotal
             // 단가 저장 (ParseXlsxAsQuotation은 save:false로 호출되므로 여기서 저장)
             if (newPrices > 0) QuotationStore.SaveProductMaster(_allProductMaster);
 
+            // 파일에 담당자 정보가 있으면 자동 입력
+            if (!string.IsNullOrEmpty(parsed.Attention)) CurrentQuotation.Attention = parsed.Attention;
+            if (!string.IsNullOrEmpty(parsed.Phone))     CurrentQuotation.Phone     = parsed.Phone;
+
             var sb = new System.Text.StringBuilder("가져오기 완료\n");
             sb.AppendLine($"• 품목 {parsed.LineItems.Count}개 반영");
             if (newPrices > 0) sb.AppendLine($"• 신규 단가 {newPrices}개 등록");
+            if (!string.IsNullOrEmpty(parsed.Attention))
+                sb.AppendLine($"• 담당자: {parsed.Attention}" + (string.IsNullOrEmpty(parsed.Phone) ? "" : $" ({parsed.Phone})"));
             MessageBox.Show(sb.ToString().Trim(), "완료");
         }
 
