@@ -307,7 +307,11 @@ namespace CleanPotal
 
                 if (string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(tplPath) || !File.Exists(tplPath)) { item.Result = "실패"; item.Message = "경로 또는 템플릿 누락"; continue; }
 
-                string safeMgr = Clean(item.ManagerName);
+                // 담당자명에서 이름만 추출 ("김경민 (010-4730-3001)" → "김경민")
+                string mgrNameOnly = item.ManagerName ?? "";
+                int parenIdx = mgrNameOnly.IndexOf('(');
+                if (parenIdx > 0) mgrNameOnly = mgrNameOnly[..parenIdx].Trim();
+                string safeMgr = Clean(mgrNameOnly);
                 string safeProc = Clean(item.ProcessName);
                 string sub = safeMgr + (string.IsNullOrEmpty(safeProc) ? "" : " (" + safeProc + ")");
 
