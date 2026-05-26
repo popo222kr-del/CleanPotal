@@ -13,6 +13,11 @@
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="0"/>
+            <!-- ClipToBounds 없이 오버레이로 모서리 처리 — anti-alias 보존 -->
+        </Style>
+
+        <Style x:Key="CardWrap" TargetType="Grid">
+            <Setter Property="Margin" Value="0"/>
         </Style>
 
         <Style x:Key="BaseBtn" TargetType="Button">
@@ -142,7 +147,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- ══ 1. NAS 성적서 자동 변환 ══ -->
-            <Border Grid.Column="0" Style="{StaticResource CardBorder}" ClipToBounds="True">
+            <Border Grid.Column="0" Style="{StaticResource CardBorder}">
                 <Border.Effect>
                     <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="12" ShadowDepth="2" Direction="270"/>
                 </Border.Effect>
@@ -184,7 +189,8 @@
                     </Border>
 
                     <!-- 데이터그리드 -->
-                    <DataGrid Grid.Row="2" x:Name="MesDataGrid" Style="{StaticResource DG}">
+                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <DataGrid x:Name="MesDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
                             <Style TargetType="DataGridRow">
@@ -214,11 +220,12 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                    </Border>
                 </Grid>
             </Border>
 
             <!-- ══ 2. 다이렉트 PDF 변환 ══ -->
-            <Border Grid.Column="2" Style="{StaticResource CardBorder}" ClipToBounds="True"
+            <Border Grid.Column="2" Style="{StaticResource CardBorder}"
                     AllowDrop="True" PreviewDragOver="FileDropZone_PreviewDragOver" Drop="FileDropZone_Drop">
                 <Border.Effect>
                     <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="12" ShadowDepth="2" Direction="270"/>
@@ -254,7 +261,8 @@
                         </Grid>
                     </Border>
 
-                    <DataGrid Grid.Row="2" x:Name="DirectDataGrid" Style="{StaticResource DG}">
+                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <DataGrid x:Name="DirectDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
                             <Style TargetType="DataGridRow">
@@ -292,11 +300,12 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                    </Border>
                 </Grid>
             </Border>
 
             <!-- ══ 3. 일괄출력 ══ -->
-            <Border Grid.Column="4" Style="{StaticResource CardBorder}" ClipToBounds="True"
+            <Border Grid.Column="4" Style="{StaticResource CardBorder}"
                     AllowDrop="True" PreviewDragOver="PrintDropZone_PreviewDragOver" Drop="PrintDropZone_Drop">
                 <Border.Effect>
                     <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="12" ShadowDepth="2" Direction="270"/>
@@ -332,7 +341,8 @@
                         </Grid>
                     </Border>
 
-                    <DataGrid Grid.Row="2" x:Name="PrintDataGrid" Style="{StaticResource DG}">
+                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <DataGrid x:Name="PrintDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
                             <Style TargetType="DataGridRow">
@@ -371,6 +381,7 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                    </Border>
                 </Grid>
             </Border>
 
