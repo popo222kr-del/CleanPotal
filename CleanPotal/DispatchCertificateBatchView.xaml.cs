@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -267,14 +268,25 @@ namespace CleanPotal
             BtnRun.IsEnabled = false; BtnRun.Content = "처리 중...";
             foreach (var t in targets) { t.Result = "처리중..."; t.Message = "대기"; }
 
-            try { int count = await Task.Run(() => ExecuteAetsBatch(MasterDbPath, targets)); MessageBox.Show($"작업 완료! 생성된 파일: {count}개"); }
+            try
+            {
+                var (count, folders) = await Task.Run(() => ExecuteAetsBatch(MasterDbPath, targets));
+                MessageBox.Show($"작업 완료! 생성된 파일: {count}개");
+
+                // 생성된 폴더 자동 열기 (중복 제거 후 각각 탐색기로 오픈)
+                foreach (var folder in folders.Distinct())
+                {
+                    if (Directory.Exists(folder))
+                        Process.Start(new ProcessStartInfo("explorer.exe", folder) { UseShellExecute = true });
+                }
+            }
             catch (Exception ex) { MessageBox.Show("오류: " + ex.Message); }
             finally { BtnRun.IsEnabled = true; BtnRun.Content = "성적서 자동 생성 실행"; }
         }
 
         private static string Clean(string s) { if (string.IsNullOrWhiteSpace(s)) return ""; string iv = new string(Path.GetInvalidFileNameChars()); foreach (char c in iv) s = s.Replace(c.ToString(), "_"); return s.Trim(); }
 
-        private static int ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
+        private static (int count, List<string> folders) ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
         {
             var vendors = VendorStore.Load();
             var globalTpls = VendorStore.LoadGlobalTemplates();
@@ -282,6 +294,7 @@ namespace CleanPotal
             var wsReg = wbMaster.Worksheet("반출등록");
             var wsHist = wbMaster.Worksheet("생성이력");
             int total = 0;
+            var createdFolders = new List<string>();
 
             foreach (var item in items)
             {
@@ -352,9 +365,10 @@ namespace CleanPotal
                 }
                 item.Result = "성공";
                 item.Message = $"{item.Qty}개 생성 및 데이터 매핑 완료";
+                createdFolders.Add(finalPath);
             }
             wbMaster.Save();
-            return total;
+            return (total, createdFolders);
         }
 
         private static void RegisterToDB(IXLWorksheet wsReg, IXLWorksheet wsHist, AetsPreviewModel item, string regNo, int qty, string path, string pType, int total)
