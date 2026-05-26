@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
@@ -348,29 +349,41 @@ namespace CleanPotal
             BtnRunPrint.IsEnabled = false;
             BtnRunPrint.Content   = "⏳ 출력 진행 중...";
 
-            await Task.Run(() =>
+            // Excel/PPT COM은 STA 스레드에서 실행해야 함 (Task.Run은 MTA → 0x800A03EC 오류)
+            var tasks = PrintTaskList.ToList();
+            var tcs   = new TaskCompletionSource<bool>();
+
+            var staThread = new Thread(() =>
             {
                 Excel.Application? excelApp = null;
                 dynamic? pptApp = null;
 
                 try
                 {
-                    foreach (var task in PrintTaskList)
+                    foreach (var task in tasks)
                     {
                         if (task.Status == "출력 완료") continue;
                         task.Status = "인쇄중...";
 
+                        string? tempFile = null;
                         try
                         {
                             switch (task.FileType)
                             {
                                 case "Excel":
                                     excelApp ??= new Excel.Application { Visible = false, DisplayAlerts = false };
-                                    var wb = excelApp.Workbooks.Open(task.SourceFilePath, ReadOnly: true);
-                                    // 선택한 프린터로 변경 후 출력, 복원
-                                    string prevPrinter = excelApp.ActivePrinter;
-                                    try   { excelApp.ActivePrinter = printerName; wb.PrintOut(); }
-                                    finally { excelApp.ActivePrinter = prevPrinter; }
+                                    // 한글/공백 경로는 ASCII 임시 경로로 복사 후 열기
+                                    string excelPath = task.SourceFilePath;
+                                    if (excelPath.Any(c => c > 127) || excelPath.Contains(' '))
+                                    {
+                                        tempFile = Path.Combine(Path.GetTempPath(), $"print_{Guid.NewGuid():N}.xlsx");
+                                        File.Copy(excelPath, tempFile, true);
+                                        excelPath = tempFile;
+                                    }
+                                    var wb = excelApp.Workbooks.Open(excelPath, ReadOnly: false);
+                                    // ActivePrinter 형식 문제 회피: PrintOut에 프린터 직접 전달
+                                    try   { wb.PrintOut(ActivePrinter: printerName); }
+                                    catch { wb.PrintOut(); } // 프린터명 형식 불일치 시 기본 프린터로 출력
                                     wb.Close(false);
                                     Marshal.ReleaseComObject(wb);
                                     break;
@@ -384,7 +397,8 @@ namespace CleanPotal
                                     if (pptApp != null)
                                     {
                                         dynamic ppt = pptApp.Presentations.Open(task.SourceFilePath, -1, 0, 0);
-                                        ppt.PrintOut(ActivePrinter: printerName);
+                                        try   { ppt.PrintOut(ActivePrinter: printerName); }
+                                        catch { ppt.PrintOut(); }
                                         ppt.Close();
                                     }
                                     break;
@@ -395,15 +409,28 @@ namespace CleanPotal
                             }
                             task.Status = "출력 완료";
                         }
-                        catch (Exception ex) { task.Status = $"오류: {ex.Message}"; }
+                        catch (Exception ex)
+                        {
+                            task.Status = $"오류: {ex.Message}";
+                        }
+                        finally
+                        {
+                            if (tempFile != null) try { File.Delete(tempFile); } catch { }
+                        }
                     }
+                    tcs.SetResult(true);
                 }
+                catch (Exception ex) { tcs.SetException(ex); }
                 finally
                 {
-                    if (excelApp != null) { excelApp.Quit(); Marshal.ReleaseComObject(excelApp); }
-                    if (pptApp   != null) { pptApp.Quit();   Marshal.ReleaseComObject(pptApp); }
+                    if (excelApp != null) { try { excelApp.Quit(); } catch { } Marshal.ReleaseComObject(excelApp); }
+                    if (pptApp   != null) { try { pptApp.Quit();   } catch { } Marshal.ReleaseComObject(pptApp); }
                 }
             });
+            staThread.SetApartmentState(ApartmentState.STA);
+            staThread.IsBackground = true;
+            staThread.Start();
+            await tcs.Task;
 
             BtnRunPrint.IsEnabled = true;
             BtnRunPrint.Content   = "일괄출력 실행";
