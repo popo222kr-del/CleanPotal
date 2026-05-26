@@ -318,7 +318,10 @@ namespace CleanPotal
                 string yearFolder = Path.Combine(basePath, $"{item.OutDate:yy}년");
                 string monthFolder = Path.Combine(yearFolder, $"{item.OutDate.Month}월");
                 string dayFolder = Path.Combine(monthFolder, $"{item.OutDate.Day}일");
-                string finalPath = string.IsNullOrEmpty(sub) ? dayFolder : Path.Combine(dayFolder, sub);
+                // 폴더가 이미 존재하면 _2, _3 ... 붙여 새 폴더 생성
+                string finalPath = string.IsNullOrEmpty(sub)
+                    ? dayFolder
+                    : UniqueFolderPath(dayFolder, sub);
 
                 Directory.CreateDirectory(finalPath);
 
@@ -366,6 +369,19 @@ namespace CleanPotal
             }
             wbMaster.Save();
             return (total, createdFolders);
+        }
+
+        // 동일 폴더명이 있으면 "폴더명_2", "폴더명_3" 형태로 고유 경로 반환
+        private static string UniqueFolderPath(string parent, string folderName)
+        {
+            string fullPath = Path.Combine(parent, folderName);
+            if (!Directory.Exists(fullPath)) return fullPath;
+
+            int n = 2;
+            string newPath;
+            do { newPath = Path.Combine(parent, $"{folderName}_{n++}"); }
+            while (Directory.Exists(newPath));
+            return newPath;
         }
 
         // 동일 파일명이 있으면 "파일명 (2).xlsx", "파일명 (3).xlsx" 형태로 고유 경로 반환
