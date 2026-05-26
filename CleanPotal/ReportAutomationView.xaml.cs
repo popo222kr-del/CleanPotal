@@ -402,59 +402,47 @@ namespace CleanPotal
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // PDF 출력: 레지스트리 기본 핸들러 → Adobe Reader → SumatraPDF → 셸 print → 파일 열기
+        // PDF 출력: 레지스트리 print 명령 → Adobe Reader → SumatraPDF → 오류 안내
         private static void PrintPdf(string pdfPath)
         {
-            // 1순위: 레지스트리에서 .pdf 기본 핸들러 실행 경로 직접 조회
-            // 소프트캠프·기타 뷰어도 여기에 등록되어 있으면 자동 감지됨
-            string? registryExe = GetPdfHandlerExe();
-            if (registryExe != null && File.Exists(registryExe))
+            // 1순위: 레지스트리 shell\print\command 확인
+            // (소프트캠프 등 뷰어가 print 동사를 등록한 경우에만 사용)
+            string? printCmd = GetRegistryPrintCommand();
+            if (printCmd != null)
             {
-                string lower = registryExe.ToLowerInvariant();
-
-                if (lower.Contains("acrord32") || lower.Contains("acrobat"))
+                // %1 자리에 파일 경로 삽입
+                string args = printCmd.Replace("%1", $"\"{pdfPath}\"")
+                                      .Replace("\"%1\"", $"\"{pdfPath}\"");
+                // 실행 파일과 인수 분리
+                string exe, exeArgs;
+                if (args.StartsWith("\""))
                 {
-                    // Adobe Reader: /t = 인쇄, /h = 숨김
+                    int end = args.IndexOf('"', 1);
+                    exe     = args[1..end];
+                    exeArgs = args[(end + 1)..].Trim();
+                }
+                else
+                {
+                    int sp  = args.IndexOf(' ');
+                    exe     = sp > 0 ? args[..sp] : args;
+                    exeArgs = sp > 0 ? args[(sp + 1)..] : "";
+                }
+
+                if (File.Exists(exe))
+                {
                     var p = Process.Start(new ProcessStartInfo
                     {
-                        FileName    = registryExe,
-                        Arguments   = $"/t /h \"{pdfPath}\"",
+                        FileName    = exe,
+                        Arguments   = exeArgs,
                         WindowStyle = ProcessWindowStyle.Hidden
                     });
                     p?.WaitForExit(20000);
                     try { p?.Kill(); } catch { }
                     return;
                 }
-
-                if (lower.Contains("sumatra"))
-                {
-                    var p = Process.Start(new ProcessStartInfo
-                    {
-                        FileName    = registryExe,
-                        Arguments   = $"-print-to-default \"{pdfPath}\"",
-                        WindowStyle = ProcessWindowStyle.Hidden
-                    });
-                    p?.WaitForExit(20000);
-                    return;
-                }
-
-                // 소프트캠프 또는 기타 뷰어: 셸 print 동사로 시도
-                try
-                {
-                    var p = Process.Start(new ProcessStartInfo
-                    {
-                        FileName        = pdfPath,
-                        Verb            = "print",
-                        UseShellExecute = true,
-                        WindowStyle     = ProcessWindowStyle.Hidden
-                    });
-                    p?.WaitForExit(20000);
-                    return;
-                }
-                catch { /* 아래 폴백으로 이어짐 */ }
             }
 
-            // 2순위: Adobe Reader 고정 경로
+            // 2순위: Adobe Reader (커맨드라인 출력 지원)
             string[] acroPaths =
             {
                 @"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe",
@@ -476,7 +464,7 @@ namespace CleanPotal
                 return;
             }
 
-            // 3순위: SumatraPDF 고정 경로
+            // 3순위: SumatraPDF (커맨드라인 출력 지원)
             string[] sumatraPaths =
             {
                 @"C:\Program Files\SumatraPDF\SumatraPDF.exe",
@@ -497,50 +485,26 @@ namespace CleanPotal
                 return;
             }
 
-            // 4순위: 셸 print 동사
-            try
-            {
-                var p = Process.Start(new ProcessStartInfo
-                {
-                    FileName        = pdfPath,
-                    Verb            = "print",
-                    UseShellExecute = true,
-                    WindowStyle     = ProcessWindowStyle.Hidden
-                });
-                p?.WaitForExit(15000);
-            }
-            catch
-            {
-                // 최후 폴백: 파일 열기
-                Process.Start(new ProcessStartInfo { FileName = pdfPath, UseShellExecute = true });
-                throw new InvalidOperationException("자동 출력 불가 — 파일을 열었습니다. 직접 출력해주세요.");
-            }
+            // 지원 가능한 PDF 출력 프로그램 없음
+            throw new InvalidOperationException(
+                "PDF 자동 출력을 위해 Adobe Reader 또는 SumatraPDF가 필요합니다.\n" +
+                "SumatraPDF는 무료로 설치할 수 있습니다.");
         }
 
-        // 레지스트리에서 .pdf 파일의 기본 핸들러 실행 파일 경로를 조회
-        private static string? GetPdfHandlerExe()
+        // 레지스트리에서 .pdf의 shell\print\command 를 읽어 반환
+        // shell\open 만 있고 print 동사가 없으면 null 반환
+        private static string? GetRegistryPrintCommand()
         {
             try
             {
-                // HKCR\.pdf → ProgID → shell\open\command
                 using var extKey = Registry.ClassesRoot.OpenSubKey(".pdf");
                 string? progId = extKey?.GetValue(null) as string;
                 if (string.IsNullOrEmpty(progId)) return null;
 
-                using var cmdKey = Registry.ClassesRoot.OpenSubKey(
-                    $@"{progId}\shell\open\command");
-                string? cmd = cmdKey?.GetValue(null) as string;
-                if (string.IsNullOrEmpty(cmd)) return null;
-
-                // 경로 파싱: "C:\path\to\app.exe" "%1" 형태
-                cmd = cmd.Trim();
-                if (cmd.StartsWith("\""))
-                {
-                    int end = cmd.IndexOf('"', 1);
-                    return end > 1 ? cmd[1..end] : null;
-                }
-                int space = cmd.IndexOf(' ');
-                return space > 0 ? cmd[..space] : cmd;
+                using var printKey = Registry.ClassesRoot.OpenSubKey(
+                    $@"{progId}\shell\print\command");
+                string? cmd = printKey?.GetValue(null) as string;
+                return string.IsNullOrWhiteSpace(cmd) ? null : cmd.Trim();
             }
             catch { return null; }
         }
