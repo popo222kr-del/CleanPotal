@@ -336,12 +336,14 @@ namespace CleanPotal
                     ws.Cell(row, 12).Value = u.CanManageVendors   ? "O" : "";
                     ws.Cell(row, 13).Value = u.CanManageSchedule  ? "O" : "";
 
-                    // 짝수 행 연한 배경
+                    // 짝수 행 연한 배경 — 행 전체가 아닌 데이터 범위 셀만 적용
                     if (row % 2 == 0)
-                        ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
+                        ws.Range(row, 1, row, headers.Length)
+                          .Style.Fill.BackgroundColor = XLColor.FromHtml("#F8FAFC");
                 }
 
-                ws.Columns().AdjustToContents();
+                // 열 너비를 데이터 범위만 기준으로 조정
+                ws.Range(1, 1, users.Count + 1, headers.Length).Columns().AdjustToContents();
                 // 권한 열은 좁게 고정
                 foreach (int col in new[] { 10, 11, 12, 13 })
                     ws.Column(col).Width = 8;
