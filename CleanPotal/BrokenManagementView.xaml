@@ -1,20 +1,133 @@
 <UserControl x:Class="CleanPotal.BrokenManagementView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CleanPotal"
              Background="#F8FAFC"
              SnapsToDevicePixels="True" UseLayoutRounding="True"
-             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
+             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
+             RenderOptions.BitmapScalingMode="HighQuality">
 
     <UserControl.Resources>
+        <local:FileNameConverter x:Key="FileNameConverter"/>
+        <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+
         <Style x:Key="SectionCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="20"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
+        <!-- Modern ComboBox -->
+        <Style x:Key="FilterComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="28"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center"
+                                                      IsHitTestVisible="False"/>
+                                    <Path Grid.Column="1"
+                                          Data="M 0 0 L 5 5 L 10 0"
+                                          Stroke="#94A3B8" StrokeThickness="1.5"
+                                          Fill="Transparent"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          IsHitTestVisible="False"/>
+                                </Grid>
+                            </Border>
+                            <ToggleButton Focusable="False" IsTabStop="False"
+                                          Background="Transparent" BorderThickness="0"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade"
+                                   Placement="Bottom">
+                                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
+                                        CornerRadius="8" MinWidth="{TemplateBinding ActualWidth}"
+                                        Margin="0,4,0,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#0F172A" Opacity="0.1" BlurRadius="16" ShadowDepth="4" Direction="270"/>
+                                    </Border.Effect>
+                                    <ScrollViewer Margin="4" VerticalScrollBarVisibility="Auto" MaxHeight="220">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#CBD5E1"/>
+                                <Setter TargetName="bd" Property="Background" Value="#FAFAFA"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="10,7"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="Foreground" Value="#334155"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="bd" Background="Transparent"
+                                            CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                            Margin="0,1">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tab header -->
         <Style x:Key="TabHeaderStyle" TargetType="TabItem">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -22,14 +135,16 @@
             <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid>
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter ContentSource="Header" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Border>
-                            <Border x:Name="under" Height="3" CornerRadius="2" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="Transparent" Margin="6,0"/>
+                            <Border x:Name="under" Height="3" CornerRadius="2" VerticalAlignment="Bottom"
+                                    HorizontalAlignment="Stretch" Background="Transparent" Margin="6,0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -46,6 +161,7 @@
             </Setter>
         </Style>
 
+        <!-- Buttons -->
         <Style x:Key="GhostButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#CBD5E1"/>
@@ -55,15 +171,23 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#F8FAFC"/>
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -77,17 +201,36 @@
             <Setter Property="BorderBrush" Value="#2563EB"/>
         </Style>
 
-        <Style x:Key="FilterComboStyle" TargetType="ComboBox">
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="MinWidth" Value="110"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+        <Style x:Key="SmallAttachStyle" TargetType="Button">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
+        <!-- DataGrid -->
         <Style x:Key="BrokenDataGridStyle" TargetType="DataGrid">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -96,7 +239,6 @@
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeRows" Value="False"/>
@@ -117,6 +259,14 @@
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Cell center style -->
+        <Style x:Key="CenterCell" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
 
@@ -126,65 +276,57 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 파일 불러오기 영역 -->
-        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}">
+        <!-- 파일 불러오기 -->
+        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0" x:Name="BtnLoadFile" Content="파일 불러오기"
+                <Button Grid.Column="0" x:Name="BtnLoadFile" Content="📂  파일 불러오기"
                         Style="{StaticResource PrimaryButtonStyle}"
-                        Click="BtnLoadFile_Click"
-                        ToolTip="Excel 파일(.xlsx)을 선택하여 Broken 데이터를 불러옵니다."/>
-
+                        Click="BtnLoadFile_Click"/>
                 <TextBlock Grid.Column="1" x:Name="TxtFilePath"
-                           Text="파일을 선택하세요..."
-                           FontSize="12" Foreground="#94A3B8"
-                           VerticalAlignment="Center"
-                           Margin="14,0,0,0"
+                           Text="파일을 선택하세요..." FontSize="12" Foreground="#94A3B8"
+                           VerticalAlignment="Center" Margin="14,0,0,0"
                            TextTrimming="CharacterEllipsis"/>
-
                 <TextBlock Grid.Column="2" x:Name="TxtRecordCount"
-                           Text=""
-                           FontSize="12" Foreground="#64748B"
-                           VerticalAlignment="Center"
-                           FontWeight="SemiBold"/>
+                           Text="" FontSize="12" Foreground="#64748B"
+                           VerticalAlignment="Center" FontWeight="SemiBold"/>
             </Grid>
         </Border>
 
-        <!-- 탭 영역 -->
+        <!-- 탭 -->
         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
 
             <!-- Tab 1: Broken 현황 -->
             <TabItem Header="Broken 현황" Style="{StaticResource TabHeaderStyle}">
-                <Grid Margin="0,12,0,0">
+                <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- 필터 바 -->
-                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}">
+                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,10">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="년도" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbYear" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
 
-                            <TextBlock Text="라인" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="라인" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbLine" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
 
-                            <TextBlock Text="팀" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="팀" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbTeam" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
 
-                            <Button Content="필터 초기화" Style="{StaticResource GhostButtonStyle}"
+                            <Button Content="초기화" Style="{StaticResource GhostButtonStyle}"
                                     Click="BtnResetFilter_Click"/>
                         </StackPanel>
                     </Border>
@@ -195,19 +337,75 @@
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="50"/>
-                                <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateStr}" Width="110"/>
-                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="80"/>
-                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="140"/>
+
+                                <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="50"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="년도" Binding="{Binding OccurYear}" Width="60"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateShort}" Width="130"/>
+
+                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="70"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="200"/>
+
                                 <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="120"/>
-                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="80"/>
-                                <DataGridTextColumn Header="유발자" Binding="{Binding Causer}" Width="80"/>
-                                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="90"/>
-                                <DataGridTextColumn Header="발생시경력" Binding="{Binding CareerAtOccur}" Width="110"/>
-                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="80"/>
-                                <DataGridTextColumn Header="사고비중" Binding="{Binding WeightStr}" Width="90"/>
-                                <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"/>
-                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="*"/>
+
+                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="80"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="유발자" Binding="{Binding Causer}" Width="80"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="90"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="80"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+
+                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="110"/>
+
+                                <!-- 자료 첨부 컬럼 -->
+                                <DataGridTemplateColumn Header="자료" Width="*" IsReadOnly="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
+                                                <Button Content="📎 추가"
+                                                        Tag="{Binding}"
+                                                        Style="{StaticResource SmallAttachStyle}"
+                                                        Click="BtnAttachFile_Click"
+                                                        ToolTip="파일 첨부 (Excel, PPT, PDF, 이미지)"/>
+                                                <ItemsControl ItemsSource="{Binding AttachedFiles}" Margin="6,0,0,0">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE"
+                                                                    BorderThickness="1" CornerRadius="4"
+                                                                    Padding="5,2" Margin="2,0"
+                                                                    Cursor="Hand" Tag="{Binding}"
+                                                                    ToolTip="{Binding}"
+                                                                    MouseLeftButtonUp="FileChip_Click">
+                                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
+                                                                           FontSize="10" Foreground="#1D4ED8"
+                                                                           MaxWidth="90" TextTrimming="CharacterEllipsis"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
@@ -216,37 +414,42 @@
 
             <!-- Tab 2: 팀별 집계 -->
             <TabItem Header="팀별 집계" Style="{StaticResource TabHeaderStyle}">
-                <Grid Margin="0,12,0,0">
+                <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 안내 카드 -->
-                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}">
+                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,12">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="팀별 Broken 사고 집계 및 보상율 현황"
                                        FontSize="14" FontWeight="Bold" Foreground="#0F172A"
                                        VerticalAlignment="Center"/>
-                            <TextBlock Text="  ·  ACC 제품은 사고비중 0.5 적용"
-                                       FontSize="12" Foreground="#64748B"
-                                       VerticalAlignment="Center"/>
+                            <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" Margin="12,0,0,0">
+                                <TextBlock Text="ACC 제품 → 사고비중 0.5 적용"
+                                           FontSize="11" Foreground="#92400E" FontWeight="SemiBold"/>
+                            </Border>
                         </StackPanel>
                     </Border>
 
-                    <!-- 집계 그리드 -->
                     <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
                         <DataGrid x:Name="DgTeamSummary"
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="100"/>
-                                <DataGridTextColumn Header="사고건수" Binding="{Binding RawCount}" Width="90"/>
-                                <DataGridTextColumn Header="ACC보정" Binding="{Binding WeightedCount, StringFormat={}{0:0.##}}" Width="90"/>
-                                <DataGridTextColumn Header="합계(0.5적용)" Binding="{Binding WeightedCount, StringFormat={}{0:0.##}}" Width="120"/>
-                                <DataGridTextColumn Header="목표달성" Binding="{Binding AchievedStr}" Width="90"/>
-                                <DataGridTextColumn Header="지급예정월" Binding="{Binding PaymentMonth}" Width="110"/>
-                                <DataGridTextColumn Header="보상율" Binding="{Binding RewardRate}" Width="80"/>
+                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="120"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+                                <DataGridTextColumn Header="사고건수" Binding="{Binding RawCount}" Width="90"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+                                <DataGridTextColumn Header="합계(ACC 0.5적용)"
+                                                    Binding="{Binding WeightedCount, StringFormat={}{0:0.##}}"
+                                                    Width="140" ElementStyle="{StaticResource CenterCell}"/>
+                                <DataGridTextColumn Header="목표달성" Binding="{Binding AchievedStr}" Width="90"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+                                <DataGridTextColumn Header="지급예정월" Binding="{Binding PaymentMonth}" Width="130"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
+                                <DataGridTextColumn Header="보상율" Binding="{Binding RewardRate}" Width="*"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
