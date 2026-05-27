@@ -189,7 +189,7 @@
                     </Border>
 
                     <!-- 데이터그리드 -->
-                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <Border Grid.Row="2" Margin="0,0,0,8">
                     <DataGrid x:Name="MesDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
@@ -261,7 +261,7 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <Border Grid.Row="2" Margin="0,0,0,8">
                     <DataGrid x:Name="DirectDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
@@ -341,7 +341,7 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="2" CornerRadius="0,0,11,11" ClipToBounds="True">
+                    <Border Grid.Row="2" Margin="0,0,0,8">
                     <DataGrid x:Name="PrintDataGrid" Style="{StaticResource DG}">
                         <DataGrid.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
