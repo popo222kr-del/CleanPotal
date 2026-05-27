@@ -193,19 +193,19 @@ namespace CleanPotal
         {
             if (active)
             {
-                RectDash.Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
-                DropZoneBg.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEF, 0xF6, 0xFF));
+                RectDash.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
+                DropZoneBg.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEF, 0xF6, 0xFF));
                 TxtDropIcon.Text = "📥";
                 TxtDropHint.Text = "여기에 놓으세요!";
-                TxtDropHint.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
+                TxtDropHint.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
             }
             else
             {
-                RectDash.Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xCB, 0xD5, 0xE1));
-                DropZoneBg.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF8, 0xFA, 0xFC));
+                RectDash.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xCB, 0xD5, 0xE1));
+                DropZoneBg.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF8, 0xFA, 0xFC));
                 TxtDropIcon.Text = "📂";
                 TxtDropHint.Text = "xlsx 파일을 여기에 드래그하세요";
-                TxtDropHint.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x64, 0x74, 0x8B));
+                TxtDropHint.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x64, 0x74, 0x8B));
             }
         }
 
