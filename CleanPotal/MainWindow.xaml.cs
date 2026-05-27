@@ -24,6 +24,7 @@ namespace CleanPotal
         private EduDashboardView? _eduDashboardView;
         private WorkAssignmentView? _workAssignmentView;
         private QuotationView? _quotationView;
+        private BrokenManagementView? _brokenMgmtView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -120,6 +121,7 @@ namespace CleanPotal
                 case EduDashboardView ed:               ed.TryRefresh(); break;
                 case HandoverView hv:                   hv.TryRefresh(); break;
                 case WeeklyReportView wr:               wr.TryRefresh(); break;
+                case BrokenManagementView bm:           bm.TryRefresh(); break;
             }
         }
 
@@ -250,12 +252,13 @@ namespace CleanPotal
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
             else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
+            else if (_currentViewName == "BrokenMgmt") ExpanderOffice.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
-        private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment") OpenQuotation_Click(sender, e); }
+        private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
         private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
         private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
@@ -347,6 +350,23 @@ namespace CleanPotal
             if (_workAssignmentView == null) _workAssignmentView = new WorkAssignmentView();
             else _workAssignmentView.TryRefresh();
             MainContent.Content = _workAssignmentView;
+            HideAllHeaderButtons();
+        }
+
+        private void OpenBrokenMgmt_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            ShowBrokenMgmt();
+        }
+
+        private void ShowBrokenMgmt()
+        {
+            _currentViewName = "BrokenMgmt";
+            ApplySectionMeta("BROKEN 관리", "파손 이력 현황 및 팀별 성과 보상 현황을 관리합니다.");
+            UpdateNavSelection("BrokenMgmt");
+            if (_brokenMgmtView == null) _brokenMgmtView = new BrokenManagementView();
+            else _brokenMgmtView.TryRefresh();
+            MainContent.Content = _brokenMgmtView;
             HideAllHeaderButtons();
         }
 
@@ -576,6 +596,7 @@ namespace CleanPotal
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavQuotation.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
+            if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
@@ -597,6 +618,7 @@ namespace CleanPotal
                 case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
                 case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
                 case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
+                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
             }
 
             _isUpdatingNav = false;
