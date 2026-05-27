@@ -64,7 +64,9 @@ namespace CleanPotal
         public string Status { get; set; } = "";
         public string IsOfficial { get; set; } = "";
 
-        public ObservableCollection<string> AttachedFiles { get; } = new();
+        public ObservableCollection<string> IncidentReports { get; } = new();
+        public ObservableCollection<string> CountermeasureReports { get; } = new();
+        public ObservableCollection<string> TrainingDocs { get; } = new();
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
@@ -160,22 +162,32 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         // File attach
         // -----------------------------------------------------------------------
-        private void BtnAttachFile_Click(object sender, RoutedEventArgs e)
+        private void BtnAttachIncident_Click(object sender, RoutedEventArgs e)
+            => AttachFiles(sender, r => r.IncidentReports);
+
+        private void BtnAttachCountermeasure_Click(object sender, RoutedEventArgs e)
+            => AttachFiles(sender, r => r.CountermeasureReports);
+
+        private void BtnAttachTraining_Click(object sender, RoutedEventArgs e)
+            => AttachFiles(sender, r => r.TrainingDocs);
+
+        private static void AttachFiles(object sender, Func<BrokenRecord, ObservableCollection<string>> getCollection)
         {
             if (sender is not Button btn || btn.Tag is not BrokenRecord record) return;
 
             var dlg = new OpenFileDialog
             {
-                Title = "자료 첨부",
+                Title = "파일 첨부",
                 Filter = "지원 파일|*.xlsx;*.xls;*.ppt;*.pptx;*.pdf;*.png;*.jpg;*.jpeg;*.bmp;*.gif|" +
                          "Excel|*.xlsx;*.xls|PowerPoint|*.ppt;*.pptx|PDF|*.pdf|이미지|*.png;*.jpg;*.jpeg;*.bmp;*.gif",
                 Multiselect = true
             };
             if (dlg.ShowDialog() != true) return;
 
+            var collection = getCollection(record);
             foreach (var path in dlg.FileNames)
-                if (!record.AttachedFiles.Contains(path))
-                    record.AttachedFiles.Add(path);
+                if (!collection.Contains(path))
+                    collection.Add(path);
         }
 
         private void FileChip_Click(object sender, MouseButtonEventArgs e)
