@@ -159,7 +159,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- 카드 헤더 -->
-                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16">
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16" CornerRadius="11,11,0,0">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Border Background="#DBEAFE" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
@@ -237,7 +237,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16">
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16" CornerRadius="11,11,0,0"
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Border Background="#FEF3C7" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
@@ -317,7 +317,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16">
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16" CornerRadius="11,11,0,0"
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Border Background="#DCFCE7" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
