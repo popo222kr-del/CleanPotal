@@ -136,7 +136,7 @@ namespace CleanPotal
             {
                 LoadDataFromExcel(path);
                 TxtFilePath.Text = Path.GetFileName(path);
-                TxtFilePath.Foreground = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB));
+                TxtFilePath.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
             }
             catch (Exception ex)
             {
