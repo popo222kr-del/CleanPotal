@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
@@ -113,9 +114,12 @@ namespace CleanPotal
         public void TryRefresh() { }
 
         // -----------------------------------------------------------------------
-        // File load
+        // File load — button / click
         // -----------------------------------------------------------------------
-        private void BtnLoadFile_Click(object sender, RoutedEventArgs e)
+        private void BtnLoadFile_Click(object sender, RoutedEventArgs e) => OpenFilePicker();
+        private void DropZone_Click(object sender, MouseButtonEventArgs e) => OpenFilePicker();
+
+        private void OpenFilePicker()
         {
             var dlg = new OpenFileDialog
             {
@@ -124,19 +128,85 @@ namespace CleanPotal
                 Multiselect = false
             };
             if (dlg.ShowDialog() != true) return;
+            LoadFile(dlg.FileName);
+        }
 
-            TxtFilePath.Text = dlg.FileName;
-            TxtFilePath.Foreground = System.Windows.Media.Brushes.DimGray;
-
+        private void LoadFile(string path)
+        {
             try
             {
-                LoadDataFromExcel(dlg.FileName);
+                LoadDataFromExcel(path);
+                TxtFilePath.Text = Path.GetFileName(path);
+                TxtFilePath.Foreground = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB));
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"파일 읽기 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtFilePath.Text = "파일을 선택하세요...";
-                TxtFilePath.Foreground = System.Windows.Media.Brushes.Gray;
+                TxtFilePath.Text = "";
+                TxtRecordCount.Text = "";
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // Drag and drop
+        // -----------------------------------------------------------------------
+        private void DropZone_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+                if (files?.Any(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) == true)
+                {
+                    e.Effects = DragDropEffects.Copy;
+                    SetDropZoneActive(true);
+                    e.Handled = true;
+                    return;
+                }
+            }
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void DropZone_DragLeave(object sender, DragEventArgs e)
+        {
+            var pos = e.GetPosition(DropZoneBg);
+            if (pos.X < 0 || pos.Y < 0 ||
+                pos.X > DropZoneBg.ActualWidth ||
+                pos.Y > DropZoneBg.ActualHeight)
+                SetDropZoneActive(false);
+        }
+
+        private void DropZone_Drop(object sender, DragEventArgs e)
+        {
+            SetDropZoneActive(false);
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            var xlsx = files?.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
+            if (xlsx == null)
+            {
+                MessageBox.Show("xlsx 파일만 지원합니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            LoadFile(xlsx);
+        }
+
+        private void SetDropZoneActive(bool active)
+        {
+            if (active)
+            {
+                RectDash.Stroke = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB));
+                DropZoneBg.Background = new SolidColorBrush(Color.FromRgb(0xEF, 0xF6, 0xFF));
+                TxtDropIcon.Text = "📥";
+                TxtDropHint.Text = "여기에 놓으세요!";
+                TxtDropHint.Foreground = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB));
+            }
+            else
+            {
+                RectDash.Stroke = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1));
+                DropZoneBg.Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC));
+                TxtDropIcon.Text = "📂";
+                TxtDropHint.Text = "xlsx 파일을 여기에 드래그하세요";
+                TxtDropHint.Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B));
             }
         }
 
