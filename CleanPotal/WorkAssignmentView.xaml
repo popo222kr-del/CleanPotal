@@ -308,6 +308,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <!-- Row 0: 이름 / 사번 / 소속팀 / 직위 -->
@@ -345,6 +346,45 @@
                                     <TextBlock Text="전화번호" Style="{StaticResource FieldLabelStyle}"/>
                                     <TextBlock x:Name="InfoPhone" Style="{StaticResource FieldValueStyle}"/>
                                 </StackPanel>
+
+                                <!-- Row 2: 퇴사 정보 -->
+                                <Border x:Name="ResignInfoPanel" Grid.Row="2" Grid.ColumnSpan="4"
+                                        CornerRadius="8" BorderBrush="#FEE2E2" BorderThickness="1"
+                                        Padding="14,10" Margin="0,14,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <CheckBox x:Name="ChkResigned"
+                                                  Grid.Column="0"
+                                                  VerticalAlignment="Center"
+                                                  FontSize="13" FontWeight="SemiBold"
+                                                  Foreground="#DC2626">
+                                            <CheckBox.Content>
+                                                <TextBlock Text="퇴사" FontSize="13" FontWeight="SemiBold" Foreground="#DC2626"/>
+                                            </CheckBox.Content>
+                                        </CheckBox>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                    VerticalAlignment="Center" Margin="20,0,0,0">
+                                            <TextBlock Text="퇴사일" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="#64748B" VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"/>
+                                            <DatePicker x:Name="DpResignDate"
+                                                        Width="140" FontSize="12"
+                                                        VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="3" Content="저장"
+                                                Click="BtnSaveResignInfo_Click"
+                                                Style="{StaticResource SmallBtnStyle}"
+                                                Background="#FEE2E2" Foreground="#DC2626"/>
+                                    </Grid>
+                                </Border>
                             </Grid>
                         </StackPanel>
                     </Border>

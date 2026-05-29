@@ -104,6 +104,7 @@ namespace CleanPotal
         public string PhoneNumber { get; set; } = "";
         public string EmployeeNumber { get; set; } = "";
         public bool IsHidden { get; set; } = false;
+        public string ResignDate { get; set; } = "";
 
         public string InitialChar => string.IsNullOrEmpty(RealName) ? "?" : RealName.Substring(0, 1);
 

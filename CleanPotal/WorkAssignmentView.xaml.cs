@@ -35,7 +35,7 @@ namespace CleanPotal
             var allUsers = AuthDatabaseHelper.GetAllUsers();
 
             _members.Clear();
-            foreach (var (uname, isHidden) in memberData)
+            foreach (var (uname, isHidden, resignDate) in memberData)
             {
                 var u = allUsers.FirstOrDefault(x => x.Username == uname);
                 if (u != null)
@@ -49,7 +49,8 @@ namespace CleanPotal
                         Email = u.Email,
                         PhoneNumber = u.PhoneNumber,
                         EmployeeNumber = u.EmployeeNumber,
-                        IsHidden = isHidden
+                        IsHidden = isHidden,
+                        ResignDate = resignDate
                     });
             }
 
@@ -101,6 +102,13 @@ namespace CleanPotal
             InfoCareer.Text = m.CareerStr;
             InfoEmail.Text = string.IsNullOrEmpty(m.Email) ? "-" : m.Email;
             InfoPhone.Text = string.IsNullOrEmpty(m.PhoneNumber) ? "-" : m.PhoneNumber;
+
+            // 퇴사 정보
+            ChkResigned.IsChecked = m.IsHidden;
+            DpResignDate.SelectedDate = DateTime.TryParse(m.ResignDate, out var rd) ? rd : (DateTime?)null;
+            ResignInfoPanel.Background = m.IsHidden
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFF7F7"))
+                : System.Windows.Media.Brushes.Transparent;
 
             var eduItems = DatabaseHelper.GetEduBasicItems(m.Username);
             EduBasicGrid.ItemsSource = new ObservableCollection<EduBasicItem>(eduItems);
@@ -186,6 +194,26 @@ namespace CleanPotal
             UpdateMemberCount();
             ApplySearchSort();
             // 컨텍스트 메뉴 텍스트는 ContextMenuOpening에서 갱신
+        }
+
+        private void BtnSaveResignInfo_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selected == null) return;
+            bool isHidden = ChkResigned.IsChecked == true;
+            string resignDate = DpResignDate.SelectedDate.HasValue
+                ? DpResignDate.SelectedDate.Value.ToString("yyyy-MM-dd")
+                : "";
+
+            DatabaseHelper.SetWorkAssignmentResignInfo(_selected.Username, isHidden, resignDate);
+            _selected.IsHidden = isHidden;
+            _selected.ResignDate = resignDate;
+
+            ResignInfoPanel.Background = isHidden
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFF7F7"))
+                : System.Windows.Media.Brushes.Transparent;
+
+            UpdateMemberCount();
+            ApplySearchSort();
         }
 
         private void MemberList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
