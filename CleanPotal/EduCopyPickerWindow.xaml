@@ -1,0 +1,116 @@
+<Window x:Class="CleanPotal.EduCopyPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="교육 기록 복사 가져오기"
+        Width="340" Height="460"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8FAFC"
+        SnapsToDevicePixels="True" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+
+    <Window.Resources>
+        <Style x:Key="MemberPickerItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="8"
+                                Padding="12,8" Margin="0,1" Cursor="Hand">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#3B82F6" Offset="0"/>
+                                            <GradientStop Color="#2563EB" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <TextBlock Text="{Binding InitialChar}" FontSize="11" FontWeight="Bold"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                    <TextBlock x:Name="NameText" Text="{Binding RealName}"
+                                               FontSize="13" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                    <TextBlock Text="{Binding TeamName}" FontSize="11" Foreground="#94A3B8"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
+                                <Setter TargetName="NameText" Property="Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 헤더 -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="20,16">
+            <StackPanel>
+                <TextBlock Text="교육 기록 복사 가져오기"
+                           FontSize="15" FontWeight="Bold" Foreground="#0F172A"/>
+                <TextBlock x:Name="TxtTargetName" Text="" Margin="0,4,0,0"
+                           FontSize="12" Foreground="#64748B"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 검색 -->
+        <Border Grid.Row="1" Padding="12,10,12,6">
+            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Background="White" Padding="8,0">
+                <TextBox x:Name="TxtSearch" BorderThickness="0" Background="Transparent"
+                         FontSize="12" Foreground="#475569" Height="28"
+                         VerticalContentAlignment="Center"
+                         TextChanged="TxtSearch_TextChanged"/>
+            </Border>
+        </Border>
+
+        <!-- 멤버 리스트 -->
+        <ListBox x:Name="MemberPickerList" Grid.Row="2"
+                 Background="Transparent" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 SelectionMode="Single"
+                 ItemContainerStyle="{StaticResource MemberPickerItemStyle}"
+                 Padding="8,4"
+                 MouseDoubleClick="MemberPickerList_MouseDoubleClick"/>
+
+        <!-- 버튼 -->
+        <Border Grid.Row="3" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="취소" Width="72" Height="32" Margin="0,0,8,0"
+                        FontSize="13" Cursor="Hand"
+                        Background="White" Foreground="#475569"
+                        BorderBrush="#E2E8F0" BorderThickness="1"
+                        Click="BtnCancel_Click">
+                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                </Button>
+                <Button Content="복사" Width="72" Height="32"
+                        FontSize="13" FontWeight="SemiBold" Cursor="Hand"
+                        Background="#2563EB" Foreground="White" BorderThickness="0"
+                        Click="BtnConfirm_Click">
+                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

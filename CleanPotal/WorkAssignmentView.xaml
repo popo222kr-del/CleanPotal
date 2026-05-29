@@ -274,15 +274,8 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          SelectionMode="Single"
                          SelectionChanged="MemberList_SelectionChanged"
-                         ContextMenuOpening="MemberList_ContextMenuOpening"
                          ItemContainerStyle="{StaticResource MemberItemStyle}"
-                         Padding="8,6">
-                    <ListBox.ContextMenu>
-                        <ContextMenu x:Name="MemberContextMenu">
-                            <MenuItem x:Name="MenuToggleHidden" Header="퇴사 처리" Click="MenuToggleHidden_Click"/>
-                        </ContextMenu>
-                    </ListBox.ContextMenu>
-                </ListBox>
+                         Padding="8,6"/>
 
                 <!-- 추가/삭제 버튼 -->
                 <Border Grid.Row="2" Padding="10,8" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0">
@@ -426,6 +419,12 @@
                                     <TextBlock Text="기본 교육 기록" Style="{StaticResource CardHeaderStyle}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="📋 복사 가져오기" Click="BtnCopyEdu_Click"
+                                            Style="{StaticResource SmallBtnStyle}"
+                                            Background="#F8FAFC" Foreground="#475569"
+                                            BorderBrush="#E2E8F0" BorderThickness="1"
+                                            Margin="0,0,6,0"
+                                            ToolTip="다른 인원의 기본 교육 기록을 복사합니다"/>
                                     <Button Content="+ 행 추가" Click="BtnAddEduRow_Click"
                                             Style="{StaticResource SmallBtnStyle}"
                                             Background="#F0FDF4" Foreground="#059669" Margin="0,0,6,0"/>

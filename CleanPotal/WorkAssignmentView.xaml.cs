@@ -196,15 +196,39 @@ namespace CleanPotal
             MemberList.ItemsSource = sorted;
         }
 
-        private void MenuToggleHidden_Click(object sender, RoutedEventArgs e)
+        private void BtnCopyEdu_Click(object sender, RoutedEventArgs e)
         {
-            if (MemberList.SelectedItem is not WorkAssignmentMember m) return;
-            bool newState = !m.IsHidden;
-            DatabaseHelper.SetWorkAssignmentMemberHidden(m.Username, newState);
-            m.IsHidden = newState;
-            UpdateMemberCount();
-            ApplySearchSort();
-            // 컨텍스트 메뉴 텍스트는 ContextMenuOpening에서 갱신
+            if (_selected == null) return;
+
+            var candidates = _members
+                .Where(m => !m.IsHidden && m.Username != _selected.Username)
+                .OrderBy(m => m.RealName)
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                MessageBox.Show("복사할 수 있는 다른 인원이 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var picker = new EduCopyPickerWindow(candidates, _selected.RealName) { Owner = Window.GetWindow(this) };
+            if (picker.ShowDialog() != true || picker.SelectedMember == null) return;
+
+            var sourceItems = DatabaseHelper.GetEduBasicItems(picker.SelectedMember.Username);
+            if (sourceItems.Count == 0)
+            {
+                MessageBox.Show($"'{picker.SelectedMember.RealName}' 인원의 교육 기록이 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string msg = $"'{picker.SelectedMember.RealName}' 인원의 교육 기록 {sourceItems.Count}건을\n" +
+                         $"'{_selected.RealName}' 인원에게 추가 복사합니다.\n(기존 기록은 유지됩니다)";
+            if (MessageBox.Show(msg, "복사 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            if (EduBasicGrid.ItemsSource is not System.Collections.ObjectModel.ObservableCollection<EduBasicItem> list) return;
+            foreach (var item in sourceItems)
+                list.Add(new EduBasicItem { Username = _selected.Username, EduName = item.EduName, StartDate = item.StartDate, EndDate = item.EndDate });
         }
 
         private void BtnSaveResignInfo_Click(object sender, RoutedEventArgs e)
@@ -225,12 +249,6 @@ namespace CleanPotal
 
             UpdateMemberCount();
             ApplySearchSort();
-        }
-
-        private void MemberList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
-        {
-            if (MemberList.SelectedItem is WorkAssignmentMember m)
-                MenuToggleHidden.Header = m.IsHidden ? "복직 처리" : "퇴사 처리";
         }
 
         private void BtnAddMember_Click(object sender, RoutedEventArgs e)
