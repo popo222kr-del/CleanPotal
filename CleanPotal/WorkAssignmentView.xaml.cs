@@ -14,7 +14,7 @@ namespace CleanPotal
         private WorkAssignmentMember? _selected;
         private enum SortMode { NameAsc, NameDesc, Team }
         private SortMode _sortMode = SortMode.NameAsc;
-        private bool _showHidden = false;
+        private bool _isActiveTab = true;
 
         public WorkAssignmentView()
         {
@@ -141,20 +141,44 @@ namespace CleanPotal
 
         private void UpdateMemberCount()
         {
-            int active = _members.Count(m => !m.IsHidden);
-            int hidden = _members.Count(m => m.IsHidden);
-            TxtMemberCount.Text = hidden > 0
-                ? $"{active}명 (+퇴사 {hidden}명)"
-                : $"{active}명";
+            TxtActiveCount.Text = _members.Count(m => !m.IsHidden).ToString();
+            TxtResignedCount.Text = _members.Count(m => m.IsHidden).ToString();
+        }
+
+        private void BtnTabActive_Click(object sender, RoutedEventArgs e) => SetTab(true);
+        private void BtnTabResigned_Click(object sender, RoutedEventArgs e) => SetTab(false);
+
+        private void SetTab(bool active)
+        {
+            _isActiveTab = active;
+
+            var blue   = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB");
+            var darkBlue = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1D4ED8");
+            var gray   = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#F1F5F9");
+            var gray2  = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#CBD5E1");
+            var white  = System.Windows.Media.Brushes.White;
+
+            BtnTabActive.Background   = active ? new System.Windows.Media.SolidColorBrush(blue) : new System.Windows.Media.SolidColorBrush(gray);
+            BtnTabActive.Foreground   = active ? white : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#64748B"));
+            BadgeActive.Background    = active ? new System.Windows.Media.SolidColorBrush(darkBlue) : new System.Windows.Media.SolidColorBrush(gray2);
+
+            BtnTabResigned.Background = active ? new System.Windows.Media.SolidColorBrush(gray) : new System.Windows.Media.SolidColorBrush(blue);
+            BtnTabResigned.Foreground = active ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#64748B")) : white;
+            BadgeResigned.Background  = active ? new System.Windows.Media.SolidColorBrush(gray2) : new System.Windows.Media.SolidColorBrush(darkBlue);
+
+            // 퇴사자 탭에서는 인원 추가 버튼 숨김
+            BtnAddMember.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+
+            ApplySearchSort();
         }
 
         private void ApplySearchSort()
         {
             string kw = TxtMemberSearch?.Text?.Trim() ?? "";
 
-            var source = _showHidden
-                ? _members.ToList()
-                : _members.Where(m => !m.IsHidden).ToList();
+            var source = _isActiveTab
+                ? _members.Where(m => !m.IsHidden).ToList()
+                : _members.Where(m => m.IsHidden).ToList();
 
             var filtered = string.IsNullOrEmpty(kw)
                 ? source
@@ -170,19 +194,6 @@ namespace CleanPotal
             };
 
             MemberList.ItemsSource = sorted;
-        }
-
-        private void BtnToggleHidden_Click(object sender, RoutedEventArgs e)
-        {
-            _showHidden = !_showHidden;
-            BtnToggleHidden.Content = _showHidden ? "퇴사자 숨김" : "퇴사자 표시";
-            BtnToggleHidden.Foreground = _showHidden
-                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"))
-                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#94A3B8"));
-            BtnToggleHidden.BorderBrush = _showHidden
-                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#BFDBFE"))
-                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#E2E8F0"));
-            ApplySearchSort();
         }
 
         private void MenuToggleHidden_Click(object sender, RoutedEventArgs e)

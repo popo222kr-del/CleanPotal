@@ -204,10 +204,11 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- 헤더 + 정렬 -->
+                <!-- 헤더 + 탭 + 정렬 -->
                 <Border Grid.Row="0" Padding="12,12,12,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <Grid Margin="0,0,0,4">
+                        <!-- 타이틀 + 정렬 버튼 -->
+                        <Grid Margin="0,0,0,8">
                             <TextBlock Text="인원 목록" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="BtnSortName" Content="가나다↑" FontSize="10" Height="22" Padding="6,0"
@@ -222,17 +223,41 @@
                                 </Button>
                             </StackPanel>
                         </Grid>
-                        <Grid Margin="0,2,0,8">
-                            <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <Button x:Name="BtnToggleHidden" Content="퇴사자 표시"
-                                    HorizontalAlignment="Right"
-                                    FontSize="10" Height="20" Padding="6,0"
-                                    Background="White" Foreground="#94A3B8"
-                                    BorderBrush="#E2E8F0" BorderThickness="1"
-                                    Cursor="Hand" Click="BtnToggleHidden_Click">
-                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+
+                        <!-- 재직/퇴사 탭 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnTabActive" Grid.Column="0"
+                                    Height="28" FontSize="11" FontWeight="SemiBold"
+                                    Background="#2563EB" Foreground="White"
+                                    BorderThickness="0" Cursor="Hand"
+                                    Click="BtnTabActive_Click">
+                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="6,0,0,6"/></Style></Button.Resources>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="재직 중"/>
+                                    <Border x:Name="BadgeActive" Background="#1D4ED8" CornerRadius="8" Padding="5,0" Margin="4,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtActiveCount" Text="0" FontSize="10" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnTabResigned" Grid.Column="1"
+                                    Height="28" FontSize="11" FontWeight="SemiBold"
+                                    Background="#F1F5F9" Foreground="#64748B"
+                                    BorderThickness="0" Cursor="Hand"
+                                    Click="BtnTabResigned_Click">
+                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="0,6,6,0"/></Style></Button.Resources>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="퇴사자"/>
+                                    <Border x:Name="BadgeResigned" Background="#CBD5E1" CornerRadius="8" Padding="5,0" Margin="4,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtResignedCount" Text="0" FontSize="10" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
                             </Button>
                         </Grid>
+
                         <!-- 검색 -->
                         <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Background="White" Padding="8,0">
                             <TextBox x:Name="TxtMemberSearch" BorderThickness="0" Background="Transparent"
@@ -262,7 +287,7 @@
                 <!-- 추가/삭제 버튼 -->
                 <Border Grid.Row="2" Padding="10,8" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="+ 인원 추가" Click="BtnAddMember_Click"
+                        <Button x:Name="BtnAddMember" Content="+ 인원 추가" Click="BtnAddMember_Click"
                                 Style="{StaticResource SmallBtnStyle}"
                                 Background="#2563EB" Foreground="White" Margin="0,0,6,0"/>
                         <Button Content="삭제" Click="BtnRemoveMember_Click"
