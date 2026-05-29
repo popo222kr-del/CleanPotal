@@ -427,6 +427,7 @@ namespace CleanPotal
                 )");
                 try { db.Execute("ALTER TABLE WorkAssignmentEduBasic ADD COLUMN StartDate TEXT"); } catch { }
                 try { db.Execute("ALTER TABLE WorkAssignmentEduBasic ADD COLUMN EndDate TEXT"); } catch { }
+                try { db.Execute("ALTER TABLE WorkAssignmentMembers ADD COLUMN IsHidden INTEGER DEFAULT 0"); } catch { }
                 db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentAccounts (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Username TEXT NOT NULL,
@@ -442,6 +443,21 @@ namespace CleanPotal
         {
             using (var db = GetConnection())
                 return db.Query<string>("SELECT Username FROM WorkAssignmentMembers ORDER BY rowid").ToList();
+        }
+
+        private class WaMemberRow { public string Username { get; set; } = ""; public int IsHidden { get; set; } }
+        public static List<(string Username, bool IsHidden)> GetWorkAssignmentMemberData()
+        {
+            using var db = GetConnection();
+            return db.Query<WaMemberRow>("SELECT Username, COALESCE(IsHidden,0) AS IsHidden FROM WorkAssignmentMembers ORDER BY rowid")
+                     .Select(r => (r.Username, r.IsHidden == 1)).ToList();
+        }
+
+        public static void SetWorkAssignmentMemberHidden(string username, bool hidden)
+        {
+            using var db = GetConnection();
+            db.Execute("UPDATE WorkAssignmentMembers SET IsHidden=@H WHERE Username=@U",
+                       new { H = hidden ? 1 : 0, U = username });
         }
 
         public static void AddWorkAssignmentMember(string username)

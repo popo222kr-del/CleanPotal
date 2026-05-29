@@ -62,9 +62,10 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="32"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <!-- 아바타 -->
-                                <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14">
+                                <!-- 아바타 (퇴사자: 회색) -->
+                                <Border x:Name="AvatarBorder" Grid.Column="0" Width="28" Height="28" CornerRadius="14">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                             <GradientStop Color="#3B82F6" Offset="0"/>
@@ -79,9 +80,22 @@
                                     <TextBlock x:Name="NameText" Text="{Binding RealName}" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A"/>
                                     <TextBlock Text="{Binding TeamName}" FontSize="11" Foreground="#94A3B8"/>
                                 </StackPanel>
+                                <!-- 퇴사 배지 -->
+                                <Border x:Name="HiddenBadge" Grid.Column="2"
+                                        Background="#F1F5F9" CornerRadius="4"
+                                        Padding="4,2" Margin="2,0,0,0"
+                                        Visibility="Collapsed">
+                                    <TextBlock Text="퇴사" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                </Border>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <!-- 퇴사자 스타일 -->
+                            <DataTrigger Binding="{Binding IsHidden}" Value="True">
+                                <Setter TargetName="HiddenBadge" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="NameText" Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.4"/>
+                            </DataTrigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
                                 <Setter TargetName="NameText" Property="Foreground" Value="#1D4ED8"/>
@@ -208,7 +222,17 @@
                                 </Button>
                             </StackPanel>
                         </Grid>
-                        <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                        <Grid Margin="0,2,0,8">
+                            <TextBlock x:Name="TxtMemberCount" Text="0명" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                            <Button x:Name="BtnToggleHidden" Content="퇴사자 표시"
+                                    HorizontalAlignment="Right"
+                                    FontSize="10" Height="20" Padding="6,0"
+                                    Background="White" Foreground="#94A3B8"
+                                    BorderBrush="#E2E8F0" BorderThickness="1"
+                                    Cursor="Hand" Click="BtnToggleHidden_Click">
+                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                            </Button>
+                        </Grid>
                         <!-- 검색 -->
                         <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7" Background="White" Padding="8,0">
                             <TextBox x:Name="TxtMemberSearch" BorderThickness="0" Background="Transparent"
@@ -225,8 +249,14 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          SelectionMode="Single"
                          SelectionChanged="MemberList_SelectionChanged"
+                         ContextMenuOpening="MemberList_ContextMenuOpening"
                          ItemContainerStyle="{StaticResource MemberItemStyle}"
                          Padding="8,6">
+                    <ListBox.ContextMenu>
+                        <ContextMenu x:Name="MemberContextMenu">
+                            <MenuItem x:Name="MenuToggleHidden" Header="퇴사 처리" Click="MenuToggleHidden_Click"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
                 </ListBox>
 
                 <!-- 추가/삭제 버튼 -->

@@ -14,6 +14,7 @@ namespace CleanPotal
         private WorkAssignmentMember? _selected;
         private enum SortMode { NameAsc, NameDesc, Team }
         private SortMode _sortMode = SortMode.NameAsc;
+        private bool _showHidden = false;
 
         public WorkAssignmentView()
         {
@@ -30,11 +31,11 @@ namespace CleanPotal
 
         private void LoadMembers(string? restoreUsername)
         {
-            var usernames = DatabaseHelper.GetWorkAssignmentUsernames();
+            var memberData = DatabaseHelper.GetWorkAssignmentMemberData();
             var allUsers = AuthDatabaseHelper.GetAllUsers();
 
             _members.Clear();
-            foreach (var uname in usernames)
+            foreach (var (uname, isHidden) in memberData)
             {
                 var u = allUsers.FirstOrDefault(x => x.Username == uname);
                 if (u != null)
@@ -47,11 +48,12 @@ namespace CleanPotal
                         HireDate = u.HireDate,
                         Email = u.Email,
                         PhoneNumber = u.PhoneNumber,
-                        EmployeeNumber = u.EmployeeNumber
+                        EmployeeNumber = u.EmployeeNumber,
+                        IsHidden = isHidden
                     });
             }
 
-            TxtMemberCount.Text = $"{_members.Count}명";
+            UpdateMemberCount();
             ApplySearchSort();
 
             // 이전 선택 복원
@@ -129,12 +131,26 @@ namespace CleanPotal
             BtnSortTeam.Background = _sortMode == SortMode.Team ? activeColor : normalColor;
         }
 
+        private void UpdateMemberCount()
+        {
+            int active = _members.Count(m => !m.IsHidden);
+            int hidden = _members.Count(m => m.IsHidden);
+            TxtMemberCount.Text = hidden > 0
+                ? $"{active}명 (+퇴사 {hidden}명)"
+                : $"{active}명";
+        }
+
         private void ApplySearchSort()
         {
             string kw = TxtMemberSearch?.Text?.Trim() ?? "";
-            var filtered = string.IsNullOrEmpty(kw)
+
+            var source = _showHidden
                 ? _members.ToList()
-                : _members.Where(m =>
+                : _members.Where(m => !m.IsHidden).ToList();
+
+            var filtered = string.IsNullOrEmpty(kw)
+                ? source
+                : source.Where(m =>
                     m.RealName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     m.TeamName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
 
@@ -146,6 +162,36 @@ namespace CleanPotal
             };
 
             MemberList.ItemsSource = sorted;
+        }
+
+        private void BtnToggleHidden_Click(object sender, RoutedEventArgs e)
+        {
+            _showHidden = !_showHidden;
+            BtnToggleHidden.Content = _showHidden ? "퇴사자 숨김" : "퇴사자 표시";
+            BtnToggleHidden.Foreground = _showHidden
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#94A3B8"));
+            BtnToggleHidden.BorderBrush = _showHidden
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#BFDBFE"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#E2E8F0"));
+            ApplySearchSort();
+        }
+
+        private void MenuToggleHidden_Click(object sender, RoutedEventArgs e)
+        {
+            if (MemberList.SelectedItem is not WorkAssignmentMember m) return;
+            bool newState = !m.IsHidden;
+            DatabaseHelper.SetWorkAssignmentMemberHidden(m.Username, newState);
+            m.IsHidden = newState;
+            UpdateMemberCount();
+            ApplySearchSort();
+            // 컨텍스트 메뉴 텍스트는 ContextMenuOpening에서 갱신
+        }
+
+        private void MemberList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (MemberList.SelectedItem is WorkAssignmentMember m)
+                MenuToggleHidden.Header = m.IsHidden ? "복직 처리" : "퇴사 처리";
         }
 
         private void BtnAddMember_Click(object sender, RoutedEventArgs e)
