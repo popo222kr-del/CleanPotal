@@ -17,7 +17,7 @@ namespace CleanPotal
     public static class DatabaseHelper
     {
         private static readonly string DbPath = Path.Combine(AppPaths.DataRoot, "dispatch.db");
-        private static readonly string ConnectionString = $"Data Source={DbPath}";
+        private static readonly string ConnectionString = $"Data Source={DbPath};Journal Mode=WAL;Cache=Shared";
         private static bool _isMapperInitialized = false;
 
         public static void InitializeDatabase()
@@ -33,6 +33,8 @@ namespace CleanPotal
             using (var connection = new SqliteConnection(ConnectionString))
             {
                 connection.Open();
+                connection.Execute("PRAGMA journal_mode=WAL;");
+                connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
