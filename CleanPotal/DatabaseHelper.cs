@@ -17,7 +17,7 @@ namespace CleanPotal
     public static class DatabaseHelper
     {
         private static readonly string DbPath = Path.Combine(AppPaths.DataRoot, "dispatch.db");
-        private static readonly string ConnectionString = $"Data Source={DbPath};Journal Mode=WAL;Cache=Shared";
+        private static readonly string ConnectionString = $"Data Source={DbPath}";
         private static bool _isMapperInitialized = false;
 
         public static void InitializeDatabase()
