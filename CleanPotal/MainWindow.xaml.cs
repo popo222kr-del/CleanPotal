@@ -86,28 +86,22 @@ namespace CleanPotal
 
         private void PollingTimer_Tick(object? sender, EventArgs e)
         {
-            // ProdReq 개인별 미읽음 배지/토스트
-            System.Threading.Tasks.Task.Run(() =>
+            // ProdReq 개인별 미읽음 배지/토스트 (UI 스레드에서 직접 실행 - Task.Run 제거)
+            try
             {
-                try
+                string username = SessionManager.CurrentUsername ?? "";
+                if (!string.IsNullOrEmpty(username))
                 {
-                    string username = SessionManager.CurrentUsername ?? "";
-                    if (string.IsNullOrEmpty(username)) return;
-
                     int unread = DatabaseHelper.GetUnreadProdReqCount(username);
+                    int prev = _unreadReqCount;
+                    _unreadReqCount = unread;
+                    UpdateBadge();
 
-                    Dispatcher.Invoke(() =>
-                    {
-                        int prev = _unreadReqCount;
-                        _unreadReqCount = unread;
-                        UpdateBadge();
-
-                        if (unread > prev && _currentViewName != "ProdReq")
-                            ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
-                    });
+                    if (unread > prev && _currentViewName != "ProdReq")
+                        ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
                 }
-                catch { }
-            });
+            }
+            catch { }
 
             // 현재 화면 자동 갱신
             switch (MainContent.Content)
