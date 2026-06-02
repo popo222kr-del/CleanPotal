@@ -474,6 +474,12 @@ namespace CleanPotal
 
             TxtCurrentReportTitle.Text = _draftReport.Title;
 
+            // 보고서 날짜 기준 주간/야간 팀 라벨 업데이트
+            if (DateTime.TryParseExact(_draftReport.DateRange, "yyyy.MM.dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var reportDate))
+                UpdateShiftTeamLabels(reportDate);
+
             // 🔥 RichTextBox에 메모 로드 (MemoRich 우선, 없으면 평문 Memo)
             LoadMemoIntoRichEditor(_draftReport);
 
@@ -2497,6 +2503,34 @@ namespace CleanPotal
             return storedPath;
         }
 
+        // 해당 날짜의 스케줄 DB를 조회해 주간/야간 팀 이름을 라벨에 반영
+        private void UpdateShiftTeamLabels(DateTime date)
+        {
+            var (dayTeam, nightTeam) = GetShiftTeamsForDate(date);
+            if (TxtDayShiftLabel != null)
+                TxtDayShiftLabel.Text = string.IsNullOrEmpty(dayTeam) ? "주간" : $"주간 ({dayTeam})";
+            if (TxtNightShiftLabel != null)
+                TxtNightShiftLabel.Text = string.IsNullOrEmpty(nightTeam) ? "야간" : $"야간 ({nightTeam})";
+        }
+
+        private static (string dayTeam, string nightTeam) GetShiftTeamsForDate(DateTime date)
+        {
+            try
+            {
+                var shifts = DatabaseHelper.GetShiftSchedulesByDate(date);
+                string Dominant(System.Collections.Generic.IEnumerable<string> groups)
+                    => groups.Where(g => !string.IsNullOrWhiteSpace(g))
+                              .GroupBy(g => g)
+                              .OrderByDescending(g => g.Count())
+                              .FirstOrDefault()?.Key ?? "";
+
+                string dayTeam  = Dominant(shifts.Where(s => s.ShiftType == "주간").Select(s => s.TeamGroup));
+                string nightTeam = Dominant(shifts.Where(s => s.ShiftType == "야간").Select(s => s.TeamGroup));
+                return (dayTeam, nightTeam);
+            }
+            catch { return ("", ""); }
+        }
+
         private void ClearCurrentSelection()
         {
             _currentReport = null;
@@ -2506,6 +2540,8 @@ namespace CleanPotal
             UnsubscribeMemoAttachments();
 
             TxtCurrentReportTitle.Text = "보고서를 선택하세요";
+            if (TxtDayShiftLabel != null) TxtDayShiftLabel.Text = "주간";
+            if (TxtNightShiftLabel != null) TxtNightShiftLabel.Text = "야간";
             MemoArea.DataContext = null;
             if (MemoRichEditor != null)
             {
