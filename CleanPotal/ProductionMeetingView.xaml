@@ -246,18 +246,27 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- ☀ 주간 (김팀) -->
-                        <Border Grid.Row="0" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="10" Margin="0,0,0,8">
+                        <!-- 주간 -->
+                        <Border Grid.Row="0" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="10"
+                                Background="White" Margin="0,0,0,8">
+                            <Border.Clip>
+                                <RectangleGeometry RadiusX="10" RadiusY="10">
+                                    <RectangleGeometry.Rect>
+                                        <Rect X="0" Y="0" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border}}"/>
+                                    </RectangleGeometry.Rect>
+                                </RectangleGeometry>
+                            </Border.Clip>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <Border Grid.Row="0" Background="#E0F2FE" CornerRadius="10,10,0,0" Padding="14,7">
+                                <Border Grid.Row="0" Background="#E0F2FE" Padding="14,7">
                                     <TextBlock x:Name="TxtDayShiftLabel" Text="주간" FontSize="12" FontWeight="Bold" Foreground="#0369A1"/>
                                 </Border>
                                 <RichTextBox x:Name="DayShiftRichEditor" Grid.Row="1"
-                                     BorderThickness="0" Background="White"
+                                     IsEnabled="False"
+                                     BorderThickness="0" Background="Transparent"
                                      Padding="16,12" FontSize="14" Foreground="#1E293B"
                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                      AcceptsTab="True" AllowDrop="True"
@@ -268,6 +277,16 @@
                                      Drop="AnyRichTextBox_Drop"
                                      TextChanged="DayShiftRichEditor_TextChanged"
                                      SpellCheck.IsEnabled="False">
+                                    <RichTextBox.Style>
+                                        <Style TargetType="RichTextBox">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </RichTextBox.Style>
                                     <RichTextBox.Resources>
                                         <Style TargetType="Paragraph">
                                             <Setter Property="Margin" Value="0,0,0,4"/>
@@ -277,18 +296,27 @@
                             </Grid>
                         </Border>
 
-                        <!-- 🌙 야간 (장팀) -->
-                        <Border Grid.Row="1" BorderBrush="#C4B5FD" BorderThickness="1" CornerRadius="10">
+                        <!-- 야간 -->
+                        <Border Grid.Row="1" BorderBrush="#C4B5FD" BorderThickness="1" CornerRadius="10"
+                                Background="White">
+                            <Border.Clip>
+                                <RectangleGeometry RadiusX="10" RadiusY="10">
+                                    <RectangleGeometry.Rect>
+                                        <Rect X="0" Y="0" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border}}"/>
+                                    </RectangleGeometry.Rect>
+                                </RectangleGeometry>
+                            </Border.Clip>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <Border Grid.Row="0" Background="#EDE9FE" CornerRadius="10,10,0,0" Padding="14,7">
+                                <Border Grid.Row="0" Background="#EDE9FE" Padding="14,7">
                                     <TextBlock x:Name="TxtNightShiftLabel" Text="야간" FontSize="12" FontWeight="Bold" Foreground="#6D28D9"/>
                                 </Border>
                                 <RichTextBox x:Name="NightShiftRichEditor" Grid.Row="1"
-                                     BorderThickness="0" Background="White"
+                                     IsEnabled="False"
+                                     BorderThickness="0" Background="Transparent"
                                      Padding="16,12" FontSize="14" Foreground="#1E293B"
                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                      AcceptsTab="True" AllowDrop="True"
@@ -299,6 +327,16 @@
                                      Drop="AnyRichTextBox_Drop"
                                      TextChanged="NightShiftRichEditor_TextChanged"
                                      SpellCheck.IsEnabled="False">
+                                    <RichTextBox.Style>
+                                        <Style TargetType="RichTextBox">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </RichTextBox.Style>
                                     <RichTextBox.Resources>
                                         <Style TargetType="Paragraph">
                                             <Setter Property="Margin" Value="0,0,0,4"/>
@@ -390,7 +428,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- 제목 -->
-                        <TextBlock Grid.Row="0" Text="추가 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Text="Office 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
 
                         <!-- 🎨 RichTextBox 본문 -->
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">

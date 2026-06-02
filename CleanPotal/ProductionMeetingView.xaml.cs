@@ -122,6 +122,10 @@ namespace CleanPotal
             set { if (_mainContentRich == value) return; _mainContentRich = value; OnPropertyChanged(); }
         }
 
+        // 🔥 저장 당시 주간/야간 팀 이름 (교대 후 바뀌지 않도록 영구 보존)
+        public string DayShiftTeamName { get; set; } = "";
+        public string NightShiftTeamName { get; set; } = "";
+
         // 🔥 야간 (장팀) 내용
         private string _nightShiftContent = "";
         public string NightShiftContent
@@ -428,6 +432,8 @@ namespace CleanPotal
                 MainContentRich = original.MainContentRich,
                 NightShiftContent = original.NightShiftContent,
                 NightShiftContentRich = original.NightShiftContentRich,
+                DayShiftTeamName = original.DayShiftTeamName,
+                NightShiftTeamName = original.NightShiftTeamName,
                 Attendees = original.Attendees,
                 Summary = original.Summary
             };
@@ -474,11 +480,32 @@ namespace CleanPotal
 
             TxtCurrentReportTitle.Text = _draftReport.Title;
 
-            // 보고서 날짜 기준 주간/야간 팀 라벨 업데이트
-            if (DateTime.TryParseExact(_draftReport.DateRange, "yyyy.MM.dd",
+            // 저장된 팀 이름이 있으면 그대로, 없으면 스케줄 DB에서 조회 후 저장
+            if (!string.IsNullOrEmpty(_draftReport.DayShiftTeamName) || !string.IsNullOrEmpty(_draftReport.NightShiftTeamName))
+            {
+                if (TxtDayShiftLabel != null)
+                    TxtDayShiftLabel.Text = string.IsNullOrEmpty(_draftReport.DayShiftTeamName) ? "주간" : $"주간 ({_draftReport.DayShiftTeamName})";
+                if (TxtNightShiftLabel != null)
+                    TxtNightShiftLabel.Text = string.IsNullOrEmpty(_draftReport.NightShiftTeamName) ? "야간" : $"야간 ({_draftReport.NightShiftTeamName})";
+            }
+            else if (DateTime.TryParseExact(_draftReport.DateRange, "yyyy.MM.dd",
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None, out var reportDate))
-                UpdateShiftTeamLabels(reportDate);
+            {
+                var (dayTeam, nightTeam) = GetShiftTeamsForDate(reportDate);
+                _draftReport.DayShiftTeamName = dayTeam;
+                _draftReport.NightShiftTeamName = nightTeam;
+                _currentReport!.DayShiftTeamName = dayTeam;
+                _currentReport!.NightShiftTeamName = nightTeam;
+                if (TxtDayShiftLabel != null)
+                    TxtDayShiftLabel.Text = string.IsNullOrEmpty(dayTeam) ? "주간" : $"주간 ({dayTeam})";
+                if (TxtNightShiftLabel != null)
+                    TxtNightShiftLabel.Text = string.IsNullOrEmpty(nightTeam) ? "야간" : $"야간 ({nightTeam})";
+            }
+
+            // 에디터 활성화 (보고서 선택됨)
+            if (DayShiftRichEditor != null) DayShiftRichEditor.IsEnabled = true;
+            if (NightShiftRichEditor != null) NightShiftRichEditor.IsEnabled = true;
 
             // 🔥 RichTextBox에 메모 로드 (MemoRich 우선, 없으면 평문 Memo)
             LoadMemoIntoRichEditor(_draftReport);
@@ -905,6 +932,8 @@ namespace CleanPotal
             _currentReport.MainContentRich = _draftReport.MainContentRich;
             _currentReport.NightShiftContent = _draftReport.NightShiftContent;
             _currentReport.NightShiftContentRich = _draftReport.NightShiftContentRich;
+            _currentReport.DayShiftTeamName = _draftReport.DayShiftTeamName;
+            _currentReport.NightShiftTeamName = _draftReport.NightShiftTeamName;
             _currentReport.Attendees = _draftReport.Attendees;
             _currentReport.Summary = _draftReport.Summary;
             _currentReport.Blocks.Clear();
@@ -951,6 +980,8 @@ namespace CleanPotal
             _currentReport.MainContentRich = _draftReport.MainContentRich;
             _currentReport.NightShiftContent = _draftReport.NightShiftContent;
             _currentReport.NightShiftContentRich = _draftReport.NightShiftContentRich;
+            _currentReport.DayShiftTeamName = _draftReport.DayShiftTeamName;
+            _currentReport.NightShiftTeamName = _draftReport.NightShiftTeamName;
             _currentReport.Attendees = _draftReport.Attendees;
             _currentReport.Summary = _draftReport.Summary;
             _currentReport.Blocks.Clear();
@@ -2503,16 +2534,6 @@ namespace CleanPotal
             return storedPath;
         }
 
-        // 해당 날짜의 스케줄 DB를 조회해 주간/야간 팀 이름을 라벨에 반영
-        private void UpdateShiftTeamLabels(DateTime date)
-        {
-            var (dayTeam, nightTeam) = GetShiftTeamsForDate(date);
-            if (TxtDayShiftLabel != null)
-                TxtDayShiftLabel.Text = string.IsNullOrEmpty(dayTeam) ? "주간" : $"주간 ({dayTeam})";
-            if (TxtNightShiftLabel != null)
-                TxtNightShiftLabel.Text = string.IsNullOrEmpty(nightTeam) ? "야간" : $"야간 ({nightTeam})";
-        }
-
         private static (string dayTeam, string nightTeam) GetShiftTeamsForDate(DateTime date)
         {
             try
@@ -2542,6 +2563,8 @@ namespace CleanPotal
             TxtCurrentReportTitle.Text = "보고서를 선택하세요";
             if (TxtDayShiftLabel != null) TxtDayShiftLabel.Text = "주간";
             if (TxtNightShiftLabel != null) TxtNightShiftLabel.Text = "야간";
+            if (DayShiftRichEditor != null) DayShiftRichEditor.IsEnabled = false;
+            if (NightShiftRichEditor != null) NightShiftRichEditor.IsEnabled = false;
             MemoArea.DataContext = null;
             if (MemoRichEditor != null)
             {
@@ -2639,6 +2662,8 @@ namespace CleanPotal
                             MainContentRich = report.MainContentRich ?? "",
                             NightShiftContent = report.NightShiftContent ?? "",
                             NightShiftContentRich = report.NightShiftContentRich ?? "",
+                            DayShiftTeamName = report.DayShiftTeamName ?? "",
+                            NightShiftTeamName = report.NightShiftTeamName ?? "",
                             Attendees = report.Attendees ?? "",
                             Summary = report.Summary ?? ""
                         };
@@ -2725,6 +2750,8 @@ namespace CleanPotal
                         MainContentRich = r.MainContentRich,
                         NightShiftContent = r.NightShiftContent,
                         NightShiftContentRich = r.NightShiftContentRich,
+                        DayShiftTeamName = r.DayShiftTeamName,
+                        NightShiftTeamName = r.NightShiftTeamName,
                         Attendees = r.Attendees,
                         Summary = r.Summary,
                         Blocks = r.Blocks.Select(b => new PersistedBlock
@@ -2771,6 +2798,8 @@ namespace CleanPotal
             public string? MainContentRich { get; set; }
             public string? NightShiftContent { get; set; }
             public string? NightShiftContentRich { get; set; }
+            public string? DayShiftTeamName { get; set; }
+            public string? NightShiftTeamName { get; set; }
             public string? Attendees { get; set; }
             public string? Summary { get; set; }
             public List<PersistedBlock> Blocks { get; set; } = new();
