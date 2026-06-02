@@ -60,11 +60,21 @@ namespace CleanPotal
     // ==========================================
     // 데이터 모델 정의
     // ==========================================
-    public class ProductionMeetingGroupModel
+    public class ProductionMeetingGroupModel : INotifyPropertyChanged
     {
         public string MonthTitle { get; set; } = "";
         public ObservableCollection<ProductionMeetingReportModel> Reports { get; set; } = new();
         public bool IsCurrentMonth { get; set; } = false;
+
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class ProductionMeetingReportModel : INotifyPropertyChanged
@@ -906,11 +916,7 @@ namespace CleanPotal
 
             if (sender is ListBox lb && lb.SelectedItem is ProductionMeetingReportModel selected)
             {
-                if (_isDirty)
-                {
-                    // 다른 보고서로 이동 시 자동 저장
-                    AutoSaveCurrentReport();
-                }
+                if (_isDirty) AutoSaveCurrentReport();
 
                 // 다른 달 ListBox의 선택 해제 (단일 선택 보장)
                 if (_activeHistoryListBox != null && _activeHistoryListBox != lb)
@@ -919,7 +925,28 @@ namespace CleanPotal
                     _activeHistoryListBox.SelectedItem = null;
                     _isNavigating = false;
                 }
+
+                _activeHistoryListBox = lb;
+
+                // 선택된 항목이 속한 그룹만 펼치고 나머지는 접기
+                var ownerGroup = GroupedHistory.FirstOrDefault(g => g.Reports.Contains(selected));
+                if (ownerGroup != null)
+                {
+                    foreach (var g in GroupedHistory)
+                        if (g != ownerGroup) g.IsExpanded = false;
+                    ownerGroup.IsExpanded = true;
+                }
+
                 SetCurrentReport(selected);
+            }
+        }
+
+        private void MonthExpander_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Expander exp && exp.DataContext is ProductionMeetingGroupModel expandedGroup)
+            {
+                foreach (var g in GroupedHistory)
+                    if (g != expandedGroup) g.IsExpanded = false;
             }
         }
 
@@ -968,13 +995,18 @@ namespace CleanPotal
                 group = new ProductionMeetingGroupModel
                 {
                     MonthTitle = monthGroupTitle,
-                    IsCurrentMonth = (monthGroupTitle == currentMonthTitle)
+                    IsCurrentMonth = (monthGroupTitle == currentMonthTitle),
+                    IsExpanded = true
                 };
                 GroupedHistory.Add(group);
                 var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
                 GroupedHistory.Clear();
                 foreach (var s in sorted) GroupedHistory.Add(s);
             }
+
+            // 해당 그룹만 펼치고 나머지는 접기
+            foreach (var g in GroupedHistory)
+                g.IsExpanded = (g == group);
 
             var newReport = new ProductionMeetingReportModel
             {
@@ -2468,7 +2500,8 @@ namespace CleanPotal
                     var mappedGroup = new ProductionMeetingGroupModel
                     {
                         MonthTitle = group.MonthTitle ?? "",
-                        IsCurrentMonth = (group.MonthTitle == currentMonthTitle)
+                        IsCurrentMonth = (group.MonthTitle == currentMonthTitle),
+                        IsExpanded = (group.MonthTitle == currentMonthTitle)
                     };
                     foreach (var report in group.Reports ?? new())
                     {
