@@ -1595,12 +1595,10 @@ namespace CleanPotal
             e.Handled = true;
             var targetItem = LineItemsGrid.Items[nr];
             var targetCol  = cols[nc];
-            LineItemsGrid.CurrentCell = new DataGridCellInfo(targetItem, targetCol);
             LineItemsGrid.ScrollIntoView(targetItem, targetCol);
 
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, (Action)(() =>
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
             {
-                LineItemsGrid.UpdateLayout();
                 if (targetCol.GetCellContent(targetItem) is TextBox targetTb)
                 {
                     targetTb.Focus();
