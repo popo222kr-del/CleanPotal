@@ -60,11 +60,22 @@ namespace CleanPotal
     // ==========================================
     // 데이터 모델 정의
     // ==========================================
-    public class ProductionMeetingGroupModel
+    public class ProductionMeetingGroupModel : INotifyPropertyChanged
     {
         public string MonthTitle { get; set; } = "";
         public ObservableCollection<ProductionMeetingReportModel> Reports { get; set; } = new();
         public bool IsCurrentMonth { get; set; } = false;
+
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class ProductionMeetingReportModel : INotifyPropertyChanged
@@ -924,6 +935,18 @@ namespace CleanPotal
             }
         }
 
+        private void MonthExpander_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Expander exp && exp.DataContext is ProductionMeetingGroupModel expanded)
+            {
+                foreach (var group in GroupedHistory)
+                {
+                    if (group != expanded)
+                        group.IsExpanded = false;
+                }
+            }
+        }
+
         private void InitCreateModal()
         {
             DpMeetingDate.SelectedDate = DateTime.Today;
@@ -966,10 +989,12 @@ namespace CleanPotal
             var group = GroupedHistory.FirstOrDefault(g => g.MonthTitle == monthGroupTitle);
             if (group == null)
             {
+                bool isCurr = (monthGroupTitle == currentMonthTitle);
                 group = new ProductionMeetingGroupModel
                 {
                     MonthTitle = monthGroupTitle,
-                    IsCurrentMonth = (monthGroupTitle == currentMonthTitle)
+                    IsCurrentMonth = isCurr,
+                    IsExpanded = isCurr
                 };
                 GroupedHistory.Add(group);
                 var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
@@ -2466,10 +2491,12 @@ namespace CleanPotal
                 GroupedHistory.Clear();
                 foreach (var group in data)
                 {
+                    bool isCurrent = (group.MonthTitle == currentMonthTitle);
                     var mappedGroup = new ProductionMeetingGroupModel
                     {
                         MonthTitle = group.MonthTitle ?? "",
-                        IsCurrentMonth = (group.MonthTitle == currentMonthTitle)
+                        IsCurrentMonth = isCurrent,
+                        IsExpanded = isCurrent
                     };
                     foreach (var report in group.Reports ?? new())
                     {
