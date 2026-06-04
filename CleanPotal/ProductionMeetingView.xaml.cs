@@ -2353,8 +2353,8 @@ namespace CleanPotal
                             DateRange = report.DateRange ?? "",
                             Memo = report.Memo ?? "",
                             MemoRich = report.MemoRich ?? "",
-                            MainContent = report.MainContent ?? "",
-                            MainContentRich = report.MainContentRich ?? "",
+                            MainContent = !string.IsNullOrWhiteSpace(report.MainContent) ? report.MainContent : (report.DayShiftContent ?? ""),
+                            MainContentRich = !string.IsNullOrWhiteSpace(report.MainContentRich) ? report.MainContentRich : (report.DayShiftContentRich ?? ""),
                             Attendees = report.Attendees ?? "",
                             Summary = report.Summary ?? ""
                         };
@@ -2460,6 +2460,9 @@ namespace CleanPotal
             public string? MemoRich { get; set; }
             public string? MainContent { get; set; }
             public string? MainContentRich { get; set; }
+            // 주간/야간 분리 버전 호환용 (해당 필드로 저장된 데이터를 MainContent로 fallback)
+            public string? DayShiftContent { get; set; }
+            public string? DayShiftContentRich { get; set; }
             public string? Attendees { get; set; }
             public string? Summary { get; set; }
             public List<PersistedBlock> Blocks { get; set; } = new();
