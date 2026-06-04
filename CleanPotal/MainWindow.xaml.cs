@@ -108,7 +108,7 @@ namespace CleanPotal
             {
                 case ProdReqView pv:                    pv.TryRefresh(); break;
                 case TeamScheduleView tsv:              tsv.TryRefresh(); break;
-                case ProductionMeetingView pm:          pm.TryRefresh(); break;
+
                 case PersonalMemoView memo:             memo.TryRefresh(); break;
                 case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
