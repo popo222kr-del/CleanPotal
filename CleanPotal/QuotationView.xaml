@@ -612,9 +612,7 @@
                                       AlternationCount="2"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource LineItemCellStyle}"
-                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown"
-                                      PreviewGotKeyboardFocus="LineItemsGrid_PreviewGotKeyboardFocus">
+                                      CellStyle="{StaticResource LineItemCellStyle}">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">

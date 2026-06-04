@@ -232,6 +232,16 @@ namespace CleanPotal
             // 업체 목록 초기 로드
             _allVendors = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
             FilterVendors();
+
+            // Register with handledEventsToo=true so our handlers fire even after
+            // WPF's KeyboardNavigation class handler has already set e.Handled=true.
+            Loaded += (_, _) =>
+            {
+                LineItemsGrid.AddHandler(UIElement.PreviewKeyDownEvent,
+                    new KeyEventHandler(LineItemsGrid_PreviewKeyDown), true);
+                LineItemsGrid.AddHandler(UIElement.PreviewGotKeyboardFocusEvent,
+                    new KeyboardFocusChangedEventHandler(LineItemsGrid_PreviewGotKeyboardFocus), true);
+            };
         }
 
         // ─── 업체 필터링 ───
@@ -1585,12 +1595,11 @@ namespace CleanPotal
 
             bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 
-            // Accept focus from either the TextBox or the DataGridCell itself
             DataGridCell? cell = e.OriginalSource switch
             {
-                TextBox tb2       => tb2.FindAncestorOfType<DataGridCell>(),
-                DataGridCell dgc  => dgc,
-                _                 => null
+                TextBox tb2      => tb2.FindAncestorOfType<DataGridCell>(),
+                DataGridCell dgc => dgc,
+                _                => null
             };
             if (cell == null) return;
             var row = cell.FindAncestorOfType<DataGridRow>();
@@ -1617,15 +1626,13 @@ namespace CleanPotal
             var targetItem = LineItemsGrid.Items[nr];
             var targetCol  = cols[nc];
             LineItemsGrid.ScrollIntoView(targetItem, targetCol);
+            LineItemsGrid.UpdateLayout(); // synchronous: ensures the target row is realized
 
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+            if (targetCol.GetCellContent(targetItem) is TextBox targetTb)
             {
-                if (targetCol.GetCellContent(targetItem) is TextBox targetTb)
-                {
-                    targetTb.Focus();
-                    targetTb.SelectAll();
-                }
-            }));
+                targetTb.Focus();
+                targetTb.SelectAll();
+            }
         }
 
         private static TextBox? FindDescendantTextBox(DependencyObject parent)
