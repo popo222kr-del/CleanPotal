@@ -210,7 +210,7 @@ namespace CleanPotal
 
             LstShiftSuggest.ItemsSource = filtered;
             BdrShiftPopup.MinWidth = BdrShiftInput.ActualWidth > 0 ? BdrShiftInput.ActualWidth : 480;
-            PopShiftSuggest.IsOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text);
+            PopShiftSuggest.IsOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text) && TxtShiftName.IsKeyboardFocused;
 
             // 숨김 CmbShiftName 동기화
             CmbShiftName.ItemsSource = _allShiftNames;
