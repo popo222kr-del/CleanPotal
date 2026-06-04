@@ -486,12 +486,10 @@ namespace CleanPotal
                     .Distinct()
                     .ToList();
 
-                if (dayTeams.Count == 0 && nightTeams.Count == 0) return;
-
-                string dayStr = dayTeams.Count > 0 ? string.Join(", ", dayTeams) : "-";
-                string nightStr = nightTeams.Count > 0 ? string.Join(", ", nightTeams) : "-";
-                TxtShiftTeamInfo.Text = $"주간 ({dayStr})  /  야간 ({nightStr})";
-                TxtShiftTeamInfo.Visibility = Visibility.Visible;
+                if (dayTeams.Count > 0)
+                    TxtDayShiftLabel.Text = $"주간 ({string.Join(", ", dayTeams)})";
+                if (nightTeams.Count > 0)
+                    TxtNightShiftLabel.Text = $"야간 ({string.Join(", ", nightTeams)})";
             }
             catch { }
         }

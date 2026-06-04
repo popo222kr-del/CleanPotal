@@ -220,7 +220,6 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock x:Name="TxtCurrentReportTitle" Text="보고서를 선택하세요" FontSize="26" FontWeight="ExtraBold" Foreground="#0F172A"/>
                             <TextBlock x:Name="TxtCurrentReportDate" Visibility="Collapsed"/>
-                            <TextBlock x:Name="TxtShiftTeamInfo" FontSize="13" Foreground="#2563EB" Margin="0,4,0,0" Visibility="Collapsed"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
@@ -247,7 +246,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="주간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <TextBlock x:Name="TxtDayShiftLabel" Grid.Row="0" Text="주간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                             <RichTextBox x:Name="DayShiftRichEditor" Tag="Main"
                                  BorderThickness="0" Background="Transparent"
@@ -276,7 +275,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="야간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <TextBlock x:Name="TxtNightShiftLabel" Grid.Row="0" Text="야간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                             <RichTextBox x:Name="NightShiftRichEditor" Tag="Night"
                                  BorderThickness="0" Background="Transparent"
