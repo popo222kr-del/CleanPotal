@@ -326,10 +326,11 @@
                             <Border.Effect>
                                 <DropShadowEffect Color="#64748B" Opacity="0.12" BlurRadius="8" ShadowDepth="2"/>
                             </Border.Effect>
-                            <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer x:Name="SvShiftSuggest" MaxHeight="220" VerticalScrollBarVisibility="Auto">
                                 <ListBox x:Name="LstShiftSuggest" BorderThickness="0" Background="Transparent"
                                          Padding="0,4"
-                                         PreviewMouseLeftButtonDown="LstShiftSuggest_ItemClick"/>
+                                         PreviewMouseLeftButtonDown="LstShiftSuggest_ItemClick"
+                                         PreviewMouseWheel="LstShiftSuggest_MouseWheel"/>
                             </ScrollViewer>
                         </Border>
                     </Popup>

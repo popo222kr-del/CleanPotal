@@ -234,6 +234,12 @@ namespace CleanPotal
             RefreshPreview();
         }
 
+        private void LstShiftSuggest_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            SvShiftSuggest.ScrollToVerticalOffset(SvShiftSuggest.VerticalOffset - e.Delta / 3.0);
+            e.Handled = true;
+        }
+
         private void LstShiftSuggest_ItemClick(object sender, MouseButtonEventArgs e)
         {
             if (LstShiftSuggest.SelectedItem is string selected)
