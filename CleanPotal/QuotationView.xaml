@@ -632,7 +632,8 @@
                                                          BorderThickness="0" Background="Transparent" Padding="10,0"
                                                          FontSize="13" VerticalContentAlignment="Center"
                                                          TextWrapping="Wrap" AcceptsReturn="True"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus"
+                                                         PreviewKeyDown="LineItemTextBox_PreviewKeyDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -644,7 +645,8 @@
                                                 <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus"
+                                                         PreviewKeyDown="LineItemTextBox_PreviewKeyDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -656,7 +658,8 @@
                                                 <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus"
+                                                         PreviewKeyDown="LineItemTextBox_PreviewKeyDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -668,7 +671,8 @@
                                                 <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus"
+                                                         PreviewKeyDown="LineItemTextBox_PreviewKeyDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -680,7 +684,8 @@
                                                 <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0,14,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Right"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus"
+                                                         PreviewKeyDown="LineItemTextBox_PreviewKeyDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>

@@ -232,16 +232,6 @@ namespace CleanPotal
             // 업체 목록 초기 로드
             _allVendors = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
             FilterVendors();
-
-            // Register with handledEventsToo=true so our handlers fire even after
-            // WPF's KeyboardNavigation class handler has already set e.Handled=true.
-            Loaded += (_, _) =>
-            {
-                LineItemsGrid.AddHandler(UIElement.PreviewKeyDownEvent,
-                    new KeyEventHandler(LineItemsGrid_PreviewKeyDown), true);
-                LineItemsGrid.AddHandler(UIElement.PreviewGotKeyboardFocusEvent,
-                    new KeyboardFocusChangedEventHandler(LineItemsGrid_PreviewGotKeyboardFocus), true);
-            };
         }
 
         // ─── 업체 필터링 ───
@@ -1577,33 +1567,17 @@ namespace CleanPotal
             ((TextBox)sender).SelectAll();
         }
 
-        // Intercept focus going to a DataGridCell and redirect it into the TextBox inside.
-        // This fires for Tab navigation, mouse clicks on the cell border, and any other
-        // focus change — so the TextBox is always the real keyboard focus target.
-        private void LineItemsGrid_PreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            if (e.NewFocus is not DataGridCell cell || cell.IsReadOnly) return;
-            var tb = FindDescendantTextBox(cell);
-            if (tb == null || e.NewFocus == tb) return;
-            e.Handled = true;
-            tb.Focus();
-        }
-
-        private void LineItemsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        // Tab/Shift+Tab navigation between line-item cells.
+        // Attached directly to each editable TextBox so the handler is guaranteed
+        // to fire (the TextBox is the focused element; nothing can swallow Tab first).
+        private void LineItemTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Tab) return;
+            if (sender is not TextBox tb) return;
+            if (tb.FindAncestorOfType<DataGridCell>() is not DataGridCell cell) return;
+            if (cell.FindAncestorOfType<DataGridRow>() is not DataGridRow row) return;
 
             bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-
-            DataGridCell? cell = e.OriginalSource switch
-            {
-                TextBox tb2      => tb2.FindAncestorOfType<DataGridCell>(),
-                DataGridCell dgc => dgc,
-                _                => null
-            };
-            if (cell == null) return;
-            var row = cell.FindAncestorOfType<DataGridRow>();
-            if (row == null) return;
 
             var cols = LineItemsGrid.Columns
                 .OrderBy(c => c.DisplayIndex)
@@ -1633,18 +1607,6 @@ namespace CleanPotal
                 targetTb.Focus();
                 targetTb.SelectAll();
             }
-        }
-
-        private static TextBox? FindDescendantTextBox(DependencyObject parent)
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is TextBox tb) return tb;
-                var found = FindDescendantTextBox(child);
-                if (found != null) return found;
-            }
-            return null;
         }
 
         // ─── 단가 관리 모달 ───
