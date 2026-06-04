@@ -467,10 +467,22 @@ namespace CleanPotal
 
         private void LoadShiftTeamInfo()
         {
+            // 최초 로드 시 오늘 날짜 기준으로 레이블 초기화 (보고서 선택 시 UpdateShiftTeamLabels로 갱신됨)
+            UpdateShiftTeamLabels(DateTime.Today.ToString("yyyy.MM.dd"));
+        }
+
+        private void UpdateShiftTeamLabels(string dateRange)
+        {
             try
             {
-                var today = DateTime.Today;
-                var schedules = DatabaseHelper.GetShiftSchedulesByDate(today);
+                TxtDayShiftLabel.Text = "주간";
+                TxtNightShiftLabel.Text = "야간";
+
+                if (!DateTime.TryParseExact(dateRange, "yyyy.MM.dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var date)) return;
+
+                var schedules = DatabaseHelper.GetShiftSchedulesByDate(date);
                 if (schedules.Count == 0) return;
 
                 var dayTeams = schedules
@@ -554,6 +566,7 @@ namespace CleanPotal
 
             TxtCurrentReportTitle.Text = _draftReport.Title;
             TxtCurrentReportDate.Text = _draftReport.DateRange;
+            UpdateShiftTeamLabels(_draftReport.DateRange);
 
             // 🔥 RichTextBox에 메모 로드 (MemoRich 우선, 없으면 평문 Memo)
             LoadMemoIntoRichEditor(_draftReport);
