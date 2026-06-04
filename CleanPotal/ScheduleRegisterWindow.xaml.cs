@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace CleanPotal
 {
@@ -87,7 +88,7 @@ namespace CleanPotal
                 CmbShiftName.SelectedItem = myItem ?? allNames.FirstOrDefault();
                 CmbShiftName.IsEnabled = true;
 
-                CmbShiftName.AddHandler(System.Windows.Controls.TextBoxBase.TextChangedEvent,
+                CmbShiftName.AddHandler(TextBoxBase.TextChangedEvent,
                     new TextChangedEventHandler(CmbShiftName_TextChanged));
             }
 
@@ -108,7 +109,7 @@ namespace CleanPotal
                 CmbEduTeam.SelectedIndex = 0;
 
                 RefreshEduNameList();
-                CmbEduName.AddHandler(System.Windows.Controls.TextBoxBase.TextChangedEvent,
+                CmbEduName.AddHandler(TextBoxBase.TextChangedEvent,
                     new TextChangedEventHandler(CmbEduName_TextChanged));
 
                 // 수정 모드: 기존 값 채우기
