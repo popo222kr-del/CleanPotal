@@ -219,7 +219,7 @@
 
                         <StackPanel Grid.Column="0">
                             <TextBlock x:Name="TxtCurrentReportTitle" Text="보고서를 선택하세요" FontSize="26" FontWeight="ExtraBold" Foreground="#0F172A"/>
-                            <TextBlock x:Name="TxtCurrentReportDate" Text="작성 기간이 표시됩니다." FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="TxtCurrentReportDate" Visibility="Collapsed"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
@@ -342,7 +342,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- 제목 -->
-                        <TextBlock Grid.Row="0" Text="추가 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Text="Office 메모" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,0,0,12" HorizontalAlignment="Center"/>
 
                         <!-- 🎨 RichTextBox 본문 -->
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
