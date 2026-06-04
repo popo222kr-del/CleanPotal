@@ -1560,27 +1560,16 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemsGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void LineItemsGrid_CurrentCellChanged(object sender, EventArgs e)
         {
-            // DataGrid가 CurrentCell을 세팅한 뒤 BeginEdit 실행
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+            var col = LineItemsGrid.CurrentCell.Column;
+            if (col == null || col.IsReadOnly) return;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, (Action)(() =>
             {
-                if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
+                var col2 = LineItemsGrid.CurrentCell.Column;
+                if (col2 != null && !col2.IsReadOnly)
                     LineItemsGrid.BeginEdit();
             }));
-        }
-
-        private void LineItemsGrid_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            // Tab으로 다음 셀 이동 후 BeginEdit
-            if (e.Key == System.Windows.Input.Key.Tab)
-            {
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
-                {
-                    if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
-                        LineItemsGrid.BeginEdit();
-                }));
-            }
         }
 
         private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)

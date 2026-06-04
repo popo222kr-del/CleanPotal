@@ -49,6 +49,14 @@
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         </Style>
 
+        <Style x:Key="LineItemCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E0E7FF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="ListItemStyle" TargetType="ListBoxItem">
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="Margin" Value="0,2"/>
@@ -596,12 +604,13 @@
                                       BorderBrush="#E2E8F0"
                                       Background="Transparent"
                                       AlternationCount="2"
+                                      SelectionUnit="Cell"
+                                      SelectionMode="Single"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
+                                      CellStyle="{StaticResource LineItemCellStyle}"
                                       PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
-                                      PreviewMouseLeftButtonDown="LineItemsGrid_PreviewMouseLeftButtonDown"
-                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown">
+                                      CurrentCellChanged="LineItemsGrid_CurrentCellChanged">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
