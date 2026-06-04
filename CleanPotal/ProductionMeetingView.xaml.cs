@@ -919,6 +919,7 @@ namespace CleanPotal
                     _activeHistoryListBox.SelectedItem = null;
                     _isNavigating = false;
                 }
+                _activeHistoryListBox = lb;
                 SetCurrentReport(selected);
             }
         }
