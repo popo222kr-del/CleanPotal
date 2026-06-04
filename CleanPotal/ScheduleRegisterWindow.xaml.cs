@@ -4,6 +4,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace CleanPotal
 {
@@ -14,8 +16,8 @@ namespace CleanPotal
         private EducationPlanModel? _editingPlan;
         private List<string> _allShiftNames = new List<string>();
         private List<string> _allEduNamesForTeam = new List<string>();
-        private bool _suppressShiftFilter;
         private bool _suppressEduFilter;
+        private bool _canManageAttendance;
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
@@ -71,34 +73,34 @@ namespace CleanPotal
             _allUsers = AuthDatabaseHelper.GetAllUsers();
 
             bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
-            bool canManageAllAttendance = isMaster || hasSchedulePermission;
+            _canManageAttendance = isMaster || hasSchedulePermission;
 
-            if (canManageAllAttendance)
+            string myTeamName = SessionManager.CurrentTeamName ?? "";
+            string myRealName = SessionManager.CurrentRealName ?? "";
+            string myDisplayName = string.IsNullOrEmpty(myTeamName) ? myRealName : $"[{myTeamName}] {myRealName}";
+
+            if (_canManageAttendance)
             {
-                // 일정 관리자: 검색 가능한 콤보박스 표시
-                BdrShiftNameReadOnly.Visibility = Visibility.Collapsed;
-                CmbShiftName.Visibility = Visibility.Visible;
+                // 관리자: 검색 가능한 입력 필드 활성화
+                _allShiftNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
+                                          .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
+                TxtShiftName.IsReadOnly = false;
+                TxtShiftName.Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A));
+                BdrShiftInput.Background = Brushes.White;
+                PathShiftArrow.Visibility = Visibility.Visible;
 
-                var allNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
-                                        .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
-                _allShiftNames = allNames;
-                CmbShiftName.ItemsSource = allNames;
-
-                var myItem = allNames.FirstOrDefault(n => n.Contains(SessionManager.CurrentRealName));
-                CmbShiftName.SelectedItem = myItem ?? allNames.FirstOrDefault();
-
-                CmbShiftName.AddHandler(TextBoxBase.TextChangedEvent,
-                    new TextChangedEventHandler(CmbShiftName_TextChanged));
+                string myItem = _allShiftNames.FirstOrDefault(n => n.Contains(myRealName)) ?? myDisplayName;
+                TxtShiftName.Text = myItem;
+                CmbShiftName.ItemsSource = _allShiftNames;
+                CmbShiftName.SelectedItem = myItem;
             }
             else
             {
-                // 일반 사용자: 본인 이름만 텍스트로 표시, 콤보박스 숨김
-                string myTeam = SessionManager.CurrentTeamName ?? "";
-                string myName = SessionManager.CurrentRealName ?? "";
-                TxtShiftNameReadOnly.Text = string.IsNullOrEmpty(myTeam) ? myName : $"[{myTeam}] {myName}";
-
-                // 저장 시 SelectedItem 사용을 위해 숨겨진 콤보박스에도 값 설정
-                CmbShiftName.ItemsSource = new List<string> { $"[{myTeam}] {myName}" };
+                // 일반 사용자: 읽기 전용으로 본인 이름 표시
+                TxtShiftName.IsReadOnly = true;
+                TxtShiftName.Foreground = new SolidColorBrush(Color.FromRgb(0x47, 0x55, 0x69));
+                TxtShiftName.Text = myDisplayName;
+                CmbShiftName.ItemsSource = new List<string> { myDisplayName };
                 CmbShiftName.SelectedIndex = 0;
             }
 
@@ -149,7 +151,7 @@ namespace CleanPotal
             MainTab.SelectionChanged += (_, __) => RefreshPreview();
             DpShiftEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
-            CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
+            // TxtShiftName_TextChanged가 RefreshPreview를 직접 호출하므로 별도 구독 불필요
             CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
             RbMethodCollective.Checked += (_, __) => RefreshPreview();
             RbMethodELearning.Checked += (_, __) => RefreshPreview();
@@ -197,22 +199,61 @@ namespace CleanPotal
             if (CmbEduName.Items.Count > 0) CmbEduName.SelectedIndex = 0;
         }
 
-        private void CmbShiftName_TextChanged(object sender, TextChangedEventArgs e)
+        // ── 직원 이름 자동완성 (TextBox + Popup) ──────────────────────────
+        private void TxtShiftName_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_suppressShiftFilter) return;
-            _suppressShiftFilter = true;
-            try
+            if (!_canManageAttendance) return;
+            string text = TxtShiftName.Text;
+            var filtered = string.IsNullOrWhiteSpace(text)
+                ? _allShiftNames
+                : _allShiftNames.Where(n => n.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            LstShiftSuggest.ItemsSource = filtered;
+            BdrShiftPopup.MinWidth = BdrShiftInput.ActualWidth > 0 ? BdrShiftInput.ActualWidth : 480;
+            PopShiftSuggest.IsOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text);
+
+            // 숨김 CmbShiftName 동기화
+            CmbShiftName.ItemsSource = _allShiftNames;
+            CmbShiftName.SelectedItem = _allShiftNames.FirstOrDefault(n =>
+                string.Equals(n, text, StringComparison.OrdinalIgnoreCase));
+
+            RefreshPreview();
+        }
+
+        private void LstShiftSuggest_ItemClick(object sender, MouseButtonEventArgs e)
+        {
+            if (LstShiftSuggest.SelectedItem is string selected)
             {
-                string text = CmbShiftName.Text;
-                var filtered = string.IsNullOrWhiteSpace(text)
-                    ? _allShiftNames
-                    : _allShiftNames.Where(n => n.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
-                CmbShiftName.ItemsSource = filtered;
-                CmbShiftName.IsDropDownOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text);
+                TxtShiftName.Text = selected;
+                TxtShiftName.CaretIndex = selected.Length;
+                PopShiftSuggest.IsOpen = false;
+                CmbShiftName.SelectedItem = selected;
+                RefreshPreview();
             }
-            finally
+        }
+
+        private void TxtShiftName_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!PopShiftSuggest.IsOpen) return;
+            if (e.Key == Key.Down)
             {
-                _suppressShiftFilter = false;
+                LstShiftSuggest.Focus();
+                if (LstShiftSuggest.Items.Count > 0)
+                    LstShiftSuggest.SelectedIndex = 0;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                PopShiftSuggest.IsOpen = false;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Enter && LstShiftSuggest.SelectedItem is string sel)
+            {
+                TxtShiftName.Text = sel;
+                PopShiftSuggest.IsOpen = false;
+                CmbShiftName.SelectedItem = sel;
+                RefreshPreview();
+                e.Handled = true;
             }
         }
 
@@ -296,7 +337,7 @@ namespace CleanPotal
                 {
                     int total = (end - start).Days + 1;
                     int business = _isHolidayLoaded ? CountBusinessDays(start, end) : 0;
-                    string name = CmbShiftName.SelectedItem?.ToString() ?? SessionManager.CurrentRealName;
+                    string name = TxtShiftName.Text.Trim() is { Length: > 0 } t ? t : SessionManager.CurrentRealName;
                     TxtShiftPreview.Text = _isHolidayLoaded
                         ? $"대상: {name} | 선택 {total}일 → 반영 {business}일 (주말/공휴일 제외)"
                         : $"대상: {name} | 선택 {total}일 (공휴일 계산 대기중)";
@@ -365,9 +406,7 @@ namespace CleanPotal
                 }
                 else if (MainTab.SelectedItem == TabAttendance) // 근태/휴가 다중 등록
                 {
-                    string selection = CmbShiftName.SelectedItem?.ToString()
-                        ?? _allShiftNames.FirstOrDefault(n => string.Equals(n, CmbShiftName.Text, StringComparison.OrdinalIgnoreCase))
-                        ?? "";
+                    string selection = TxtShiftName.Text.Trim();
                     string name = selection.Contains("]") ? selection.Substring(selection.IndexOf(']') + 1).Trim() : selection;
 
                     if (string.IsNullOrEmpty(name) || !DpShiftStart.SelectedDate.HasValue || !DpShiftEnd.SelectedDate.HasValue) return;

@@ -198,6 +198,33 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#0F172A"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -272,16 +299,38 @@
             <TabItem x:Name="TabAttendance" Header="근태/휴가 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="직원 이름" Style="{StaticResource FieldLabelStyle}"/>
-                    <!-- 일반 사용자: 본인 이름만 텍스트로 표시 (기본 숨김, 코드에서 표시) -->
-                    <Border x:Name="BdrShiftNameReadOnly" Height="42" BorderBrush="#E2E8F0" BorderThickness="1"
-                            CornerRadius="6" Padding="12,0" Margin="0,0,0,20" Background="#F8FAFC"
-                            Visibility="Collapsed">
-                        <TextBlock x:Name="TxtShiftNameReadOnly" FontSize="14" Foreground="#475569" VerticalAlignment="Center"/>
+                    <!-- 단일 입력 필드: 일반=읽기전용, 관리자=검색 가능 -->
+                    <Border x:Name="BdrShiftInput" Height="42" BorderBrush="#E2E8F0" BorderThickness="1"
+                            CornerRadius="6" Background="#F8FAFC" Margin="0,0,0,20" ClipToBounds="True">
+                        <Grid>
+                            <TextBox x:Name="TxtShiftName" BorderThickness="0" Background="Transparent"
+                                     FontSize="14" Foreground="#0F172A" Padding="12,0,32,0"
+                                     VerticalContentAlignment="Center" IsReadOnly="True"
+                                     TextChanged="TxtShiftName_TextChanged"
+                                     PreviewKeyDown="TxtShiftName_PreviewKeyDown"/>
+                            <Path x:Name="PathShiftArrow" Data="M0,0 L4,4 L8,0 Z"
+                                  Fill="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Margin="0,0,12,0" Visibility="Collapsed" IsHitTestVisible="False"/>
+                        </Grid>
                     </Border>
-                    <!-- 일정 관리자: 검색/선택 가능한 콤보박스 (기본 숨김, 코드에서 표시) -->
-                    <ComboBox x:Name="CmbShiftName" Style="{StaticResource InputComboStyle}" Margin="0,0,0,20"
-                              IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
-                              Visibility="Collapsed"/>
+                    <Popup x:Name="PopShiftSuggest"
+                           PlacementTarget="{Binding ElementName=BdrShiftInput}"
+                           Placement="Bottom" StaysOpen="False"
+                           AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border x:Name="BdrShiftPopup" Background="White" BorderBrush="#E2E8F0"
+                                BorderThickness="1" CornerRadius="6" Margin="0,4,0,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#64748B" Opacity="0.12" BlurRadius="8" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                                <ListBox x:Name="LstShiftSuggest" BorderThickness="0" Background="Transparent"
+                                         Padding="0,4"
+                                         PreviewMouseLeftButtonDown="LstShiftSuggest_ItemClick"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                    <!-- 저장 로직용 숨김 ComboBox -->
+                    <ComboBox x:Name="CmbShiftName" Visibility="Collapsed"/>
 
                     <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
