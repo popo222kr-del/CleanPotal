@@ -1560,10 +1560,18 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemCell_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void LineItemsGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
-            // 단일 클릭으로 즉시 편집 모드 진입
-            LineItemsGrid.BeginEdit();
+            // 중복 등록 방지 후 행 레벨 PreviewMouseDown 등록
+            e.Row.PreviewMouseLeftButtonDown -= LineItemRow_PreviewMouseDown;
+            e.Row.PreviewMouseLeftButtonDown += LineItemRow_PreviewMouseDown;
+        }
+
+        private void LineItemRow_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // 행의 어느 빈 곳을 눌러도 즉시 편집 모드 진입
+            if (sender is DataGridRow row && !row.IsEditing)
+                LineItemsGrid.BeginEdit(e);
         }
 
         private void LineItemsGrid_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
