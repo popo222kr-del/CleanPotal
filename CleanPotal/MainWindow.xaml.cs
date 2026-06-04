@@ -535,7 +535,6 @@ namespace CleanPotal
             _currentViewName = "PersonalTask";
             ApplySectionMeta("생산 미팅", "생산 관련 미팅 및 협의 내용을 관리합니다.");
             if (_productionMeetingView == null) _productionMeetingView = new ProductionMeetingView();
-            else _productionMeetingView.TryRefresh();
             MainContent.Content = _productionMeetingView;
             UpdateNavSelection("PersonalTask");
             HideAllHeaderButtons();
