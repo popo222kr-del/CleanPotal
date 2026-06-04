@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace CleanPotal
 {
-    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport }
+    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport, EtcMenu }
 
     public static class AuthManager
     {
@@ -24,6 +24,7 @@ namespace CleanPotal
                 PermissionType.Vendors => SessionManager.CanManageVendors,
                 PermissionType.Schedule => true,
                 PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
+                PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.CurrentUsername == "1004",
                 _ => false
             };
 
@@ -36,9 +37,10 @@ namespace CleanPotal
                     PermissionType.Vendors => "업체 관리",
                     PermissionType.Schedule => "일정/교육 관리",
                     PermissionType.WeeklyReport => "주간보고",
+                    PermissionType.EtcMenu => "기타 메뉴",
                     _ => "해당"
                 };
-                MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.\n(OFFICE 소속 인원만 사용 가능합니다.)", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
             }
             return true;
@@ -56,6 +58,7 @@ namespace CleanPotal
         public static bool CanManageNotices { get; set; } = false;
         public static bool CanManageVendors { get; set; } = false;
         public static bool CanManageSchedule { get; set; } = false;
+        public static bool CanAccessEtcMenu { get; set; } = false;
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
 
@@ -65,7 +68,7 @@ namespace CleanPotal
         {
             CurrentUsername = ""; CurrentRealName = ""; CurrentTeamName = "";
             CurrentJobTitle = ""; CurrentPhoneNumber = "";
-            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false;
+            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false; CanAccessEtcMenu = false;
 
             if (File.Exists(TokenPath)) File.Delete(TokenPath);
         }

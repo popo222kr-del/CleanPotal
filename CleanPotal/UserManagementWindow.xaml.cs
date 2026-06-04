@@ -143,6 +143,7 @@ namespace CleanPotal
             ChkManageNotices.IsChecked = user.CanManageNotices;
             ChkManageVendors.IsChecked = user.CanManageVendors;
             ChkManageSchedule.IsChecked = user.CanManageSchedule;
+            ChkAccessEtcMenu.IsChecked = user.CanAccessEtcMenu;
 
             EmptyState.Visibility = Visibility.Collapsed;
             DetailPanel.Visibility = Visibility.Visible;
@@ -190,7 +191,8 @@ namespace CleanPotal
                     CanManageFiles = ChkManageFiles.IsChecked == true,
                     CanManageNotices = ChkManageNotices.IsChecked == true,
                     CanManageVendors = ChkManageVendors.IsChecked == true,
-                    CanManageSchedule = ChkManageSchedule.IsChecked == true
+                    CanManageSchedule = ChkManageSchedule.IsChecked == true,
+                    CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true
                 };
 
                 _allUsers.Add(newUser);
@@ -235,6 +237,7 @@ namespace CleanPotal
                 _selectedUser.CanManageNotices = ChkManageNotices.IsChecked == true;
                 _selectedUser.CanManageVendors = ChkManageVendors.IsChecked == true;
                 _selectedUser.CanManageSchedule = ChkManageSchedule.IsChecked == true;
+                _selectedUser.CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true;
 
                 AuthDatabaseHelper.SaveAllUsers(_allUsers);
                 ApplyFilter();
@@ -374,6 +377,7 @@ namespace CleanPotal
             TxtEmployeeNumber.Clear(); TxtHireDate.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
             ChkManageFiles.IsChecked = false; ChkManageNotices.IsChecked = false;
             ChkManageVendors.IsChecked = false; ChkManageSchedule.IsChecked = false;
+            ChkAccessEtcMenu.IsChecked = false;
         }
     }
 }

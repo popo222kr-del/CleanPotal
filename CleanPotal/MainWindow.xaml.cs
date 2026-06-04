@@ -282,16 +282,7 @@ namespace CleanPotal
 
         private void OpenPersonalTask_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalTask(); }
 
-        private bool CanOpenEtcOfficeFeature()
-        {
-            string userTeam = SessionManager.CurrentTeamName;
-            if (userTeam != "Office" && userTeam != "관리자")
-            {
-                MessageBox.Show("해당 기능은 Office 소속 인원만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            return true;
-        }
+        private bool CanOpenEtcOfficeFeature() => AuthManager.CheckAuth(PermissionType.EtcMenu);
 
         private bool CanOpenAdminFeature()
         {

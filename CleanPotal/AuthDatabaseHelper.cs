@@ -24,8 +24,8 @@ namespace CleanPotal
         public bool CanManageFiles { get; set; } = false;
         public bool CanManageNotices { get; set; } = false;
         public bool CanManageVendors { get; set; } = false;
-        // 🔥 신규: 교육/일정 관리 권한
         public bool CanManageSchedule { get; set; } = false;
+        public bool CanAccessEtcMenu { get; set; } = false;
         public string HireDate { get; set; } = "";
         // 아이디(Username)와 분리된 사번 — 기존 사용자는 Username과 동일하게 자동 초기화됨
         public string EmployeeNumber { get; set; } = "";
