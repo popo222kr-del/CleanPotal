@@ -29,6 +29,13 @@ namespace CleanPotal
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
 
+        private bool TryNavigateAway()
+        {
+            if (MainContent.Content is ProductionMeetingView pm)
+                return pm.ConfirmDiscardIfDirty();
+            return true;
+        }
+
         private DispatcherTimer? _pollingTimer;
         private int _unreadReqCount = 0;
 
@@ -327,6 +334,7 @@ namespace CleanPotal
 
         private void ShowEduDashboard()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "EduDashboard";
             ApplySectionMeta("교육 현황 대시보드", "연도별 교육 계획 현황과 이수 진행률을 확인합니다.");
             UpdateNavSelection("EduDashboard");
@@ -338,6 +346,7 @@ namespace CleanPotal
 
         private void ShowWorkAssignment()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "WorkAssignment";
             ApplySectionMeta("개인별 업무 분장표", "팀원별 업무 내용, 기본 교육 기록, 기관 계정을 관리합니다.");
             UpdateNavSelection("WorkAssignment");
@@ -355,6 +364,7 @@ namespace CleanPotal
 
         private void ShowBrokenMgmt()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "BrokenMgmt";
             ApplySectionMeta("BROKEN 관리", "파손 이력 현황 및 팀별 성과 보상 현황을 관리합니다.");
             UpdateNavSelection("BrokenMgmt");
@@ -405,6 +415,7 @@ namespace CleanPotal
 
         private void ShowPortal()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "Portal";
             ApplySectionMeta("업무 파일 통합 관리", "자주 사용하는 파일과 폴더를 빠르게 실행합니다.");
             UpdateNavSelection("Portal");
@@ -415,6 +426,7 @@ namespace CleanPotal
 
         private void ShowReport()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "Report";
             ApplySectionMeta("성적서 자동 변환", "NAS 서버의 성적서 엑셀 파일을 복사하고 S/N 이름으로 PDF를 일괄 변환합니다.");
             UpdateNavSelection("Report");
@@ -425,6 +437,7 @@ namespace CleanPotal
 
         private void ShowHandover()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "Handover";
             ApplySectionMeta("현장 업무 인수인계", "업체별 진행 상황을 기록하고 배차를 관리합니다.");
             UpdateNavSelection("Handover");
@@ -439,6 +452,7 @@ namespace CleanPotal
 
         private void ShowWeeklyHandover()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "WeeklyHandover";
             ApplySectionMeta("주간세정 현황", "주간팀 담당 업체의 진행 상황을 기록하고 배차를 관리합니다.");
             UpdateNavSelection("WeeklyHandover");
@@ -452,6 +466,7 @@ namespace CleanPotal
 
         private void ShowProdReq()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "ProdReq";
             ApplySectionMeta("생산팀 요청사항", "생산팀의 부자재/수리 요청을 기록하고 조치 결과를 관리합니다.");
             UpdateNavSelection("ProdReq");
@@ -469,6 +484,7 @@ namespace CleanPotal
 
         private void ShowSchedule()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "Schedule";
             ApplySectionMeta("스케줄보드", "생산 라인별 스케줄 및 레시피를 관리합니다.");
             UpdateNavSelection("Schedule");
@@ -481,6 +497,7 @@ namespace CleanPotal
 
         private void ShowTeamSchedule()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "TeamSchedule";
             if (_teamScheduleView == null)
             {
@@ -498,6 +515,7 @@ namespace CleanPotal
 
         private void ShowQuotation()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "Quotation";
             if (_quotationView == null) _quotationView = new QuotationView();
             MainContent.Content = _quotationView;
@@ -508,6 +526,7 @@ namespace CleanPotal
 
         private void ShowWeeklyReport()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "WeeklyReport";
             if (_weeklyReportView == null) _weeklyReportView = new WeeklyReportView();
             else _weeklyReportView.TryRefresh();
@@ -521,6 +540,7 @@ namespace CleanPotal
 
         private void ShowPersonalMemo()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "PersonalMemo";
             if (_personalMemoView == null) _personalMemoView = new PersonalMemoView();
             else _personalMemoView.TryRefresh();
@@ -544,6 +564,7 @@ namespace CleanPotal
 
         private void ShowFieldChecklist()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "FieldChecklist";
             ApplySectionMeta("현장 점검 - 체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
             UpdateNavSelection("FieldChecklist");
@@ -555,6 +576,7 @@ namespace CleanPotal
 
         private void ShowDispatchCert()
         {
+            if (!TryNavigateAway()) return;
             _currentViewName = "DispatchCert";
             ApplySectionMeta("반출등록 성적서 생성", "반출등록 시트 데이터를 기준으로 템플릿 성적서를 수량만큼 자동 생성하고 생성이력을 기록합니다.");
             UpdateNavSelection("DispatchCert");

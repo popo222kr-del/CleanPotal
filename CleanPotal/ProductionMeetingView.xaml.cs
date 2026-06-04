@@ -414,6 +414,86 @@ namespace CleanPotal
             GroupedHistoryControl.ItemsSource = GroupedHistory;
             InitCreateModal();
             LoadFromStorage();
+            AutoSelectLatestReport();
+            LoadShiftTeamInfo();
+        }
+
+        private void AutoSelectLatestReport()
+        {
+            var latestReport = GroupedHistory
+                .SelectMany(g => g.Reports)
+                .FirstOrDefault();
+            if (latestReport == null) return;
+
+            var ownerGroup = GroupedHistory.FirstOrDefault(g => g.Reports.Contains(latestReport));
+            if (ownerGroup != null) ownerGroup.IsExpanded = true;
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                SetCurrentReport(latestReport);
+                // ListBox 선택도 동기화
+                foreach (var group in GroupedHistory)
+                {
+                    if (group.Reports.Contains(latestReport))
+                    {
+                        // UI가 렌더링된 후 ListBox를 찾아 선택 반영
+                        var container = GroupedHistoryControl.ItemContainerGenerator.ContainerFromItem(group);
+                        if (container is ContentPresenter cp)
+                        {
+                            var expander = FindVisualChild<Expander>(cp);
+                            if (expander?.Content is ListBox lb)
+                            {
+                                lb.SelectedItem = latestReport;
+                                _activeHistoryListBox = lb;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T t) return t;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        private void LoadShiftTeamInfo()
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var schedules = DatabaseHelper.GetShiftSchedulesByDate(today);
+                if (schedules.Count == 0) return;
+
+                var dayTeams = schedules
+                    .Where(s => s.ShiftType == "주간")
+                    .Select(s => s.TeamGroup)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Distinct()
+                    .ToList();
+                var nightTeams = schedules
+                    .Where(s => s.ShiftType == "야간")
+                    .Select(s => s.TeamGroup)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Distinct()
+                    .ToList();
+
+                if (dayTeams.Count == 0 && nightTeams.Count == 0) return;
+
+                string dayStr = dayTeams.Count > 0 ? string.Join(", ", dayTeams) : "-";
+                string nightStr = nightTeams.Count > 0 ? string.Join(", ", nightTeams) : "-";
+                TxtShiftTeamInfo.Text = $"주간 ({dayStr})  /  야간 ({nightStr})";
+                TxtShiftTeamInfo.Visibility = Visibility.Visible;
+            }
+            catch { }
         }
 
         private ProductionMeetingReportModel CloneReport(ProductionMeetingReportModel original)
@@ -992,10 +1072,22 @@ namespace CleanPotal
 
             if (sender is ListBox lb && lb.SelectedItem is ProductionMeetingReportModel selected)
             {
-                if (_isDirty)
+                if (_isDirty && selected != _currentReport)
                 {
-                    // 다른 보고서로 이동 시 자동 저장
-                    AutoSaveCurrentReport();
+                    var result = MessageBox.Show(
+                        "저장하지 않은 변경사항이 있습니다.\n저장하지 않고 이동하시겠습니까?",
+                        "미저장 변경사항",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    if (result == MessageBoxResult.No)
+                    {
+                        // 선택 되돌리기
+                        _isNavigating = true;
+                        lb.SelectedItem = _currentReport;
+                        _isNavigating = false;
+                        return;
+                    }
+                    _isDirty = false;
                 }
 
                 // 다른 달 ListBox의 선택 해제 (단일 선택 보장)
@@ -1008,6 +1100,18 @@ namespace CleanPotal
                 _activeHistoryListBox = lb;
                 SetCurrentReport(selected);
             }
+        }
+
+        public bool ConfirmDiscardIfDirty()
+        {
+            if (!_isDirty) return true;
+            var result = MessageBox.Show(
+                "저장하지 않은 변경사항이 있습니다.\n저장하지 않고 이동하시겠습니까?",
+                "미저장 변경사항",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes) { _isDirty = false; return true; }
+            return false;
         }
 
         private void MonthExpander_Expanded(object sender, RoutedEventArgs e)
@@ -1038,8 +1142,7 @@ namespace CleanPotal
 
         private void BtnCreateNewReport_Click(object sender, RoutedEventArgs e)
         {
-            if (_isDirty) AutoSaveCurrentReport();
-
+            if (_isDirty && !ConfirmDiscardIfDirty()) return;
             DpMeetingDate.SelectedDate = DateTime.Today;
             CreateReportModal.Visibility = Visibility.Visible;
         }

@@ -220,6 +220,7 @@
                         <StackPanel Grid.Column="0">
                             <TextBlock x:Name="TxtCurrentReportTitle" Text="보고서를 선택하세요" FontSize="26" FontWeight="ExtraBold" Foreground="#0F172A"/>
                             <TextBlock x:Name="TxtCurrentReportDate" Visibility="Collapsed"/>
+                            <TextBlock x:Name="TxtShiftTeamInfo" FontSize="13" Foreground="#2563EB" Margin="0,4,0,0" Visibility="Collapsed"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
