@@ -50,7 +50,6 @@
         </Style>
 
         <Style x:Key="LineItemCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
-            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="LineItemCell_PreviewMouseDown"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#E0E7FF"/>
@@ -607,9 +606,7 @@
                                       AlternationCount="2"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource LineItemCellStyle}"
-                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
-                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown">
+                                      CellStyle="{StaticResource LineItemCellStyle}">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
@@ -625,81 +622,61 @@
                                     <DataGridTemplateColumn Header="Part's Name" Width="2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"
-                                                           />
+                                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center"
+                                                         TextWrapping="Wrap" AcceptsReturn="True"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextWrapping="Wrap" AcceptsReturn="True"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 품목코드 -->
                                     <DataGridTemplateColumn Header="품목코드" Width="120">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
-                                                           />
+                                                <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 규격(SIZE) -->
                                     <DataGridTemplateColumn Header="규격 (SIZE)" Width="1.2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
-                                                           />
+                                                <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- Q'ty -->
                                     <DataGridTemplateColumn Header="Q'ty" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
-                                                           />
+                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 단가 -->
                                     <DataGridTemplateColumn Header="단가 (₩)" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding ListPrice, StringFormat={}{0:N0}}"
-                                                           Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"
-                                                           />
+                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0,14,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Right"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 금액 (자동계산, 읽기전용) -->
