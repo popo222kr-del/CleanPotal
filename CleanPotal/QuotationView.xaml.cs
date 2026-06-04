@@ -1570,43 +1570,35 @@ namespace CleanPotal
         // Tab/Shift+Tab navigation between line-item cells.
         // Attached directly to each editable TextBox so the handler is guaranteed
         // to fire (the TextBox is the focused element; nothing can swallow Tab first).
-        private void LineItemTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        // The DataGrid moves keyboard focus cell-to-cell on Tab natively. We just
+        // redirect that focus from the DataGridCell into the TextBox inside it, so
+        // the user can type immediately without clicking.
+        private void LineItemsGrid_PreviewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (e.Key != Key.Tab) return;
-            if (sender is not TextBox tb) return;
-            if (tb.FindAncestorOfType<DataGridCell>() is not DataGridCell cell) return;
-            if (cell.FindAncestorOfType<DataGridRow>() is not DataGridRow row) return;
-
-            bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-
-            var cols = LineItemsGrid.Columns
-                .OrderBy(c => c.DisplayIndex)
-                .Where(c => !c.IsReadOnly)
-                .ToList();
-
-            int ci = cols.IndexOf(cell.Column);
-            if (ci < 0) return;
-
-            int ri = LineItemsGrid.ItemContainerGenerator.IndexFromContainer(row);
-            int nc = ci + (shift ? -1 : 1);
-            int nr = ri;
-
-            if (!shift && nc >= cols.Count) { nc = 0; nr++; }
-            else if (shift && nc < 0)       { nc = cols.Count - 1; nr--; }
-
-            if (nr < 0 || nr >= LineItemsGrid.Items.Count) return;
+            if (e.NewFocus is not DataGridCell cell || cell.IsReadOnly) return;
+            if (FindDescendantTextBox(cell) is not TextBox tb) return;
+            if (tb.IsKeyboardFocusWithin) return;
 
             e.Handled = true;
-            var targetItem = LineItemsGrid.Items[nr];
-            var targetCol  = cols[nc];
-            LineItemsGrid.ScrollIntoView(targetItem, targetCol);
-            LineItemsGrid.UpdateLayout(); // synchronous: ensures the target row is realized
-
-            if (targetCol.GetCellContent(targetItem) is TextBox targetTb)
+            // Defer to avoid reentrancy during the focus change; then move focus
+            // into the cell's TextBox and pre-select its text.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
             {
-                targetTb.Focus();
-                targetTb.SelectAll();
+                tb.Focus();
+                tb.SelectAll();
+            }));
+        }
+
+        private static TextBox? FindDescendantTextBox(DependencyObject parent)
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is TextBox tb) return tb;
+                var found = FindDescendantTextBox(child);
+                if (found != null) return found;
             }
+            return null;
         }
 
         // ─── 단가 관리 모달 ───
