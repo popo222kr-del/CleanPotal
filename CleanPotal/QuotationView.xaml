@@ -604,10 +604,15 @@
                                       BorderBrush="#E2E8F0"
                                       Background="Transparent"
                                       AlternationCount="2"
-                                      local:DataGridEditBehavior.SingleClickEdit="True"
-                                      RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource LineItemCellStyle}">
+                                      CellStyle="{StaticResource LineItemCellStyle}"
+                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
+                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow" BasedOn="{StaticResource GridRowStyle}">
+                                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="LineItemRow_PreviewMouseLeftButtonDown"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">

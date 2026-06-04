@@ -1560,6 +1560,45 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
+        // ─── 품목 그리드 단일 클릭 편집 ───
+
+        private void LineItemRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 클릭된 DataGridCell을 찾아 CurrentCell을 명시적으로 설정한 뒤 BeginEdit
+            // (기존 시도들은 DataGrid가 CurrentCell을 자동 설정하기를 기다렸기 때문에 실패)
+            var row = (DataGridRow)sender;
+            DependencyObject? src = e.OriginalSource as DependencyObject;
+            if (src == null) return;
+
+            var cell = src as DataGridCell ?? src.FindAncestorOfType<DataGridCell>();
+            if (cell == null || cell.IsEditing || cell.IsReadOnly) return;
+
+            LineItemsGrid.CurrentCell = new DataGridCellInfo(row.Item, cell.Column);
+            LineItemsGrid.BeginEdit();
+        }
+
+        private void LineItemsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Tab) return;
+            // Tab 처리 완료 후 Background 우선순위로 다음 셀 편집 시작
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, (Action)(() =>
+            {
+                var col = LineItemsGrid.CurrentCell.Column;
+                if (col != null && !col.IsReadOnly)
+                    LineItemsGrid.BeginEdit();
+            }));
+        }
+
+        private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
+        {
+            if (e.EditingElement is TextBox tb)
+                tb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+                {
+                    tb.Focus();
+                    tb.SelectAll();
+                }));
+        }
+
         // ─── 단가 관리 모달 ───
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
