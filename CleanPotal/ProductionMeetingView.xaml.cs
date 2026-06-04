@@ -537,16 +537,31 @@ namespace CleanPotal
                 MainContentRichEditor.Document = new FlowDocument();
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
+                    bool loaded = false;
+                    // FlowDocument 형식 시도
                     try
                     {
                         using var sr = new StringReader(report.MainContentRich);
                         using var xr = XmlReader.Create(sr);
-                        if (XamlReader.Load(xr) is FlowDocument doc) MainContentRichEditor.Document = doc;
+                        if (XamlReader.Load(xr) is FlowDocument doc) { MainContentRichEditor.Document = doc; loaded = true; }
                     }
-                    catch
+                    catch { }
+                    // Section(DataFormats.Xaml) 형식 fallback
+                    if (!loaded)
                     {
-                        MainContentRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.MainContent ?? "")));
+                        try
+                        {
+                            var doc = new FlowDocument();
+                            using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(report.MainContentRich));
+                            var range = new TextRange(doc.ContentStart, doc.ContentEnd);
+                            range.Load(ms, System.Windows.DataFormats.Xaml);
+                            MainContentRichEditor.Document = doc;
+                            loaded = true;
+                        }
+                        catch { }
                     }
+                    if (!loaded)
+                        MainContentRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.MainContent ?? "")));
                 }
                 else if (!string.IsNullOrWhiteSpace(report.MainContent))
                 {
