@@ -50,6 +50,7 @@
         </Style>
 
         <Style x:Key="LineItemCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
+            <Setter Property="KeyboardNavigation.IsTabStop" Value="False"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#E0E7FF"/>
@@ -612,7 +613,8 @@
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                                       CellStyle="{StaticResource LineItemCellStyle}"
-                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown">
+                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown"
+                                      PreviewGotKeyboardFocus="LineItemsGrid_PreviewGotKeyboardFocus">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
