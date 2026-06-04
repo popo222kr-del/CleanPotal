@@ -1560,10 +1560,10 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemCell_GotFocus(object sender, RoutedEventArgs e)
+        private void LineItemsGrid_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            // 셀이 포커스를 받을 때마다 (클릭, Tab 모두) 즉시 편집 모드 진입
-            if (sender is DataGridCell cell && !cell.IsEditing && !cell.IsReadOnly)
+            // 키보드 포커스가 DataGridCell로 이동할 때마다 (클릭·Tab 모두) 즉시 편집 모드 진입
+            if (e.NewFocus is DataGridCell cell && !cell.IsEditing && !cell.IsReadOnly)
                 LineItemsGrid.BeginEdit();
         }
 
