@@ -598,7 +598,9 @@
                                       AlternationCount="2"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}">
+                                      CellStyle="{StaticResource GridCellStyle}"
+                                      CurrentCellChanged="LineItemsGrid_CurrentCellChanged"
+                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">

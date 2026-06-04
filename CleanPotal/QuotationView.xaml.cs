@@ -1559,6 +1559,23 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
+        private void LineItemsGrid_CurrentCellChanged(object sender, EventArgs e)
+        {
+            // Tab으로 셀 이동 시 즉시 편집 모드 진입
+            if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
+                LineItemsGrid.BeginEdit();
+        }
+
+        private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
+        {
+            // 편집 모드 진입 시 TextBox 포커스 + 전체 선택 (바로 덮어쓰기 가능)
+            if (e.EditingElement is TextBox tb)
+            {
+                tb.Focus();
+                tb.SelectAll();
+            }
+        }
+
         // ─── 단가 관리 모달 ───
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
