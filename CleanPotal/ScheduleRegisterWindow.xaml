@@ -254,7 +254,8 @@
             <TabItem x:Name="TabAttendance" Header="근태/휴가 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="직원 이름" Style="{StaticResource FieldLabelStyle}"/>
-                    <ComboBox x:Name="CmbShiftName" Style="{StaticResource InputComboStyle}" Margin="0,0,0,20"/>
+                    <ComboBox x:Name="CmbShiftName" Style="{StaticResource InputComboStyle}" Margin="0,0,0,20"
+                              IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"/>
 
                     <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
@@ -356,7 +357,8 @@
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
-                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"/>
+                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"
+                                      IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"/>
                         </StackPanel>
                     </Grid>
 
