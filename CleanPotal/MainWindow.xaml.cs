@@ -108,7 +108,7 @@ namespace CleanPotal
             {
                 case ProdReqView pv:                    pv.TryRefresh(); break;
                 case TeamScheduleView tsv:              tsv.TryRefresh(); break;
-
+                case ProductionMeetingView pm:          pm.TryRefresh(); break;
                 case PersonalMemoView memo:             memo.TryRefresh(); break;
                 case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
                 case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
@@ -535,6 +535,7 @@ namespace CleanPotal
             _currentViewName = "PersonalTask";
             ApplySectionMeta("생산 미팅", "생산 관련 미팅 및 협의 내용을 관리합니다.");
             if (_productionMeetingView == null) _productionMeetingView = new ProductionMeetingView();
+            else _productionMeetingView.TryRefresh();
             MainContent.Content = _productionMeetingView;
             UpdateNavSelection("PersonalTask");
             HideAllHeaderButtons();
