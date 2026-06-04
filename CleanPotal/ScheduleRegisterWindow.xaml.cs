@@ -70,15 +70,15 @@ namespace CleanPotal
             // 권한 상관없이 전체 유저 정보는 미리 로드 (팀명 매핑 및 Upsert를 위해 필요)
             _allUsers = AuthDatabaseHelper.GetAllUsers();
 
-            CmbShiftName.ItemsSource = new List<string> { SessionManager.CurrentRealName };
-            CmbShiftName.SelectedIndex = 0;
-            CmbShiftName.IsEnabled = false;
-
             bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
             bool canManageAllAttendance = isMaster || hasSchedulePermission;
 
             if (canManageAllAttendance)
             {
+                // 일정 관리자: 검색 가능한 콤보박스 표시
+                BdrShiftNameReadOnly.Visibility = Visibility.Collapsed;
+                CmbShiftName.Visibility = Visibility.Visible;
+
                 var allNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
                                         .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
                 _allShiftNames = allNames;
@@ -86,10 +86,20 @@ namespace CleanPotal
 
                 var myItem = allNames.FirstOrDefault(n => n.Contains(SessionManager.CurrentRealName));
                 CmbShiftName.SelectedItem = myItem ?? allNames.FirstOrDefault();
-                CmbShiftName.IsEnabled = true;
 
                 CmbShiftName.AddHandler(TextBoxBase.TextChangedEvent,
                     new TextChangedEventHandler(CmbShiftName_TextChanged));
+            }
+            else
+            {
+                // 일반 사용자: 본인 이름만 텍스트로 표시, 콤보박스 숨김
+                string myTeam = SessionManager.CurrentTeamName ?? "";
+                string myName = SessionManager.CurrentRealName ?? "";
+                TxtShiftNameReadOnly.Text = string.IsNullOrEmpty(myTeam) ? myName : $"[{myTeam}] {myName}";
+
+                // 저장 시 SelectedItem 사용을 위해 숨겨진 콤보박스에도 값 설정
+                CmbShiftName.ItemsSource = new List<string> { $"[{myTeam}] {myName}" };
+                CmbShiftName.SelectedIndex = 0;
             }
 
             // 교육 일정 등록은 "관리자" 권한이 체크된 사용자만 가능
