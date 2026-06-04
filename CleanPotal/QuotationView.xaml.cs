@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
@@ -1561,18 +1562,39 @@ namespace CleanPotal
 
         private void LineItemsGrid_CurrentCellChanged(object sender, EventArgs e)
         {
-            // Tab으로 셀 이동 시 즉시 편집 모드 진입
-            if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
-                LineItemsGrid.BeginEdit();
+            // BeginEdit은 셀 전환이 완전히 끝난 뒤 실행해야 동작함
+            if (LineItemsGrid.CurrentCell.Column == null || LineItemsGrid.CurrentCell.Column.IsReadOnly) return;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+            {
+                if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
+                    LineItemsGrid.BeginEdit();
+            }));
         }
 
         private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
         {
-            // 편집 모드 진입 시 TextBox 포커스 + 전체 선택 (바로 덮어쓰기 가능)
+            // 편집 진입 후 TextBox가 렌더링 완료된 시점에 SelectAll
             if (e.EditingElement is TextBox tb)
             {
-                tb.Focus();
-                tb.SelectAll();
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+                {
+                    tb.Focus();
+                    tb.SelectAll();
+                }));
+            }
+        }
+
+        private void LineItemsGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // 단일 클릭으로 편집 모드 진입 (더블클릭 불필요)
+            DependencyObject dep = e.OriginalSource as DependencyObject;
+            while (dep != null && dep is not DataGridCell)
+                dep = VisualTreeHelper.GetParent(dep);
+
+            if (dep is DataGridCell cell && !cell.IsEditing && !cell.IsReadOnly)
+            {
+                cell.Focus();
+                LineItemsGrid.BeginEdit(e);
             }
         }
 

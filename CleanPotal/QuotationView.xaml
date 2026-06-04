@@ -600,7 +600,8 @@
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                                       CellStyle="{StaticResource GridCellStyle}"
                                       CurrentCellChanged="LineItemsGrid_CurrentCellChanged"
-                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit">
+                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
+                                      PreviewMouseLeftButtonDown="LineItemsGrid_PreviewMouseLeftButtonDown">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
