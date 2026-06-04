@@ -342,14 +342,14 @@
                                         <Run Text="{Binding TeamName, Mode=OneWay}"/>
                                     </TextBlock>
                                 </StackPanel>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsResigned}" Value="True">
-                                        <Setter TargetName="ResignBadge" Property="Visibility" Value="Visible"/>
-                                        <Setter TargetName="NameText" Property="Foreground" Value="#94A3B8"/>
-                                        <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.4"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
                             </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsResigned}" Value="True">
+                                    <Setter TargetName="ResignBadge" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="NameText" Property="Foreground" Value="#94A3B8"/>
+                                    <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.4"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
