@@ -208,7 +208,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,16">
@@ -240,97 +240,63 @@
                         </StackPanel>
                     </Grid>
 
-                    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
-                        <RichTextBox x:Name="MainContentRichEditor" Tag="Main"
-                             BorderThickness="0" Background="Transparent"
-                             Padding="20,16" FontSize="14" Foreground="#1E293B"
-                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                             AcceptsTab="True" AllowDrop="True"
-                             GotKeyboardFocus="AnyRichTextBox_GotFocus"
-                             LostKeyboardFocus="AnyRichTextBox_LostFocus"
-                             PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
-                             PreviewDragOver="AnyRichTextBox_PreviewDragOver"
-                             Drop="AnyRichTextBox_Drop"
-                             TextChanged="MainContentRichEditor_TextChanged"
-                             SpellCheck.IsEnabled="False">
-                            <RichTextBox.Resources>
-                                <Style TargetType="Paragraph">
-                                    <Setter Property="Margin" Value="0,0,0,4"/>
-                                </Style>
-                            </RichTextBox.Resources>
-                        </RichTextBox>
-                    </Border>
+                    <!-- 주간 -->
+                    <Grid Grid.Row="1" Margin="0,0,0,8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="주간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+                            <RichTextBox x:Name="DayShiftRichEditor" Tag="Main"
+                                 BorderThickness="0" Background="Transparent"
+                                 Padding="20,16" FontSize="14" Foreground="#1E293B"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                 AcceptsTab="True" AllowDrop="True"
+                                 GotKeyboardFocus="AnyRichTextBox_GotFocus"
+                                 LostKeyboardFocus="AnyRichTextBox_LostFocus"
+                                 PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
+                                 PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 Drop="AnyRichTextBox_Drop"
+                                 TextChanged="DayShiftRichEditor_TextChanged"
+                                 SpellCheck.IsEnabled="False">
+                                <RichTextBox.Resources>
+                                    <Style TargetType="Paragraph">
+                                        <Setter Property="Margin" Value="0,0,0,4"/>
+                                    </Style>
+                                </RichTextBox.Resources>
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
 
-                    <!-- 🔥 중앙 본문 별도 첨부 영역 (Main RichTextBox 아래) -->
-                    <Border Grid.Row="2" Height="100" Margin="0,12,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10" AllowDrop="True" PreviewDragOver="MainAttachmentPanel_PreviewDragOver" Drop="MainAttachmentPanel_Drop" PreviewKeyDown="MainAttachmentPanel_PreviewKeyDown" Focusable="True">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,6">
-                                <TextBlock Text="별도 첨부 (이미지/파일)" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center"/>
-                                <Button Content="+" Height="20" Width="20" HorizontalAlignment="Right" Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand" FontWeight="Bold" Click="BtnAddMainAttachment_Click">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="10"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
-                            </Grid>
-                            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="52">
-                                <ItemsControl x:Name="MainAttachmentsControl" ItemsSource="{Binding MainAttachments}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Width="48" Height="48" Margin="0,0,8,0"
-                                          AllowDrop="True"
-                                          MouseLeftButtonDown="MainAttachmentItem_MouseDown"
-                                          MouseMove="MainAttachmentItem_MouseMove"
-                                          DragOver="MainAttachmentItem_DragOver"
-                                          Drop="MainAttachmentItem_Drop">
-                                                <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#E2E8F0"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                    <Setter Property="Background">
-                                                                        <Setter.Value>
-                                                                            <ImageBrush ImageSource="{Binding FilePath}" Stretch="UniformToFill"/>
-                                                                        </Setter.Value>
-                                                                    </Setter>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <TextBlock Text="{Binding FileName}" Foreground="#334155" FontSize="8" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="3">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Border>
-                                                <Button Content="✕" Width="14" Height="14" Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Cursor="Hand" Tag="{Binding}" Click="BtnRemoveMainAttachment_Click">
-                                                    <Button.Resources>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="CornerRadius" Value="7"/>
-                                                        </Style>
-                                                    </Button.Resources>
-                                                </Button>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </StackPanel>
-                    </Border>
+                    <!-- 야간 -->
+                    <Grid Grid.Row="2" Margin="0,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="야간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+                            <RichTextBox x:Name="NightShiftRichEditor" Tag="Night"
+                                 BorderThickness="0" Background="Transparent"
+                                 Padding="20,16" FontSize="14" Foreground="#1E293B"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                 AcceptsTab="True" AllowDrop="True"
+                                 GotKeyboardFocus="AnyRichTextBox_GotFocus"
+                                 LostKeyboardFocus="AnyRichTextBox_LostFocus"
+                                 PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
+                                 PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 Drop="AnyRichTextBox_Drop"
+                                 TextChanged="NightShiftRichEditor_TextChanged"
+                                 SpellCheck.IsEnabled="False">
+                                <RichTextBox.Resources>
+                                    <Style TargetType="Paragraph">
+                                        <Setter Property="Margin" Value="0,0,0,4"/>
+                                    </Style>
+                                </RichTextBox.Resources>
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
                 </Grid>
 
                 <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
@@ -338,7 +304,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- 제목 -->
@@ -366,76 +331,6 @@
                             </RichTextBox>
                         </Border>
 
-                        <!-- 첨부 영역 -->
-                        <Border Grid.Row="2" Height="100" Margin="0,10,0,0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10" AllowDrop="True" PreviewDragOver="MemoAttachmentPanel_PreviewDragOver" Drop="MemoAttachmentPanel_Drop" PreviewKeyDown="MemoAttachmentPanel_PreviewKeyDown" Focusable="True">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,6">
-                                    <TextBlock Text="별도 첨부 (이미지/파일)" FontSize="11" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center"/>
-                                    <Button Content="+" Height="20" Width="20" HorizontalAlignment="Right" Background="#E2E8F0" Foreground="#334155" BorderThickness="0" Cursor="Hand" FontWeight="Bold" Click="BtnAddMemoAttachment_Click">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="10"/>
-                                            </Style>
-                                        </Button.Resources>
-                                    </Button>
-                                </Grid>
-                                <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="52">
-                                    <ItemsControl x:Name="MemoAttachmentsControl" ItemsSource="{Binding MemoAttachments}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Horizontal"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Width="48" Height="48" Margin="0,0,8,0"
-                                              AllowDrop="True"
-                                              MouseLeftButtonDown="MemoAttachmentItem_MouseDown"
-                                              MouseMove="MemoAttachmentItem_MouseMove"
-                                              DragOver="MemoAttachmentItem_DragOver"
-                                              Drop="MemoAttachmentItem_Drop">
-                                                    <Border Cursor="Hand" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" MouseLeftButtonUp="AttachmentPreview_Click" Background="#E2E8F0">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="#E2E8F0"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                        <Setter Property="Background">
-                                                                            <Setter.Value>
-                                                                                <ImageBrush ImageSource="{Binding FilePath}" Stretch="UniformToFill"/>
-                                                                            </Setter.Value>
-                                                                        </Setter>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <TextBlock Text="{Binding FileName}" Foreground="#334155" FontSize="8" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="3">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding IsImage}" Value="True">
-                                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Border>
-                                                    <Button Content="✕" Width="14" Height="14" Background="#EF4444" Foreground="White" BorderThickness="0" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Cursor="Hand" Tag="{Binding}" Click="BtnRemoveMemoAttachment_Click">
-                                                        <Button.Resources>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="CornerRadius" Value="7"/>
-                                                            </Style>
-                                                        </Button.Resources>
-                                                    </Button>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </StackPanel>
-                        </Border>
                     </Grid>
                 </Border>
 

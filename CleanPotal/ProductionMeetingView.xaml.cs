@@ -107,7 +107,7 @@ namespace CleanPotal
             set { if (_memo == value) return; _memo = value; OnPropertyChanged(); }
         }
 
-        // 🔥 중앙 본문(평문) - 큰 메모장 형태의 자유로운 작성 공간
+        // 주간 본문(평문)
         private string _mainContent = "";
         public string MainContent
         {
@@ -115,12 +115,28 @@ namespace CleanPotal
             set { if (_mainContent == value) return; _mainContent = value; OnPropertyChanged(); }
         }
 
-        // 🔥 중앙 본문(서식+이미지+체크박스 포함된 FlowDocument XAML)
+        // 주간 본문(서식+이미지+체크박스 포함된 FlowDocument XAML)
         private string _mainContentRich = "";
         public string MainContentRich
         {
             get => _mainContentRich;
             set { if (_mainContentRich == value) return; _mainContentRich = value; OnPropertyChanged(); }
+        }
+
+        // 야간 본문(평문)
+        private string _nightContent = "";
+        public string NightContent
+        {
+            get => _nightContent;
+            set { if (_nightContent == value) return; _nightContent = value; OnPropertyChanged(); }
+        }
+
+        // 야간 본문(서식+이미지+체크박스 포함된 FlowDocument XAML)
+        private string _nightContentRich = "";
+        public string NightContentRich
+        {
+            get => _nightContentRich;
+            set { if (_nightContentRich == value) return; _nightContentRich = value; OnPropertyChanged(); }
         }
 
         // 🔥 RichTextBox용 FlowDocument XAML (서식+이미지+체크박스 포함)
@@ -412,6 +428,8 @@ namespace CleanPotal
                 MemoRich = original.MemoRich,
                 MainContent = original.MainContent,
                 MainContentRich = original.MainContentRich,
+                NightContent = original.NightContent,
+                NightContentRich = original.NightContentRich,
                 Attendees = original.Attendees,
                 Summary = original.Summary
             };
@@ -462,8 +480,10 @@ namespace CleanPotal
             // 🔥 RichTextBox에 메모 로드 (MemoRich 우선, 없으면 평문 Memo)
             LoadMemoIntoRichEditor(_draftReport);
 
-            // 🔥 중앙 본문 RichTextBox에 MainContent 로드 (MainContentRich 우선, 없으면 평문)
-            LoadMainContentIntoRichEditor(_draftReport);
+            // 주간 본문 로드
+            LoadDayShiftIntoRichEditor(_draftReport);
+            // 야간 본문 로드
+            LoadNightShiftIntoRichEditor(_draftReport);
 
             _isDirty = false;
             UpdateOverviewStats();
@@ -531,17 +551,16 @@ namespace CleanPotal
             _isDirty = true;
         }
 
-        // 🔥 중앙 본문(MainContent) 로드 - 메모 영역과 동일한 방식
-        private bool _suppressMainContentTextChanged = false;
-        private void LoadMainContentIntoRichEditor(ProductionMeetingReportModel report)
+        // 주간 본문 로드
+        private bool _suppressDayShiftTextChanged = false;
+        private void LoadDayShiftIntoRichEditor(ProductionMeetingReportModel report)
         {
-            if (MainContentRichEditor == null) return;
-            _suppressMainContentTextChanged = true;
+            if (DayShiftRichEditor == null) return;
+            _suppressDayShiftTextChanged = true;
             try
             {
                 var doc = new FlowDocument { PageWidth = 99999 };
-                MainContentRichEditor.Document = doc;
-
+                DayShiftRichEditor.Document = doc;
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
                     if (!TryLoadRichContent(doc, report.MainContentRich))
@@ -557,11 +576,37 @@ namespace CleanPotal
                         doc.Blocks.Add(new Paragraph(new Run(line)));
                 }
             }
-            finally
+            finally { _suppressDayShiftTextChanged = false; }
+            ReattachInteractiveElements(DayShiftRichEditor);
+        }
+
+        // 야간 본문 로드
+        private bool _suppressNightShiftTextChanged = false;
+        private void LoadNightShiftIntoRichEditor(ProductionMeetingReportModel report)
+        {
+            if (NightShiftRichEditor == null) return;
+            _suppressNightShiftTextChanged = true;
+            try
             {
-                _suppressMainContentTextChanged = false;
+                var doc = new FlowDocument { PageWidth = 99999 };
+                NightShiftRichEditor.Document = doc;
+                if (!string.IsNullOrWhiteSpace(report.NightContentRich))
+                {
+                    if (!TryLoadRichContent(doc, report.NightContentRich))
+                    {
+                        doc.Blocks.Clear();
+                        foreach (var line in (report.NightContent ?? "").Replace("\r\n", "\n").Split('\n'))
+                            doc.Blocks.Add(new Paragraph(new Run(line)));
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(report.NightContent))
+                {
+                    foreach (var line in report.NightContent.Replace("\r\n", "\n").Split('\n'))
+                        doc.Blocks.Add(new Paragraph(new Run(line)));
+                }
             }
-            ReattachInteractiveElements(MainContentRichEditor);
+            finally { _suppressNightShiftTextChanged = false; }
+            ReattachInteractiveElements(NightShiftRichEditor);
         }
 
         // 신/구 포맷 모두 지원하는 RichContent 로드 헬퍼
@@ -737,31 +782,55 @@ namespace CleanPotal
             border.ContextMenu = menu;
         }
 
-        // 🔥 중앙 본문(MainContent) 모델 동기화
-        private void SyncMainContentFromRichEditor()
+        // 주간 본문 동기화
+        private void SyncDayShiftFromRichEditor()
         {
-            if (MainContentRichEditor == null || _draftReport == null) return;
-
+            if (DayShiftRichEditor == null || _draftReport == null) return;
             try
             {
-                var range = new TextRange(MainContentRichEditor.Document.ContentStart, MainContentRichEditor.Document.ContentEnd);
+                var range = new TextRange(DayShiftRichEditor.Document.ContentStart, DayShiftRichEditor.Document.ContentEnd);
                 using var ms = new System.IO.MemoryStream();
                 range.Save(ms, System.Windows.DataFormats.Xaml);
                 _draftReport.MainContentRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             }
             catch { _draftReport.MainContentRich = ""; }
-
             try
             {
-                var range = new TextRange(MainContentRichEditor.Document.ContentStart, MainContentRichEditor.Document.ContentEnd);
+                var range = new TextRange(DayShiftRichEditor.Document.ContentStart, DayShiftRichEditor.Document.ContentEnd);
                 _draftReport.MainContent = range.Text?.Trim() ?? "";
             }
             catch { _draftReport.MainContent = ""; }
         }
 
-        private void MainContentRichEditor_TextChanged(object sender, TextChangedEventArgs e)
+        // 야간 본문 동기화
+        private void SyncNightShiftFromRichEditor()
         {
-            if (_suppressMainContentTextChanged) return;
+            if (NightShiftRichEditor == null || _draftReport == null) return;
+            try
+            {
+                var range = new TextRange(NightShiftRichEditor.Document.ContentStart, NightShiftRichEditor.Document.ContentEnd);
+                using var ms = new System.IO.MemoryStream();
+                range.Save(ms, System.Windows.DataFormats.Xaml);
+                _draftReport.NightContentRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            }
+            catch { _draftReport.NightContentRich = ""; }
+            try
+            {
+                var range = new TextRange(NightShiftRichEditor.Document.ContentStart, NightShiftRichEditor.Document.ContentEnd);
+                _draftReport.NightContent = range.Text?.Trim() ?? "";
+            }
+            catch { _draftReport.NightContent = ""; }
+        }
+
+        private void DayShiftRichEditor_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressDayShiftTextChanged) return;
+            _isDirty = true;
+        }
+
+        private void NightShiftRichEditor_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressNightShiftTextChanged) return;
             _isDirty = true;
         }
 
@@ -814,12 +883,15 @@ namespace CleanPotal
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
             SyncMemoFromRichEditor();
-            SyncMainContentFromRichEditor();
+            SyncDayShiftFromRichEditor();
+            SyncNightShiftFromRichEditor();
 
             _currentReport.Memo = _draftReport.Memo;
             _currentReport.MemoRich = _draftReport.MemoRich;
             _currentReport.MainContent = _draftReport.MainContent;
             _currentReport.MainContentRich = _draftReport.MainContentRich;
+            _currentReport.NightContent = _draftReport.NightContent;
+            _currentReport.NightContentRich = _draftReport.NightContentRich;
             _currentReport.Attendees = _draftReport.Attendees;
             _currentReport.Summary = _draftReport.Summary;
             _currentReport.Blocks.Clear();
@@ -857,13 +929,16 @@ namespace CleanPotal
         {
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
-            SyncMemoFromRichEditor(); // 🔥 RichTextBox 내용을 _draftReport.MemoRich/Memo에 반영
-            SyncMainContentFromRichEditor(); // 🔥 중앙 본문 동기화
+            SyncMemoFromRichEditor();
+            SyncDayShiftFromRichEditor();
+            SyncNightShiftFromRichEditor();
 
             _currentReport.Memo = _draftReport.Memo;
             _currentReport.MemoRich = _draftReport.MemoRich;
             _currentReport.MainContent = _draftReport.MainContent;
             _currentReport.MainContentRich = _draftReport.MainContentRich;
+            _currentReport.NightContent = _draftReport.NightContent;
+            _currentReport.NightContentRich = _draftReport.NightContentRich;
             _currentReport.Attendees = _draftReport.Attendees;
             _currentReport.Summary = _draftReport.Summary;
             _currentReport.Blocks.Clear();
@@ -2427,11 +2502,17 @@ namespace CleanPotal
                 MemoRichEditor.Document = new FlowDocument();
                 _suppressMemoTextChanged = false;
             }
-            if (MainContentRichEditor != null)
+            if (DayShiftRichEditor != null)
             {
-                _suppressMainContentTextChanged = true;
-                MainContentRichEditor.Document = new FlowDocument();
-                _suppressMainContentTextChanged = false;
+                _suppressDayShiftTextChanged = true;
+                DayShiftRichEditor.Document = new FlowDocument();
+                _suppressDayShiftTextChanged = false;
+            }
+            if (NightShiftRichEditor != null)
+            {
+                _suppressNightShiftTextChanged = true;
+                NightShiftRichEditor.Document = new FlowDocument();
+                _suppressNightShiftTextChanged = false;
             }
             _isDirty = false;
             UpdateOverviewStats();
@@ -2510,6 +2591,8 @@ namespace CleanPotal
                             MemoRich = report.MemoRich ?? "",
                             MainContent = report.MainContent ?? "",
                             MainContentRich = report.MainContentRich ?? "",
+                            NightContent = report.NightContent ?? "",
+                            NightContentRich = report.NightContentRich ?? "",
                             Attendees = report.Attendees ?? "",
                             Summary = report.Summary ?? ""
                         };
@@ -2594,6 +2677,8 @@ namespace CleanPotal
                         MemoRich = r.MemoRich,
                         MainContent = r.MainContent,
                         MainContentRich = r.MainContentRich,
+                        NightContent = r.NightContent,
+                        NightContentRich = r.NightContentRich,
                         Attendees = r.Attendees,
                         Summary = r.Summary,
                         Blocks = r.Blocks.Select(b => new PersistedBlock
@@ -2638,6 +2723,8 @@ namespace CleanPotal
             public string? MemoRich { get; set; }
             public string? MainContent { get; set; }
             public string? MainContentRich { get; set; }
+            public string? NightContent { get; set; }
+            public string? NightContentRich { get; set; }
             public string? Attendees { get; set; }
             public string? Summary { get; set; }
             public List<PersistedBlock> Blocks { get; set; } = new();
