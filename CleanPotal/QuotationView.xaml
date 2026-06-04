@@ -598,10 +598,12 @@
                                       AlternationCount="2"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
-                                      CurrentCellChanged="LineItemsGrid_CurrentCellChanged"
-                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
-                                      PreviewMouseLeftButtonDown="LineItemsGrid_PreviewMouseLeftButtonDown">
+                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit">
+                                <DataGrid.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
+                                        <EventSetter Event="GotFocus" Handler="LineItemCell_GotFocus"/>
+                                    </Style>
+                                </DataGrid.CellStyle>
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
