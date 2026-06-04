@@ -1570,30 +1570,42 @@ namespace CleanPotal
         private void LineItemsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Tab) return;
-            if (Keyboard.FocusedElement is not TextBox tb) return;
+            if (e.OriginalSource is not TextBox tb) return;
             if (tb.FindAncestorOfType<DataGridCell>() is not DataGridCell cell) return;
             if (cell.FindAncestorOfType<DataGridRow>() is not DataGridRow row) return;
 
             bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             var cols = LineItemsGrid.Columns
-                .Where(c => !c.IsReadOnly)
                 .OrderBy(c => c.DisplayIndex)
+                .Where(c => !c.IsReadOnly)
                 .ToList();
 
             int ci = cols.IndexOf(cell.Column);
+            if (ci < 0) return;
+
             int ri = LineItemsGrid.ItemContainerGenerator.IndexFromContainer(row);
             int nc = ci + (shift ? -1 : 1);
             int nr = ri;
 
-            if (nc >= cols.Count) { nc = 0; nr++; }
-            if (nc < 0) { nc = cols.Count - 1; nr--; }
+            if (!shift && nc >= cols.Count) { nc = 0; nr++; }
+            else if (shift && nc < 0)       { nc = cols.Count - 1; nr--; }
+
             if (nr < 0 || nr >= LineItemsGrid.Items.Count) return;
 
             e.Handled = true;
-            LineItemsGrid.ScrollIntoView(LineItemsGrid.Items[nr], cols[nc]);
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+            var targetItem = LineItemsGrid.Items[nr];
+            var targetCol  = cols[nc];
+            LineItemsGrid.CurrentCell = new DataGridCellInfo(targetItem, targetCol);
+            LineItemsGrid.ScrollIntoView(targetItem, targetCol);
+
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, (Action)(() =>
             {
-                (cols[nc].GetCellContent(LineItemsGrid.Items[nr]) as TextBox)?.Focus();
+                LineItemsGrid.UpdateLayout();
+                if (targetCol.GetCellContent(targetItem) is TextBox targetTb)
+                {
+                    targetTb.Focus();
+                    targetTb.SelectAll();
+                }
             }));
         }
 
