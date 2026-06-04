@@ -308,9 +308,13 @@
                                      VerticalContentAlignment="Center" IsReadOnly="True"
                                      TextChanged="TxtShiftName_TextChanged"
                                      PreviewKeyDown="TxtShiftName_PreviewKeyDown"/>
-                            <Path x:Name="PathShiftArrow" Data="M0,0 L4,4 L8,0 Z"
-                                  Fill="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                  Margin="0,0,12,0" Visibility="Collapsed" IsHitTestVisible="False"/>
+                            <Button x:Name="BtnShiftArrow" Width="32" HorizontalAlignment="Right"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                    Visibility="Collapsed" Focusable="False"
+                                    Click="BtnShiftArrow_Click">
+                                <Path Data="M0,0 L4,4 L8,0 Z" Fill="#64748B"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
                         </Grid>
                     </Border>
                     <Popup x:Name="PopShiftSuggest"

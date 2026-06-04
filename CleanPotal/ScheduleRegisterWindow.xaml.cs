@@ -82,12 +82,17 @@ namespace CleanPotal
             if (_canManageAttendance)
             {
                 // 관리자: 검색 가능한 입력 필드 활성화
-                _allShiftNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
-                                          .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
+                var teamOrder = new[] { "Office", "주간팀", "장팀", "김팀" };
+                _allShiftNames = _allUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName))
+                    .OrderBy(u => { int i = Array.IndexOf(teamOrder, u.TeamName); return i < 0 ? 99 : i; })
+                    .ThenBy(u => u.RealName)
+                    .Select(u => $"[{u.TeamName}] {u.RealName}")
+                    .ToList();
                 TxtShiftName.IsReadOnly = false;
                 TxtShiftName.Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A));
                 BdrShiftInput.Background = Brushes.White;
-                PathShiftArrow.Visibility = Visibility.Visible;
+                BtnShiftArrow.Visibility = Visibility.Visible;
 
                 string myItem = _allShiftNames.FirstOrDefault(n => n.Contains(myRealName)) ?? myDisplayName;
                 TxtShiftName.Text = myItem;
@@ -200,6 +205,15 @@ namespace CleanPotal
         }
 
         // ── 직원 이름 자동완성 (TextBox + Popup) ──────────────────────────
+        private void BtnShiftArrow_Click(object sender, RoutedEventArgs e)
+        {
+            if (PopShiftSuggest.IsOpen) { PopShiftSuggest.IsOpen = false; return; }
+            LstShiftSuggest.ItemsSource = _allShiftNames;
+            BdrShiftPopup.MinWidth = BdrShiftInput.ActualWidth > 0 ? BdrShiftInput.ActualWidth : 480;
+            PopShiftSuggest.IsOpen = true;
+            TxtShiftName.Focus();
+        }
+
         private void TxtShiftName_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!_canManageAttendance) return;
