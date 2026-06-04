@@ -1560,30 +1560,31 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemsGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+        private void LineItemsGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // 중복 등록 방지 후 행 레벨 PreviewMouseDown 등록
-            e.Row.PreviewMouseLeftButtonDown -= LineItemRow_PreviewMouseDown;
-            e.Row.PreviewMouseLeftButtonDown += LineItemRow_PreviewMouseDown;
+            // DataGrid가 CurrentCell을 세팅한 뒤 BeginEdit 실행
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+            {
+                if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
+                    LineItemsGrid.BeginEdit();
+            }));
         }
 
-        private void LineItemRow_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void LineItemsGrid_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            // 행의 어느 빈 곳을 눌러도 즉시 편집 모드 진입
-            if (sender is DataGridRow row && !row.IsEditing)
-                LineItemsGrid.BeginEdit(e);
-        }
-
-        private void LineItemsGrid_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            // Tab으로 다음 셀 이동 시 즉시 편집 모드 진입
-            if (e.NewFocus is DataGridCell cell && !cell.IsEditing && !cell.IsReadOnly)
-                LineItemsGrid.BeginEdit();
+            // Tab으로 다음 셀 이동 후 BeginEdit
+            if (e.Key == System.Windows.Input.Key.Tab)
+            {
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
+                {
+                    if (LineItemsGrid.CurrentCell.Column != null && !LineItemsGrid.CurrentCell.Column.IsReadOnly)
+                        LineItemsGrid.BeginEdit();
+                }));
+            }
         }
 
         private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
         {
-            // 편집 진입 시 기존 값 전체 선택
             if (e.EditingElement is TextBox tb)
             {
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>

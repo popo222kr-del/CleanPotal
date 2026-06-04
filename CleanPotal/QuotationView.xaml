@@ -599,9 +599,9 @@
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                                       CellStyle="{StaticResource GridCellStyle}"
-                                      GotKeyboardFocus="LineItemsGrid_GotKeyboardFocus"
                                       PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit"
-                                      LoadingRow="LineItemsGrid_LoadingRow">
+                                      PreviewMouseLeftButtonDown="LineItemsGrid_PreviewMouseLeftButtonDown"
+                                      PreviewKeyDown="LineItemsGrid_PreviewKeyDown">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
