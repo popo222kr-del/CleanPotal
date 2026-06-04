@@ -1562,18 +1562,15 @@ namespace CleanPotal
 
         // ─── 품목 그리드 단일 클릭 편집 ───
 
-        private void LineItemRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void LineItemCell_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            // 클릭된 DataGridCell을 찾아 CurrentCell을 명시적으로 설정한 뒤 BeginEdit
-            // (기존 시도들은 DataGrid가 CurrentCell을 자동 설정하기를 기다렸기 때문에 실패)
-            var row = (DataGridRow)sender;
-            DependencyObject? src = e.OriginalSource as DependencyObject;
-            if (src == null) return;
-
-            var cell = src as DataGridCell ?? src.FindAncestorOfType<DataGridCell>();
-            if (cell == null || cell.IsEditing || cell.IsReadOnly) return;
-
-            LineItemsGrid.CurrentCell = new DataGridCellInfo(row.Item, cell.Column);
+            var cell = (DataGridCell)sender;
+            if (cell.IsEditing || cell.IsReadOnly) return;
+            // cell.Focus() → DataGridCell.OnGotKeyboardFocus(class handler) 동기 실행
+            // → DataGrid 내부에서 CurrentCell을 이 셀로 업데이트
+            // → 그 직후 BeginEdit() 호출하면 CurrentCell이 확실히 세팅된 상태
+            if (!cell.IsFocused)
+                cell.Focus();
             LineItemsGrid.BeginEdit();
         }
 
