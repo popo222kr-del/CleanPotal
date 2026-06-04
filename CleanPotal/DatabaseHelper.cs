@@ -33,7 +33,7 @@ namespace CleanPotal
             using (var connection = new SqliteConnection(ConnectionString))
             {
                 connection.Open();
-                connection.Execute("PRAGMA journal_mode=WAL;");
+                try { connection.Execute("PRAGMA journal_mode=DELETE;"); } catch { }
                 connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
