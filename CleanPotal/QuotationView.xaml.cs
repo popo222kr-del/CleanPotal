@@ -1560,16 +1560,13 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemsGrid_CurrentCellChanged(object sender, EventArgs e)
+        private void LineItemCell_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
         {
-            var col = LineItemsGrid.CurrentCell.Column;
-            if (col == null || col.IsReadOnly) return;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, (Action)(() =>
-            {
-                var col2 = LineItemsGrid.CurrentCell.Column;
-                if (col2 != null && !col2.IsReadOnly)
-                    LineItemsGrid.BeginEdit();
-            }));
+            // DataGridCell.OnGotKeyboardFocus (class handler) runs before this instance handler
+            // and sets CurrentCell → BeginEdit() reliably succeeds here for both click and Tab.
+            var cell = (DataGridCell)sender;
+            if (!cell.IsEditing && !cell.IsReadOnly)
+                LineItemsGrid.BeginEdit();
         }
 
         private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
