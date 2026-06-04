@@ -223,14 +223,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                            <Button x:Name="BtnDeleteReport" Content="보고서 삭제" Height="32" Padding="12,0" Margin="0,0,10,0" Background="#FEE2E2" Foreground="#B91C1C" BorderBrush="#FCA5A5" BorderThickness="1" FontWeight="Bold" Cursor="Hand" Click="BtnDeleteReport_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
-                            <Button x:Name="BtnClearSelection" Content="초기화" Height="32" Padding="10,0" Background="#F1F5F9" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1" FontWeight="Bold" Cursor="Hand" Click="BtnClearSelection_Click">
+                            <Button x:Name="BtnDeleteReport" Content="보고서 삭제" Height="32" Padding="12,0" Background="#FEE2E2" Foreground="#B91C1C" BorderBrush="#FCA5A5" BorderThickness="1" FontWeight="Bold" Cursor="Hand" Click="BtnDeleteReport_Click">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8"/>
