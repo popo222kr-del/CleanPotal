@@ -239,7 +239,9 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock x:Name="TxtDayShiftLabel" Grid.Row="0" Text="주간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <Border Grid.Row="0" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" Margin="0,0,0,6">
+                            <TextBlock x:Name="TxtDayShiftLabel" Text="주간" FontSize="12" FontWeight="Bold" Foreground="#92400E"/>
+                        </Border>
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                             <RichTextBox x:Name="DayShiftRichEditor" Tag="Main"
                                  BorderThickness="0" Background="Transparent"
@@ -268,7 +270,9 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock x:Name="TxtNightShiftLabel" Grid.Row="0" Text="야간" FontSize="13" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,6"/>
+                        <Border Grid.Row="0" Background="#DBEAFE" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" Margin="0,0,0,6">
+                            <TextBlock x:Name="TxtNightShiftLabel" Text="야간" FontSize="12" FontWeight="Bold" Foreground="#1E40AF"/>
+                        </Border>
                         <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                             <RichTextBox x:Name="NightShiftRichEditor" Tag="Night"
                                  BorderThickness="0" Background="Transparent"
