@@ -616,7 +616,8 @@
                                     <DataGridTemplateColumn Header="Part's Name" Width="2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"
+                                                           MouseLeftButtonDown="LineItemCell_MouseDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                         <DataGridTemplateColumn.CellEditingTemplate>
@@ -631,7 +632,8 @@
                                     <DataGridTemplateColumn Header="품목코드" Width="120">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
+                                                           MouseLeftButtonDown="LineItemCell_MouseDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                         <DataGridTemplateColumn.CellEditingTemplate>
@@ -646,7 +648,8 @@
                                     <DataGridTemplateColumn Header="규격 (SIZE)" Width="1.2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
+                                                           MouseLeftButtonDown="LineItemCell_MouseDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                         <DataGridTemplateColumn.CellEditingTemplate>
@@ -661,7 +664,8 @@
                                     <DataGridTemplateColumn Header="Q'ty" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
+                                                           MouseLeftButtonDown="LineItemCell_MouseDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                         <DataGridTemplateColumn.CellEditingTemplate>
@@ -677,7 +681,8 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding ListPrice, StringFormat={}{0:N0}}"
-                                                           Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"/>
+                                                           Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"
+                                                           MouseLeftButtonDown="LineItemCell_MouseDown"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                         <DataGridTemplateColumn.CellEditingTemplate>

@@ -1560,16 +1560,22 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
+        private void LineItemCell_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // 단일 클릭으로 즉시 편집 모드 진입
+            LineItemsGrid.BeginEdit();
+        }
+
         private void LineItemsGrid_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            // 키보드 포커스가 DataGridCell로 이동할 때마다 (클릭·Tab 모두) 즉시 편집 모드 진입
+            // Tab으로 다음 셀 이동 시 즉시 편집 모드 진입
             if (e.NewFocus is DataGridCell cell && !cell.IsEditing && !cell.IsReadOnly)
                 LineItemsGrid.BeginEdit();
         }
 
         private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
         {
-            // 편집 진입 시 기존 값 전체 선택 → 바로 덮어쓰기 가능
+            // 편집 진입 시 기존 값 전체 선택
             if (e.EditingElement is TextBox tb)
             {
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
