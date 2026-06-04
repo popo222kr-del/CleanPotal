@@ -84,7 +84,7 @@ namespace CleanPotal
                 // 관리자: 검색 가능한 입력 필드 활성화
                 var teamOrder = new[] { "Office", "주간팀", "장팀", "김팀" };
                 _allShiftNames = _allUsers
-                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName))
+                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName) && !u.IsResigned)
                     .OrderBy(u => { int i = Array.IndexOf(teamOrder, u.TeamName); return i < 0 ? 99 : i; })
                     .ThenBy(u => u.RealName)
                     .Select(u => $"[{u.TeamName}] {u.RealName}")
@@ -191,7 +191,7 @@ namespace CleanPotal
         {
             string selectedTeam = CmbEduTeam.SelectedItem?.ToString() ?? "전체";
             _filteredEduUsers = _allUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) &&
+                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) && !u.IsResigned &&
                             (selectedTeam == "전체" || u.TeamName == selectedTeam))
                 .OrderBy(u => u.RealName)
                 .ToList();
