@@ -226,6 +226,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="52"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="56"/>
                 </Grid.RowDefinitions>
@@ -275,7 +276,33 @@
                     </Border>
                 </Border>
 
-                <ListBox x:Name="UserListBox" Grid.Row="2"
+                <!-- 재직중 / 퇴사자 탭 -->
+                <Grid Grid.Row="2" Background="White">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="BtnTabActive" Grid.Column="0" Height="36" BorderThickness="0,0,0,2" BorderBrush="#2563EB" Background="White" Cursor="Hand" Click="BtnTabActive_Click">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="0"/></Style></Button.Resources>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtTabActiveLabel" Text="재직 중" FontSize="12" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center"/>
+                            <Border x:Name="BadgeActive" Background="#2563EB" CornerRadius="8" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtActiveCount" Text="0" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnTabResigned" Grid.Column="1" Height="36" BorderThickness="0,0,0,2" BorderBrush="#E2E8F0" Background="White" Cursor="Hand" Click="BtnTabResigned_Click">
+                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="0"/></Style></Button.Resources>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtTabResignedLabel" Text="퇴사자" FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                            <Border x:Name="BadgeResigned" Background="#CBD5E1" CornerRadius="8" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtResignedCount" Text="0" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ListBox x:Name="UserListBox" Grid.Row="3"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True"
@@ -288,7 +315,7 @@
                                     <ColumnDefinition Width="42"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16"
+                                <Border x:Name="AvatarBorder" Grid.Column="0" Width="32" Height="32" CornerRadius="16"
                                         HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -300,21 +327,35 @@
                                                Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding RealName}" FontSize="13"
-                                               FontWeight="SemiBold" Foreground="#0F172A"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="NameText" Text="{Binding RealName}" FontSize="13"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"/>
+                                        <Border x:Name="ResignBadge" Background="#F1F5F9" CornerRadius="4"
+                                                Padding="4,1" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                Visibility="Collapsed">
+                                            <TextBlock Text="퇴사" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                        </Border>
+                                    </StackPanel>
                                     <TextBlock FontSize="11" Foreground="#94A3B8" Margin="0,1,0,0">
                                         <Run Text="{Binding EmployeeNumber, Mode=OneWay}"/>
                                         <Run Text=" · "/>
                                         <Run Text="{Binding TeamName, Mode=OneWay}"/>
                                     </TextBlock>
                                 </StackPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsResigned}" Value="True">
+                                        <Setter TargetName="ResignBadge" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="NameText" Property="Foreground" Value="#94A3B8"/>
+                                        <Setter TargetName="AvatarBorder" Property="Opacity" Value="0.4"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <Border Grid.Row="3" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
-                    <Button Content="+ 신규 사용자 추가" Style="{StaticResource BtnPrimary}"
+                <Border Grid.Row="4" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,10">
+                    <Button x:Name="BtnNewUser" Content="+ 신규 사용자 추가" Style="{StaticResource BtnPrimary}"
                             Height="36" Click="BtnNewUser_Click"/>
                 </Border>
             </Grid>
@@ -485,6 +526,28 @@
                                             <CheckBox x:Name="ChkAccessEtcMenu" Content="기타 메뉴"
                                                       Style="{StaticResource PermCheck}"/>
                                         </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 퇴사 처리 카드 -->
+                                <Border Background="White" CornerRadius="12"
+                                        BorderBrush="#FEE2E2" BorderThickness="1"
+                                        Padding="22,18" Margin="0,0,0,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000" Opacity="0.04" BlurRadius="10" ShadowDepth="1"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <Border Width="3" Height="14" Background="#EF4444" CornerRadius="2" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="퇴사 처리" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <CheckBox x:Name="ChkIsResigned" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="퇴사자로 표시" FontSize="13" FontWeight="SemiBold" Foreground="#DC2626"/>
+                                            </CheckBox>
+                                            <TextBlock Text="퇴사일" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <DatePicker x:Name="DpResignDate" Width="150" FontSize="12" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 

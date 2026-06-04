@@ -26,6 +26,8 @@ namespace CleanPotal
         public bool CanManageVendors { get; set; } = false;
         public bool CanManageSchedule { get; set; } = false;
         public bool CanAccessEtcMenu { get; set; } = false;
+        public bool IsResigned { get; set; } = false;
+        public string ResignDate { get; set; } = "";
         public string HireDate { get; set; } = "";
         // 아이디(Username)와 분리된 사번 — 기존 사용자는 Username과 동일하게 자동 초기화됨
         public string EmployeeNumber { get; set; } = "";

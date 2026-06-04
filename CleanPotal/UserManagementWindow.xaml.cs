@@ -15,6 +15,7 @@ namespace CleanPotal
         private UserModel? _selectedUser = null;
         private bool _isAddMode = false;
         private bool _sortByName = true;
+        private bool _isActiveTab = true;
 
         public UserManagementWindow()
         {
@@ -31,9 +32,14 @@ namespace CleanPotal
         private void ApplyFilter()
         {
             string keyword = TxtSearch?.Text?.Trim() ?? "";
+
+            var tabFiltered = _isActiveTab
+                ? _allUsers.Where(u => !u.IsResigned).ToList()
+                : _allUsers.Where(u => u.IsResigned).ToList();
+
             var filtered = string.IsNullOrEmpty(keyword)
-                ? _allUsers
-                : _allUsers.Where(u =>
+                ? tabFiltered
+                : tabFiltered.Where(u =>
                     u.RealName.Contains(keyword) ||
                     u.Username.Contains(keyword) ||
                     (u.TeamName ?? "").Contains(keyword)).ToList();
@@ -44,7 +50,38 @@ namespace CleanPotal
 
             _users = new ObservableCollection<UserModel>(sorted);
             UserListBox.ItemsSource = _users;
-            UserCountText.Text = $"{_allUsers.Count}명";
+            UserCountText.Text = $"{_allUsers.Count(u => !u.IsResigned)}명";
+            TxtActiveCount.Text = _allUsers.Count(u => !u.IsResigned).ToString();
+            TxtResignedCount.Text = _allUsers.Count(u => u.IsResigned).ToString();
+            if (BtnNewUser != null)
+                BtnNewUser.Visibility = _isActiveTab ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void BtnTabActive_Click(object sender, RoutedEventArgs e) => SetTab(true);
+        private void BtnTabResigned_Click(object sender, RoutedEventArgs e) => SetTab(false);
+
+        private void SetTab(bool active)
+        {
+            _isActiveTab = active;
+            BtnTabActive.BorderBrush = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#E2E8F0"));
+            BtnTabResigned.BorderBrush = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#E2E8F0"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"));
+            TxtTabActiveLabel.Foreground = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#94A3B8"));
+            TxtTabResignedLabel.Foreground = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#94A3B8"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"));
+            BadgeActive.Background = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#CBD5E1"));
+            BadgeResigned.Background = active
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#CBD5E1"))
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#2563EB"));
+            ApplyFilter();
         }
 
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
@@ -144,6 +181,9 @@ namespace CleanPotal
             ChkManageVendors.IsChecked = user.CanManageVendors;
             ChkManageSchedule.IsChecked = user.CanManageSchedule;
             ChkAccessEtcMenu.IsChecked = user.CanAccessEtcMenu;
+            ChkIsResigned.IsChecked = user.IsResigned;
+            DpResignDate.SelectedDate = string.IsNullOrEmpty(user.ResignDate) ? null
+                : DateTime.TryParse(user.ResignDate, out var rd) ? rd : (DateTime?)null;
 
             EmptyState.Visibility = Visibility.Collapsed;
             DetailPanel.Visibility = Visibility.Visible;
@@ -192,7 +232,9 @@ namespace CleanPotal
                     CanManageNotices = ChkManageNotices.IsChecked == true,
                     CanManageVendors = ChkManageVendors.IsChecked == true,
                     CanManageSchedule = ChkManageSchedule.IsChecked == true,
-                    CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true
+                    CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true,
+                    IsResigned = ChkIsResigned.IsChecked == true,
+                    ResignDate = DpResignDate.SelectedDate?.ToString("yyyy-MM-dd") ?? ""
                 };
 
                 _allUsers.Add(newUser);
@@ -238,6 +280,8 @@ namespace CleanPotal
                 _selectedUser.CanManageVendors = ChkManageVendors.IsChecked == true;
                 _selectedUser.CanManageSchedule = ChkManageSchedule.IsChecked == true;
                 _selectedUser.CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true;
+                _selectedUser.IsResigned = ChkIsResigned.IsChecked == true;
+                _selectedUser.ResignDate = DpResignDate.SelectedDate?.ToString("yyyy-MM-dd") ?? "";
 
                 AuthDatabaseHelper.SaveAllUsers(_allUsers);
                 ApplyFilter();
@@ -378,6 +422,7 @@ namespace CleanPotal
             ChkManageFiles.IsChecked = false; ChkManageNotices.IsChecked = false;
             ChkManageVendors.IsChecked = false; ChkManageSchedule.IsChecked = false;
             ChkAccessEtcMenu.IsChecked = false;
+            ChkIsResigned.IsChecked = false; DpResignDate.SelectedDate = null;
         }
     }
 }
