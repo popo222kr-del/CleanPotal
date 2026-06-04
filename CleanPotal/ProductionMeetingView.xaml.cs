@@ -60,21 +60,10 @@ namespace CleanPotal
     // ==========================================
     // 데이터 모델 정의
     // ==========================================
-    public class ProductionMeetingGroupModel : INotifyPropertyChanged
+    public class ProductionMeetingGroupModel
     {
         public string MonthTitle { get; set; } = "";
         public ObservableCollection<ProductionMeetingReportModel> Reports { get; set; } = new();
-        public bool IsCurrentMonth { get; set; } = false;
-
-        private bool _isExpanded;
-        public bool IsExpanded
-        {
-            get => _isExpanded;
-            set { if (_isExpanded == value) return; _isExpanded = value; OnPropertyChanged(); }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class ProductionMeetingReportModel : INotifyPropertyChanged
@@ -120,25 +109,6 @@ namespace CleanPotal
         {
             get => _mainContentRich;
             set { if (_mainContentRich == value) return; _mainContentRich = value; OnPropertyChanged(); }
-        }
-
-        // 🔥 저장 당시 주간/야간 팀 이름 (교대 후 바뀌지 않도록 영구 보존)
-        public string DayShiftTeamName { get; set; } = "";
-        public string NightShiftTeamName { get; set; } = "";
-
-        // 🔥 야간 (장팀) 내용
-        private string _nightShiftContent = "";
-        public string NightShiftContent
-        {
-            get => _nightShiftContent;
-            set { if (_nightShiftContent == value) return; _nightShiftContent = value; OnPropertyChanged(); }
-        }
-
-        private string _nightShiftContentRich = "";
-        public string NightShiftContentRich
-        {
-            get => _nightShiftContentRich;
-            set { if (_nightShiftContentRich == value) return; _nightShiftContentRich = value; OnPropertyChanged(); }
         }
 
         // 🔥 RichTextBox용 FlowDocument XAML (서식+이미지+체크박스 포함)
@@ -403,7 +373,6 @@ namespace CleanPotal
 
         private bool _isDirty = false;
         private bool _isNavigating = false;
-        private DateTime _lastFileModified = DateTime.MinValue;
         private ListBox? _activeHistoryListBox;
         private double _zoomLevel = 1.0;
 
@@ -428,12 +397,6 @@ namespace CleanPotal
                 DateRange = original.DateRange,
                 Memo = original.Memo,
                 MemoRich = original.MemoRich,
-                MainContent = original.MainContent,
-                MainContentRich = original.MainContentRich,
-                NightShiftContent = original.NightShiftContent,
-                NightShiftContentRich = original.NightShiftContentRich,
-                DayShiftTeamName = original.DayShiftTeamName,
-                NightShiftTeamName = original.NightShiftTeamName,
                 Attendees = original.Attendees,
                 Summary = original.Summary
             };
@@ -479,40 +442,13 @@ namespace CleanPotal
             RenumberBlocks(_draftReport);
 
             TxtCurrentReportTitle.Text = _draftReport.Title;
-
-            // 저장된 팀 이름이 있으면 그대로, 없으면 스케줄 DB에서 조회 후 저장
-            if (!string.IsNullOrEmpty(_draftReport.DayShiftTeamName) || !string.IsNullOrEmpty(_draftReport.NightShiftTeamName))
-            {
-                if (TxtDayShiftLabel != null)
-                    TxtDayShiftLabel.Text = string.IsNullOrEmpty(_draftReport.DayShiftTeamName) ? "주간" : $"주간 ({_draftReport.DayShiftTeamName})";
-                if (TxtNightShiftLabel != null)
-                    TxtNightShiftLabel.Text = string.IsNullOrEmpty(_draftReport.NightShiftTeamName) ? "야간" : $"야간 ({_draftReport.NightShiftTeamName})";
-            }
-            else if (DateTime.TryParseExact(_draftReport.DateRange, "yyyy.MM.dd",
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None, out var reportDate))
-            {
-                var (dayTeam, nightTeam) = GetShiftTeamsForDate(reportDate);
-                _draftReport.DayShiftTeamName = dayTeam;
-                _draftReport.NightShiftTeamName = nightTeam;
-                _currentReport!.DayShiftTeamName = dayTeam;
-                _currentReport!.NightShiftTeamName = nightTeam;
-                if (TxtDayShiftLabel != null)
-                    TxtDayShiftLabel.Text = string.IsNullOrEmpty(dayTeam) ? "주간" : $"주간 ({dayTeam})";
-                if (TxtNightShiftLabel != null)
-                    TxtNightShiftLabel.Text = string.IsNullOrEmpty(nightTeam) ? "야간" : $"야간 ({nightTeam})";
-            }
-
-            // 에디터 활성화 (보고서 선택됨)
-            if (DayShiftRichEditor != null) DayShiftRichEditor.IsEnabled = true;
-            if (NightShiftRichEditor != null) NightShiftRichEditor.IsEnabled = true;
+            TxtCurrentReportDate.Text = _draftReport.DateRange;
 
             // 🔥 RichTextBox에 메모 로드 (MemoRich 우선, 없으면 평문 Memo)
             LoadMemoIntoRichEditor(_draftReport);
 
-            // 🔥 주간/야간 RichTextBox 로드
-            LoadDayShiftIntoRichEditor(_draftReport);
-            LoadNightShiftIntoRichEditor(_draftReport);
+            // 🔥 중앙 본문 RichTextBox에 MainContent 로드 (MainContentRich 우선, 없으면 평문)
+            LoadMainContentIntoRichEditor(_draftReport);
 
             _isDirty = false;
             UpdateOverviewStats();
@@ -526,23 +462,30 @@ namespace CleanPotal
             _suppressMemoTextChanged = true;
             try
             {
-                var doc = new FlowDocument { PageWidth = 99999 };
-                MemoRichEditor.Document = doc;
-
+                MemoRichEditor.Document = new FlowDocument();
                 if (!string.IsNullOrWhiteSpace(report.MemoRich))
                 {
-                    if (!TryLoadRichContent(doc, report.MemoRich))
+                    try
                     {
-                        // 모든 로드 실패 시 평문 fallback
-                        doc.Blocks.Clear();
-                        foreach (var line in (report.Memo ?? "").Replace("\r\n", "\n").Split('\n'))
-                            doc.Blocks.Add(new Paragraph(new Run(line)));
+                        using var sr = new StringReader(report.MemoRich);
+                        using var xr = XmlReader.Create(sr);
+                        if (XamlReader.Load(xr) is FlowDocument doc) MemoRichEditor.Document = doc;
+                    }
+                    catch
+                    {
+                        // 깨진 경우 평문으로 fallback
+                        MemoRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.Memo ?? "")));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.Memo))
                 {
+                    // 기존 평문 메모는 단락별로 끊어서 표시
+                    var doc = new FlowDocument();
                     foreach (var line in report.Memo.Replace("\r\n", "\n").Split('\n'))
+                    {
                         doc.Blocks.Add(new Paragraph(new Run(line)));
+                    }
+                    MemoRichEditor.Document = doc;
                 }
             }
             finally
@@ -552,20 +495,23 @@ namespace CleanPotal
             ReattachInteractiveElements(MemoRichEditor);
         }
 
-        // 🔥 RichTextBox → 모델: TextRange.Save(DataFormats.Xaml) 방식으로 안전하게 직렬화
+        // 🔥 RichTextBox → 모델: FlowDocument를 XAML 문자열로 직렬화 + 평문도 함께 보관
         private void SyncMemoFromRichEditor()
         {
             if (MemoRichEditor == null || _draftReport == null) return;
 
+            // FlowDocument를 XAML 문자열로 저장
             try
             {
-                var range = new TextRange(MemoRichEditor.Document.ContentStart, MemoRichEditor.Document.ContentEnd);
-                using var ms = new System.IO.MemoryStream();
-                range.Save(ms, System.Windows.DataFormats.Xaml);
-                _draftReport.MemoRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+                var doc = MemoRichEditor.Document;
+                var sb = new System.Text.StringBuilder();
+                using var xw = XmlWriter.Create(sb, new XmlWriterSettings { OmitXmlDeclaration = true });
+                XamlWriter.Save(doc, xw);
+                _draftReport.MemoRich = sb.ToString();
             }
             catch { _draftReport.MemoRich = ""; }
 
+            // 평문 추출 (검색/엑셀에서 활용되도록 호환성 유지)
             try
             {
                 var range = new TextRange(MemoRichEditor.Document.ContentStart, MemoRichEditor.Document.ContentEnd);
@@ -580,106 +526,43 @@ namespace CleanPotal
             _isDirty = true;
         }
 
-        // 🔥 주간(김팀) 로드
-        private bool _suppressDayShiftTextChanged = false;
-        private void LoadDayShiftIntoRichEditor(ProductionMeetingReportModel report)
+        // 🔥 중앙 본문(MainContent) 로드 - 메모 영역과 동일한 방식
+        private bool _suppressMainContentTextChanged = false;
+        private void LoadMainContentIntoRichEditor(ProductionMeetingReportModel report)
         {
-            if (DayShiftRichEditor == null) return;
-            _suppressDayShiftTextChanged = true;
+            if (MainContentRichEditor == null) return;
+            _suppressMainContentTextChanged = true;
             try
             {
-                var doc = new FlowDocument { PageWidth = 99999 };
-                DayShiftRichEditor.Document = doc;
-
+                MainContentRichEditor.Document = new FlowDocument();
                 if (!string.IsNullOrWhiteSpace(report.MainContentRich))
                 {
-                    if (!TryLoadRichContent(doc, report.MainContentRich))
+                    try
                     {
-                        doc.Blocks.Clear();
-                        foreach (var line in (report.MainContent ?? "").Replace("\r\n", "\n").Split('\n'))
-                            doc.Blocks.Add(new Paragraph(new Run(line)));
+                        using var sr = new StringReader(report.MainContentRich);
+                        using var xr = XmlReader.Create(sr);
+                        if (XamlReader.Load(xr) is FlowDocument doc) MainContentRichEditor.Document = doc;
+                    }
+                    catch
+                    {
+                        MainContentRichEditor.Document = new FlowDocument(new Paragraph(new Run(report.MainContent ?? "")));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(report.MainContent))
                 {
+                    var doc = new FlowDocument();
                     foreach (var line in report.MainContent.Replace("\r\n", "\n").Split('\n'))
+                    {
                         doc.Blocks.Add(new Paragraph(new Run(line)));
+                    }
+                    MainContentRichEditor.Document = doc;
                 }
             }
             finally
             {
-                _suppressDayShiftTextChanged = false;
+                _suppressMainContentTextChanged = false;
             }
-            ReattachInteractiveElements(DayShiftRichEditor);
-        }
-
-        // 🔥 야간(장팀) 로드
-        private bool _suppressNightShiftTextChanged = false;
-        private void LoadNightShiftIntoRichEditor(ProductionMeetingReportModel report)
-        {
-            if (NightShiftRichEditor == null) return;
-            _suppressNightShiftTextChanged = true;
-            try
-            {
-                var doc = new FlowDocument { PageWidth = 99999 };
-                NightShiftRichEditor.Document = doc;
-
-                if (!string.IsNullOrWhiteSpace(report.NightShiftContentRich))
-                {
-                    if (!TryLoadRichContent(doc, report.NightShiftContentRich))
-                    {
-                        doc.Blocks.Clear();
-                        foreach (var line in (report.NightShiftContent ?? "").Replace("\r\n", "\n").Split('\n'))
-                            doc.Blocks.Add(new Paragraph(new Run(line)));
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(report.NightShiftContent))
-                {
-                    foreach (var line in report.NightShiftContent.Replace("\r\n", "\n").Split('\n'))
-                        doc.Blocks.Add(new Paragraph(new Run(line)));
-                }
-            }
-            finally
-            {
-                _suppressNightShiftTextChanged = false;
-            }
-            ReattachInteractiveElements(NightShiftRichEditor);
-        }
-
-        // 신/구 포맷 모두 지원하는 RichContent 로드 헬퍼
-        // 신 포맷: TextRange.Save(DataFormats.Xaml) → Section 루트
-        // 구 포맷: XamlWriter.Save(FlowDocument) → FlowDocument 루트
-        private bool TryLoadRichContent(FlowDocument doc, string richXaml)
-        {
-            // 1단계: 신 포맷(DataFormats.Xaml, Section 루트) 시도
-            try
-            {
-                var range = new TextRange(doc.ContentStart, doc.ContentEnd);
-                using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(richXaml));
-                range.Load(ms, System.Windows.DataFormats.Xaml);
-                return true;
-            }
-            catch { }
-
-            // 2단계: 구 포맷(XamlWriter, FlowDocument 루트) 시도
-            try
-            {
-                using var sr = new StringReader(richXaml);
-                using var xr = XmlReader.Create(sr);
-                if (XamlReader.Load(xr) is FlowDocument loaded)
-                {
-                    doc.Blocks.Clear();
-                    foreach (var block in loaded.Blocks.ToList())
-                    {
-                        loaded.Blocks.Remove(block);
-                        doc.Blocks.Add(block);
-                    }
-                    return true;
-                }
-            }
-            catch { }
-
-            return false;
+            ReattachInteractiveElements(MainContentRichEditor);
         }
 
         // 🔥 RichTextBox 안 모든 Image와 파일 박스에 다시 ContextMenu 등 부착
@@ -819,59 +702,31 @@ namespace CleanPotal
             border.ContextMenu = menu;
         }
 
-        // 🔥 주간/야간 모델 동기화
-        private void SyncShiftContentsFromRichEditors()
+        // 🔥 중앙 본문(MainContent) 모델 동기화
+        private void SyncMainContentFromRichEditor()
         {
-            if (_draftReport == null) return;
+            if (MainContentRichEditor == null || _draftReport == null) return;
 
-            if (DayShiftRichEditor != null)
+            try
             {
-                try
-                {
-                    var range = new TextRange(DayShiftRichEditor.Document.ContentStart, DayShiftRichEditor.Document.ContentEnd);
-                    using var ms = new System.IO.MemoryStream();
-                    range.Save(ms, System.Windows.DataFormats.Xaml);
-                    _draftReport.MainContentRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                }
-                catch { _draftReport.MainContentRich = ""; }
-
-                try
-                {
-                    var range = new TextRange(DayShiftRichEditor.Document.ContentStart, DayShiftRichEditor.Document.ContentEnd);
-                    _draftReport.MainContent = range.Text?.Trim() ?? "";
-                }
-                catch { _draftReport.MainContent = ""; }
+                var sb = new System.Text.StringBuilder();
+                using var xw = XmlWriter.Create(sb, new XmlWriterSettings { OmitXmlDeclaration = true });
+                XamlWriter.Save(MainContentRichEditor.Document, xw);
+                _draftReport.MainContentRich = sb.ToString();
             }
+            catch { _draftReport.MainContentRich = ""; }
 
-            if (NightShiftRichEditor != null)
+            try
             {
-                try
-                {
-                    var range = new TextRange(NightShiftRichEditor.Document.ContentStart, NightShiftRichEditor.Document.ContentEnd);
-                    using var ms = new System.IO.MemoryStream();
-                    range.Save(ms, System.Windows.DataFormats.Xaml);
-                    _draftReport.NightShiftContentRich = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                }
-                catch { _draftReport.NightShiftContentRich = ""; }
-
-                try
-                {
-                    var range = new TextRange(NightShiftRichEditor.Document.ContentStart, NightShiftRichEditor.Document.ContentEnd);
-                    _draftReport.NightShiftContent = range.Text?.Trim() ?? "";
-                }
-                catch { _draftReport.NightShiftContent = ""; }
+                var range = new TextRange(MainContentRichEditor.Document.ContentStart, MainContentRichEditor.Document.ContentEnd);
+                _draftReport.MainContent = range.Text?.Trim() ?? "";
             }
+            catch { _draftReport.MainContent = ""; }
         }
 
-        private void DayShiftRichEditor_TextChanged(object sender, TextChangedEventArgs e)
+        private void MainContentRichEditor_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_suppressDayShiftTextChanged) return;
-            _isDirty = true;
-        }
-
-        private void NightShiftRichEditor_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_suppressNightShiftTextChanged) return;
+            if (_suppressMainContentTextChanged) return;
             _isDirty = true;
         }
 
@@ -919,69 +774,17 @@ namespace CleanPotal
 
         public void SaveReportChanges() => BtnSaveContent_Click(this, new RoutedEventArgs());
 
-        private void AutoSaveCurrentReport()
-        {
-            if (_currentReport == null || _draftReport == null) return;
-            CommitActiveEditorChanges();
-            SyncMemoFromRichEditor();
-            SyncShiftContentsFromRichEditors();
-
-            _currentReport.Memo = _draftReport.Memo;
-            _currentReport.MemoRich = _draftReport.MemoRich;
-            _currentReport.MainContent = _draftReport.MainContent;
-            _currentReport.MainContentRich = _draftReport.MainContentRich;
-            _currentReport.NightShiftContent = _draftReport.NightShiftContent;
-            _currentReport.NightShiftContentRich = _draftReport.NightShiftContentRich;
-            _currentReport.DayShiftTeamName = _draftReport.DayShiftTeamName;
-            _currentReport.NightShiftTeamName = _draftReport.NightShiftTeamName;
-            _currentReport.Attendees = _draftReport.Attendees;
-            _currentReport.Summary = _draftReport.Summary;
-            _currentReport.Blocks.Clear();
-            foreach (var block in _draftReport.Blocks)
-            {
-                var clonedBlock = new ProductionMeetingBlockModel
-                {
-                    Number = block.Number,
-                    Category = block.Category,
-                    Status = block.Status,
-                    Content = block.Content,
-                    FollowUp = block.FollowUp,
-                    ContentRich = block.ContentRich,
-                    FollowUpRich = block.FollowUpRich,
-                    Kind = block.Kind,
-                    Heading = block.Heading,
-                    IsCollapsed = block.IsCollapsed,
-                    ProgressPercent = block.ProgressPercent,
-                    Importance = block.Importance
-                };
-                foreach (var ci in block.ChecklistItems) clonedBlock.ChecklistItems.Add(new ChecklistItem { IsDone = ci.IsDone, Text = ci.Text });
-                foreach (var att in block.FollowUpAttachments) clonedBlock.FollowUpAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-                _currentReport.Blocks.Add(clonedBlock);
-            }
-            _currentReport.MemoAttachments.Clear();
-            foreach (var att in _draftReport.MemoAttachments) _currentReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-            _currentReport.MainAttachments.Clear();
-            foreach (var att in _draftReport.MainAttachments) _currentReport.MainAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-
-            _isDirty = false;
-            SaveToStorage();
-        }
-
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
-            SyncMemoFromRichEditor();
-            SyncShiftContentsFromRichEditors();
+            SyncMemoFromRichEditor(); // 🔥 RichTextBox 내용을 _draftReport.MemoRich/Memo에 반영
+            SyncMainContentFromRichEditor(); // 🔥 중앙 본문 동기화
 
             _currentReport.Memo = _draftReport.Memo;
             _currentReport.MemoRich = _draftReport.MemoRich;
             _currentReport.MainContent = _draftReport.MainContent;
             _currentReport.MainContentRich = _draftReport.MainContentRich;
-            _currentReport.NightShiftContent = _draftReport.NightShiftContent;
-            _currentReport.NightShiftContentRich = _draftReport.NightShiftContentRich;
-            _currentReport.DayShiftTeamName = _draftReport.DayShiftTeamName;
-            _currentReport.NightShiftTeamName = _draftReport.NightShiftTeamName;
             _currentReport.Attendees = _draftReport.Attendees;
             _currentReport.Summary = _draftReport.Summary;
             _currentReport.Blocks.Clear();
@@ -1035,7 +838,17 @@ namespace CleanPotal
 
             if (sender is ListBox lb && lb.SelectedItem is ProductionMeetingReportModel selected)
             {
-                if (_isDirty) AutoSaveCurrentReport();
+                if (_isDirty)
+                {
+                    var result = MessageBox.Show("저장되지 않은 변경사항이 있습니다. 무시하고 이동하시겠습니까?\n(아니오를 누르면 현재 화면에 머무릅니다)", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (result == MessageBoxResult.No)
+                    {
+                        _isNavigating = true;
+                        lb.SelectedItem = _currentReport;
+                        _isNavigating = false;
+                        return;
+                    }
+                }
 
                 // 다른 달 ListBox의 선택 해제 (단일 선택 보장)
                 if (_activeHistoryListBox != null && _activeHistoryListBox != lb)
@@ -1044,28 +857,9 @@ namespace CleanPotal
                     _activeHistoryListBox.SelectedItem = null;
                     _isNavigating = false;
                 }
-
                 _activeHistoryListBox = lb;
 
-                // 선택된 항목이 속한 그룹만 펼치고 나머지는 접기
-                var ownerGroup = GroupedHistory.FirstOrDefault(g => g.Reports.Contains(selected));
-                if (ownerGroup != null)
-                {
-                    foreach (var g in GroupedHistory)
-                        if (g != ownerGroup) g.IsExpanded = false;
-                    ownerGroup.IsExpanded = true;
-                }
-
                 SetCurrentReport(selected);
-            }
-        }
-
-        private void MonthExpander_Expanded(object sender, RoutedEventArgs e)
-        {
-            if (sender is Expander exp && exp.DataContext is ProductionMeetingGroupModel expandedGroup)
-            {
-                foreach (var g in GroupedHistory)
-                    if (g != expandedGroup) g.IsExpanded = false;
             }
         }
 
@@ -1085,7 +879,11 @@ namespace CleanPotal
 
         private void BtnCreateNewReport_Click(object sender, RoutedEventArgs e)
         {
-            if (_isDirty) AutoSaveCurrentReport();
+            if (_isDirty)
+            {
+                var result = MessageBox.Show("작성 중인 내용이 있습니다. 저장하지 않고 새 보고서를 만드시겠습니까?", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (result == MessageBoxResult.No) return;
+            }
 
             DpMeetingDate.SelectedDate = DateTime.Today;
             CreateReportModal.Visibility = Visibility.Visible;
@@ -1107,25 +905,15 @@ namespace CleanPotal
             }
 
             string monthGroupTitle = $"{selectedDate:yyyy년 M월}";
-            string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
             var group = GroupedHistory.FirstOrDefault(g => g.MonthTitle == monthGroupTitle);
             if (group == null)
             {
-                group = new ProductionMeetingGroupModel
-                {
-                    MonthTitle = monthGroupTitle,
-                    IsCurrentMonth = (monthGroupTitle == currentMonthTitle),
-                    IsExpanded = true
-                };
+                group = new ProductionMeetingGroupModel { MonthTitle = monthGroupTitle };
                 GroupedHistory.Add(group);
                 var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
                 GroupedHistory.Clear();
                 foreach (var s in sorted) GroupedHistory.Add(s);
             }
-
-            // 해당 그룹만 펼치고 나머지는 접기
-            foreach (var g in GroupedHistory)
-                g.IsExpanded = (g == group);
 
             var newReport = new ProductionMeetingReportModel
             {
@@ -2064,7 +1852,6 @@ namespace CleanPotal
                             r.Title.ToLower().Contains(q) ||
                             r.ShortTitle.ToLower().Contains(q) ||
                             r.MainContent.ToLower().Contains(q) ||
-                            r.NightShiftContent.ToLower().Contains(q) ||
                             r.Memo.ToLower().Contains(q) ||
                             r.Blocks.Any(b =>
                                 b.Category.ToLower().Contains(q) ||
@@ -2101,30 +1888,6 @@ namespace CleanPotal
             MainScaleTransform.ScaleX = _zoomLevel;
             MainScaleTransform.ScaleY = _zoomLevel;
             TxtZoomLevel.Text = $"{(int)(_zoomLevel * 100)}%";
-        }
-
-        private void BtnCloseTable_Click(object sender, RoutedEventArgs e)
-        {
-            TableModalOverlay.Visibility = System.Windows.Visibility.Collapsed;
-        }
-
-        public void TryRefresh()
-        {
-            if (_isDirty) return;
-            try
-            {
-                if (!File.Exists(StoragePath)) return;
-                var lastModified = File.GetLastWriteTime(StoragePath);
-                if (lastModified <= _lastFileModified) return;
-                string? currentReportId = _currentReport?.Id;
-                LoadFromStorage();
-                if (currentReportId != null)
-                {
-                    var restored = GroupedHistory.SelectMany(g => g.Reports).FirstOrDefault(r => r.Id == currentReportId);
-                    if (restored != null) SetCurrentReport(restored);
-                }
-            }
-            catch { }
         }
 
         // ==========================================
@@ -2245,16 +2008,6 @@ namespace CleanPotal
             {
                 MessageBox.Show($"엑셀 자동 생성에 실패했습니다.\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void BtnShowTable_Click(object sender, RoutedEventArgs e)
-        {
-            if (_draftReport == null) return;
-            TxtModalTitle.Text = $"{_draftReport.Title} 주간보고";
-            ReportDataGrid.ItemsSource = null;
-            RenumberBlocks(_draftReport);
-            ReportDataGrid.ItemsSource = _draftReport.Blocks;
-            TableModalOverlay.Visibility = Visibility.Visible;
         }
 
         private void BtnAddAttachment_Click(object sender, RoutedEventArgs e)
@@ -2534,24 +2287,6 @@ namespace CleanPotal
             return storedPath;
         }
 
-        private static (string dayTeam, string nightTeam) GetShiftTeamsForDate(DateTime date)
-        {
-            try
-            {
-                var shifts = DatabaseHelper.GetShiftSchedulesByDate(date);
-                string Dominant(System.Collections.Generic.IEnumerable<string> groups)
-                    => groups.Where(g => !string.IsNullOrWhiteSpace(g))
-                              .GroupBy(g => g)
-                              .OrderByDescending(g => g.Count())
-                              .FirstOrDefault()?.Key ?? "";
-
-                string dayTeam  = Dominant(shifts.Where(s => s.ShiftType == "주간").Select(s => s.TeamGroup));
-                string nightTeam = Dominant(shifts.Where(s => s.ShiftType == "야간").Select(s => s.TeamGroup));
-                return (dayTeam, nightTeam);
-            }
-            catch { return ("", ""); }
-        }
-
         private void ClearCurrentSelection()
         {
             _currentReport = null;
@@ -2561,28 +2296,21 @@ namespace CleanPotal
             UnsubscribeMemoAttachments();
 
             TxtCurrentReportTitle.Text = "보고서를 선택하세요";
-            if (TxtDayShiftLabel != null) TxtDayShiftLabel.Text = "주간";
-            if (TxtNightShiftLabel != null) TxtNightShiftLabel.Text = "야간";
-            if (DayShiftRichEditor != null) DayShiftRichEditor.IsEnabled = false;
-            if (NightShiftRichEditor != null) NightShiftRichEditor.IsEnabled = false;
+            TxtCurrentReportDate.Text = "작성 기간이 표시됩니다.";
+            // ReportBlocksControl 제거됨
             MemoArea.DataContext = null;
+            // 🔥 RichEditor도 비우기
             if (MemoRichEditor != null)
             {
                 _suppressMemoTextChanged = true;
                 MemoRichEditor.Document = new FlowDocument();
                 _suppressMemoTextChanged = false;
             }
-            if (DayShiftRichEditor != null)
+            if (MainContentRichEditor != null)
             {
-                _suppressDayShiftTextChanged = true;
-                DayShiftRichEditor.Document = new FlowDocument();
-                _suppressDayShiftTextChanged = false;
-            }
-            if (NightShiftRichEditor != null)
-            {
-                _suppressNightShiftTextChanged = true;
-                NightShiftRichEditor.Document = new FlowDocument();
-                _suppressNightShiftTextChanged = false;
+                _suppressMainContentTextChanged = true;
+                MainContentRichEditor.Document = new FlowDocument();
+                _suppressMainContentTextChanged = false;
             }
             _isDirty = false;
             UpdateOverviewStats();
@@ -2602,52 +2330,19 @@ namespace CleanPotal
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
 
-        private static List<PersistedGroup>? TryReadStorageFile(string path)
-        {
-            try
-            {
-                if (!File.Exists(path)) return null;
-                var json = File.ReadAllText(path);
-                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-            }
-            catch { return null; }
-        }
-
         private void LoadFromStorage()
         {
-            List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
-
-            // 메인 파일 손상/누락 시 백업 1~10에서 자동 복구 시도
-            if (data == null)
-            {
-                for (int i = 1; i <= 10; i++)
-                {
-                    var backup = TryReadStorageFile($"{StoragePath}.bak{i}");
-                    if (backup != null)
-                    {
-                        data = backup;
-                        try { File.Copy($"{StoragePath}.bak{i}", StoragePath, true); } catch { }
-                        break;
-                    }
-                }
-            }
-            if (data == null) return;
-
             try
             {
-                if (File.Exists(StoragePath))
-                    _lastFileModified = File.GetLastWriteTime(StoragePath);
+                if (!File.Exists(StoragePath)) return;
+                var json = File.ReadAllText(StoragePath);
+                var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
+                if (data == null) return;
 
-                string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
                 foreach (var group in data)
                 {
-                    var mappedGroup = new ProductionMeetingGroupModel
-                    {
-                        MonthTitle = group.MonthTitle ?? "",
-                        IsCurrentMonth = (group.MonthTitle == currentMonthTitle),
-                        IsExpanded = (group.MonthTitle == currentMonthTitle)
-                    };
+                    var mappedGroup = new ProductionMeetingGroupModel { MonthTitle = group.MonthTitle ?? "" };
                     foreach (var report in group.Reports ?? new())
                     {
                         var mappedReport = new ProductionMeetingReportModel
@@ -2660,10 +2355,6 @@ namespace CleanPotal
                             MemoRich = report.MemoRich ?? "",
                             MainContent = report.MainContent ?? "",
                             MainContentRich = report.MainContentRich ?? "",
-                            NightShiftContent = report.NightShiftContent ?? "",
-                            NightShiftContentRich = report.NightShiftContentRich ?? "",
-                            DayShiftTeamName = report.DayShiftTeamName ?? "",
-                            NightShiftTeamName = report.NightShiftTeamName ?? "",
                             Attendees = report.Attendees ?? "",
                             Summary = report.Summary ?? ""
                         };
@@ -2699,12 +2390,6 @@ namespace CleanPotal
                                 mappedReport.MemoAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
                         }
 
-                        foreach (var att in report.MainAttachments ?? new())
-                        {
-                            if (!string.IsNullOrWhiteSpace(att.FilePath))
-                                mappedReport.MainAttachments.Add(new ProductionMeetingAttachmentModel { FilePath = att.FilePath });
-                        }
-
                         mappedGroup.Reports.Add(mappedReport);
                     }
                     GroupedHistory.Add(mappedGroup);
@@ -2718,23 +2403,6 @@ namespace CleanPotal
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
-
-                // 🔒 저장 전 회전식 백업: production_meetings.json.bak1 ~ bak10 (최근 10회 보존)
-                if (File.Exists(StoragePath))
-                {
-                    try
-                    {
-                        for (int i = 9; i >= 1; i--)
-                        {
-                            string from = $"{StoragePath}.bak{i}";
-                            string to = $"{StoragePath}.bak{i + 1}";
-                            if (File.Exists(from)) File.Copy(from, to, true);
-                        }
-                        File.Copy(StoragePath, $"{StoragePath}.bak1", true);
-                    }
-                    catch { /* 백업 실패는 무시하고 저장 진행 */ }
-                }
-
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {
                     MonthTitle = g.MonthTitle,
@@ -2748,10 +2416,6 @@ namespace CleanPotal
                         MemoRich = r.MemoRich,
                         MainContent = r.MainContent,
                         MainContentRich = r.MainContentRich,
-                        NightShiftContent = r.NightShiftContent,
-                        NightShiftContentRich = r.NightShiftContentRich,
-                        DayShiftTeamName = r.DayShiftTeamName,
-                        NightShiftTeamName = r.NightShiftTeamName,
                         Attendees = r.Attendees,
                         Summary = r.Summary,
                         Blocks = r.Blocks.Select(b => new PersistedBlock
@@ -2796,10 +2460,6 @@ namespace CleanPotal
             public string? MemoRich { get; set; }
             public string? MainContent { get; set; }
             public string? MainContentRich { get; set; }
-            public string? NightShiftContent { get; set; }
-            public string? NightShiftContentRich { get; set; }
-            public string? DayShiftTeamName { get; set; }
-            public string? NightShiftTeamName { get; set; }
             public string? Attendees { get; set; }
             public string? Summary { get; set; }
             public List<PersistedBlock> Blocks { get; set; } = new();
