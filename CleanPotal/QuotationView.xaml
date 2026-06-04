@@ -50,7 +50,6 @@
         </Style>
 
         <Style x:Key="LineItemCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
-            <EventSetter Event="GotKeyboardFocus" Handler="LineItemCell_GotKeyboardFocus"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#E0E7FF"/>
@@ -605,10 +604,10 @@
                                       BorderBrush="#E2E8F0"
                                       Background="Transparent"
                                       AlternationCount="2"
+                                      local:DataGridEditBehavior.SingleClickEdit="True"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource LineItemCellStyle}"
-                                      PreparingCellForEdit="LineItemsGrid_PreparingCellForEdit">
+                                      CellStyle="{StaticResource LineItemCellStyle}">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">

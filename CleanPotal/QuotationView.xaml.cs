@@ -1560,27 +1560,6 @@ namespace CleanPotal
                 CurrentQuotation?.LineItems.Remove(item);
         }
 
-        private void LineItemCell_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
-        {
-            // DataGridCell.OnGotKeyboardFocus (class handler) runs before this instance handler
-            // and sets CurrentCell → BeginEdit() reliably succeeds here for both click and Tab.
-            var cell = (DataGridCell)sender;
-            if (!cell.IsEditing && !cell.IsReadOnly)
-                LineItemsGrid.BeginEdit();
-        }
-
-        private void LineItemsGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
-        {
-            if (e.EditingElement is TextBox tb)
-            {
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, (Action)(() =>
-                {
-                    tb.Focus();
-                    tb.SelectAll();
-                }));
-            }
-        }
-
         // ─── 단가 관리 모달 ───
 
         private void BtnProductMaster_Click(object sender, RoutedEventArgs e)
