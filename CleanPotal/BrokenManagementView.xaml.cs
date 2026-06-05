@@ -237,9 +237,6 @@ namespace CleanPotal
         private void BtnAttachCountermeasure_Click(object sender, RoutedEventArgs e)
             => AttachFiles(sender, r => r.CountermeasureReports);
 
-        private void BtnAttachTraining_Click(object sender, RoutedEventArgs e)
-            => AttachFiles(sender, r => r.TrainingDocs);
-
         private static void AttachFiles(object sender, Func<BrokenRecord, ObservableCollection<string>> getCollection)
         {
             if (sender is not Button btn || btn.Tag is not BrokenRecord record) return;

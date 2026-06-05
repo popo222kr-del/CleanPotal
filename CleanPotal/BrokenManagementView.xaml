@@ -434,7 +434,7 @@
                     </Border>
 
                     <!-- 데이터 그리드 -->
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
                         <DataGrid x:Name="DgBroken"
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
@@ -443,17 +443,16 @@
                                 <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="50"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="년도" Binding="{Binding OccurYear}" Width="60"
+                                <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateShort}" Width="110"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateShort}" Width="130"/>
-
-                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="70"
+                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="240"/>
+                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="2*"/>
 
-                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="120"/>
+                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="130"
+                                                    ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
@@ -464,16 +463,16 @@
                                 <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="80"
+                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="110"/>
+                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="130"/>
 
-                                <!-- 자료 첨부 컬럼: 경위서 / 대책서 / 교육서 -->
-                                <DataGridTemplateColumn Header="경위서" Width="120" IsReadOnly="False">
+                                <!-- 자료 첨부 컬럼: 경위서 / 대책서 -->
+                                <DataGridTemplateColumn Header="경위서" Width="*" IsReadOnly="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
@@ -498,7 +497,7 @@
                                                                     MouseLeftButtonUp="FileChip_Click">
                                                                 <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
                                                                            FontSize="10" Foreground="#1D4ED8"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
+                                                                           MaxWidth="80" TextTrimming="CharacterEllipsis"/>
                                                             </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -508,7 +507,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="대책서" Width="120" IsReadOnly="False">
+                                <DataGridTemplateColumn Header="대책서" Width="*" IsReadOnly="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
@@ -533,42 +532,7 @@
                                                                     MouseLeftButtonUp="FileChip_Click">
                                                                 <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
                                                                            FontSize="10" Foreground="#16A34A"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-
-                                <DataGridTemplateColumn Header="교육서" Width="120" IsReadOnly="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                                <Button Content="📎"
-                                                        Tag="{Binding}"
-                                                        Style="{StaticResource SmallAttachStyle}"
-                                                        Click="BtnAttachTraining_Click"
-                                                        ToolTip="교육서 첨부"/>
-                                                <ItemsControl ItemsSource="{Binding TrainingDocs}" Margin="4,0,0,0">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal"/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="#FFF7ED" BorderBrush="#FED7AA"
-                                                                    BorderThickness="1" CornerRadius="4"
-                                                                    Padding="4,2" Margin="2,0"
-                                                                    Cursor="Hand" Tag="{Binding}"
-                                                                    ToolTip="{Binding}"
-                                                                    MouseLeftButtonUp="FileChip_Click">
-                                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
-                                                                           FontSize="10" Foreground="#EA580C"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
+                                                                           MaxWidth="80" TextTrimming="CharacterEllipsis"/>
                                                             </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -604,7 +568,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
                         <DataGrid x:Name="DgTeamSummary"
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
