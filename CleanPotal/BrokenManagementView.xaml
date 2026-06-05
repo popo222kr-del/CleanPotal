@@ -294,83 +294,6 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <!-- Thumbnail converters -->
-        <local:FileThumbnailConverter    x:Key="FileThumbnailConverter"/>
-        <local:IsImageFileConverter      x:Key="IsImageFileConverter"/>
-        <local:IsNotImageFileConverter   x:Key="IsNotImageFileConverter"/>
-        <local:FileTypeTextConverter     x:Key="FileTypeTextConverter"/>
-        <local:FileTypeBgConverter       x:Key="FileTypeBgConverter"/>
-
-        <!-- ✕ Remove-file button -->
-        <Style x:Key="RemoveFileBtnStyle" TargetType="Button">
-            <Setter Property="Background" Value="#BB334155"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontSize" Value="8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#CCEF4444"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Shared thumbnail card — reused by all 4 attachment columns -->
-        <DataTemplate x:Key="FileThumbnailItemTemplate">
-            <Border Width="72" Margin="2,2,2,0" CornerRadius="6" BorderThickness="1"
-                    BorderBrush="#E2E8F0" ClipToBounds="True" Cursor="Hand"
-                    Tag="{Binding}" MouseLeftButtonUp="FileChip_Click">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="52"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Image thumbnail -->
-                    <Image Grid.Row="0"
-                           Source="{Binding Converter={StaticResource FileThumbnailConverter}}"
-                           Stretch="UniformToFill"
-                           Visibility="{Binding Converter={StaticResource IsImageFileConverter}}"/>
-
-                    <!-- Non-image type badge -->
-                    <Border Grid.Row="0"
-                            Background="{Binding Converter={StaticResource FileTypeBgConverter}}"
-                            Visibility="{Binding Converter={StaticResource IsNotImageFileConverter}}">
-                        <TextBlock Text="{Binding Converter={StaticResource FileTypeTextConverter}}"
-                                   Foreground="White" FontWeight="Bold" FontSize="14"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-
-                    <!-- Filename bar -->
-                    <Border Grid.Row="1" Background="#F1F5F9" Padding="4,2">
-                        <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
-                                   FontSize="9" Foreground="#475569"
-                                   TextTrimming="CharacterEllipsis"
-                                   ToolTip="{Binding Converter={StaticResource FileNameConverter}}"/>
-                    </Border>
-
-                    <!-- ✕ remove -->
-                    <Button Grid.Row="0"
-                            Content="✕" Tag="{Binding}"
-                            HorizontalAlignment="Right" VerticalAlignment="Top"
-                            Width="16" Height="16"
-                            Style="{StaticResource RemoveFileBtnStyle}"
-                            Click="RemoveFile_Click"/>
-                </Grid>
-            </Border>
-        </DataTemplate>
     </UserControl.Resources>
 
     <Grid Margin="6">
@@ -550,109 +473,113 @@
                                 <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="120"/>
 
                                 <!-- ── 경위서 ── -->
-                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="110" IsReadOnly="False">
+                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border AllowDrop="True"
+                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
+                                                    MouseLeftButtonUp="AttachChipIncident_Click"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
-                                                    Drop="CellDropIncident_Drop"
-                                                    Tag="{Binding}" Background="Transparent" Padding="4">
-                                                <StackPanel>
-                                                    <Button Content="📎" Tag="{Binding}"
-                                                            Style="{StaticResource SmallAttachStyle}"
-                                                            Click="BtnAttachIncident_Click"
-                                                            HorizontalAlignment="Left"/>
-                                                    <ItemsControl ItemsSource="{Binding IncidentReports}"
-                                                                  Margin="0,4,0,0"
-                                                                  ItemTemplate="{StaticResource FileThumbnailItemTemplate}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
+                                                    Drop="CellDropIncident_Drop">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock x:Name="chipTxt" Text="{Binding IncidentLabel}"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
                                             </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasIncident}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 대책서 ── -->
-                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="110" IsReadOnly="False">
+                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border AllowDrop="True"
+                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
+                                                    MouseLeftButtonUp="AttachChipCountermeasure_Click"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
-                                                    Drop="CellDropCountermeasure_Drop"
-                                                    Tag="{Binding}" Background="Transparent" Padding="4">
-                                                <StackPanel>
-                                                    <Button Content="📎" Tag="{Binding}"
-                                                            Style="{StaticResource SmallAttachStyle}"
-                                                            Click="BtnAttachCountermeasure_Click"
-                                                            HorizontalAlignment="Left"/>
-                                                    <ItemsControl ItemsSource="{Binding CountermeasureReports}"
-                                                                  Margin="0,4,0,0"
-                                                                  ItemTemplate="{StaticResource FileThumbnailItemTemplate}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
+                                                    Drop="CellDropCountermeasure_Drop">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock x:Name="chipTxt" Text="{Binding CountermeasureLabel}"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
                                             </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasCountermeasure}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육서 ── -->
-                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="110" IsReadOnly="False">
+                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border AllowDrop="True"
+                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
+                                                    MouseLeftButtonUp="AttachChipTraining_Click"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
-                                                    Drop="CellDropTraining_Drop"
-                                                    Tag="{Binding}" Background="Transparent" Padding="4">
-                                                <StackPanel>
-                                                    <Button Content="📎" Tag="{Binding}"
-                                                            Style="{StaticResource SmallAttachStyle}"
-                                                            Click="BtnAttachTraining_Click"
-                                                            HorizontalAlignment="Left"/>
-                                                    <ItemsControl ItemsSource="{Binding TrainingDocs}"
-                                                                  Margin="0,4,0,0"
-                                                                  ItemTemplate="{StaticResource FileThumbnailItemTemplate}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
+                                                    Drop="CellDropTraining_Drop">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock x:Name="chipTxt" Text="{Binding TrainingLabel}"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
                                             </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasTraining}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육이미지 ── -->
-                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="110" IsReadOnly="False">
+                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border AllowDrop="True"
+                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
+                                                    MouseLeftButtonUp="AttachChipTrainingImages_Click"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
-                                                    Drop="CellDropTrainingImages_Drop"
-                                                    Tag="{Binding}" Background="Transparent" Padding="4">
-                                                <StackPanel>
-                                                    <Button Content="📎" Tag="{Binding}"
-                                                            Style="{StaticResource SmallAttachStyle}"
-                                                            Click="BtnAttachTrainingImages_Click"
-                                                            HorizontalAlignment="Left"/>
-                                                    <ItemsControl ItemsSource="{Binding TrainingImages}"
-                                                                  Margin="0,4,0,0"
-                                                                  ItemTemplate="{StaticResource FileThumbnailItemTemplate}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
+                                                    Drop="CellDropTrainingImages_Drop">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock x:Name="chipTxt" Text="{Binding TrainingImageLabel}"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
                                             </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasTrainingImage}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

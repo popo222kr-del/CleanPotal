@@ -121,15 +121,24 @@ namespace CleanPotal
     // ---------------------------------------------------------------------------
     // Data models
     // ---------------------------------------------------------------------------
-    public class BrokenRecord
+    public class BrokenRecord : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void Notify(string n) =>
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(n));
+
+        public BrokenRecord()
+        {
+            IncidentReports.CollectionChanged       += (_, _) => { Notify(nameof(HasIncident));       Notify(nameof(IncidentLabel));       };
+            CountermeasureReports.CollectionChanged  += (_, _) => { Notify(nameof(HasCountermeasure)); Notify(nameof(CountermeasureLabel)); };
+            TrainingDocs.CollectionChanged           += (_, _) => { Notify(nameof(HasTraining));       Notify(nameof(TrainingLabel));       };
+            TrainingImages.CollectionChanged         += (_, _) => { Notify(nameof(HasTrainingImage));  Notify(nameof(TrainingImageLabel));  };
+        }
+
         public int No { get; set; }
         public DateTime? OccurDate { get; set; }
 
-        public string OccurYear => OccurDate.HasValue
-            ? $"{OccurDate.Value.Year - 2000}년"
-            : "-";
-
+        public string OccurYear => OccurDate.HasValue ? $"{OccurDate.Value.Year - 2000}년" : "-";
         public string OccurDateShort => OccurDate.HasValue
             ? $"{OccurDate.Value.Month}월 {OccurDate.Value.Day}일 ({DayOfWeekKorean(OccurDate.Value)})"
             : "-";
@@ -147,21 +156,26 @@ namespace CleanPotal
         public string Status { get; set; } = "";
         public string IsOfficial { get; set; } = "";
 
-        public ObservableCollection<string> IncidentReports { get; } = new();
+        public ObservableCollection<string> IncidentReports      { get; } = new();
         public ObservableCollection<string> CountermeasureReports { get; } = new();
-        public ObservableCollection<string> TrainingDocs { get; } = new();
-        public ObservableCollection<string> TrainingImages { get; } = new();
+        public ObservableCollection<string> TrainingDocs          { get; } = new();
+        public ObservableCollection<string> TrainingImages        { get; } = new();
+
+        public bool   HasIncident        => IncidentReports.Count > 0;
+        public string IncidentLabel      => IncidentReports.Count > 0      ? $"{IncidentReports.Count}건"      : "첨부";
+        public bool   HasCountermeasure  => CountermeasureReports.Count > 0;
+        public string CountermeasureLabel => CountermeasureReports.Count > 0 ? $"{CountermeasureReports.Count}건" : "첨부";
+        public bool   HasTraining        => TrainingDocs.Count > 0;
+        public string TrainingLabel      => TrainingDocs.Count > 0          ? $"{TrainingDocs.Count}건"         : "첨부";
+        public bool   HasTrainingImage   => TrainingImages.Count > 0;
+        public string TrainingImageLabel => TrainingImages.Count > 0        ? $"{TrainingImages.Count}건"       : "첨부";
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
-            DayOfWeek.Monday => "월",
-            DayOfWeek.Tuesday => "화",
-            DayOfWeek.Wednesday => "수",
-            DayOfWeek.Thursday => "목",
-            DayOfWeek.Friday => "금",
-            DayOfWeek.Saturday => "토",
-            DayOfWeek.Sunday => "일",
-            _ => ""
+            DayOfWeek.Monday    => "월", DayOfWeek.Tuesday  => "화",
+            DayOfWeek.Wednesday => "수", DayOfWeek.Thursday => "목",
+            DayOfWeek.Friday    => "금", DayOfWeek.Saturday => "토",
+            DayOfWeek.Sunday    => "일", _ => ""
         };
     }
 
@@ -191,7 +205,6 @@ namespace CleanPotal
             InitializeComponent();
             DgBroken.ItemsSource = _filteredRecords;
             DgTeamSummary.ItemsSource = _teamSummaries;
-            DgBroken.RowHeight = double.NaN; // auto-size rows to fit thumbnails
             ResetFilterComboBoxes();
         }
 
@@ -314,34 +327,69 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // File attach — button clicks
+        // File attach — chip clicks (compact badge)
         // -----------------------------------------------------------------------
-        private void BtnAttachIncident_Click(object sender, RoutedEventArgs e)
-            => AttachFiles(sender, r => r.IncidentReports);
-
-        private void BtnAttachCountermeasure_Click(object sender, RoutedEventArgs e)
-            => AttachFiles(sender, r => r.CountermeasureReports);
-
-        private void BtnAttachTraining_Click(object sender, RoutedEventArgs e)
-            => AttachFiles(sender, r => r.TrainingDocs);
-
-        private void BtnAttachTrainingImages_Click(object sender, RoutedEventArgs e)
-            => AttachFiles(sender, r => r.TrainingImages);
-
         private static readonly string AttachFilter =
             "지원 파일|*.xlsx;*.xls;*.ppt;*.pptx;*.pdf;" +
                        "*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.tiff;*.tif;*.webp;*.ico|" +
             "이미지|*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.tiff;*.tif;*.webp;*.ico|" +
             "Excel|*.xlsx;*.xls|PowerPoint|*.ppt;*.pptx|PDF|*.pdf";
 
-        private static void AttachFiles(object sender, Func<BrokenRecord, ObservableCollection<string>> getCollection)
+        private void AttachChipIncident_Click(object sender, MouseButtonEventArgs e)
+            => HandleChipClick(sender, r => r.IncidentReports);
+
+        private void AttachChipCountermeasure_Click(object sender, MouseButtonEventArgs e)
+            => HandleChipClick(sender, r => r.CountermeasureReports);
+
+        private void AttachChipTraining_Click(object sender, MouseButtonEventArgs e)
+            => HandleChipClick(sender, r => r.TrainingDocs);
+
+        private void AttachChipTrainingImages_Click(object sender, MouseButtonEventArgs e)
+            => HandleChipClick(sender, r => r.TrainingImages);
+
+        private void HandleChipClick(object sender, Func<BrokenRecord, ObservableCollection<string>> getCol)
         {
-            if (sender is not Button btn || btn.Tag is not BrokenRecord record) return;
-            var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
-            if (dlg.ShowDialog() != true) return;
-            var col = getCollection(record);
-            foreach (var path in dlg.FileNames)
-                if (!col.Contains(path)) col.Add(path);
+            if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
+            var col = getCol(record);
+
+            if (col.Count == 0)
+            {
+                var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
+                if (dlg.ShowDialog() != true) return;
+                foreach (var path in dlg.FileNames)
+                    if (!col.Contains(path)) col.Add(path);
+                return;
+            }
+
+            var menu = new ContextMenu();
+            foreach (var path in col.ToList())
+            {
+                var captured = path;
+                var mi = new MenuItem { Header = Path.GetFileName(captured), Tag = captured };
+                mi.Click += (_, _) =>
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(captured) { UseShellExecute = true }); }
+                    catch (Exception ex) { MessageBox.Show($"파일 열기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning); }
+                };
+                menu.Items.Add(mi);
+            }
+            menu.Items.Add(new Separator());
+            var addItem = new MenuItem { Header = "파일 추가" };
+            addItem.Click += (_, _) =>
+            {
+                var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
+                if (dlg.ShowDialog() != true) return;
+                foreach (var path in dlg.FileNames)
+                    if (!col.Contains(path)) col.Add(path);
+            };
+            menu.Items.Add(addItem);
+            menu.Items.Add(new Separator());
+            var delItem = new MenuItem { Header = "모두 삭제" };
+            delItem.Click += (_, _) => col.Clear();
+            menu.Items.Add(delItem);
+
+            menu.PlacementTarget = fe;
+            menu.IsOpen = true;
         }
 
         // -----------------------------------------------------------------------
@@ -367,7 +415,7 @@ namespace CleanPotal
 
         private void CellAttachment_DragLeave(object sender, DragEventArgs e)
         {
-            if (sender is WpfBorder bd) bd.Background = Brushes.Transparent;
+            if (sender is WpfBorder bd) bd.ClearValue(WpfBorder.BackgroundProperty);
         }
 
         private void CellDropIncident_Drop(object sender, DragEventArgs e)
@@ -385,7 +433,7 @@ namespace CleanPotal
         private void HandleCellDrop(object sender, DragEventArgs e,
             Func<BrokenRecord, ObservableCollection<string>> getCol)
         {
-            if (sender is WpfBorder bd) bd.Background = Brushes.Transparent;
+            if (sender is WpfBorder bd) bd.ClearValue(WpfBorder.BackgroundProperty);
             if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
@@ -394,36 +442,6 @@ namespace CleanPotal
                 if (_allowedExts.Contains(Path.GetExtension(path)) && !col.Contains(path))
                     col.Add(path);
             e.Handled = true;
-        }
-
-        // -----------------------------------------------------------------------
-        // File remove
-        // -----------------------------------------------------------------------
-        private void RemoveFile_Click(object sender, RoutedEventArgs e)
-        {
-            e.Handled = true; // stop bubble to FileChip_Click (open)
-            if (sender is not FrameworkElement fe || fe.Tag is not string path) return;
-            var row = fe.FindAncestorOfType<DataGridRow>();
-            if (row?.DataContext is not BrokenRecord record) return;
-            record.IncidentReports.Remove(path);
-            record.CountermeasureReports.Remove(path);
-            record.TrainingDocs.Remove(path);
-            record.TrainingImages.Remove(path);
-        }
-
-        private void FileChip_Click(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is FrameworkElement fe && fe.Tag is string path)
-            {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"파일 열기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
         }
 
         // -----------------------------------------------------------------------
