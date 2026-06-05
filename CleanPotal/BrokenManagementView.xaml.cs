@@ -159,8 +159,49 @@ namespace CleanPotal
         public string ProductName { get; set; } = "";
         public string SN { get; set; } = "";
         public string Team { get; set; } = "";
-        public string Causer { get; set; } = "";
+
+        private string _causer = "";
+        public string Causer
+        {
+            get => _causer;
+            set { _causer = value; Notify(nameof(Causer)); Notify(nameof(PositionDisplay)); }
+        }
+
         public string JobTitle { get; set; } = "";
+
+        // 유발자 이름 → (직위, 입사일) 매칭용 사용자계정 디렉터리 (View에서 채움)
+        public static readonly Dictionary<string, (string JobTitle, string HireDate)> UserDirectory
+            = new(StringComparer.OrdinalIgnoreCase);
+
+        // 직위 (경력) — 유발자 이름과 사용자계정 정보를 매칭하여 표시
+        public string PositionDisplay
+        {
+            get
+            {
+                string name = (Causer ?? "").Trim();
+                if (!string.IsNullOrEmpty(name) && UserDirectory.TryGetValue(name, out var info))
+                {
+                    string title = string.IsNullOrWhiteSpace(info.JobTitle) ? "-" : info.JobTitle;
+                    string career = CareerFromHire(info.HireDate);
+                    return string.IsNullOrEmpty(career) ? title : $"{title} ({career})";
+                }
+                return string.IsNullOrWhiteSpace(JobTitle) ? "-" : JobTitle;
+            }
+        }
+
+        private static string CareerFromHire(string hireDate)
+        {
+            if (string.IsNullOrWhiteSpace(hireDate) || !DateTime.TryParse(hireDate, out var hire)) return "";
+            var today = DateTime.Today;
+            int years = today.Year - hire.Year;
+            int months = today.Month - hire.Month;
+            if (months < 0) { years--; months += 12; }
+            if (years < 0) return "";
+            if (years == 0) return $"{months}개월";
+            if (months == 0) return $"{years}년";
+            return $"{years}년 {months}개월";
+        }
+
         public string ProductType { get; set; } = "";
         public double AccidentWeight =>
             ProductType.Equals("acc", StringComparison.OrdinalIgnoreCase) ? 0.5 : 1.0;
@@ -252,12 +293,24 @@ namespace CleanPotal
         {
             InitializeComponent();
             DgBroken.ItemsSource = _filteredRecords;
-            DgTeamSummary.ItemsSource = _teamSummaries;
+            LoadUserDirectory();
             ResetFilterComboBoxes();
             LoadAppData();
         }
 
         public void TryRefresh() { }
+
+        // 사용자계정(users.json)에서 이름→직위/입사일 매칭 디렉터리 구성
+        private static void LoadUserDirectory()
+        {
+            BrokenRecord.UserDirectory.Clear();
+            foreach (var u in AuthDatabaseHelper.GetAllUsers())
+            {
+                string name = (u.RealName ?? "").Trim();
+                if (string.IsNullOrEmpty(name)) continue;
+                BrokenRecord.UserDirectory[name] = (u.JobTitle ?? "", u.HireDate ?? "");
+            }
+        }
 
         // -----------------------------------------------------------------------
         // File load — button / click
@@ -392,10 +445,17 @@ namespace CleanPotal
             return null;
         }
 
+        private void CauserSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressFilter) return;
+            ApplyFilter();
+        }
+
         private void BtnResetFilter_Click(object sender, RoutedEventArgs e)
         {
             _suppressFilter = true;
             if (CmbYear.Items.Count > 0) CmbYear.SelectedIndex = 0;
+            if (TxtCauserSearch != null) TxtCauserSearch.Text = "";
             _suppressFilter = false;
             RepopulateSubFilters();
             ApplyFilter();
@@ -838,6 +898,7 @@ namespace CleanPotal
             CmbTeam.Items.Clear();        CmbTeam.Items.Add("전체");        CmbTeam.SelectedIndex = 0;
             CmbProductType.Items.Clear(); CmbProductType.Items.Add("전체"); CmbProductType.SelectedIndex = 0;
             CmbOccurStage.Items.Clear();  CmbOccurStage.Items.Add("전체");  CmbOccurStage.SelectedIndex = 0;
+            CmbCauser.Items.Clear();      CmbCauser.Items.Add("전체");      CmbCauser.SelectedIndex = 0;
             _suppressFilter = false;
         }
 
@@ -890,6 +951,11 @@ namespace CleanPotal
                 CmbOccurStage.Items.Add(s);
             CmbOccurStage.SelectedIndex = 0;
 
+            CmbCauser.Items.Clear(); CmbCauser.Items.Add("전체");
+            foreach (var c in base_.Select(r => r.Causer).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c))
+                CmbCauser.Items.Add(c);
+            CmbCauser.SelectedIndex = 0;
+
             _suppressFilter = false;
         }
 
@@ -900,6 +966,8 @@ namespace CleanPotal
             string team        = CmbTeam.SelectedItem?.ToString()        ?? "전체";
             string productType = CmbProductType.SelectedItem?.ToString() ?? "전체";
             string occurStage  = CmbOccurStage.SelectedItem?.ToString()  ?? "전체";
+            string causer      = CmbCauser.SelectedItem?.ToString()       ?? "전체";
+            string causerText  = TxtCauserSearch?.Text?.Trim()            ?? "";
 
             var filtered = _allRecords.AsEnumerable();
             if (year != "전체" && int.TryParse(year, out int yr))
@@ -912,6 +980,10 @@ namespace CleanPotal
                 filtered = filtered.Where(r => r.ProductType == productType);
             if (occurStage != "전체")
                 filtered = filtered.Where(r => r.OccurStage == occurStage);
+            if (causer != "전체")
+                filtered = filtered.Where(r => r.Causer == causer);
+            if (!string.IsNullOrEmpty(causerText))
+                filtered = filtered.Where(r => (r.Causer ?? "").Contains(causerText, StringComparison.OrdinalIgnoreCase));
 
             var list = filtered.ToList();
 

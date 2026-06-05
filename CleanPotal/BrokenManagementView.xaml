@@ -141,6 +141,49 @@
             </Setter>
         </Style>
 
+        <!-- Filter search TextBox -->
+        <Style x:Key="FilterSearchBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <Grid>
+                                <TextBlock x:Name="ph" Text="🔍 이름 검색" Foreground="#94A3B8"
+                                           FontSize="13" Margin="11,0,0,0" VerticalAlignment="Center"
+                                           IsHitTestVisible="False" Visibility="Collapsed"/>
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="ph" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Tab header -->
         <Style x:Key="TabHeaderStyle" TargetType="TabItem">
             <Setter Property="FontSize" Value="14"/>
@@ -459,6 +502,14 @@
                                       SelectionChanged="Filter_SelectionChanged"
                                       DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
+                            <TextBlock Text="유발자" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="CmbCauser" Style="{StaticResource FilterComboStyle}"
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,6,0"/>
+                            <TextBox x:Name="TxtCauserSearch" Style="{StaticResource FilterSearchBoxStyle}"
+                                     TextChanged="CauserSearch_TextChanged" Margin="0,0,16,0"/>
+
                             <Button Content="초기화" Style="{StaticResource GhostButtonStyle}"
                                     Click="BtnResetFilter_Click"/>
                         </WrapPanel>
@@ -519,7 +570,8 @@
                                 <DataGridTextColumn Header="유발자" Binding="{Binding Causer}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="90"
+                                <DataGridTextColumn Header="직위 (경력)" Binding="{Binding PositionDisplay}"
+                                                    Width="140" IsReadOnly="True"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="90"
@@ -529,7 +581,7 @@
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <!-- ── 경위서 ── -->
-                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="90" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="72" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -559,7 +611,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 대책서 ── -->
-                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="90" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="72" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -589,7 +641,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육서 ── -->
-                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="90" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="72" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -619,7 +671,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육이미지 ── -->
-                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="90" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="72" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -654,47 +706,10 @@
                 </Grid>
             </TabItem>
 
-            <!-- Tab 2: 팀별 집계 -->
-            <TabItem Header="팀별 집계" Style="{StaticResource TabHeaderStyle}">
+            <!-- Tab 2: 교육 현황 -->
+            <TabItem Header="교육 현황" Style="{StaticResource TabHeaderStyle}">
                 <Grid Margin="0,8,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,12">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="팀별 Broken 사고 집계 및 보상율 현황"
-                                       FontSize="14" FontWeight="Bold" Foreground="#0F172A"
-                                       VerticalAlignment="Center"/>
-                            <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" Margin="12,0,0,0">
-                                <TextBlock Text="ACC 제품 → 사고비중 0.5 적용"
-                                           FontSize="11" Foreground="#92400E" FontWeight="SemiBold"/>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
-                        <DataGrid x:Name="DgTeamSummary"
-                                  Style="{StaticResource BrokenDataGridStyle}"
-                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="120"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="사고건수" Binding="{Binding RawCount}" Width="90"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="합계(ACC 0.5적용)"
-                                                    Binding="{Binding WeightedCount, StringFormat={}{0:0.##}}"
-                                                    Width="140" ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="목표달성" Binding="{Binding AchievedStr}" Width="90"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="지급예정월" Binding="{Binding PaymentMonth}" Width="130"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="보상율" Binding="{Binding RewardRate}" Width="*"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Border>
+                    <!-- 내용 비움 -->
                 </Grid>
             </TabItem>
 
