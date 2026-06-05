@@ -69,12 +69,13 @@
                                    AllowsTransparency="True"
                                    Focusable="False"
                                    PopupAnimation="Fade"
-                                   Placement="Bottom">
+                                   Placement="Bottom"
+                                   VerticalOffset="-34">
                                 <Border Background="White"
                                         BorderBrush="#CBD5E1" BorderThickness="1"
                                         CornerRadius="4"
                                         MinWidth="{TemplateBinding ActualWidth}"
-                                        Margin="0,3,0,0">
+                                        Margin="0">
                                     <Border.Effect>
                                         <DropShadowEffect Color="#000000" Opacity="0.10"
                                                           BlurRadius="12" ShadowDepth="3" Direction="270"/>
