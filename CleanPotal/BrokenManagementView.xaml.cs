@@ -163,16 +163,16 @@ namespace CleanPotal
 
         public bool   HasIncident        => IncidentReports.Count > 0;
         public string IncidentLabel      => IncidentReports.Count switch {
-            0 => "첨부", 1 => Path.GetFileName(IncidentReports[0]), _ => $"경위서 {IncidentReports.Count}건" };
+            0 => "첨부", 1 => $"경위서{Path.GetExtension(IncidentReports[0])}", _ => $"경위서 {IncidentReports.Count}건" };
         public bool   HasCountermeasure  => CountermeasureReports.Count > 0;
         public string CountermeasureLabel => CountermeasureReports.Count switch {
-            0 => "첨부", 1 => Path.GetFileName(CountermeasureReports[0]), _ => $"대책서 {CountermeasureReports.Count}건" };
+            0 => "첨부", 1 => $"대책서{Path.GetExtension(CountermeasureReports[0])}", _ => $"대책서 {CountermeasureReports.Count}건" };
         public bool   HasTraining        => TrainingDocs.Count > 0;
         public string TrainingLabel      => TrainingDocs.Count switch {
-            0 => "첨부", 1 => Path.GetFileName(TrainingDocs[0]), _ => $"교육서 {TrainingDocs.Count}건" };
+            0 => "첨부", 1 => $"교육서{Path.GetExtension(TrainingDocs[0])}", _ => $"교육서 {TrainingDocs.Count}건" };
         public bool   HasTrainingImage   => TrainingImages.Count > 0;
         public string TrainingImageLabel => TrainingImages.Count switch {
-            0 => "첨부", 1 => Path.GetFileName(TrainingImages[0]), _ => $"교육이미지 {TrainingImages.Count}건" };
+            0 => "첨부", 1 => $"교육이미지{Path.GetExtension(TrainingImages[0])}", _ => $"교육이미지 {TrainingImages.Count}건" };
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
