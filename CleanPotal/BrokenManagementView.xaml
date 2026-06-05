@@ -474,39 +474,27 @@
                         <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbYear" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbYear" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="라인" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbLine" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbLine" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="팀" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbTeam" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbTeam" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="제품종류" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbProductType" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbProductType" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="발생단계" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbOccurStage" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbOccurStage" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="유발자" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbCauser" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged"
-                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,6,0"/>
+                            <local:MultiSelectFilter x:Name="CmbCauser" MinWidth="110" Margin="0,0,6,0"/>
                             <TextBox x:Name="TxtCauserSearch" Style="{StaticResource FilterSearchBoxStyle}"
                                      TextChanged="CauserSearch_TextChanged" Margin="0,0,16,0"/>
 
@@ -536,7 +524,8 @@
                         <DataGrid x:Name="DgBroken"
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
-                                  CanUserAddRows="False">
+                                  CanUserAddRows="False"
+                                  CellEditEnding="DgBroken_CellEditEnding">
                             <DataGrid.Columns>
 
                                 <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"

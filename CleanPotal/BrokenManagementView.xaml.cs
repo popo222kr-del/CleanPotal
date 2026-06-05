@@ -167,17 +167,38 @@ namespace CleanPotal
             set { _causer = value; Notify(nameof(Causer)); Notify(nameof(PositionDisplay)); }
         }
 
-        public string JobTitle { get; set; } = "";
+        // 입력 시점에 고정 저장되는 스냅샷 (이후 시간이 지나도 변하지 않음)
+        public string JobTitle { get; set; } = "";   // 직위 스냅샷
+        public string Career { get; set; } = "";      // 경력 스냅샷
+        public bool PositionFrozen { get; set; } = false;
 
         // 유발자 이름 → (직위, 입사일) 매칭용 사용자계정 디렉터리 (View에서 채움)
         public static readonly Dictionary<string, (string JobTitle, string HireDate)> UserDirectory
             = new(StringComparer.OrdinalIgnoreCase);
 
-        // 직위 (경력) — 유발자 이름과 사용자계정 정보를 매칭하여 표시
+        // 유발자 기준으로 현재 사용자계정 정보를 읽어 직위/경력을 '입력 시점'으로 고정
+        public void CapturePosition()
+        {
+            string name = (Causer ?? "").Trim();
+            if (!string.IsNullOrEmpty(name) && UserDirectory.TryGetValue(name, out var info))
+            {
+                JobTitle = info.JobTitle ?? "";
+                Career   = CareerFromHire(info.HireDate);
+            }
+            PositionFrozen = true;
+            Notify(nameof(PositionDisplay));
+        }
+
+        // 직위 (경력) — 고정된 스냅샷이 있으면 그대로, 없으면 현재 기준 실시간 계산
         public string PositionDisplay
         {
             get
             {
+                if (PositionFrozen)
+                {
+                    string t = string.IsNullOrWhiteSpace(JobTitle) ? "-" : JobTitle;
+                    return string.IsNullOrEmpty(Career) ? t : $"{t} ({Career})";
+                }
                 string name = (Causer ?? "").Trim();
                 if (!string.IsNullOrEmpty(name) && UserDirectory.TryGetValue(name, out var info))
                 {
@@ -269,6 +290,8 @@ namespace CleanPotal
         public string Team { get; set; } = "";
         public string Causer { get; set; } = "";
         public string JobTitle { get; set; } = "";
+        public string Career { get; set; } = "";
+        public bool PositionFrozen { get; set; } = false;
         public string ProductType { get; set; } = "";
         public string OccurStage { get; set; } = "";
         public string Status { get; set; } = "";
@@ -294,6 +317,15 @@ namespace CleanPotal
             InitializeComponent();
             DgBroken.ItemsSource = _filteredRecords;
             LoadUserDirectory();
+
+            // 필터 이벤트 연결 (년도는 하위필터를 연쇄 재구성)
+            CmbYear.SelectionChanged        += Year_SelectionChanged;
+            CmbLine.SelectionChanged        += SubFilter_SelectionChanged;
+            CmbTeam.SelectionChanged        += SubFilter_SelectionChanged;
+            CmbProductType.SelectionChanged += SubFilter_SelectionChanged;
+            CmbOccurStage.SelectionChanged  += SubFilter_SelectionChanged;
+            CmbCauser.SelectionChanged      += SubFilter_SelectionChanged;
+
             ResetFilterComboBoxes();
             LoadAppData();
         }
@@ -412,37 +444,17 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         // Filter events
         // -----------------------------------------------------------------------
-        private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void Year_SelectionChanged(object? sender, EventArgs e)
         {
             if (_suppressFilter) return;
-            if (ReferenceEquals(sender, CmbYear))
-                RepopulateSubFilters();
+            RepopulateSubFilters();
             ApplyFilter();
         }
 
-        private void FilterCombo_DropDownOpened(object sender, EventArgs e)
+        private void SubFilter_SelectionChanged(object? sender, EventArgs e)
         {
-            if (sender is not ComboBox cmb) return;
-            cmb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
-            {
-                if (cmb.Template.FindName("PART_Popup", cmb) is System.Windows.Controls.Primitives.Popup popup
-                    && popup.Child != null)
-                {
-                    FindVisualChild<ScrollViewer>(popup.Child)?.ScrollToTop();
-                }
-            });
-        }
-
-        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T match) return match;
-                var result = FindVisualChild<T>(child);
-                if (result != null) return result;
-            }
-            return null;
+            if (_suppressFilter) return;
+            ApplyFilter();
         }
 
         private void CauserSearch_TextChanged(object sender, TextChangedEventArgs e)
@@ -451,10 +463,21 @@ namespace CleanPotal
             ApplyFilter();
         }
 
+        // 유발자 셀을 편집하면 그 시점의 직위/경력을 고정 캡처
+        private void DgBroken_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            if (e.Column?.Header?.ToString() != "유발자") return;
+            if (e.Row?.Item is not BrokenRecord rec) return;
+            // 편집 값이 반영된 뒤 캡처
+            Dispatcher.BeginInvoke(new Action(() => rec.CapturePosition()),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
         private void BtnResetFilter_Click(object sender, RoutedEventArgs e)
         {
             _suppressFilter = true;
-            if (CmbYear.Items.Count > 0) CmbYear.SelectedIndex = 0;
+            CmbYear.Clear();
             if (TxtCauserSearch != null) TxtCauserSearch.Text = "";
             _suppressFilter = false;
             RepopulateSubFilters();
@@ -518,6 +541,11 @@ namespace CleanPotal
         private void SaveAppData()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
+
+            // 저장 시점에 직위/경력을 입력 기준으로 고정 (이후 변하지 않도록)
+            foreach (var r in _allRecords)
+                if (!r.PositionFrozen) r.CapturePosition();
+
             var dto = new AppSaveData
             {
                 Memo = TxtMemo.Text,
@@ -526,6 +554,7 @@ namespace CleanPotal
                     No = r.No, OccurDate = r.OccurDate,
                     Line = r.Line, ProductName = r.ProductName, SN = r.SN,
                     Team = r.Team, Causer = r.Causer, JobTitle = r.JobTitle,
+                    Career = r.Career, PositionFrozen = r.PositionFrozen,
                     ProductType = r.ProductType, OccurStage = r.OccurStage,
                     Status = r.Status, IsOfficial = r.IsOfficial,
                     IncidentReports = r.IncidentReports.ToList(),
@@ -553,6 +582,7 @@ namespace CleanPotal
                         No = d.No, OccurDate = d.OccurDate,
                         Line = d.Line, ProductName = d.ProductName, SN = d.SN,
                         Team = d.Team, Causer = d.Causer, JobTitle = d.JobTitle,
+                        Career = d.Career, PositionFrozen = d.PositionFrozen,
                         ProductType = d.ProductType, OccurStage = d.OccurStage,
                         Status = d.Status, IsOfficial = d.IsOfficial
                     };
@@ -892,96 +922,71 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void ResetFilterComboBoxes()
         {
-            _suppressFilter = true;
-            CmbYear.Items.Clear();        CmbYear.Items.Add("전체");        CmbYear.SelectedIndex = 0;
-            CmbLine.Items.Clear();        CmbLine.Items.Add("전체");        CmbLine.SelectedIndex = 0;
-            CmbTeam.Items.Clear();        CmbTeam.Items.Add("전체");        CmbTeam.SelectedIndex = 0;
-            CmbProductType.Items.Clear(); CmbProductType.Items.Add("전체"); CmbProductType.SelectedIndex = 0;
-            CmbOccurStage.Items.Clear();  CmbOccurStage.Items.Add("전체");  CmbOccurStage.SelectedIndex = 0;
-            CmbCauser.Items.Clear();      CmbCauser.Items.Add("전체");      CmbCauser.SelectedIndex = 0;
-            _suppressFilter = false;
+            CmbYear.SetOptions(Array.Empty<string>());
+            CmbLine.SetOptions(Array.Empty<string>());
+            CmbTeam.SetOptions(Array.Empty<string>());
+            CmbProductType.SetOptions(Array.Empty<string>());
+            CmbOccurStage.SetOptions(Array.Empty<string>());
+            CmbCauser.SetOptions(Array.Empty<string>());
         }
 
         private void PopulateFilterComboBoxes()
         {
-            _suppressFilter = true;
+            var years = _allRecords.Where(r => r.OccurDate.HasValue)
+                            .Select(r => r.OccurDate!.Value.Year).Distinct().OrderBy(y => y)
+                            .Select(y => y.ToString()).ToList();
+            CmbYear.SetOptions(years);
 
-            CmbYear.Items.Clear();
-            CmbYear.Items.Add("전체");
-            foreach (var y in _allRecords.Where(r => r.OccurDate.HasValue)
-                         .Select(r => r.OccurDate!.Value.Year).Distinct().OrderBy(y => y))
-                CmbYear.Items.Add(y.ToString());
-
-            // 현재 년도 자동 선택
+            // 현재 년도가 있으면 기본 선택
             string currentYear = DateTime.Now.Year.ToString();
-            CmbYear.SelectedIndex = 0;
-            for (int i = 0; i < CmbYear.Items.Count; i++)
-                if (CmbYear.Items[i].ToString() == currentYear) { CmbYear.SelectedIndex = i; break; }
+            if (years.Contains(currentYear)) CmbYear.SetChecked(currentYear);
 
-            _suppressFilter = false;
             RepopulateSubFilters();
         }
 
         private void RepopulateSubFilters()
         {
-            _suppressFilter = true;
-
-            string year = CmbYear.SelectedItem?.ToString() ?? "전체";
-            var base_ = (year != "전체" && int.TryParse(year, out int yr))
-                ? _allRecords.Where(r => r.OccurDate.HasValue && r.OccurDate.Value.Year == yr).ToList()
+            var selYears = CmbYear.SelectedValues;
+            var base_ = (selYears.Count > 0)
+                ? _allRecords.Where(r => r.OccurDate.HasValue &&
+                        selYears.Contains(r.OccurDate.Value.Year.ToString())).ToList()
                 : _allRecords;
 
-            CmbLine.Items.Clear(); CmbLine.Items.Add("전체");
-            foreach (var l in base_.Select(r => r.Line).Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l))
-                CmbLine.Items.Add(l);
-            CmbLine.SelectedIndex = 0;
-
-            CmbTeam.Items.Clear(); CmbTeam.Items.Add("전체");
-            foreach (var t in base_.Select(r => r.Team).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t))
-                CmbTeam.Items.Add(t);
-            CmbTeam.SelectedIndex = 0;
-
-            CmbProductType.Items.Clear(); CmbProductType.Items.Add("전체");
-            foreach (var p in base_.Select(r => r.ProductType).Where(p => !string.IsNullOrEmpty(p)).Distinct().OrderBy(p => p))
-                CmbProductType.Items.Add(p);
-            CmbProductType.SelectedIndex = 0;
-
-            CmbOccurStage.Items.Clear(); CmbOccurStage.Items.Add("전체");
-            foreach (var s in base_.Select(r => r.OccurStage).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s))
-                CmbOccurStage.Items.Add(s);
-            CmbOccurStage.SelectedIndex = 0;
-
-            CmbCauser.Items.Clear(); CmbCauser.Items.Add("전체");
-            foreach (var c in base_.Select(r => r.Causer).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c))
-                CmbCauser.Items.Add(c);
-            CmbCauser.SelectedIndex = 0;
-
-            _suppressFilter = false;
+            CmbLine.SetOptions(base_.Select(r => r.Line)
+                .Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l));
+            CmbTeam.SetOptions(base_.Select(r => r.Team)
+                .Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t));
+            CmbProductType.SetOptions(base_.Select(r => r.ProductType)
+                .Where(p => !string.IsNullOrEmpty(p)).Distinct().OrderBy(p => p));
+            CmbOccurStage.SetOptions(base_.Select(r => r.OccurStage)
+                .Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s));
+            CmbCauser.SetOptions(base_.Select(r => r.Causer)
+                .Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c));
         }
 
         private void ApplyFilter()
         {
-            string year        = CmbYear.SelectedItem?.ToString()        ?? "전체";
-            string line        = CmbLine.SelectedItem?.ToString()        ?? "전체";
-            string team        = CmbTeam.SelectedItem?.ToString()        ?? "전체";
-            string productType = CmbProductType.SelectedItem?.ToString() ?? "전체";
-            string occurStage  = CmbOccurStage.SelectedItem?.ToString()  ?? "전체";
-            string causer      = CmbCauser.SelectedItem?.ToString()       ?? "전체";
-            string causerText  = TxtCauserSearch?.Text?.Trim()            ?? "";
+            var years       = new HashSet<string>(CmbYear.SelectedValues);
+            var lines       = new HashSet<string>(CmbLine.SelectedValues);
+            var teams       = new HashSet<string>(CmbTeam.SelectedValues);
+            var productTypes= new HashSet<string>(CmbProductType.SelectedValues);
+            var stages      = new HashSet<string>(CmbOccurStage.SelectedValues);
+            var causers     = new HashSet<string>(CmbCauser.SelectedValues);
+            string causerText = TxtCauserSearch?.Text?.Trim() ?? "";
 
             var filtered = _allRecords.AsEnumerable();
-            if (year != "전체" && int.TryParse(year, out int yr))
-                filtered = filtered.Where(r => r.OccurDate.HasValue && r.OccurDate.Value.Year == yr);
-            if (line != "전체")
-                filtered = filtered.Where(r => r.Line == line);
-            if (team != "전체")
-                filtered = filtered.Where(r => r.Team == team);
-            if (productType != "전체")
-                filtered = filtered.Where(r => r.ProductType == productType);
-            if (occurStage != "전체")
-                filtered = filtered.Where(r => r.OccurStage == occurStage);
-            if (causer != "전체")
-                filtered = filtered.Where(r => r.Causer == causer);
+            if (years.Count > 0)
+                filtered = filtered.Where(r => r.OccurDate.HasValue && years.Contains(r.OccurDate.Value.Year.ToString()));
+            if (lines.Count > 0)
+                filtered = filtered.Where(r => lines.Contains(r.Line));
+            if (teams.Count > 0)
+                filtered = filtered.Where(r => teams.Contains(r.Team));
+            if (productTypes.Count > 0)
+                filtered = filtered.Where(r => productTypes.Contains(r.ProductType));
+            if (stages.Count > 0)
+                filtered = filtered.Where(r => stages.Contains(r.OccurStage));
+            if (causers.Count > 0)
+                filtered = filtered.Where(r => causers.Contains(r.Causer));
             if (!string.IsNullOrEmpty(causerText))
                 filtered = filtered.Where(r => (r.Causer ?? "").Contains(causerText, StringComparison.OrdinalIgnoreCase));
 
