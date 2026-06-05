@@ -299,7 +299,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Grid.Column="0" Text="{Binding ParentReportTitle}" Visibility="{Binding ParentTitleVisibility}" FontSize="16" FontWeight="ExtraBold" Foreground="#2563EB" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                <TextBox Grid.Column="1" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="ExtraBold" Foreground="#1E293B" BorderThickness="0" Background="Transparent" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Column="1" Text="{Binding Category}" FontSize="16" FontWeight="ExtraBold" Foreground="#1E293B" BorderThickness="0" Background="Transparent" VerticalAlignment="Center"/>
                                             </Grid>
 
                                             <Grid Grid.Column="2">
@@ -329,14 +329,14 @@
                                                 <ColumnDefinition Width="140"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
-                                                <TextBox Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Margin="0,0,0,6"/>
+                                                <TextBox Text="{Binding Content}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Margin="0,0,0,6"/>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Text="▶" FontSize="16" Foreground="#3B82F6" VerticalAlignment="Center" Margin="2,0,8,0"/>
-                                                    <TextBox Grid.Column="1" Text="{Binding FollowUp, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Background="#EFF6FF" BorderBrush="#BFDBFE"/>
+                                                    <TextBox Grid.Column="1" Text="{Binding FollowUp}" Style="{StaticResource ModernTextBoxStyle}" MinHeight="40" Background="#EFF6FF" BorderBrush="#BFDBFE"/>
                                                 </Grid>
                                             </StackPanel>
                                             <Border Grid.Column="1" Height="92" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8" AllowDrop="True" PreviewDragOver="AttachmentPanel_PreviewDragOver" Drop="AttachmentPanel_Drop" PreviewKeyDown="AttachmentPanel_PreviewKeyDown" Focusable="True" Tag="{Binding}">
@@ -445,7 +445,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBox Grid.Row="0" x:Name="MemoTextBox" Text="{Binding Memo, UpdateSourceTrigger=PropertyChanged}" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20" FontSize="15" Foreground="#1E293B" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top">
+                    <TextBox Grid.Row="0" x:Name="MemoTextBox" Text="{Binding Memo}" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" Padding="20" FontSize="15" Foreground="#1E293B" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top">
                         <TextBox.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="16"/>
