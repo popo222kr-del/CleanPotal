@@ -469,7 +469,7 @@
                                 <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTemplateColumn Header="발생일" Width="110">
+                                <DataGridTemplateColumn Header="발생일" Width="130">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding OccurDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>

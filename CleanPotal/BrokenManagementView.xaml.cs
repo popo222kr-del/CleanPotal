@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -598,18 +599,9 @@ namespace CleanPotal
                 var wbp = doc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart 없음");
                 var sheets = wbp.Workbook.Sheets?.Cast<Sheet>().ToList() ?? new List<Sheet>();
                 if (sheets.Count == 0) throw new InvalidOperationException("시트가 없습니다.");
-
-                var careerDict = new Dictionary<string, (string career, string title)>(StringComparer.OrdinalIgnoreCase);
-                if (sheets.Count >= 2)
-                {
-                    string id2 = sheets[1].Id?.Value ?? "";
-                    if (!string.IsNullOrEmpty(id2))
-                        careerDict = ParseCareerSheet((WorksheetPart)wbp.GetPartById(id2), wbp);
-                }
-
                 string id1 = sheets[0].Id?.Value ?? "";
                 if (string.IsNullOrEmpty(id1)) throw new InvalidOperationException("첫 번째 시트를 열 수 없습니다.");
-                records = ParseBrokenSheet((WorksheetPart)wbp.GetPartById(id1), wbp, careerDict);
+                records = ParseBrokenSheet((WorksheetPart)wbp.GetPartById(id1), wbp);
             }
             finally
             {
@@ -622,14 +614,15 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // Sheet parsers
+        // Sheet parser
         // -----------------------------------------------------------------------
-        private List<BrokenRecord> ParseBrokenSheet(
-            WorksheetPart wsp, WorkbookPart wbp,
-            Dictionary<string, (string career, string title)> careerDict)
+        // Column layout: A(빈칸) B(NO) C(발생일) D(제품명) E(반출라인) F(S/N)
+        //                G(공식여부) H(유발자) I(팀별) J(제품종류) K(발생단계)
+        private List<BrokenRecord> ParseBrokenSheet(WorksheetPart wsp, WorkbookPart wbp)
         {
             var sst = wbp.SharedStringTablePart?.SharedStringTable;
             var result = new List<BrokenRecord>();
+            int currentYear = DateTime.Now.Year;
 
             foreach (var row in wsp.Worksheet.Descendants<Row>())
             {
@@ -638,63 +631,63 @@ namespace CleanPotal
                 string cVal = GetCellValue(cells, "C", sst);
 
                 if (!double.TryParse(bVal, out double noVal) || noVal <= 0) continue;
-                if (!double.TryParse(cVal, out double dateSerial) || dateSerial < 40000) continue;
 
-                var occurDate = TryParseExcelDate(dateSerial);
+                var occurDate = TryParseDate(cVal, ref currentYear);
                 if (!occurDate.HasValue) continue;
-
-                string vVal = GetCellValue(cells, "V", sst);
-                string jobTitle = "";
-                if (!string.IsNullOrEmpty(vVal) && careerDict.TryGetValue(vVal.Trim(), out var ci))
-                    jobTitle = ci.title;
 
                 result.Add(new BrokenRecord
                 {
-                    No = (int)noVal,
-                    OccurDate = occurDate,
-                    Line = GetCellValue(cells, "H", sst),
+                    No          = (int)noVal,
+                    OccurDate   = occurDate,
                     ProductName = GetCellValue(cells, "D", sst),
-                    SN = GetCellValue(cells, "I", sst),
-                    Team = GetCellValue(cells, "X", sst),
-                    Causer = vVal,
-                    JobTitle = jobTitle,
-                    ProductType = GetCellValue(cells, "Y", sst),
-                    OccurStage = GetCellValue(cells, "Z", sst),
-                    Status = GetCellValue(cells, "AB", sst),
-                    IsOfficial = GetCellValue(cells, "K", sst)
+                    Line        = GetCellValue(cells, "E", sst),
+                    SN          = GetCellValue(cells, "F", sst),
+                    IsOfficial  = GetCellValue(cells, "G", sst),
+                    Causer      = GetCellValue(cells, "H", sst),
+                    Team        = GetCellValue(cells, "I", sst),
+                    ProductType = GetCellValue(cells, "J", sst),
+                    OccurStage  = GetCellValue(cells, "K", sst),
                 });
             }
 
-            return result.OrderBy(r => r.No).ToList();
+            return result;
         }
 
-        private Dictionary<string, (string, string)> ParseCareerSheet(WorksheetPart wsp, WorkbookPart wbp)
+        // 날짜 파싱: OADate숫자 / "21.02.10" / "08월 14일"
+        private static DateTime? TryParseDate(string val, ref int currentYear)
         {
-            var sst = wbp.SharedStringTablePart?.SharedStringTable;
-            var dict = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(val)) return null;
 
-            foreach (var row in wsp.Worksheet.Descendants<Row>()
-                         .Where(r => r.RowIndex?.Value >= 9))
+            // OADate serial (Excel 숫자 날짜)
+            if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double serial) && serial > 40000)
             {
-                var cells = row.Elements<Cell>().ToList();
-                string name = GetCellValue(cells, "C", sst).Trim();
-                if (string.IsNullOrEmpty(name)) continue;
-
-                string career = GetCellValue(cells, "I", sst).Trim();
-                string title = GetCellValue(cells, "J", sst).Trim();
-
-                if (string.IsNullOrEmpty(career) || double.TryParse(career, out _))
-                {
-                    string fy = GetCellValue(cells, "F", sst);
-                    string gm = GetCellValue(cells, "G", sst);
-                    string hd = GetCellValue(cells, "H", sst);
-                    if (!string.IsNullOrEmpty(fy) || !string.IsNullOrEmpty(gm))
-                        career = $"{fy}년 {gm}월 {hd}일".Trim();
-                }
-
-                dict[name] = (career, title);
+                try { var dt = DateTime.FromOADate(serial); currentYear = dt.Year; return dt; }
+                catch { }
             }
-            return dict;
+
+            // "YY.MM.DD" 형식 (예: "21.02.10")
+            var parts = val.Trim().Split('.');
+            if (parts.Length == 3 &&
+                int.TryParse(parts[0], out int yy) &&
+                int.TryParse(parts[1], out int mm) &&
+                int.TryParse(parts[2], out int dd))
+            {
+                int year = yy < 100 ? 2000 + yy : yy;
+                try { var dt = new DateTime(year, mm, dd); currentYear = year; return dt; }
+                catch { }
+            }
+
+            // "MM월 DD일" 형식 (예: "08월 14일") — 인접 행의 년도를 사용
+            var match = Regex.Match(val.Trim(), @"(\d{1,2})월\s*(\d{1,2})일");
+            if (match.Success &&
+                int.TryParse(match.Groups[1].Value, out int month) &&
+                int.TryParse(match.Groups[2].Value, out int day))
+            {
+                try { return new DateTime(currentYear, month, day); }
+                catch { }
+            }
+
+            return null;
         }
 
         // -----------------------------------------------------------------------
@@ -841,10 +834,5 @@ namespace CleanPotal
             return raw;
         }
 
-        private static DateTime? TryParseExcelDate(double serial)
-        {
-            try { return DateTime.FromOADate(serial); }
-            catch { return null; }
-        }
     }
 }
