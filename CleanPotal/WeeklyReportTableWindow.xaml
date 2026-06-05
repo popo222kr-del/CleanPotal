@@ -4,9 +4,11 @@
         Title="주간보고 상세 내역" Width="1400" Height="900"
         WindowState="Maximized"
         WindowStartupLocation="CenterOwner" Background="#FFFFFF"
-        TextOptions.TextFormattingMode="Ideal" 
-        TextOptions.TextRenderingMode="Auto"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         RenderOptions.BitmapScalingMode="HighQuality"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
