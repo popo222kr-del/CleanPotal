@@ -359,7 +359,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 대시보드 + 메모 -->
+        <!-- 대시보드 (월별 차트 + 팀/제품종류 현황) -->
         <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
             <Grid MinHeight="210">
                 <Grid.ColumnDefinitions>
@@ -448,52 +448,78 @@
                 <!-- Separator -->
                 <Rectangle Grid.Column="1" Fill="#E2E8F0" Margin="0,10"/>
 
-                <!-- 메모 -->
-                <Grid Grid.Column="2" Margin="14,12">
+                <!-- 팀별 / 제품종류별 현황 -->
+                <Grid Grid.Column="2" Margin="16,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="메모" FontSize="12" FontWeight="SemiBold"
-                               Foreground="#475569" Margin="0,0,0,6"/>
-                    <Grid Grid.Row="1">
-                        <TextBox x:Name="TxtMemo"
-                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 FontSize="12" Foreground="#334155"
-                                 Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                                 Padding="8,6" MinHeight="62">
-                            <TextBox.Style>
-                                <Style TargetType="TextBox">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="TextBox">
-                                                <Border Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="8">
-                                                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </TextBox.Style>
-                        </TextBox>
-                        <TextBlock Text="메모를 입력하세요..." FontSize="12" Foreground="#CBD5E1"
-                                   Margin="10,8" IsHitTestVisible="False" VerticalAlignment="Top">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=TxtMemo}" Value="">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
+
+                    <!-- 팀별 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="👥" FontSize="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="팀별" FontSize="12" FontWeight="Bold"
+                                   Foreground="#334155" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <ItemsControl x:Name="TeamBreakdownHost">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11"
+                                                   Foreground="#475569" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="1" HorizontalAlignment="Left"
+                                                Width="{Binding BarWidth}" Height="13"
+                                                Background="{Binding Color}" CornerRadius="3"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 제품종류별 -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="📦" FontSize="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="제품종류별" FontSize="12" FontWeight="Bold"
+                                   Foreground="#334155" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="TypeBreakdownHost">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11"
+                                                   Foreground="#475569" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="1" HorizontalAlignment="Left"
+                                                Width="{Binding BarWidth}" Height="13"
+                                                Background="{Binding Color}" CornerRadius="3"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </Grid>
         </Border>

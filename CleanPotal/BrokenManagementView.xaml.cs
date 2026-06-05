@@ -326,6 +326,15 @@ namespace CleanPotal
         public string Label { get; set; } = "";
     }
 
+    public class BreakdownEntry
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+        public string CountLabel => Count.ToString();
+        public double BarWidth { get; set; }
+        public Brush Color { get; set; } = Brushes.Gray;
+    }
+
     // ---------------------------------------------------------------------------
     // View code-behind
     // ---------------------------------------------------------------------------
@@ -335,6 +344,7 @@ namespace CleanPotal
         private readonly ObservableCollection<BrokenRecord> _filteredRecords = new();
         private readonly ObservableCollection<TeamSummary> _teamSummaries = new();
         private bool _suppressFilter = false;
+        private string _memo = "";   // 메모 UI는 제거되었으나 기존 데이터 보존용
 
         public BrokenManagementView()
         {
@@ -505,7 +515,7 @@ namespace CleanPotal
 
             var dto = new AppSaveData
             {
-                Memo = TxtMemo.Text,
+                Memo = _memo,
                 Records = _allRecords.Select(r => new BrokenRecordDto
                 {
                     No = r.No, OccurDate = r.OccurDate,
@@ -550,7 +560,7 @@ namespace CleanPotal
                     return r;
                 }).ToList();
 
-                TxtMemo.Text = dto.Memo ?? "";
+                _memo = dto.Memo ?? "";
                 PopulateFilterComboBoxes();
                 ApplyFilter();
             }
@@ -962,7 +972,7 @@ namespace CleanPotal
                 : $"총 {_allRecords.Count}건 (표시: {_filteredRecords.Count}건)";
 
             RefreshTeamSummary(list);
-            BuildDashboard();
+            BuildDashboard(list);
         }
 
         // -----------------------------------------------------------------------
@@ -982,38 +992,40 @@ namespace CleanPotal
             new SolidColorBrush(WpfColor.FromRgb(0x64, 0x74, 0x8B)), // slate
         };
 
-        private void BuildDashboard()
+        private static readonly Brush _teamBarColor = new SolidColorBrush(WpfColor.FromRgb(0x3B, 0x82, 0xF6));
+
+        // 현재 필터 결과(source)를 기준으로 대시보드를 갱신한다.
+        private void BuildDashboard(List<BrokenRecord> source)
         {
             if (ChartHost == null) return;
 
-            const double maxBar = 120.0;
-            int year = DateTime.Now.Year;
-            if (TxtDashTitle != null) TxtDashTitle.Text = $"{year}년 월별 제품군 수량";
+            const double maxBar = 120.0;    // 차트 막대 최대 높이(px)
+            const double maxBreakdownBar = 120.0; // 우측 가로 막대 최대 길이(px)
 
-            var recs = _allRecords
-                .Where(r => r.OccurDate.HasValue && r.OccurDate.Value.Year == year)
-                .ToList();
+            // 제목: 선택된 년도에 따라 표기
+            var selYears = CmbYear?.SelectedValues ?? new List<string>();
+            string period = selYears.Count == 1 ? $"{selYears[0]}년"
+                          : selYears.Count == 0 ? "전체 기간"
+                          : "선택 기간";
+            if (TxtDashTitle != null) TxtDashTitle.Text = $"{period} 월별 제품군 수량";
+
+            string TypeOf(BrokenRecord r) => string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim();
 
             // 제품군 목록 + 색상 매핑
-            var types = recs.Select(r => string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim())
-                            .Distinct().OrderBy(t => t).ToList();
+            var types = source.Select(TypeOf).Distinct().OrderBy(t => t).ToList();
             var typeColor = new Dictionary<string, Brush>();
             for (int i = 0; i < types.Count; i++)
                 typeColor[types[i]] = _palette[i % _palette.Length];
 
-            // 월×제품군 카운트
+            // ── 월×제품군 누적 막대 ──
             var perMonth = new Dictionary<int, Dictionary<string, int>>();
             for (int m = 1; m <= 12; m++)
             {
                 perMonth[m] = new Dictionary<string, int>();
                 foreach (var t in types) perMonth[m][t] = 0;
             }
-            foreach (var r in recs)
-            {
-                int m = r.OccurDate!.Value.Month;
-                string t = string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim();
-                perMonth[m][t]++;
-            }
+            foreach (var r in source.Where(r => r.OccurDate.HasValue))
+                perMonth[r.OccurDate!.Value.Month][TypeOf(r)]++;
 
             int globalMax = 1;
             for (int m = 1; m <= 12; m++)
@@ -1040,6 +1052,38 @@ namespace CleanPotal
 
             ChartHost.ItemsSource = months;
             LegendHost.ItemsSource = types.Select(t => new LegendEntry { Color = typeColor[t], Label = t }).ToList();
+
+            // ── 우측: 팀별 / 제품종류별 현황 ──
+            if (TeamBreakdownHost != null)
+            {
+                var teamGroups = source.Where(r => !string.IsNullOrWhiteSpace(r.Team))
+                    .GroupBy(r => r.Team.Trim())
+                    .Select(g => new { Label = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count).ThenBy(x => x.Label).ToList();
+                int teamMax = teamGroups.Count > 0 ? teamGroups.Max(x => x.Count) : 1;
+                TeamBreakdownHost.ItemsSource = teamGroups.Select(x => new BreakdownEntry
+                {
+                    Label = x.Label,
+                    Count = x.Count,
+                    Color = _teamBarColor,
+                    BarWidth = Math.Max(6.0, (double)x.Count / teamMax * maxBreakdownBar)
+                }).ToList();
+            }
+
+            if (TypeBreakdownHost != null)
+            {
+                var typeGroups = source.GroupBy(TypeOf)
+                    .Select(g => new { Label = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count).ThenBy(x => x.Label).ToList();
+                int typeMax = typeGroups.Count > 0 ? typeGroups.Max(x => x.Count) : 1;
+                TypeBreakdownHost.ItemsSource = typeGroups.Select(x => new BreakdownEntry
+                {
+                    Label = x.Label,
+                    Count = x.Count,
+                    Color = typeColor.TryGetValue(x.Label, out var b) ? b : _palette[0],
+                    BarWidth = Math.Max(6.0, (double)x.Count / typeMax * maxBreakdownBar)
+                }).ToList();
+            }
         }
 
         private void RefreshTeamSummary(List<BrokenRecord>? source = null)
