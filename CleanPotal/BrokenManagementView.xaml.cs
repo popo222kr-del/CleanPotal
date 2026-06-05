@@ -367,6 +367,12 @@ namespace CleanPotal
             ApplyFilter();
         }
 
+        private void FilterCombo_DropDownOpened(object sender, EventArgs e)
+        {
+            if (sender is ComboBox cmb && cmb.Items.Count > 0)
+                cmb.ScrollIntoView(cmb.Items[0]);
+        }
+
         private void BtnResetFilter_Click(object sender, RoutedEventArgs e)
         {
             _suppressFilter = true;

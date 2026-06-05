@@ -418,27 +418,32 @@
                             <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbYear" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
                             <TextBlock Text="라인" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbLine" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
                             <TextBlock Text="팀" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbTeam" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
                             <TextBlock Text="제품종류" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbProductType" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
                             <TextBlock Text="발생단계" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbOccurStage" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                                      SelectionChanged="Filter_SelectionChanged"
+                                      DropDownOpened="FilterCombo_DropDownOpened" Margin="0,0,16,0"/>
 
                             <Button Content="초기화" Style="{StaticResource GhostButtonStyle}"
                                     Click="BtnResetFilter_Click"/>
