@@ -365,16 +365,19 @@ namespace CleanPotal
                 return;
             }
 
+            if (col.Count == 1)
+            {
+                OpenFile(col[0]);
+                return;
+            }
+
+            // 2건 이상: 어떤 파일을 열지 선택
             var menu = new ContextMenu();
             foreach (var path in col.ToList())
             {
                 var captured = path;
-                var mi = new MenuItem { Header = Path.GetFileName(captured), Tag = captured };
-                mi.Click += (_, _) =>
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(captured) { UseShellExecute = true }); }
-                    catch (Exception ex) { MessageBox.Show($"파일 열기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning); }
-                };
+                var mi = new MenuItem { Header = Path.GetFileName(captured) };
+                mi.Click += (_, _) => OpenFile(captured);
                 menu.Items.Add(mi);
             }
             menu.Items.Add(new Separator());
@@ -394,6 +397,12 @@ namespace CleanPotal
 
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
+        }
+
+        private static void OpenFile(string path)
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); }
+            catch (Exception ex) { MessageBox.Show($"파일 열기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
 
         // -----------------------------------------------------------------------
