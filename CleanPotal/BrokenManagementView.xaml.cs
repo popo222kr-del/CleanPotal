@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
+using WpfBorder = System.Windows.Controls.Border;
+using WpfColor = System.Windows.Media.Color;
 
 namespace CleanPotal
 {
@@ -104,13 +106,13 @@ namespace CleanPotal
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is not string path) return new SolidColorBrush(Color.FromRgb(0x94, 0xA3, 0xB8));
+            if (value is not string path) return new SolidColorBrush(WpfColor.FromRgb(0x94, 0xA3, 0xB8));
             return Path.GetExtension(path).ToLower() switch
             {
-                ".xlsx" or ".xls"  => new SolidColorBrush(Color.FromRgb(0x16, 0xA3, 0x4A)),
-                ".ppt"  or ".pptx" => new SolidColorBrush(Color.FromRgb(0xEA, 0x58, 0x0C)),
-                ".pdf"             => new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26)),
-                _                  => new SolidColorBrush(Color.FromRgb(0x63, 0x66, 0xF1))
+                ".xlsx" or ".xls"  => new SolidColorBrush(WpfColor.FromRgb(0x16, 0xA3, 0x4A)),
+                ".ppt"  or ".pptx" => new SolidColorBrush(WpfColor.FromRgb(0xEA, 0x58, 0x0C)),
+                ".pdf"             => new SolidColorBrush(WpfColor.FromRgb(0xDC, 0x26, 0x26)),
+                _                  => new SolidColorBrush(WpfColor.FromRgb(0x63, 0x66, 0xF1))
             };
         }
         public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
@@ -355,8 +357,8 @@ namespace CleanPotal
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                if (sender is Border bd)
-                    bd.Background = new SolidColorBrush(Color.FromArgb(0x25, 0x25, 0x63, 0xEB));
+                if (sender is WpfBorder bd)
+                    bd.Background = new SolidColorBrush(WpfColor.FromArgb(0x25, 0x25, 0x63, 0xEB));
                 e.Effects = DragDropEffects.Copy;
             }
             else e.Effects = DragDropEffects.None;
@@ -365,7 +367,7 @@ namespace CleanPotal
 
         private void CellAttachment_DragLeave(object sender, DragEventArgs e)
         {
-            if (sender is Border bd) bd.Background = Brushes.Transparent;
+            if (sender is WpfBorder bd) bd.Background = Brushes.Transparent;
         }
 
         private void CellDropIncident_Drop(object sender, DragEventArgs e)
@@ -383,7 +385,7 @@ namespace CleanPotal
         private void HandleCellDrop(object sender, DragEventArgs e,
             Func<BrokenRecord, ObservableCollection<string>> getCol)
         {
-            if (sender is Border bd) bd.Background = Brushes.Transparent;
+            if (sender is WpfBorder bd) bd.Background = Brushes.Transparent;
             if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
