@@ -454,8 +454,11 @@
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnDeleteRow_Click"/>
                         <Button Content="저장" Style="{StaticResource PrimaryButtonStyle}"
-                                Padding="12,6" FontSize="12" Height="30"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnSave_Click"/>
+                        <Button Content="엑셀 내보내기" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30"
+                                Click="BtnExportExcel_Click"/>
                     </StackPanel>
 
                     <!-- 데이터 그리드 -->

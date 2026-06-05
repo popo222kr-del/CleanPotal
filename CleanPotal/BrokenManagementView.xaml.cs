@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -207,6 +209,38 @@ namespace CleanPotal
     // ---------------------------------------------------------------------------
     // View code-behind
     // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Save DTOs
+    // ---------------------------------------------------------------------------
+    public class AppSaveData
+    {
+        public List<BrokenRecordDto> Records { get; set; } = new();
+        public string Memo { get; set; } = "";
+    }
+
+    public class BrokenRecordDto
+    {
+        public int No { get; set; }
+        public DateTime? OccurDate { get; set; }
+        public string Line { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public string SN { get; set; } = "";
+        public string Team { get; set; } = "";
+        public string Causer { get; set; } = "";
+        public string JobTitle { get; set; } = "";
+        public string ProductType { get; set; } = "";
+        public string OccurStage { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string IsOfficial { get; set; } = "";
+        public List<string> IncidentReports { get; set; } = new();
+        public List<string> CountermeasureReports { get; set; } = new();
+        public List<string> TrainingDocs { get; set; } = new();
+        public List<string> TrainingImages { get; set; } = new();
+    }
+
+    // ---------------------------------------------------------------------------
+    // View code-behind
+    // ---------------------------------------------------------------------------
     public partial class BrokenManagementView : UserControl
     {
         private List<BrokenRecord> _allRecords = new();
@@ -220,6 +254,7 @@ namespace CleanPotal
             DgBroken.ItemsSource = _filteredRecords;
             DgTeamSummary.ItemsSource = _teamSummaries;
             ResetFilterComboBoxes();
+            LoadAppData();
         }
 
         public void TryRefresh() { }
@@ -374,30 +409,107 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // Save
+        // Save (JSON) / Load
         // -----------------------------------------------------------------------
-        private string? _savedFilePath;
+        private static readonly string SaveFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CleanPotal", "broken_data.json");
+
+        private static readonly JsonSerializerOptions _jsonOpts = new() { WriteIndented = true };
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new SaveFileDialog
-            {
-                Title = "저장",
-                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = _savedFilePath != null ? Path.GetFileName(_savedFilePath) : "broken_data.xlsx"
-            };
-            if (_savedFilePath != null)
-                dlg.InitialDirectory = Path.GetDirectoryName(_savedFilePath);
-            if (dlg.ShowDialog() != true) return;
-            _savedFilePath = dlg.FileName;
             try
             {
-                SaveToExcel(_savedFilePath);
+                SaveAppData();
                 MessageBox.Show("저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"저장 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveAppData()
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
+            var dto = new AppSaveData
+            {
+                Memo = TxtMemo.Text,
+                Records = _allRecords.Select(r => new BrokenRecordDto
+                {
+                    No = r.No, OccurDate = r.OccurDate,
+                    Line = r.Line, ProductName = r.ProductName, SN = r.SN,
+                    Team = r.Team, Causer = r.Causer, JobTitle = r.JobTitle,
+                    ProductType = r.ProductType, OccurStage = r.OccurStage,
+                    Status = r.Status, IsOfficial = r.IsOfficial,
+                    IncidentReports = r.IncidentReports.ToList(),
+                    CountermeasureReports = r.CountermeasureReports.ToList(),
+                    TrainingDocs = r.TrainingDocs.ToList(),
+                    TrainingImages = r.TrainingImages.ToList()
+                }).ToList()
+            };
+            File.WriteAllText(SaveFilePath, JsonSerializer.Serialize(dto, _jsonOpts), Encoding.UTF8);
+        }
+
+        private void LoadAppData()
+        {
+            if (!File.Exists(SaveFilePath)) return;
+            try
+            {
+                var dto = JsonSerializer.Deserialize<AppSaveData>(
+                    File.ReadAllText(SaveFilePath, Encoding.UTF8), _jsonOpts);
+                if (dto == null) return;
+
+                _allRecords = dto.Records.Select(d =>
+                {
+                    var r = new BrokenRecord
+                    {
+                        No = d.No, OccurDate = d.OccurDate,
+                        Line = d.Line, ProductName = d.ProductName, SN = d.SN,
+                        Team = d.Team, Causer = d.Causer, JobTitle = d.JobTitle,
+                        ProductType = d.ProductType, OccurStage = d.OccurStage,
+                        Status = d.Status, IsOfficial = d.IsOfficial
+                    };
+                    foreach (var p in d.IncidentReports)      r.IncidentReports.Add(p);
+                    foreach (var p in d.CountermeasureReports) r.CountermeasureReports.Add(p);
+                    foreach (var p in d.TrainingDocs)          r.TrainingDocs.Add(p);
+                    foreach (var p in d.TrainingImages)        r.TrainingImages.Add(p);
+                    return r;
+                }).ToList();
+
+                TxtMemo.Text = dto.Memo ?? "";
+                PopulateFilterComboBoxes();
+                ApplyFilter();
+            }
+            catch { /* 손상된 저장파일 무시 */ }
+        }
+
+        // -----------------------------------------------------------------------
+        // Excel 내보내기
+        // -----------------------------------------------------------------------
+        private string? _exportFilePath;
+
+        private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog
+            {
+                Title = "엑셀 내보내기",
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = _exportFilePath != null ? Path.GetFileName(_exportFilePath) : "broken_export.xlsx"
+            };
+            if (_exportFilePath != null)
+                dlg.InitialDirectory = Path.GetDirectoryName(_exportFilePath);
+            if (dlg.ShowDialog() != true) return;
+            _exportFilePath = dlg.FileName;
+            try
+            {
+                SaveToExcel(_exportFilePath);
+                MessageBox.Show("내보내기 완료", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"내보내기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
