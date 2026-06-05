@@ -476,19 +476,21 @@
                                 <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
-                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
-                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
-                                                    MouseLeftButtonUp="AttachChipIncident_Click"
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
                                                     Drop="CellDropIncident_Drop">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock x:Name="chipTxt" Text="{Binding IncidentLabel}"
-                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
-                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipIncident_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding IncidentLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </Border>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding HasIncident}" Value="True">
@@ -504,19 +506,21 @@
                                 <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
-                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
-                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
-                                                    MouseLeftButtonUp="AttachChipCountermeasure_Click"
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
                                                     Drop="CellDropCountermeasure_Drop">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock x:Name="chipTxt" Text="{Binding CountermeasureLabel}"
-                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
-                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipCountermeasure_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding CountermeasureLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </Border>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding HasCountermeasure}" Value="True">
@@ -532,19 +536,21 @@
                                 <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
-                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
-                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
-                                                    MouseLeftButtonUp="AttachChipTraining_Click"
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
                                                     Drop="CellDropTraining_Drop">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock x:Name="chipTxt" Text="{Binding TrainingLabel}"
-                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
-                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipTraining_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding TrainingLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </Border>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding HasTraining}" Value="True">
@@ -560,19 +566,21 @@
                                 <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
-                                                    HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
-                                                    Background="#F1F5F9" AllowDrop="True" Tag="{Binding}"
-                                                    MouseLeftButtonUp="AttachChipTrainingImages_Click"
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
                                                     DragOver="CellAttachment_DragOver"
                                                     DragLeave="CellAttachment_DragLeave"
                                                     Drop="CellDropTrainingImages_Drop">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock x:Name="chipTxt" Text="{Binding TrainingImageLabel}"
-                                                               FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
-                                                               VerticalAlignment="Center" MaxWidth="72" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipTrainingImages_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding TrainingImageLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
                                             </Border>
                                             <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding HasTrainingImage}" Value="True">

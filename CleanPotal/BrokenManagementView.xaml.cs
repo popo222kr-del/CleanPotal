@@ -162,13 +162,17 @@ namespace CleanPotal
         public ObservableCollection<string> TrainingImages        { get; } = new();
 
         public bool   HasIncident        => IncidentReports.Count > 0;
-        public string IncidentLabel      => IncidentReports.Count > 0      ? $"{IncidentReports.Count}건"      : "첨부";
+        public string IncidentLabel      => IncidentReports.Count switch {
+            0 => "첨부", 1 => Path.GetFileName(IncidentReports[0]), _ => $"경위서 {IncidentReports.Count}건" };
         public bool   HasCountermeasure  => CountermeasureReports.Count > 0;
-        public string CountermeasureLabel => CountermeasureReports.Count > 0 ? $"{CountermeasureReports.Count}건" : "첨부";
+        public string CountermeasureLabel => CountermeasureReports.Count switch {
+            0 => "첨부", 1 => Path.GetFileName(CountermeasureReports[0]), _ => $"대책서 {CountermeasureReports.Count}건" };
         public bool   HasTraining        => TrainingDocs.Count > 0;
-        public string TrainingLabel      => TrainingDocs.Count > 0          ? $"{TrainingDocs.Count}건"         : "첨부";
+        public string TrainingLabel      => TrainingDocs.Count switch {
+            0 => "첨부", 1 => Path.GetFileName(TrainingDocs[0]), _ => $"교육서 {TrainingDocs.Count}건" };
         public bool   HasTrainingImage   => TrainingImages.Count > 0;
-        public string TrainingImageLabel => TrainingImages.Count > 0        ? $"{TrainingImages.Count}건"       : "첨부";
+        public string TrainingImageLabel => TrainingImages.Count switch {
+            0 => "첨부", 1 => Path.GetFileName(TrainingImages[0]), _ => $"교육이미지 {TrainingImages.Count}건" };
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
@@ -415,7 +419,10 @@ namespace CleanPotal
 
         private void CellAttachment_DragLeave(object sender, DragEventArgs e)
         {
-            if (sender is WpfBorder bd) bd.ClearValue(WpfBorder.BackgroundProperty);
+            if (sender is not WpfBorder bd) return;
+            var pos = e.GetPosition(bd);
+            if (pos.X < 0 || pos.Y < 0 || pos.X > bd.ActualWidth || pos.Y > bd.ActualHeight)
+                bd.ClearValue(WpfBorder.BackgroundProperty);
         }
 
         private void CellDropIncident_Drop(object sender, DragEventArgs e)
