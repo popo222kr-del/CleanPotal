@@ -408,6 +408,7 @@
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -434,14 +435,24 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- 툴바 -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnAddRow_Click"/>
+                        <Button Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30"
+                                Click="BtnDeleteRow_Click"/>
+                    </StackPanel>
+
                     <!-- 데이터 그리드 -->
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
+                    <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
                         <DataGrid x:Name="DgBroken"
                                   Style="{StaticResource BrokenDataGridStyle}"
                                   ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
                             <DataGrid.Columns>
 
-                                <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="50"
+                                <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateShort}" Width="110"

@@ -136,6 +136,9 @@ namespace CleanPotal
         }
 
         public int No { get; set; }
+
+        private int _displayNo;
+        public int DisplayNo { get => _displayNo; set { if (_displayNo == value) return; _displayNo = value; Notify(nameof(DisplayNo)); } }
         public DateTime? OccurDate { get; set; }
 
         public string OccurYear => OccurDate.HasValue ? $"{OccurDate.Value.Year - 2000}년" : "-";
@@ -327,6 +330,28 @@ namespace CleanPotal
             if (CmbLine.Items.Count > 0) CmbLine.SelectedIndex = 0;
             if (CmbTeam.Items.Count > 0) CmbTeam.SelectedIndex = 0;
             _suppressFilter = false;
+            ApplyFilter();
+        }
+
+        // -----------------------------------------------------------------------
+        // Row add / delete
+        // -----------------------------------------------------------------------
+        private void BtnAddRow_Click(object sender, RoutedEventArgs e)
+        {
+            var lines = _allRecords.Select(r => r.Line).Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l);
+            var teams = _allRecords.Select(r => r.Team).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t);
+            var dlg = new BrokenRecordDialog(lines, teams) { Owner = Window.GetWindow(this) };
+            if (dlg.ShowDialog() != true || dlg.Result == null) return;
+            _allRecords.Add(dlg.Result);
+            ApplyFilter();
+        }
+
+        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (DgBroken.SelectedItem is not BrokenRecord selected) return;
+            if (MessageBox.Show("선택한 행을 삭제하시겠습니까?", "확인",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            _allRecords.Remove(selected);
             ApplyFilter();
         }
 
@@ -630,8 +655,12 @@ namespace CleanPotal
             var list = filtered.ToList();
 
             _filteredRecords.Clear();
+            int displayNo = 1;
             foreach (var rec in list)
+            {
+                rec.DisplayNo = displayNo++;
                 _filteredRecords.Add(rec);
+            }
 
             TxtRecordCount.Text = _allRecords.Count == _filteredRecords.Count
                 ? $"총 {_allRecords.Count}건"
