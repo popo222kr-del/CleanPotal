@@ -8,6 +8,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Win32;
@@ -33,6 +35,85 @@ namespace CleanPotal
             => value is int c && c > 0 ? Visibility.Visible : Visibility.Collapsed;
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
+    }
+
+    // ─── Thumbnail converters ────────────────────────────────────────────────────
+
+    public class FileThumbnailConverter : IValueConverter
+    {
+        private static readonly HashSet<string> _img = new(StringComparer.OrdinalIgnoreCase)
+            { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".ico" };
+
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not string path || !File.Exists(path)) return null;
+            if (!_img.Contains(Path.GetExtension(path))) return null;
+            try
+            {
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.UriSource = new Uri(path);
+                bi.DecodePixelWidth = 80;
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.EndInit();
+                bi.Freeze();
+                return bi;
+            }
+            catch { return null; }
+        }
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+    }
+
+    public class IsImageFileConverter : IValueConverter
+    {
+        private static readonly HashSet<string> _img = new(StringComparer.OrdinalIgnoreCase)
+            { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".ico" };
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is string path && _img.Contains(Path.GetExtension(path))
+                ? Visibility.Visible : Visibility.Collapsed;
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+    }
+
+    public class IsNotImageFileConverter : IValueConverter
+    {
+        private static readonly HashSet<string> _img = new(StringComparer.OrdinalIgnoreCase)
+            { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".ico" };
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is string path && _img.Contains(Path.GetExtension(path))
+                ? Visibility.Collapsed : Visibility.Visible;
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+    }
+
+    public class FileTypeTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not string path) return "FILE";
+            return Path.GetExtension(path).ToLower() switch
+            {
+                ".xlsx" or ".xls"  => "XLS",
+                ".ppt"  or ".pptx" => "PPT",
+                ".pdf"             => "PDF",
+                var ext            => ext.TrimStart('.').ToUpper()
+            };
+        }
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
+    }
+
+    public class FileTypeBgConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not string path) return new SolidColorBrush(Color.FromRgb(0x94, 0xA3, 0xB8));
+            return Path.GetExtension(path).ToLower() switch
+            {
+                ".xlsx" or ".xls"  => new SolidColorBrush(Color.FromRgb(0x16, 0xA3, 0x4A)),
+                ".ppt"  or ".pptx" => new SolidColorBrush(Color.FromRgb(0xEA, 0x58, 0x0C)),
+                ".pdf"             => new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26)),
+                _                  => new SolidColorBrush(Color.FromRgb(0x63, 0x66, 0xF1))
+            };
+        }
+        public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotImplementedException();
     }
 
     // ---------------------------------------------------------------------------
@@ -67,6 +148,7 @@ namespace CleanPotal
         public ObservableCollection<string> IncidentReports { get; } = new();
         public ObservableCollection<string> CountermeasureReports { get; } = new();
         public ObservableCollection<string> TrainingDocs { get; } = new();
+        public ObservableCollection<string> TrainingImages { get; } = new();
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
@@ -107,6 +189,7 @@ namespace CleanPotal
             InitializeComponent();
             DgBroken.ItemsSource = _filteredRecords;
             DgTeamSummary.ItemsSource = _teamSummaries;
+            DgBroken.RowHeight = double.NaN; // auto-size rows to fit thumbnails
             ResetFilterComboBoxes();
         }
 
@@ -229,7 +312,7 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // File attach
+        // File attach — button clicks
         // -----------------------------------------------------------------------
         private void BtnAttachIncident_Click(object sender, RoutedEventArgs e)
             => AttachFiles(sender, r => r.IncidentReports);
@@ -237,23 +320,93 @@ namespace CleanPotal
         private void BtnAttachCountermeasure_Click(object sender, RoutedEventArgs e)
             => AttachFiles(sender, r => r.CountermeasureReports);
 
+        private void BtnAttachTraining_Click(object sender, RoutedEventArgs e)
+            => AttachFiles(sender, r => r.TrainingDocs);
+
+        private void BtnAttachTrainingImages_Click(object sender, RoutedEventArgs e)
+            => AttachFiles(sender, r => r.TrainingImages);
+
+        private static readonly string AttachFilter =
+            "지원 파일|*.xlsx;*.xls;*.ppt;*.pptx;*.pdf;" +
+                       "*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.tiff;*.tif;*.webp;*.ico|" +
+            "이미지|*.jpg;*.jpeg;*.png;*.gif;*.bmp;*.tiff;*.tif;*.webp;*.ico|" +
+            "Excel|*.xlsx;*.xls|PowerPoint|*.ppt;*.pptx|PDF|*.pdf";
+
         private static void AttachFiles(object sender, Func<BrokenRecord, ObservableCollection<string>> getCollection)
         {
             if (sender is not Button btn || btn.Tag is not BrokenRecord record) return;
-
-            var dlg = new OpenFileDialog
-            {
-                Title = "파일 첨부",
-                Filter = "지원 파일|*.xlsx;*.xls;*.ppt;*.pptx;*.pdf;*.png;*.jpg;*.jpeg;*.bmp;*.gif|" +
-                         "Excel|*.xlsx;*.xls|PowerPoint|*.ppt;*.pptx|PDF|*.pdf|이미지|*.png;*.jpg;*.jpeg;*.bmp;*.gif",
-                Multiselect = true
-            };
+            var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
             if (dlg.ShowDialog() != true) return;
-
-            var collection = getCollection(record);
+            var col = getCollection(record);
             foreach (var path in dlg.FileNames)
-                if (!collection.Contains(path))
-                    collection.Add(path);
+                if (!col.Contains(path)) col.Add(path);
+        }
+
+        // -----------------------------------------------------------------------
+        // File attach — drag and drop onto cells
+        // -----------------------------------------------------------------------
+        private static readonly HashSet<string> _allowedExts = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".ico",
+            ".xlsx", ".xls", ".ppt", ".pptx", ".pdf"
+        };
+
+        private void CellAttachment_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                if (sender is Border bd)
+                    bd.Background = new SolidColorBrush(Color.FromArgb(0x25, 0x25, 0x63, 0xEB));
+                e.Effects = DragDropEffects.Copy;
+            }
+            else e.Effects = DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void CellAttachment_DragLeave(object sender, DragEventArgs e)
+        {
+            if (sender is Border bd) bd.Background = Brushes.Transparent;
+        }
+
+        private void CellDropIncident_Drop(object sender, DragEventArgs e)
+            => HandleCellDrop(sender, e, r => r.IncidentReports);
+
+        private void CellDropCountermeasure_Drop(object sender, DragEventArgs e)
+            => HandleCellDrop(sender, e, r => r.CountermeasureReports);
+
+        private void CellDropTraining_Drop(object sender, DragEventArgs e)
+            => HandleCellDrop(sender, e, r => r.TrainingDocs);
+
+        private void CellDropTrainingImages_Drop(object sender, DragEventArgs e)
+            => HandleCellDrop(sender, e, r => r.TrainingImages);
+
+        private void HandleCellDrop(object sender, DragEventArgs e,
+            Func<BrokenRecord, ObservableCollection<string>> getCol)
+        {
+            if (sender is Border bd) bd.Background = Brushes.Transparent;
+            if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
+            var col = getCol(record);
+            foreach (var path in files)
+                if (_allowedExts.Contains(Path.GetExtension(path)) && !col.Contains(path))
+                    col.Add(path);
+            e.Handled = true;
+        }
+
+        // -----------------------------------------------------------------------
+        // File remove
+        // -----------------------------------------------------------------------
+        private void RemoveFile_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true; // stop bubble to FileChip_Click (open)
+            if (sender is not FrameworkElement fe || fe.Tag is not string path) return;
+            var row = fe.FindAncestorOfType<DataGridRow>();
+            if (row?.DataContext is not BrokenRecord record) return;
+            record.IncidentReports.Remove(path);
+            record.CountermeasureReports.Remove(path);
+            record.TrainingDocs.Remove(path);
+            record.TrainingImages.Remove(path);
         }
 
         private void FileChip_Click(object sender, MouseButtonEventArgs e)
