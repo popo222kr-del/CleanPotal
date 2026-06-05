@@ -80,7 +80,7 @@
                                                           BlurRadius="12" ShadowDepth="3" Direction="270"/>
                                     </Border.Effect>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260"
-                                                  Padding="0,4">
+                                                  Padding="0,0,0,4">
                                         <ItemsPresenter/>
                                     </ScrollViewer>
                                 </Border>
