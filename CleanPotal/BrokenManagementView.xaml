@@ -414,7 +414,7 @@
 
                     <!-- 필터 바 -->
                     <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,10">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <ComboBox x:Name="CmbYear" Style="{StaticResource FilterComboStyle}"
@@ -430,9 +430,19 @@
                             <ComboBox x:Name="CmbTeam" Style="{StaticResource FilterComboStyle}"
                                       SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
 
+                            <TextBlock Text="제품종류" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="CmbProductType" Style="{StaticResource FilterComboStyle}"
+                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+
+                            <TextBlock Text="발생단계" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="CmbOccurStage" Style="{StaticResource FilterComboStyle}"
+                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+
                             <Button Content="초기화" Style="{StaticResource GhostButtonStyle}"
                                     Click="BtnResetFilter_Click"/>
-                        </StackPanel>
+                        </WrapPanel>
                     </Border>
 
                     <!-- 툴바 -->

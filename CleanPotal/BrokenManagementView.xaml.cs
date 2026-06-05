@@ -326,6 +326,8 @@ namespace CleanPotal
         private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_suppressFilter) return;
+            if (ReferenceEquals(sender, CmbYear))
+                RepopulateSubFilters();
             ApplyFilter();
         }
 
@@ -333,9 +335,8 @@ namespace CleanPotal
         {
             _suppressFilter = true;
             if (CmbYear.Items.Count > 0) CmbYear.SelectedIndex = 0;
-            if (CmbLine.Items.Count > 0) CmbLine.SelectedIndex = 0;
-            if (CmbTeam.Items.Count > 0) CmbTeam.SelectedIndex = 0;
             _suppressFilter = false;
+            RepopulateSubFilters();
             ApplyFilter();
         }
 
@@ -620,9 +621,11 @@ namespace CleanPotal
         private void ResetFilterComboBoxes()
         {
             _suppressFilter = true;
-            CmbYear.Items.Clear(); CmbYear.Items.Add("전체"); CmbYear.SelectedIndex = 0;
-            CmbLine.Items.Clear(); CmbLine.Items.Add("전체"); CmbLine.SelectedIndex = 0;
-            CmbTeam.Items.Clear(); CmbTeam.Items.Add("전체"); CmbTeam.SelectedIndex = 0;
+            CmbYear.Items.Clear();        CmbYear.Items.Add("전체");        CmbYear.SelectedIndex = 0;
+            CmbLine.Items.Clear();        CmbLine.Items.Add("전체");        CmbLine.SelectedIndex = 0;
+            CmbTeam.Items.Clear();        CmbTeam.Items.Add("전체");        CmbTeam.SelectedIndex = 0;
+            CmbProductType.Items.Clear(); CmbProductType.Items.Add("전체"); CmbProductType.SelectedIndex = 0;
+            CmbOccurStage.Items.Clear();  CmbOccurStage.Items.Add("전체");  CmbOccurStage.SelectedIndex = 0;
             _suppressFilter = false;
         }
 
@@ -635,30 +638,56 @@ namespace CleanPotal
             foreach (var y in _allRecords.Where(r => r.OccurDate.HasValue)
                          .Select(r => r.OccurDate!.Value.Year).Distinct().OrderBy(y => y))
                 CmbYear.Items.Add(y.ToString());
-            CmbYear.SelectedIndex = 0;
 
-            CmbLine.Items.Clear();
-            CmbLine.Items.Add("전체");
-            foreach (var l in _allRecords.Select(r => r.Line)
-                         .Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l))
+            // 현재 년도 자동 선택
+            string currentYear = DateTime.Now.Year.ToString();
+            CmbYear.SelectedIndex = 0;
+            for (int i = 0; i < CmbYear.Items.Count; i++)
+                if (CmbYear.Items[i].ToString() == currentYear) { CmbYear.SelectedIndex = i; break; }
+
+            _suppressFilter = false;
+            RepopulateSubFilters();
+        }
+
+        private void RepopulateSubFilters()
+        {
+            _suppressFilter = true;
+
+            string year = CmbYear.SelectedItem?.ToString() ?? "전체";
+            var base_ = (year != "전체" && int.TryParse(year, out int yr))
+                ? _allRecords.Where(r => r.OccurDate.HasValue && r.OccurDate.Value.Year == yr).ToList()
+                : _allRecords;
+
+            CmbLine.Items.Clear(); CmbLine.Items.Add("전체");
+            foreach (var l in base_.Select(r => r.Line).Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l))
                 CmbLine.Items.Add(l);
             CmbLine.SelectedIndex = 0;
 
-            CmbTeam.Items.Clear();
-            CmbTeam.Items.Add("전체");
-            foreach (var t in _allRecords.Select(r => r.Team)
-                         .Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t))
+            CmbTeam.Items.Clear(); CmbTeam.Items.Add("전체");
+            foreach (var t in base_.Select(r => r.Team).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t))
                 CmbTeam.Items.Add(t);
             CmbTeam.SelectedIndex = 0;
+
+            CmbProductType.Items.Clear(); CmbProductType.Items.Add("전체");
+            foreach (var p in base_.Select(r => r.ProductType).Where(p => !string.IsNullOrEmpty(p)).Distinct().OrderBy(p => p))
+                CmbProductType.Items.Add(p);
+            CmbProductType.SelectedIndex = 0;
+
+            CmbOccurStage.Items.Clear(); CmbOccurStage.Items.Add("전체");
+            foreach (var s in base_.Select(r => r.OccurStage).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s))
+                CmbOccurStage.Items.Add(s);
+            CmbOccurStage.SelectedIndex = 0;
 
             _suppressFilter = false;
         }
 
         private void ApplyFilter()
         {
-            string year = CmbYear.SelectedItem?.ToString() ?? "전체";
-            string line = CmbLine.SelectedItem?.ToString() ?? "전체";
-            string team = CmbTeam.SelectedItem?.ToString() ?? "전체";
+            string year        = CmbYear.SelectedItem?.ToString()        ?? "전체";
+            string line        = CmbLine.SelectedItem?.ToString()        ?? "전체";
+            string team        = CmbTeam.SelectedItem?.ToString()        ?? "전체";
+            string productType = CmbProductType.SelectedItem?.ToString() ?? "전체";
+            string occurStage  = CmbOccurStage.SelectedItem?.ToString()  ?? "전체";
 
             var filtered = _allRecords.AsEnumerable();
             if (year != "전체" && int.TryParse(year, out int yr))
@@ -667,6 +696,10 @@ namespace CleanPotal
                 filtered = filtered.Where(r => r.Line == line);
             if (team != "전체")
                 filtered = filtered.Where(r => r.Team == team);
+            if (productType != "전체")
+                filtered = filtered.Where(r => r.ProductType == productType);
+            if (occurStage != "전체")
+                filtered = filtered.Where(r => r.OccurStage == occurStage);
 
             var list = filtered.ToList();
 
