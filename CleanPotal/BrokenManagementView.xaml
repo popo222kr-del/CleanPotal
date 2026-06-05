@@ -481,8 +481,6 @@
                                 <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="120"/>
-
                                 <!-- ── 경위서 ── -->
                                 <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="90" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
