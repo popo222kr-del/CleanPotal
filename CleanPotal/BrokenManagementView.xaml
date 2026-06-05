@@ -451,15 +451,19 @@
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnAddRow_Click"/>
                         <Button Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
-                                Padding="12,6" FontSize="12" Height="30"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnDeleteRow_Click"/>
+                        <Button Content="저장" Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30"
+                                Click="BtnSave_Click"/>
                     </StackPanel>
 
                     <!-- 데이터 그리드 -->
                     <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
                         <DataGrid x:Name="DgBroken"
                                   Style="{StaticResource BrokenDataGridStyle}"
-                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
+                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                  CanUserAddRows="False">
                             <DataGrid.Columns>
 
                                 <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"

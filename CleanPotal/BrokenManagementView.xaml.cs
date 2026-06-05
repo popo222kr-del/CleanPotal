@@ -373,6 +373,88 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
+        // Save
+        // -----------------------------------------------------------------------
+        private string? _savedFilePath;
+
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog
+            {
+                Title = "저장",
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = _savedFilePath != null ? Path.GetFileName(_savedFilePath) : "broken_data.xlsx"
+            };
+            if (_savedFilePath != null)
+                dlg.InitialDirectory = Path.GetDirectoryName(_savedFilePath);
+            if (dlg.ShowDialog() != true) return;
+            _savedFilePath = dlg.FileName;
+            try
+            {
+                SaveToExcel(_savedFilePath);
+                MessageBox.Show("저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"저장 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveToExcel(string filePath)
+        {
+            using var doc = SpreadsheetDocument.Create(filePath, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook);
+            var wbp = doc.AddWorkbookPart();
+            wbp.Workbook = new Workbook();
+            var wsp = wbp.AddNewPart<WorksheetPart>();
+            var sheetData = new SheetData();
+            wsp.Worksheet = new Worksheet(sheetData);
+            wbp.Workbook.AppendChild(new Sheets()).Append(new Sheet
+            {
+                Id = wbp.GetIdOfPart(wsp), SheetId = 1, Name = "Broken현황"
+            });
+
+            string[] headers = { "NO", "발생일", "라인", "제품명", "S/N", "팀", "유발자", "직위", "제품종류", "발생단계", "경위서", "대책서", "교육서", "교육이미지" };
+            sheetData.AppendChild(MakeSaveRow(1u, headers));
+
+            uint ri = 2; int no = 1;
+            foreach (var r in _allRecords)
+            {
+                sheetData.AppendChild(MakeSaveRow(ri++, new[]
+                {
+                    (no++).ToString(),
+                    r.OccurDate?.ToString("yyyy-MM-dd") ?? "",
+                    r.Line, r.ProductName, r.SN, r.Team, r.Causer, r.JobTitle,
+                    r.ProductType, r.OccurStage,
+                    string.Join(";", r.IncidentReports),
+                    string.Join(";", r.CountermeasureReports),
+                    string.Join(";", r.TrainingDocs),
+                    string.Join(";", r.TrainingImages)
+                }));
+            }
+            wbp.Workbook.Save();
+        }
+
+        private static Row MakeSaveRow(uint rowIdx, string[] values)
+        {
+            var row = new Row { RowIndex = rowIdx };
+            for (int c = 0; c < values.Length; c++)
+                row.AppendChild(new Cell
+                {
+                    CellReference = SaveColRef(c) + rowIdx,
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(values[c] ?? "") }
+                });
+            return row;
+        }
+
+        private static string SaveColRef(int c)
+        {
+            string r = ""; c++;
+            while (c > 0) { r = (char)('A' + (c - 1) % 26) + r; c = (c - 1) / 26; }
+            return r;
+        }
+
+        // -----------------------------------------------------------------------
         // File attach — chip clicks (compact badge)
         // -----------------------------------------------------------------------
         private static readonly string AttachFilter =
