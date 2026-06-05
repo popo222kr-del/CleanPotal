@@ -140,7 +140,7 @@ namespace CleanPotal
 
         public string OccurYear => OccurDate.HasValue ? $"{OccurDate.Value.Year - 2000}년" : "-";
         public string OccurDateShort => OccurDate.HasValue
-            ? $"{OccurDate.Value.Month}월 {OccurDate.Value.Day}일 ({DayOfWeekKorean(OccurDate.Value)})"
+            ? $"{OccurDate.Value.Month:D2}월 {OccurDate.Value.Day:D2}일 ({DayOfWeekKorean(OccurDate.Value)})"
             : "-";
 
         public string Line { get; set; } = "";
