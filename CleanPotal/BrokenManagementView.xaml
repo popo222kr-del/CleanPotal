@@ -79,9 +79,8 @@
                                         <DropShadowEffect Color="#000000" Opacity="0.10"
                                                           BlurRadius="12" ShadowDepth="3" Direction="270"/>
                                     </Border.Effect>
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260"
-                                                  Padding="0,0,0,4">
-                                        <ItemsPresenter/>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
+                                        <ItemsPresenter Margin="0,2,0,2"/>
                                     </ScrollViewer>
                                 </Border>
                             </Popup>
@@ -101,7 +100,8 @@
             <Setter Property="ItemContainerStyle">
                 <Setter.Value>
                     <Style TargetType="ComboBoxItem">
-                        <Setter Property="Padding" Value="12,7"/>
+                        <Setter Property="Padding" Value="12,6"/>
+                        <Setter Property="Margin" Value="0"/>
                         <Setter Property="FontSize" Value="13"/>
                         <Setter Property="Foreground" Value="#1E293B"/>
                         <Setter Property="Cursor" Value="Hand"/>
@@ -111,7 +111,7 @@
                             <Setter.Value>
                                 <ControlTemplate TargetType="ComboBoxItem">
                                     <Border x:Name="bd" Background="Transparent"
-                                            Padding="{TemplateBinding Padding}">
+                                            Margin="0" Padding="{TemplateBinding Padding}">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
