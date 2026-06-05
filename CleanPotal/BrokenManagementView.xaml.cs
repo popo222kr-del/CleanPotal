@@ -139,7 +139,13 @@ namespace CleanPotal
 
         private int _displayNo;
         public int DisplayNo { get => _displayNo; set { if (_displayNo == value) return; _displayNo = value; Notify(nameof(DisplayNo)); } }
-        public DateTime? OccurDate { get; set; }
+
+        private DateTime? _occurDate;
+        public DateTime? OccurDate
+        {
+            get => _occurDate;
+            set { _occurDate = value; Notify(nameof(OccurDate)); Notify(nameof(OccurYear)); Notify(nameof(OccurDateShort)); }
+        }
 
         public string OccurYear => OccurDate.HasValue ? $"{OccurDate.Value.Year - 2000}년" : "-";
         public string OccurDateShort => OccurDate.HasValue
@@ -338,12 +344,22 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnAddRow_Click(object sender, RoutedEventArgs e)
         {
-            var lines = _allRecords.Select(r => r.Line).Where(l => !string.IsNullOrEmpty(l)).Distinct().OrderBy(l => l);
-            var teams = _allRecords.Select(r => r.Team).Where(t => !string.IsNullOrEmpty(t)).Distinct().OrderBy(t => t);
-            var dlg = new BrokenRecordDialog(lines, teams) { Owner = Window.GetWindow(this) };
-            if (dlg.ShowDialog() != true || dlg.Result == null) return;
-            _allRecords.Add(dlg.Result);
-            ApplyFilter();
+            var newRecord = new BrokenRecord { OccurDate = DateTime.Today };
+            _allRecords.Add(newRecord);
+            newRecord.DisplayNo = _filteredRecords.Count + 1;
+            _filteredRecords.Add(newRecord);
+            TxtRecordCount.Text = _allRecords.Count == _filteredRecords.Count
+                ? $"총 {_allRecords.Count}건"
+                : $"총 {_allRecords.Count}건 (표시: {_filteredRecords.Count}건)";
+
+            DgBroken.SelectedItem = newRecord;
+            DgBroken.ScrollIntoView(newRecord);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+            {
+                DgBroken.UpdateLayout();
+                DgBroken.CurrentCell = new DataGridCellInfo(newRecord, DgBroken.Columns[1]);
+                DgBroken.BeginEdit();
+            });
         }
 
         private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
