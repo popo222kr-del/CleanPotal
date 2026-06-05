@@ -361,15 +361,15 @@
 
         <!-- 대시보드 (월별 차트 + 팀/제품종류 현황) -->
         <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
-            <Grid MinHeight="210">
+            <Grid MinHeight="252">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1"/>
                     <ColumnDefinition Width="270"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- 대시보드: 2026년 월별 제품군 수량 -->
-                <Grid Grid.Column="0" Margin="18,14">
+                <!-- 대시보드: 월별 제품군 수량 -->
+                <Grid Grid.Column="0" Margin="22,16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -378,17 +378,16 @@
 
                     <!-- 헤더 -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="📊" FontSize="15" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBlock x:Name="TxtDashTitle" Text="2026년 월별 제품군 수량"
-                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                                   FontSize="15" FontWeight="Bold" Foreground="#0F172A"
                                    VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtRecordCount" Text="" FontSize="11"
-                                   Foreground="#64748B" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                   Foreground="#94A3B8" FontWeight="SemiBold"
+                                   VerticalAlignment="Bottom" Margin="10,0,0,1"/>
                     </StackPanel>
 
-                    <!-- 차트 -->
-                    <ItemsControl x:Name="ChartHost" Grid.Row="1" Margin="0,12,0,0"
+                    <!-- 차트 (트랙 + 채움 막대) -->
+                    <ItemsControl x:Name="ChartHost" Grid.Row="1" Margin="0,18,0,0"
                                   VerticalAlignment="Bottom">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -397,36 +396,47 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="3,0">
+                                <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="{Binding TotalLabel}"
-                                               FontSize="10" Foreground="#64748B" FontWeight="SemiBold"
-                                               HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                                    <Border Grid.Row="1" Height="120" VerticalAlignment="Bottom">
-                                        <ItemsControl ItemsSource="{Binding Segments}" VerticalAlignment="Bottom">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Background="{Binding Color}" Height="{Binding HeightPx}"
-                                                            CornerRadius="2" Margin="0,1,0,0"
-                                                            ToolTip="{Binding Tip}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Border>
+
+                                    <!-- 합계 -->
+                                    <TextBlock Grid.Row="0" Text="{Binding TotalLabel}" MinHeight="15"
+                                               FontSize="11" Foreground="#1E293B" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,0,0,5"/>
+
+                                    <!-- 막대: 트랙(연한 배경) 위에 색상 채움 -->
+                                    <Grid Grid.Row="1" Height="150" Width="24"
+                                          VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                                        <Border CornerRadius="6" Background="#F1F5F9"/>
+                                        <Border CornerRadius="6" ClipToBounds="True"
+                                                VerticalAlignment="Bottom" SnapsToDevicePixels="True">
+                                            <ItemsControl ItemsSource="{Binding Segments}" VerticalAlignment="Bottom">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding Color}"
+                                                                Height="{Binding HeightPx}"
+                                                                ToolTip="{Binding Tip}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- 월 -->
                                     <TextBlock Grid.Row="2" Text="{Binding MonthLabel}"
-                                               FontSize="10" Foreground="#94A3B8"
-                                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                               FontSize="11" Foreground="#64748B"
+                                               HorizontalAlignment="Center" Margin="0,7,0,0"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
                     <!-- 범례 -->
-                    <ItemsControl x:Name="LegendHost" Grid.Row="2" Margin="0,10,0,0">
+                    <ItemsControl x:Name="LegendHost" Grid.Row="2" Margin="0,14,0,0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal"/>
@@ -434,12 +444,14 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,0">
-                                    <Border Width="11" Height="11" CornerRadius="2"
-                                            Background="{Binding Color}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#475569"
-                                               Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
+                                <Border Background="#F8FAFC" CornerRadius="10" Padding="8,3" Margin="0,3,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="10" Height="10" CornerRadius="5"
+                                                Background="{Binding Color}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#475569"
+                                                   Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -457,32 +469,43 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- 팀별 -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock Text="👥" FontSize="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <TextBlock Text="팀별" FontSize="12" FontWeight="Bold"
-                                   Foreground="#334155" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <!-- 팀별 (제품군 누적) -->
+                    <TextBlock Grid.Row="0" Text="팀별 · 제품군" FontSize="12" FontWeight="Bold"
+                               Foreground="#334155" Margin="0,0,0,8"/>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
                         <ItemsControl x:Name="TeamBreakdownHost">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,2">
+                                    <Grid Margin="0,3">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="56"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11"
                                                    Foreground="#475569" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="1" HorizontalAlignment="Left"
-                                                Width="{Binding BarWidth}" Height="13"
-                                                Background="{Binding Color}" CornerRadius="3"
-                                                VerticalAlignment="Center"/>
+                                        <!-- 제품군별 누적 가로 막대 -->
+                                        <Border Grid.Column="1" HorizontalAlignment="Left" Height="15"
+                                                CornerRadius="4" ClipToBounds="True" VerticalAlignment="Center">
+                                            <ItemsControl ItemsSource="{Binding Segments}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding Color}"
+                                                                Width="{Binding Length}"
+                                                                ToolTip="{Binding Tip}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
                                         <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
                                                    FontWeight="SemiBold" Foreground="#0F172A"
-                                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                                   VerticalAlignment="Center" Margin="7,0,0,0"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -490,18 +513,15 @@
                     </ScrollViewer>
 
                     <!-- 제품종류별 -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock Text="📦" FontSize="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <TextBlock Text="제품종류별" FontSize="12" FontWeight="Bold"
-                                   Foreground="#334155" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Grid.Row="2" Text="제품종류별" FontSize="12" FontWeight="Bold"
+                               Foreground="#334155" Margin="0,0,0,8"/>
                     <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
                         <ItemsControl x:Name="TypeBreakdownHost">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,2">
+                                    <Grid Margin="0,3">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="56"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
@@ -509,12 +529,12 @@
                                                    Foreground="#475569" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <Border Grid.Column="1" HorizontalAlignment="Left"
-                                                Width="{Binding BarWidth}" Height="13"
-                                                Background="{Binding Color}" CornerRadius="3"
+                                                Width="{Binding BarWidth}" Height="15"
+                                                Background="{Binding Color}" CornerRadius="4"
                                                 VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
                                                    FontWeight="SemiBold" Foreground="#0F172A"
-                                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                                   VerticalAlignment="Center" Margin="7,0,0,0"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -572,7 +592,7 @@
 
                     <!-- 툴바 -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
-                        <Button Content="📂 파일 불러오기" Style="{StaticResource GhostButtonStyle}"
+                        <Button Content="파일 불러오기" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnLoadFile_Click"/>
                         <Button Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"

@@ -335,6 +335,21 @@ namespace CleanPotal
         public Brush Color { get; set; } = Brushes.Gray;
     }
 
+    // 가로 누적 막대 (팀별 · 제품군)
+    public class StackBarEntry
+    {
+        public string Label { get; set; } = "";
+        public string CountLabel { get; set; } = "";
+        public List<StackSeg> Segments { get; set; } = new();
+    }
+
+    public class StackSeg
+    {
+        public Brush Color { get; set; } = Brushes.Gray;
+        public double Length { get; set; }
+        public string Tip { get; set; } = "";
+    }
+
     // ---------------------------------------------------------------------------
     // View code-behind
     // ---------------------------------------------------------------------------
@@ -992,15 +1007,13 @@ namespace CleanPotal
             new SolidColorBrush(WpfColor.FromRgb(0x64, 0x74, 0x8B)), // slate
         };
 
-        private static readonly Brush _teamBarColor = new SolidColorBrush(WpfColor.FromRgb(0x3B, 0x82, 0xF6));
-
         // 현재 필터 결과(source)를 기준으로 대시보드를 갱신한다.
         private void BuildDashboard(List<BrokenRecord> source)
         {
             if (ChartHost == null) return;
 
-            const double maxBar = 120.0;    // 차트 막대 최대 높이(px)
-            const double maxBreakdownBar = 120.0; // 우측 가로 막대 최대 길이(px)
+            const double maxBar = 140.0;    // 차트 막대 최대 높이(px, 트랙 150 내)
+            const double maxBreakdownBar = 118.0; // 우측 가로 막대 최대 길이(px)
 
             // 제목: 선택된 년도에 따라 표기
             var selYears = CmbYear?.SelectedValues ?? new List<string>();
@@ -1043,7 +1056,7 @@ namespace CleanPotal
                     segs.Add(new ChartSegment
                     {
                         Color = typeColor[t],
-                        HeightPx = (double)c / globalMax * maxBar,
+                        HeightPx = Math.Max(3.0, (double)c / globalMax * maxBar),
                         Tip = $"{m}월 · {t} : {c}건"
                     });
                 }
@@ -1053,20 +1066,28 @@ namespace CleanPotal
             ChartHost.ItemsSource = months;
             LegendHost.ItemsSource = types.Select(t => new LegendEntry { Color = typeColor[t], Label = t }).ToList();
 
-            // ── 우측: 팀별 / 제품종류별 현황 ──
+            // ── 우측: 팀별(제품군 누적) / 제품종류별 현황 ──
             if (TeamBreakdownHost != null)
             {
                 var teamGroups = source.Where(r => !string.IsNullOrWhiteSpace(r.Team))
                     .GroupBy(r => r.Team.Trim())
-                    .Select(g => new { Label = g.Key, Count = g.Count() })
+                    .Select(g => new { Label = g.Key, Count = g.Count(), Recs = g.ToList() })
                     .OrderByDescending(x => x.Count).ThenBy(x => x.Label).ToList();
                 int teamMax = teamGroups.Count > 0 ? teamGroups.Max(x => x.Count) : 1;
-                TeamBreakdownHost.ItemsSource = teamGroups.Select(x => new BreakdownEntry
+
+                TeamBreakdownHost.ItemsSource = teamGroups.Select(x =>
                 {
-                    Label = x.Label,
-                    Count = x.Count,
-                    Color = _teamBarColor,
-                    BarWidth = Math.Max(6.0, (double)x.Count / teamMax * maxBreakdownBar)
+                    double totalLen = Math.Max(8.0, (double)x.Count / teamMax * maxBreakdownBar);
+                    var segs = x.Recs.GroupBy(TypeOf)
+                        .Select(tg => new { Type = tg.Key, Cnt = tg.Count() })
+                        .OrderByDescending(s => s.Cnt).ThenBy(s => s.Type)
+                        .Select(s => new StackSeg
+                        {
+                            Color  = typeColor.TryGetValue(s.Type, out var b) ? b : _palette[0],
+                            Length = Math.Max(3.0, (double)s.Cnt / x.Count * totalLen),
+                            Tip    = $"{x.Label} · {s.Type} : {s.Cnt}건"
+                        }).ToList();
+                    return new StackBarEntry { Label = x.Label, CountLabel = x.Count.ToString(), Segments = segs };
                 }).ToList();
             }
 
