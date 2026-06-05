@@ -240,7 +240,7 @@ namespace CleanPotal
 
         public void TryRefresh()
         {
-            if (_isDirty) return;
+            if (_isDirty || IsUserTyping()) return;
             try
             {
                 if (!File.Exists(StoragePath)) return;
@@ -255,6 +255,21 @@ namespace CleanPotal
                 }
             }
             catch { }
+        }
+
+        // 사용자가 입력란(TextBox)에 포커스를 두고 입력 중이면 true.
+        // 입력 중에는 자동 리로드/리바인드를 보류해 한글 IME 조합이 끊겨
+        // 영문으로 변환되는 문제를 방지한다.
+        private bool IsUserTyping()
+        {
+            if (Keyboard.FocusedElement is not System.Windows.Controls.Primitives.TextBoxBase) return false;
+            DependencyObject? d = Keyboard.FocusedElement as DependencyObject;
+            while (d != null)
+            {
+                if (ReferenceEquals(d, this)) return true;
+                d = VisualTreeHelper.GetParent(d);
+            }
+            return false;
         }
 
         // 🔥 새 창(Window) 호출 로직. 모달 대신 WeeklyReportTableWindow를 띄움
@@ -498,7 +513,7 @@ namespace CleanPotal
 
         private void AutoReloadTimer_Tick(object? sender, EventArgs e)
         {
-            if (_isDirty) return;
+            if (_isDirty || IsUserTyping()) return;
             try
             {
                 if (!File.Exists(StoragePath)) return;
