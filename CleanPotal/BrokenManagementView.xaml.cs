@@ -369,8 +369,27 @@ namespace CleanPotal
 
         private void FilterCombo_DropDownOpened(object sender, EventArgs e)
         {
-            if (sender is ComboBox cmb && cmb.Items.Count > 0)
-                cmb.ScrollIntoView(cmb.Items[0]);
+            if (sender is not ComboBox cmb) return;
+            cmb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+            {
+                if (cmb.Template.FindName("PART_Popup", cmb) is System.Windows.Controls.Primitives.Popup popup
+                    && popup.Child != null)
+                {
+                    FindVisualChild<ScrollViewer>(popup.Child)?.ScrollToTop();
+                }
+            });
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match) return match;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private void BtnResetFilter_Click(object sender, RoutedEventArgs e)
