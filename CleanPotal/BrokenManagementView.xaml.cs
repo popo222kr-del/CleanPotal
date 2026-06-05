@@ -303,6 +303,30 @@ namespace CleanPotal
     }
 
     // ---------------------------------------------------------------------------
+    // 대시보드 차트 모델
+    // ---------------------------------------------------------------------------
+    public class ChartMonth
+    {
+        public string MonthLabel { get; set; } = "";
+        public int Total { get; set; }
+        public string TotalLabel => Total > 0 ? Total.ToString() : "";
+        public List<ChartSegment> Segments { get; set; } = new();
+    }
+
+    public class ChartSegment
+    {
+        public Brush Color { get; set; } = Brushes.Gray;
+        public double HeightPx { get; set; }
+        public string Tip { get; set; } = "";
+    }
+
+    public class LegendEntry
+    {
+        public Brush Color { get; set; } = Brushes.Gray;
+        public string Label { get; set; } = "";
+    }
+
+    // ---------------------------------------------------------------------------
     // View code-behind
     // ---------------------------------------------------------------------------
     public partial class BrokenManagementView : UserControl
@@ -348,7 +372,6 @@ namespace CleanPotal
         // File load — button / click
         // -----------------------------------------------------------------------
         private void BtnLoadFile_Click(object sender, RoutedEventArgs e) => OpenFilePicker();
-        private void DropZone_Click(object sender, MouseButtonEventArgs e) => OpenFilePicker();
 
         private void OpenFilePicker()
         {
@@ -367,77 +390,11 @@ namespace CleanPotal
             try
             {
                 LoadDataFromExcel(path);
-                TxtFilePath.Text = Path.GetFileName(path);
-                TxtFilePath.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"파일 읽기 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-                TxtFilePath.Text = "";
                 TxtRecordCount.Text = "";
-            }
-        }
-
-        // -----------------------------------------------------------------------
-        // Drag and drop
-        // -----------------------------------------------------------------------
-        private void DropZone_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-                if (files?.Any(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) == true)
-                {
-                    e.Effects = DragDropEffects.Copy;
-                    SetDropZoneActive(true);
-                    e.Handled = true;
-                    return;
-                }
-            }
-            e.Effects = DragDropEffects.None;
-            e.Handled = true;
-        }
-
-        private void DropZone_DragLeave(object sender, DragEventArgs e)
-        {
-            var pos = e.GetPosition(DropZoneBg);
-            if (pos.X < 0 || pos.Y < 0 ||
-                pos.X > DropZoneBg.ActualWidth ||
-                pos.Y > DropZoneBg.ActualHeight)
-                SetDropZoneActive(false);
-        }
-
-        private void DropZone_Drop(object sender, DragEventArgs e)
-        {
-            SetDropZoneActive(false);
-            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            var xlsx = files?.FirstOrDefault(f => f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
-            if (xlsx == null)
-            {
-                MessageBox.Show("xlsx 파일만 지원합니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            LoadFile(xlsx);
-        }
-
-        private void SetDropZoneActive(bool active)
-        {
-            if (active)
-            {
-                RectDash.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
-                DropZoneBg.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEF, 0xF6, 0xFF));
-                TxtDropIcon.Text = "📥";
-                TxtDropHint.Text = "여기에 놓으세요!";
-                TxtDropHint.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x25, 0x63, 0xEB));
-            }
-            else
-            {
-                RectDash.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xCB, 0xD5, 0xE1));
-                DropZoneBg.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF8, 0xFA, 0xFC));
-                TxtDropIcon.Text = "📂";
-                TxtDropHint.Text = "xlsx 파일을 여기에 드래그하세요";
-                TxtDropHint.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x64, 0x74, 0x8B));
             }
         }
 
@@ -1005,6 +962,84 @@ namespace CleanPotal
                 : $"총 {_allRecords.Count}건 (표시: {_filteredRecords.Count}건)";
 
             RefreshTeamSummary(list);
+            BuildDashboard();
+        }
+
+        // -----------------------------------------------------------------------
+        // 대시보드: 해당 년도 월별 제품군 수량 (누적 막대)
+        // -----------------------------------------------------------------------
+        private static readonly Brush[] _palette =
+        {
+            new SolidColorBrush(WpfColor.FromRgb(0x3B, 0x82, 0xF6)), // blue
+            new SolidColorBrush(WpfColor.FromRgb(0x10, 0xB9, 0x81)), // green
+            new SolidColorBrush(WpfColor.FromRgb(0xF5, 0x9E, 0x0B)), // amber
+            new SolidColorBrush(WpfColor.FromRgb(0xEF, 0x44, 0x44)), // red
+            new SolidColorBrush(WpfColor.FromRgb(0x8B, 0x5C, 0xF6)), // violet
+            new SolidColorBrush(WpfColor.FromRgb(0x06, 0xB6, 0xD4)), // cyan
+            new SolidColorBrush(WpfColor.FromRgb(0xEC, 0x48, 0x99)), // pink
+            new SolidColorBrush(WpfColor.FromRgb(0x84, 0xCC, 0x16)), // lime
+            new SolidColorBrush(WpfColor.FromRgb(0xF9, 0x73, 0x16)), // orange
+            new SolidColorBrush(WpfColor.FromRgb(0x64, 0x74, 0x8B)), // slate
+        };
+
+        private void BuildDashboard()
+        {
+            if (ChartHost == null) return;
+
+            const double maxBar = 120.0;
+            int year = DateTime.Now.Year;
+            if (TxtDashTitle != null) TxtDashTitle.Text = $"{year}년 월별 제품군 수량";
+
+            var recs = _allRecords
+                .Where(r => r.OccurDate.HasValue && r.OccurDate.Value.Year == year)
+                .ToList();
+
+            // 제품군 목록 + 색상 매핑
+            var types = recs.Select(r => string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim())
+                            .Distinct().OrderBy(t => t).ToList();
+            var typeColor = new Dictionary<string, Brush>();
+            for (int i = 0; i < types.Count; i++)
+                typeColor[types[i]] = _palette[i % _palette.Length];
+
+            // 월×제품군 카운트
+            var perMonth = new Dictionary<int, Dictionary<string, int>>();
+            for (int m = 1; m <= 12; m++)
+            {
+                perMonth[m] = new Dictionary<string, int>();
+                foreach (var t in types) perMonth[m][t] = 0;
+            }
+            foreach (var r in recs)
+            {
+                int m = r.OccurDate!.Value.Month;
+                string t = string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim();
+                perMonth[m][t]++;
+            }
+
+            int globalMax = 1;
+            for (int m = 1; m <= 12; m++)
+                globalMax = Math.Max(globalMax, perMonth[m].Values.Sum());
+
+            var months = new List<ChartMonth>();
+            for (int m = 1; m <= 12; m++)
+            {
+                int tot = perMonth[m].Values.Sum();
+                var segs = new List<ChartSegment>();
+                foreach (var t in types)
+                {
+                    int c = perMonth[m][t];
+                    if (c <= 0) continue;
+                    segs.Add(new ChartSegment
+                    {
+                        Color = typeColor[t],
+                        HeightPx = (double)c / globalMax * maxBar,
+                        Tip = $"{m}월 · {t} : {c}건"
+                    });
+                }
+                months.Add(new ChartMonth { MonthLabel = $"{m}월", Total = tot, Segments = segs });
+            }
+
+            ChartHost.ItemsSource = months;
+            LegendHost.ItemsSource = types.Select(t => new LegendEntry { Color = typeColor[t], Label = t }).ToList();
         }
 
         private void RefreshTeamSummary(List<BrokenRecord>? source = null)

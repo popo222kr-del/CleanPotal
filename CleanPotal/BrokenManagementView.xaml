@@ -359,50 +359,91 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 드랍존 + 메모 -->
+        <!-- 대시보드 + 메모 -->
         <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
-            <Grid MinHeight="120">
+            <Grid MinHeight="210">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1"/>
                     <ColumnDefinition Width="270"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Drop zone -->
-                <Border x:Name="DropZoneBg" Grid.Column="0"
-                        Background="#F8FAFC" CornerRadius="11,0,0,11"
-                        AllowDrop="True"
-                        DragOver="DropZone_DragOver"
-                        DragLeave="DropZone_DragLeave"
-                        Drop="DropZone_Drop"
-                        Cursor="Hand"
-                        MouseLeftButtonUp="DropZone_Click">
-                    <Grid Margin="16,10">
-                        <!-- Dashed border overlay -->
-                        <Rectangle x:Name="RectDash"
-                                   Stroke="#CBD5E1" StrokeThickness="1.5"
-                                   StrokeDashArray="6,3" RadiusX="8" RadiusY="8"
-                                   Fill="Transparent" IsHitTestVisible="False"/>
+                <!-- 대시보드: 2026년 월별 제품군 수량 -->
+                <Grid Grid.Column="0" Margin="18,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,10">
-                            <TextBlock x:Name="TxtDropIcon" Text="📂" FontSize="26"
-                                       HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="TxtDropHint"
-                                       Text="xlsx 파일을 여기에 드래그하세요"
-                                       FontSize="13" Foreground="#64748B"
-                                       HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                            <TextBlock Text="또는 클릭하여 선택" FontSize="11" Foreground="#94A3B8"
-                                       HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                                <TextBlock x:Name="TxtFilePath" Text="" FontSize="11"
-                                           Foreground="#2563EB" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" MaxWidth="320"/>
-                                <TextBlock x:Name="TxtRecordCount" Text="" FontSize="11"
-                                           Foreground="#64748B" FontWeight="SemiBold" Margin="8,0,0,0"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                    <!-- 헤더 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📊" FontSize="15" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="TxtDashTitle" Text="2026년 월별 제품군 수량"
+                                   FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtRecordCount" Text="" FontSize="11"
+                                   Foreground="#64748B" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- 차트 -->
+                    <ItemsControl x:Name="ChartHost" Grid.Row="1" Margin="0,12,0,0"
+                                  VerticalAlignment="Bottom">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="3,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="{Binding TotalLabel}"
+                                               FontSize="10" Foreground="#64748B" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                                    <Border Grid.Row="1" Height="120" VerticalAlignment="Bottom">
+                                        <ItemsControl ItemsSource="{Binding Segments}" VerticalAlignment="Bottom">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{Binding Color}" Height="{Binding HeightPx}"
+                                                            CornerRadius="2" Margin="0,1,0,0"
+                                                            ToolTip="{Binding Tip}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                    <TextBlock Grid.Row="2" Text="{Binding MonthLabel}"
+                                               FontSize="10" Foreground="#94A3B8"
+                                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- 범례 -->
+                    <ItemsControl x:Name="LegendHost" Grid.Row="2" Margin="0,10,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,0">
+                                    <Border Width="11" Height="11" CornerRadius="2"
+                                            Background="{Binding Color}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#475569"
+                                               Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
 
                 <!-- Separator -->
                 <Rectangle Grid.Column="1" Fill="#E2E8F0" Margin="0,10"/>
@@ -505,6 +546,9 @@
 
                     <!-- 툴바 -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button Content="📂 파일 불러오기" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnLoadFile_Click"/>
                         <Button Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnAddRow_Click"/>
@@ -548,9 +592,9 @@
                                 <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="2*" MinWidth="160"/>
+                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="3*" MinWidth="220"/>
 
-                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="130"
+                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="175"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="80"
@@ -570,7 +614,7 @@
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <!-- ── 경위서 ── -->
-                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="72" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -600,7 +644,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 대책서 ── -->
-                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="72" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -630,7 +674,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육서 ── -->
-                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="72" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
@@ -660,7 +704,7 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- ── 교육이미지 ── -->
-                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="72" IsReadOnly="True">
+                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
