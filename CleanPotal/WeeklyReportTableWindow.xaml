@@ -106,7 +106,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="20" Background="#FFFFFF" TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="ClearType" RenderOptions.ClearTypeHint="Enabled">
         <Grid.LayoutTransform>
             <ScaleTransform x:Name="ContentScaleTransform" ScaleX="1.0" ScaleY="1.0"/>
         </Grid.LayoutTransform>
