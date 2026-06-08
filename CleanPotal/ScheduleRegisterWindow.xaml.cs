@@ -200,8 +200,8 @@ namespace CleanPotal
             _suppressEduFilter = true;
             CmbEduName.Text = "";
             CmbEduName.ItemsSource = _allEduNamesForTeam;
-            _suppressEduFilter = false;
             if (CmbEduName.Items.Count > 0) CmbEduName.SelectedIndex = 0;
+            _suppressEduFilter = false;
         }
 
         // ── 직원 이름 자동완성 (TextBox + Popup) ──────────────────────────
