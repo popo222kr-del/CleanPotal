@@ -452,6 +452,15 @@ namespace CleanPotal.FieldInspection.Repositories
             tx.Commit();
         }
 
+        // 데일리 화면에서 같은 날 재제출 시 기존 기록을 지우고 새로 기록하기 위한 헬퍼
+        public static void DeleteRecord(string recordId)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("DELETE FROM FieldInspectionAttachments WHERE RecordId = @Id", new { Id = recordId });
+            db.Execute("DELETE FROM FieldInspectionRecordItems WHERE RecordId = @Id", new { Id = recordId });
+            db.Execute("DELETE FROM FieldInspectionRecords WHERE RecordId = @Id", new { Id = recordId });
+        }
+
         public static List<FieldInspectionRecord> SearchRecords(
             DateTime? from,
             DateTime? to,

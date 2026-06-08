@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using CleanPotal.FieldInspection.Models;
 using CleanPotal.FieldInspection.Repositories;
+using CleanPotal.FieldInspection.Web;
 
 namespace CleanPotal
 {
@@ -16,6 +17,9 @@ namespace CleanPotal
         private FieldChecklist? _currentChecklist;
         private bool _suppressSelectionEvent;
 
+        // 모든 화면 인스턴스가 같은 서버를 공유 (탭을 닫았다 열어도 서버는 유지)
+        private static FieldInspectionWebServer? _webServer;
+
         public FieldChecklistView()
         {
             InitializeComponent();
@@ -23,6 +27,7 @@ namespace CleanPotal
             {
                 RefreshDashboardCounters();
                 LoadChecklistManagementTab();
+                RefreshWebServerStatus();
             };
         }
 
@@ -324,6 +329,73 @@ namespace CleanPotal
             catch (Exception ex)
             {
                 MessageBox.Show($"삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // 모바일 데일리 체크 웹서버
+        // -----------------------------------------------------------------------
+        private void BtnToggleWebServer_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_webServer != null && _webServer.IsRunning)
+                {
+                    _webServer.Stop();
+                }
+                else
+                {
+                    _webServer ??= new FieldInspectionWebServer();
+                    _webServer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"모바일 페이지 서버를 시작/중지하는 중 오류가 발생했습니다:\n{ex.Message}\n\n" +
+                    "휴대폰에서 접속 가능한 주소(0.0.0.0)로 열려면 관리자 권한이 필요할 수 있습니다.\n" +
+                    "관리자 권한으로 실행하거나, 아래 명령으로 사전에 URL 예약을 해주세요.\n" +
+                    $"netsh http add urlacl url=http://+:{(_webServer?.Port ?? 5180)}/ user=Everyone",
+                    "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                RefreshWebServerStatus();
+            }
+        }
+
+        private void BtnCopyWebUrl_Click(object sender, RoutedEventArgs e)
+        {
+            if (_webServer == null || !_webServer.IsRunning) return;
+            try
+            {
+                Clipboard.SetText(_webServer.GetAccessUrl());
+                MessageBox.Show("주소가 클립보드에 복사되었습니다. 휴대폰 브라우저 주소창에 붙여넣어 접속하세요.",
+                    "복사됨", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch { }
+        }
+
+        private void RefreshWebServerStatus()
+        {
+            bool running = _webServer?.IsRunning == true;
+            WebServerDot.Fill = new System.Windows.Media.SolidColorBrush(
+                running ? System.Windows.Media.Color.FromRgb(0x10, 0xB9, 0x81)
+                        : System.Windows.Media.Color.FromRgb(0x94, 0xA3, 0xB8));
+
+            if (running)
+            {
+                WebServerStatusText.Text = "모바일 데일리 체크 페이지: 켜짐";
+                WebServerUrlText.Text = $"휴대폰 브라우저에서 접속 ▶ {_webServer!.GetAccessUrl()}  (사내망에서만 접속 가능, 이 PC가 켜져 있어야 함)";
+                BtnToggleWebServer.Content = "모바일 페이지 중지";
+                BtnCopyWebUrl.IsEnabled = true;
+            }
+            else
+            {
+                WebServerStatusText.Text = "모바일 데일리 체크 페이지: 꺼짐";
+                WebServerUrlText.Text = "시작하면 휴대폰에서 접속할 사내망 주소가 표시됩니다. (이 PC가 켜져 있을 때만 접속 가능)";
+                BtnToggleWebServer.Content = "모바일 페이지 시작";
+                BtnCopyWebUrl.IsEnabled = false;
             }
         }
 

@@ -61,4 +61,10 @@
     <Resource Include="Images\logo.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="FieldInspection\Web\wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

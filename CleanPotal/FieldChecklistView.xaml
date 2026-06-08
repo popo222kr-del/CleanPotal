@@ -136,6 +136,23 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- 모바일 데일리 체크 웹서버 상태 -->
+        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Margin="0,0,0,4" Padding="16,12">
+            <DockPanel LastChildFill="True">
+                <Ellipse x:Name="WebServerDot" Width="10" Height="10" Fill="#94A3B8" DockPanel.Dock="Left" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <Button x:Name="BtnToggleWebServer" Content="모바일 페이지 시작" Style="{StaticResource PrimaryButtonStyle}"
+                        DockPanel.Dock="Right" Click="BtnToggleWebServer_Click" Margin="8,0,0,0"/>
+                <Button x:Name="BtnCopyWebUrl" Content="주소 복사" Style="{StaticResource GhostButtonStyle}"
+                        DockPanel.Dock="Right" Click="BtnCopyWebUrl_Click" IsEnabled="False"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="WebServerStatusText" Text="모바일 데일리 체크 페이지: 꺼짐"
+                               FontSize="13" FontWeight="SemiBold" Foreground="#0F172A"/>
+                    <TextBlock x:Name="WebServerUrlText" Text="시작하면 휴대폰에서 접속할 사내망 주소가 표시됩니다. (이 PC가 켜져 있을 때만 접속 가능)"
+                               FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
         <!-- 탭 영역 -->
         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
             <TabItem Header="점검 현황 대시보드" Style="{StaticResource TabHeaderStyle}">
