@@ -306,7 +306,7 @@ namespace CleanPotal
                 foreach (var folder in folders.Distinct())
                 {
                     if (Directory.Exists(folder))
-                        Process.Start(new ProcessStartInfo("explorer.exe", folder) { UseShellExecute = true });
+                        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
                 }
             }
             catch (Exception ex) { MessageBox.Show("오류: " + ex.Message); }
