@@ -501,9 +501,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         // Save (JSON) / Load
         // -----------------------------------------------------------------------
-        private static readonly string SaveFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CleanPotal", "broken_data.json");
+        private static readonly string SaveFilePath = Path.Combine(AppPaths.DataRoot, "broken_data.json");
 
         private static readonly JsonSerializerOptions _jsonOpts = new() { WriteIndented = true };
 
@@ -548,8 +546,27 @@ namespace CleanPotal
             File.WriteAllText(SaveFilePath, JsonSerializer.Serialize(dto, _jsonOpts), Encoding.UTF8);
         }
 
+        // 🔥 과거 버전이 PC 로컬(LocalAppData)에 저장했던 데이터를 공유 폴더로 1회 이전
+        private static void MigrateLegacyLocalData()
+        {
+            if (File.Exists(SaveFilePath)) return;
+            try
+            {
+                string legacyPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CleanPotal", "broken_data.json");
+                if (File.Exists(legacyPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
+                    File.Copy(legacyPath, SaveFilePath);
+                }
+            }
+            catch { }
+        }
+
         private void LoadAppData()
         {
+            MigrateLegacyLocalData();
             if (!File.Exists(SaveFilePath)) return;
             try
             {
