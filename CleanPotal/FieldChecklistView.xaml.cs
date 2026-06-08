@@ -385,8 +385,17 @@ namespace CleanPotal
 
             if (running)
             {
-                WebServerStatusText.Text = "모바일 데일리 체크 페이지: 켜짐";
-                WebServerUrlText.Text = $"휴대폰 브라우저에서 접속 ▶ {_webServer!.GetAccessUrl()}  (사내망에서만 접속 가능, 이 PC가 켜져 있어야 함)";
+                if (_webServer!.IsLanAccessible)
+                {
+                    WebServerStatusText.Text = "모바일 데일리 체크 페이지: 켜짐 (사내망 접속 가능)";
+                    WebServerUrlText.Text = $"휴대폰 브라우저에서 접속 ▶ {_webServer.GetAccessUrl()}  (이 PC가 켜져 있어야 하고, Windows 방화벽에서 {_webServer.Port}번 포트 인바운드를 허용해야 합니다)";
+                }
+                else
+                {
+                    WebServerDot.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF5, 0x9E, 0x0B));
+                    WebServerStatusText.Text = "모바일 데일리 체크 페이지: 켜짐 (이 PC에서만 접속 가능 — 휴대폰 접속 불가)";
+                    WebServerUrlText.Text = $"권한 부족으로 외부 접속이 차단된 상태입니다. 관리자 권한으로 다음 명령을 한 번 실행한 뒤 앱을 재시작하세요:  netsh http add urlacl url=http://+:{_webServer.Port}/ user=Everyone";
+                }
                 BtnToggleWebServer.Content = "모바일 페이지 중지";
                 BtnCopyWebUrl.IsEnabled = true;
             }

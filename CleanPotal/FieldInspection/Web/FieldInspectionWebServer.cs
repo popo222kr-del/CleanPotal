@@ -36,6 +36,8 @@ namespace CleanPotal.FieldInspection.Web
         public int Port { get; }
         public bool IsRunning => _listener?.IsListening == true;
 
+        private bool _isLanAccessible;
+
         public FieldInspectionWebServer(int port = 5180)
         {
             Port = port;
@@ -51,13 +53,16 @@ namespace CleanPotal.FieldInspection.Web
             try
             {
                 _listener.Start();
+                _isLanAccessible = true;
             }
             catch (HttpListenerException)
             {
                 // 모든 IP 바인딩 권한이 없는 환경 — localhost로라도 동작하도록 폴백
+                // (이 경우 휴대폰 등 외부 기기에서는 절대 접속할 수 없음 — URL 예약 또는 관리자 권한 필요)
                 _listener = new HttpListener();
                 _listener.Prefixes.Add($"http://localhost:{Port}/");
                 _listener.Start();
+                _isLanAccessible = false;
             }
 
             _cts = new CancellationTokenSource();
@@ -71,14 +76,18 @@ namespace CleanPotal.FieldInspection.Web
             try { _listener?.Close(); } catch { }
             _listener = null;
             _cts = null;
+            _isLanAccessible = false;
         }
 
         public void Dispose() => Stop();
 
+        /// <summary>true면 사내망의 다른 기기(휴대폰 등)에서 접속 가능. false면 이 PC에서만 접속 가능 (권한 부족으로 폴백됨).</summary>
+        public bool IsLanAccessible => _isLanAccessible;
+
         /// <summary>이 PC의 사내망 IP를 기준으로 휴대폰에서 접속할 주소를 만들어 반환.</summary>
         public string GetAccessUrl()
         {
-            string ip = GetLocalIPv4() ?? "localhost";
+            string ip = _isLanAccessible ? (GetLocalIPv4() ?? "localhost") : "localhost";
             return $"http://{ip}:{Port}/";
         }
 
