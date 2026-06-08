@@ -30,6 +30,10 @@ namespace CleanPotal.FieldInspection.Models
     public class FieldChecklist
     {
         public long ChecklistId { get; set; }
+        // 짧고 고유한 식별 코드 (예: "5S-METAL", "SAFETY-INJECTION") — 체크시트가 늘어나도 헷갈리지 않게 참조용으로 사용
+        public string Code { get; set; } = "";
+        // 분류 (예: "5S 점검", "안전 점검", "설비 순회점검") — 관리 화면에서 그룹핑용
+        public string Category { get; set; } = "";
         public string Name { get; set; } = "";
         public long? LocationId { get; set; }
         public string Cycle { get; set; } = "DAILY";
@@ -43,6 +47,10 @@ namespace CleanPotal.FieldInspection.Models
         public long ItemId { get; set; }
         public long ChecklistId { get; set; }
         public int OrderNo { get; set; }
+        // 구분 (예: "검사실", "세정실") — 데일리 화면에서 항목을 섹션 헤더로 묶어서 표시
+        public string SectionName { get; set; } = "";
+        // 교대 (예: "주간", "야간") — 같은 항목을 교대별로 별도 입력해야 할 때 사용. 비워두면 교대 구분 없음
+        public string ShiftLabel { get; set; } = "";
         public string Title { get; set; } = "";
         public string InputType { get; set; } = "OK_NG";
         public string UnitOrHint { get; set; } = "";
@@ -58,6 +66,10 @@ namespace CleanPotal.FieldInspection.Models
         public string TagId { get; set; } = "";
         public long LocationId { get; set; }
         public long ChecklistId { get; set; }
+        // 점검 대상 일자 (yyyy-MM-dd) — 같은 날 같은 체크시트의 중복 제출을 막고 "오늘 기록" 조회를 단순화
+        public DateTime CheckDate { get; set; } = DateTime.Today;
+        // 교대 (예: "주간", "야간") — 체크시트 항목에 ShiftLabel이 있는 경우 함께 기록
+        public string ShiftLabel { get; set; } = "";
         public string InspectorName { get; set; } = "";
         public string InspectorId { get; set; } = "";
         public DateTime StartedAt { get; set; } = DateTime.Now;
