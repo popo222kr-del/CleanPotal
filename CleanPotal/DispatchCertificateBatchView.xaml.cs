@@ -317,13 +317,8 @@ namespace CleanPotal
 
         private static string OnlyDigits(string? s) => new string((s ?? "").Where(char.IsDigit).ToArray());
 
-        // 공백/하이픈을 제외하면 숫자만 9자리 이상인 경우 전화번호로 간주 ("010-5305-9621" 등)
-        private static bool IsPhoneNumber(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return false;
-            string trimmed = s.Replace("-", "").Replace(" ", "");
-            return trimmed.Length >= 9 && trimmed.All(char.IsDigit);
-        }
+        // 문자열 어디에 있든 전화번호 형태("010-5305-9621", "(010)5305 9621" 등)를 찾아내는 패턴
+        private static readonly Regex PhoneInTextPattern = new(@"\(?\s*0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}\s*\)?", RegexOptions.Compiled);
 
         private static (int count, List<string> folders) ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
         {
@@ -348,15 +343,15 @@ namespace CleanPotal
 
                 if (string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(tplPath) || !File.Exists(tplPath)) { item.Result = "실패"; item.Message = "경로 또는 템플릿 누락"; continue; }
 
-                // 담당자명에서 이름만 추출 ("김경민 (010-4730-3001)" → "김경민")
-                string mgrNameOnly = item.ManagerName ?? "";
-                int parenIdx = mgrNameOnly.IndexOf('(');
-                if (parenIdx > 0) mgrNameOnly = mgrNameOnly[..parenIdx].Trim();
+                // 담당자 문자열에서 전화번호 부분을 제거하고 이름만 남김
+                // ("김경민 (010-4730-3001)" → "김경민", "김종호 010-5305-9621" → "김종호")
+                string rawMgr = item.ManagerName ?? "";
+                string mgrNameOnly = PhoneInTextPattern.Replace(rawMgr, "").Trim();
 
-                // 🔥 의뢰서에 이름 없이 전화번호만 적혀있는 경우, 거래처에 등록된 담당자 연락처로 이름을 역매칭
-                if (IsPhoneNumber(mgrNameOnly))
+                // 이름이 남지 않으면(전화번호만 적혀있던 경우) 거래처에 등록된 담당자 연락처로 이름을 역매칭
+                if (string.IsNullOrEmpty(mgrNameOnly))
                 {
-                    string digits = OnlyDigits(mgrNameOnly);
+                    string digits = OnlyDigits(rawMgr);
                     var matched = vendor?.Managers?.FirstOrDefault(m =>
                         !string.IsNullOrWhiteSpace(m.ManagerName) && OnlyDigits(m.ContactNumber) == digits);
                     if (matched != null) mgrNameOnly = matched.ManagerName;
