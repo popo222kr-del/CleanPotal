@@ -315,6 +315,16 @@ namespace CleanPotal
 
         private static string Clean(string s) { if (string.IsNullOrWhiteSpace(s)) return ""; string iv = new string(Path.GetInvalidFileNameChars()); foreach (char c in iv) s = s.Replace(c.ToString(), "_"); return s.Trim(); }
 
+        private static string OnlyDigits(string? s) => new string((s ?? "").Where(char.IsDigit).ToArray());
+
+        // 공백/하이픈을 제외하면 숫자만 9자리 이상인 경우 전화번호로 간주 ("010-5305-9621" 등)
+        private static bool IsPhoneNumber(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            string trimmed = s.Replace("-", "").Replace(" ", "");
+            return trimmed.Length >= 9 && trimmed.All(char.IsDigit);
+        }
+
         private static (int count, List<string> folders) ExecuteAetsBatch(string masterPath, List<AetsPreviewModel> items)
         {
             var vendors = VendorStore.Load();
@@ -342,6 +352,16 @@ namespace CleanPotal
                 string mgrNameOnly = item.ManagerName ?? "";
                 int parenIdx = mgrNameOnly.IndexOf('(');
                 if (parenIdx > 0) mgrNameOnly = mgrNameOnly[..parenIdx].Trim();
+
+                // 🔥 의뢰서에 이름 없이 전화번호만 적혀있는 경우, 거래처에 등록된 담당자 연락처로 이름을 역매칭
+                if (IsPhoneNumber(mgrNameOnly))
+                {
+                    string digits = OnlyDigits(mgrNameOnly);
+                    var matched = vendor?.Managers?.FirstOrDefault(m =>
+                        !string.IsNullOrWhiteSpace(m.ManagerName) && OnlyDigits(m.ContactNumber) == digits);
+                    if (matched != null) mgrNameOnly = matched.ManagerName;
+                }
+
                 string safeMgr = Clean(mgrNameOnly);
                 string safeProc = Clean(item.ProcessName);
                 string sub = safeMgr + (string.IsNullOrEmpty(safeProc) ? "" : " (" + safeProc + ")");
