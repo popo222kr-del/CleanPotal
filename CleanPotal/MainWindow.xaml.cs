@@ -559,7 +559,7 @@ namespace CleanPotal
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "FieldInventory";
-            ApplySectionMeta("현장 점검 - 재고 관리", "현장 소모품·자재 재고 현황을 관리합니다. 현재재고 ≤ 적정재고이면 빨간색으로 표시됩니다.");
+            ApplySectionMeta("현장 점검 - 재고관리", "현장 소모품·자재 재고 현황을 관리합니다. 현재재고 ≤ 적정재고이면 빨간색으로 표시됩니다.");
             UpdateNavSelection("FieldInventory");
             if (_fieldInventoryView == null) _fieldInventoryView = new FieldInventoryView();
             MainContent.Content = _fieldInventoryView;

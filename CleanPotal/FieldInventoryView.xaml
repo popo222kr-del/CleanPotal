@@ -117,9 +117,9 @@
                             <Border Background="#F1F5F9" Padding="12,6" Margin="0,4,0,0">
                                 <TextBlock FontSize="12" FontWeight="Bold" Foreground="#475569">
                                     <Run Text="📦 "/>
-                                    <Run Text="{Binding Name}"/>
+                                    <Run Text="{Binding Name, Mode=OneWay}"/>
                                     <Run Text=" ("/>
-                                    <Run Text="{Binding ItemCount}"/>
+                                    <Run Text="{Binding ItemCount, Mode=OneWay}"/>
                                     <Run Text="종)"/>
                                 </TextBlock>
                             </Border>
@@ -171,7 +171,7 @@
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,0">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <TextBlock Text="현장 재고 관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
                     <TextBlock x:Name="TxtGroupFilter" Text="전체 창고" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <ComboBox x:Name="CmbLocationFilter" MinWidth="140" FontSize="13" Padding="8,5"
                               SelectionChanged="CmbLocationFilter_SelectionChanged" VerticalAlignment="Center"/>
