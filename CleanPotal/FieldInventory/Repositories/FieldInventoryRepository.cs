@@ -16,6 +16,10 @@ namespace CleanPotal.FieldInventory.Repositories
                 CREATE TABLE IF NOT EXISTS FieldInventoryItems (
                     ItemId           INTEGER PRIMARY KEY AUTOINCREMENT,
                     OrderNo          INTEGER NOT NULL DEFAULT 0,
+                    ItemCode         TEXT NOT NULL DEFAULT '',
+                    Category         TEXT NOT NULL DEFAULT '',
+                    Unit             TEXT NOT NULL DEFAULT '',
+                    RegisteredDate   TEXT NOT NULL DEFAULT '',
                     StorageLocation  TEXT NOT NULL DEFAULT '',
                     ItemName         TEXT NOT NULL DEFAULT '',
                     CurrentStock     TEXT NOT NULL DEFAULT '',
@@ -32,7 +36,16 @@ namespace CleanPotal.FieldInventory.Repositories
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInventory_Location ON FieldInventoryItems(StorageLocation);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInventory_Order ON FieldInventoryItems(OrderNo);");
 
+            // 마이그레이션: 기존 DB에 신규 컬럼 추가
+            try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN ItemCode TEXT NOT NULL DEFAULT '';"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN Category TEXT NOT NULL DEFAULT '';"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN Unit TEXT NOT NULL DEFAULT '';"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN RegisteredDate TEXT NOT NULL DEFAULT '';"); } catch { }
+
             SeedIfEmpty(db);
+
+            // 등록일자가 비어있는 행은 오늘 날짜로 채움 (신규 컬럼 마이그레이션 + 시드 데이터 공통)
+            db.Execute("UPDATE FieldInventoryItems SET RegisteredDate = date('now','localtime') WHERE RegisteredDate = '';");
         }
 
         public static List<FieldInventoryItem> GetAll()
@@ -47,10 +60,10 @@ namespace CleanPotal.FieldInventory.Repositories
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldInventoryItems
-                    (OrderNo, StorageLocation, ItemName, CurrentStock, AppropriateStock,
+                    (OrderNo, ItemCode, Category, Unit, RegisteredDate, StorageLocation, ItemName, CurrentStock, AppropriateStock,
                      MinOrderQty, Supplier, OrderDate, OrderQty, ExpectedReceipt, Memo, UpdatedAt)
                 VALUES
-                    (@OrderNo, @StorageLocation, @ItemName, @CurrentStock, @AppropriateStock,
+                    (@OrderNo, @ItemCode, @Category, @Unit, @RegisteredDate, @StorageLocation, @ItemName, @CurrentStock, @AppropriateStock,
                      @MinOrderQty, @Supplier, @OrderDate, @OrderQty, @ExpectedReceipt, @Memo, @UpdatedAt);
                 SELECT last_insert_rowid();";
             return db.ExecuteScalar<long>(sql, ToParam(item));
@@ -62,7 +75,8 @@ namespace CleanPotal.FieldInventory.Repositories
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
                 UPDATE FieldInventoryItems
-                SET OrderNo=@OrderNo, StorageLocation=@StorageLocation, ItemName=@ItemName,
+                SET OrderNo=@OrderNo, ItemCode=@ItemCode, Category=@Category, Unit=@Unit, RegisteredDate=@RegisteredDate,
+                    StorageLocation=@StorageLocation, ItemName=@ItemName,
                     CurrentStock=@CurrentStock, AppropriateStock=@AppropriateStock,
                     MinOrderQty=@MinOrderQty, Supplier=@Supplier,
                     OrderDate=@OrderDate, OrderQty=@OrderQty, ExpectedReceipt=@ExpectedReceipt,
@@ -78,9 +92,10 @@ namespace CleanPotal.FieldInventory.Repositories
 
         private static object ToParam(FieldInventoryItem i) => new
         {
-            i.ItemId, i.OrderNo, i.StorageLocation, i.ItemName,
+            i.ItemId, i.OrderNo, i.ItemCode, i.Category, i.Unit, i.StorageLocation, i.ItemName,
             i.CurrentStock, i.AppropriateStock, i.MinOrderQty, i.Supplier,
             i.OrderDate, i.OrderQty, i.ExpectedReceipt, i.Memo,
+            RegisteredDate = i.RegisteredDate.ToString("yyyy-MM-dd"),
             UpdatedAt = i.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")
         };
 

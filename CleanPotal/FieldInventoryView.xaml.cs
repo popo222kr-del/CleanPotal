@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using CleanPotal.FieldInventory.Models;
 using CleanPotal.FieldInventory.Repositories;
 using ClosedXML.Excel;
@@ -14,7 +15,11 @@ namespace CleanPotal
     public partial class FieldInventoryView : UserControl
     {
         private readonly ObservableCollection<FieldInventoryItem> _items = new();
-        private bool _suppressEdit;
+        private List<FieldInventoryItem> _filtered = new();
+        private int _pageSize = 10;
+        private int _currentPage = 1;
+        private bool _sortDescending = true;
+        private FieldInventoryItem? _editingItem;
 
         public FieldInventoryView()
         {
@@ -30,37 +35,13 @@ namespace CleanPotal
                 _items.Clear();
                 foreach (var i in all) _items.Add(i);
 
-                RefreshLocationFilter();
-                CmbLocationFilter.SelectedIndex = 0;
-
-                ApplyFilter("전체");
+                ApplyFilters();
                 RefreshStats();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"재고 목록을 불러오지 못했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        // 보관위치 필터 콤보 구성 ("전체" + 등장한 모든 위치, 등장 순서 유지)
-        private void RefreshLocationFilter()
-        {
-            var current = CmbLocationFilter.SelectedItem as string;
-            var locations = new[] { "전체" }.Concat(_items.OrderBy(i => i.OrderNo).Select(i => i.StorageLocation).Distinct()).ToArray();
-            CmbLocationFilter.ItemsSource = locations;
-            CmbLocationFilter.SelectedItem = current != null && locations.Contains(current) ? current : "전체";
-        }
-
-        private void ApplyFilter(string location)
-        {
-            var source = (string.IsNullOrEmpty(location) || location == "전체"
-                ? _items.AsEnumerable()
-                : _items.Where(i => i.StorageLocation == location))
-                .OrderBy(i => i.OrderNo).ToList();
-
-            var view = new CollectionViewSource { Source = source };
-            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
-            DgInventory.ItemsSource = view.View;
         }
 
         private void RefreshStats()
@@ -74,58 +55,270 @@ namespace CleanPotal
             StatUpdatedText.Text = latest != null ? latest.UpdatedAt.ToString("yyyy-MM-dd HH:mm") : "-";
         }
 
-        private void CmbLocationFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // -----------------------------------------------------------------------
+        // 필터 / 정렬 / 페이징
+        // -----------------------------------------------------------------------
+        private void ApplyFilters(bool resetPage = true)
         {
-            if (CmbLocationFilter.SelectedItem is string loc)
-                ApplyFilter(loc);
+            if (DgInventory == null) return;
+
+            IEnumerable<FieldInventoryItem> source = _items;
+
+            if (DpFrom.SelectedDate.HasValue)
+                source = source.Where(i => i.RegisteredDate.Date >= DpFrom.SelectedDate.Value.Date);
+            if (DpTo.SelectedDate.HasValue)
+                source = source.Where(i => i.RegisteredDate.Date <= DpTo.SelectedDate.Value.Date);
+
+            string keyword = TxtSearch.Text.Trim();
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                source = source.Where(i =>
+                    i.ItemName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    i.ItemCode.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    i.Category.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+            }
+
+            source = _sortDescending
+                ? source.OrderByDescending(i => i.RegisteredDate).ThenByDescending(i => i.OrderNo)
+                : source.OrderBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
+
+            _filtered = source.ToList();
+            if (resetPage) _currentPage = 1;
+
+            RenderPage();
+            RenderPager();
+        }
+
+        private void RenderPage()
+        {
+            var page = _filtered.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
+            DgInventory.ItemsSource = page;
+            TxtTotalCount.Text = $"총 {_filtered.Count}개";
+        }
+
+        private void RenderPager()
+        {
+            PagerPanel.Children.Clear();
+
+            int totalPages = Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)_pageSize));
+            if (_currentPage > totalPages) _currentPage = totalPages;
+
+            var prev = new Button { Content = "<", Style = (Style)FindResource("PageBtn"), Margin = new Thickness(2, 0, 2, 0), IsEnabled = _currentPage > 1 };
+            prev.Click += (_, __) => { _currentPage--; RenderPage(); RenderPager(); };
+            PagerPanel.Children.Add(prev);
+
+            for (int p = 1; p <= totalPages; p++)
+            {
+                int page = p;
+                var btn = new Button
+                {
+                    Content = page.ToString(),
+                    Style = (Style)FindResource(page == _currentPage ? "PageBtnActive" : "PageBtn"),
+                    Margin = new Thickness(2, 0, 2, 0)
+                };
+                btn.Click += (_, __) => { _currentPage = page; RenderPage(); RenderPager(); };
+                PagerPanel.Children.Add(btn);
+            }
+
+            var next = new Button { Content = ">", Style = (Style)FindResource("PageBtn"), Margin = new Thickness(2, 0, 2, 0), IsEnabled = _currentPage < totalPages };
+            next.Click += (_, __) => { _currentPage++; RenderPage(); RenderPager(); };
+            PagerPanel.Children.Add(next);
+        }
+
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
+
+        private void DateFilter_Changed(object sender, SelectionChangedEventArgs e) => ApplyFilters();
+
+        private void CmbPageSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DgInventory == null) return;
+            if (CmbPageSize.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out int size))
+            {
+                _pageSize = size;
+                _currentPage = 1;
+                RenderPage();
+                RenderPager();
+            }
+        }
+
+        private void DgInventory_Sorting(object sender, DataGridSortingEventArgs e)
+        {
+            if (e.Column.SortMemberPath != nameof(FieldInventoryItem.RegisteredDate))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            e.Handled = true;
+            _sortDescending = e.Column.SortDirection != ListSortDirection.Descending;
+            e.Column.SortDirection = _sortDescending ? ListSortDirection.Descending : ListSortDirection.Ascending;
+            ApplyFilters(resetPage: false);
         }
 
         // -----------------------------------------------------------------------
-        // 항목 추가
+        // 항목 추가 / 수정 / 삭제
         // -----------------------------------------------------------------------
-        private void BtnAddRow_Click(object sender, RoutedEventArgs e)
-        {
-            string location = (CmbLocationFilter.SelectedItem as string) is string sel && sel != "전체"
-                ? sel
-                : (_items.Count == 0 ? "메탈 반입구" : _items.OrderBy(i => i.OrderNo).Last().StorageLocation);
-            AddItem(location);
-        }
+        private void BtnAddRow_Click(object sender, RoutedEventArgs e) => OpenModal(null);
 
-        // -----------------------------------------------------------------------
-        // 보관위치 추가
-        // -----------------------------------------------------------------------
         private void BtnAddLocation_Click(object sender, RoutedEventArgs e)
         {
             string? name = ShowSimpleInputDialog("보관위치 추가", "새 보관위치 이름을 입력하세요.");
             if (string.IsNullOrWhiteSpace(name)) return;
-            name = name.Trim();
-
-            if (_items.Any(i => i.StorageLocation == name))
-            {
-                MessageBox.Show("이미 존재하는 보관위치입니다.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            AddItem(name);
+            OpenModal(null, presetLocation: name.Trim());
         }
 
-        private void AddItem(string location)
+        private void BtnEditItem_Click(object sender, RoutedEventArgs e)
         {
-            int nextNo = _items.Count == 0 ? 1 : _items.Max(i => i.OrderNo) + 1;
-            var newItem = new FieldInventoryItem { OrderNo = nextNo, StorageLocation = location, ItemName = "새 품목" };
+            if (sender is FrameworkElement fe && fe.DataContext is FieldInventoryItem item)
+                OpenModal(item);
+        }
+
+        private void BtnDeleteItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext is not FieldInventoryItem item) return;
+            if (MessageBox.Show($"'{item.ItemName}' 항목을 삭제하시겠습니까?",
+                    "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
             try
             {
-                newItem.ItemId = FieldInventoryRepository.Insert(newItem);
-                _items.Add(newItem);
-                RefreshLocationFilter();
-                ApplyFilter(CmbLocationFilter.SelectedItem as string ?? "전체");
+                FieldInventoryRepository.Delete(item.ItemId);
+                _items.Remove(item);
+                ApplyFilters(resetPage: false);
                 RefreshStats();
-                DgInventory.SelectedItem = newItem;
-                DgInventory.ScrollIntoView(newItem);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"항목 추가 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = _items.Where(i => i.IsSelected).ToList();
+            if (!selected.Any())
+            {
+                MessageBox.Show("삭제할 항목을 선택해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            if (MessageBox.Show($"선택한 {selected.Count}개 항목을 삭제하시겠습니까?",
+                    "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
+            try
+            {
+                foreach (var item in selected)
+                {
+                    FieldInventoryRepository.Delete(item.ItemId);
+                    _items.Remove(item);
+                }
+                ApplyFilters(resetPage: false);
+                RefreshStats();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // 등록/수정 모달
+        // -----------------------------------------------------------------------
+        private void OpenModal(FieldInventoryItem? item, string? presetLocation = null)
+        {
+            _editingItem = item;
+            TxtModalTitle.Text = item == null ? "상품 등록" : "상품 정보 수정";
+            BtnSaveModal.Content = item == null ? "등록 완료" : "수정 완료";
+
+            CmbEditCategory.ItemsSource = _items.Select(i => i.Category).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
+            CmbEditLocation.ItemsSource = _items.Select(i => i.StorageLocation).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
+            CmbEditUnit.ItemsSource = _items.Select(i => i.Unit).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
+
+            TxtEditCode.Text = item?.ItemCode ?? "";
+            CmbEditCategory.Text = item?.Category ?? "";
+            TxtEditName.Text = item?.ItemName ?? "";
+            DpEditDate.SelectedDate = item?.RegisteredDate ?? DateTime.Now.Date;
+            CmbEditLocation.Text = item?.StorageLocation ?? presetLocation ?? "";
+            TxtEditCurrent.Text = item?.CurrentStock ?? "";
+            TxtEditSafe.Text = item?.AppropriateStock ?? "";
+            CmbEditUnit.Text = item?.Unit ?? "";
+            TxtEditMemo.Text = item?.Memo ?? "";
+            TxtEditMinOrder.Text = item?.MinOrderQty ?? "";
+            TxtEditOrderQty.Text = item?.OrderQty ?? "";
+            TxtEditOrderDate.Text = item?.OrderDate ?? "";
+            TxtEditExpected.Text = item?.ExpectedReceipt ?? "";
+            TxtEditSupplier.Text = item?.Supplier ?? "";
+
+            EditOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void BtnCloseModal_Click(object sender, RoutedEventArgs e)
+        {
+            EditOverlay.Visibility = Visibility.Collapsed;
+            _editingItem = null;
+        }
+
+        private void BtnSaveModal_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(TxtEditName.Text))
+            {
+                MessageBox.Show("상품명을 입력해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                if (_editingItem == null)
+                {
+                    int nextNo = _items.Count == 0 ? 1 : _items.Max(i => i.OrderNo) + 1;
+                    var newItem = new FieldInventoryItem
+                    {
+                        OrderNo = nextNo,
+                        ItemCode = TxtEditCode.Text.Trim(),
+                        Category = CmbEditCategory.Text.Trim(),
+                        ItemName = TxtEditName.Text.Trim(),
+                        RegisteredDate = DpEditDate.SelectedDate ?? DateTime.Now.Date,
+                        StorageLocation = CmbEditLocation.Text.Trim(),
+                        CurrentStock = TxtEditCurrent.Text.Trim(),
+                        AppropriateStock = TxtEditSafe.Text.Trim(),
+                        Unit = CmbEditUnit.Text.Trim(),
+                        Memo = TxtEditMemo.Text.Trim(),
+                        MinOrderQty = TxtEditMinOrder.Text.Trim(),
+                        OrderQty = TxtEditOrderQty.Text.Trim(),
+                        OrderDate = TxtEditOrderDate.Text.Trim(),
+                        ExpectedReceipt = TxtEditExpected.Text.Trim(),
+                        Supplier = TxtEditSupplier.Text.Trim()
+                    };
+                    newItem.ItemId = FieldInventoryRepository.Insert(newItem);
+                    _items.Add(newItem);
+                }
+                else
+                {
+                    var item = _editingItem;
+                    item.ItemCode = TxtEditCode.Text.Trim();
+                    item.Category = CmbEditCategory.Text.Trim();
+                    item.ItemName = TxtEditName.Text.Trim();
+                    item.RegisteredDate = DpEditDate.SelectedDate ?? item.RegisteredDate;
+                    item.StorageLocation = CmbEditLocation.Text.Trim();
+                    item.CurrentStock = TxtEditCurrent.Text.Trim();
+                    item.AppropriateStock = TxtEditSafe.Text.Trim();
+                    item.Unit = CmbEditUnit.Text.Trim();
+                    item.Memo = TxtEditMemo.Text.Trim();
+                    item.MinOrderQty = TxtEditMinOrder.Text.Trim();
+                    item.OrderQty = TxtEditOrderQty.Text.Trim();
+                    item.OrderDate = TxtEditOrderDate.Text.Trim();
+                    item.ExpectedReceipt = TxtEditExpected.Text.Trim();
+                    item.Supplier = TxtEditSupplier.Text.Trim();
+                    FieldInventoryRepository.Update(item);
+                }
+
+                EditOverlay.Visibility = Visibility.Collapsed;
+                _editingItem = null;
+                TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
+                ApplyFilters(resetPage: false);
+                RefreshStats();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"저장 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -162,69 +355,10 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // 선택 항목 삭제
-        // -----------------------------------------------------------------------
-        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
-        {
-            var selected = DgInventory.SelectedItems.Cast<FieldInventoryItem>().ToList();
-            if (!selected.Any())
-            {
-                MessageBox.Show("삭제할 항목을 선택해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            if (MessageBox.Show($"선택한 {selected.Count}개 항목을 삭제하시겠습니까?",
-                    "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            try
-            {
-                foreach (var item in selected)
-                {
-                    FieldInventoryRepository.Delete(item.ItemId);
-                    _items.Remove(item);
-                }
-                RefreshLocationFilter();
-                ApplyFilter(CmbLocationFilter.SelectedItem as string ?? "전체");
-                RefreshStats();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        // -----------------------------------------------------------------------
-        // 셀 편집 완료 → 즉시 저장
-        // -----------------------------------------------------------------------
-        private void DgInventory_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            if (e.EditAction != DataGridEditAction.Commit) return;
-            if (_suppressEdit) return;
-            if (e.Row?.Item is not FieldInventoryItem item) return;
-
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                try
-                {
-                    FieldInventoryRepository.Update(item);
-                    TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
-                    RefreshLocationFilter();
-                    ApplyFilter(CmbLocationFilter.SelectedItem as string ?? "전체");
-                    RefreshStats();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"저장 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }), System.Windows.Threading.DispatcherPriority.Background);
-        }
-
-        // -----------------------------------------------------------------------
-        // 새로고침
+        // 새로고침 / 엑셀 내보내기
         // -----------------------------------------------------------------------
         private void BtnRefresh_Click(object sender, RoutedEventArgs e) => Load();
 
-        // -----------------------------------------------------------------------
-        // 엑셀 내보내기
-        // -----------------------------------------------------------------------
         private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new SaveFileDialog
@@ -240,8 +374,7 @@ namespace CleanPotal
                 using var wb = new XLWorkbook();
                 var ws = wb.AddWorksheet("재고 현황");
 
-                // 헤더
-                var headers = new[] { "NO", "보관위치", "품목", "현재 재고", "적정 재고", "최소 발주", "발주 날짜", "발주 수량", "입고 예정", "발주 회사", "비고" };
+                var headers = new[] { "NO", "등록일자", "상품코드", "카테고리", "상품명", "위치", "현재고", "안전재고", "단위", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
                 for (int c = 0; c < headers.Length; c++)
                 {
                     var cell = ws.Cell(1, c + 1);
@@ -251,25 +384,27 @@ namespace CleanPotal
                     cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 }
 
-                // 데이터
                 var data = _items.OrderBy(i => i.OrderNo).ToList();
                 for (int r = 0; r < data.Count; r++)
                 {
                     var item = data[r];
                     int row = r + 2;
                     ws.Cell(row, 1).Value = item.OrderNo;
-                    ws.Cell(row, 2).Value = item.StorageLocation;
-                    ws.Cell(row, 3).Value = item.ItemName;
-                    ws.Cell(row, 4).Value = item.CurrentStock;
-                    ws.Cell(row, 5).Value = item.AppropriateStock;
-                    ws.Cell(row, 6).Value = item.MinOrderQty;
-                    ws.Cell(row, 7).Value = item.OrderDate;
-                    ws.Cell(row, 8).Value = item.OrderQty;
-                    ws.Cell(row, 9).Value = item.ExpectedReceipt;
-                    ws.Cell(row, 10).Value = item.Supplier;
-                    ws.Cell(row, 11).Value = item.Memo;
+                    ws.Cell(row, 2).Value = item.RegisteredDate.ToString("yyyy-MM-dd");
+                    ws.Cell(row, 3).Value = item.ItemCode;
+                    ws.Cell(row, 4).Value = item.Category;
+                    ws.Cell(row, 5).Value = item.ItemName;
+                    ws.Cell(row, 6).Value = item.StorageLocation;
+                    ws.Cell(row, 7).Value = item.CurrentStock;
+                    ws.Cell(row, 8).Value = item.AppropriateStock;
+                    ws.Cell(row, 9).Value = item.Unit;
+                    ws.Cell(row, 10).Value = item.MinOrderQty;
+                    ws.Cell(row, 11).Value = item.OrderDate;
+                    ws.Cell(row, 12).Value = item.OrderQty;
+                    ws.Cell(row, 13).Value = item.ExpectedReceipt;
+                    ws.Cell(row, 14).Value = item.Supplier;
+                    ws.Cell(row, 15).Value = item.Memo;
 
-                    // 재고 부족 행 빨간색
                     if (item.IsLow)
                     {
                         var rowRange = ws.Range(row, 1, row, headers.Length);
@@ -289,15 +424,5 @@ namespace CleanPotal
                 MessageBox.Show($"엑셀 내보내기 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-    }
-
-    /// <summary>IsLow 값에 따라 행 스타일을 동적으로 선택.</summary>
-    public class InventoryRowStyleSelector : StyleSelector
-    {
-        public Style? NormalStyle { get; set; }
-        public Style? LowStockStyle { get; set; }
-
-        public override Style? SelectStyle(object item, DependencyObject container)
-            => item is FieldInventoryItem inv && inv.IsLow ? LowStockStyle : NormalStyle;
     }
 }

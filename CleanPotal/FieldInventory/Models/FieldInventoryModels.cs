@@ -12,6 +12,36 @@ namespace CleanPotal.FieldInventory.Models
         public long ItemId { get; set; }
         public int OrderNo { get; set; }
 
+        private string _itemCode = "";
+        public string ItemCode
+        {
+            get => _itemCode;
+            set { _itemCode = value; OnPropChanged(nameof(ItemCode)); }
+        }
+
+        private string _category = "";
+        public string Category
+        {
+            get => _category;
+            set { _category = value; OnPropChanged(nameof(Category)); }
+        }
+
+        private string _unit = "";
+        public string Unit
+        {
+            get => _unit;
+            set { _unit = value; OnPropChanged(nameof(Unit)); }
+        }
+
+        public DateTime RegisteredDate { get; set; } = DateTime.Now.Date;
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { _isSelected = value; OnPropChanged(nameof(IsSelected)); }
+        }
+
         private string _storageLocation = "";
         public string StorageLocation
         {

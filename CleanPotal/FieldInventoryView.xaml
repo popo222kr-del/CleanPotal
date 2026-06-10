@@ -51,30 +51,44 @@
             <Setter Property="Background" Value="#2563EB"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#2563EB"/>
-        </Style>
-
-        <!-- 정상 행 스타일 -->
-        <Style x:Key="NormalRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="White"/>
             <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#EFF6FF"/>
-                </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="Background" Value="#1D4ED8"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- 재고 부족 행 → 빨간색 강조 -->
-        <Style x:Key="LowStockRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource NormalRowStyle}">
-            <Setter Property="Background" Value="#FEF2F2"/>
-            <Setter Property="Foreground" Value="#B91C1C"/>
+        <Style x:Key="LinkBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#FEE2E2"/>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.7"/>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PageBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="PageBtnActive" TargetType="Button" BasedOn="{StaticResource PageBtn}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2563EB"/>
         </Style>
 
         <Style x:Key="GridStyle" TargetType="DataGrid">
@@ -84,50 +98,72 @@
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="SelectionMode" Value="Extended"/>
+            <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="SelectionUnit" Value="FullRow"/>
             <Setter Property="CanUserReorderColumns" Value="False"/>
             <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="CanUserSortColumns" Value="False"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="ColumnHeaderHeight" Value="34"/>
-            <Setter Property="RowHeight" Value="34"/>
+            <Setter Property="ColumnHeaderHeight" Value="36"/>
+            <Setter Property="RowHeight" Value="40"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="#334155"/>
             <Setter Property="CanUserAddRows" Value="False"/>
         </Style>
 
         <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Background" Value="#F8FAFC"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#475569"/>
-            <Setter Property="Height" Value="34"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
         </Style>
 
-        <!-- 그룹 헤더 (창고별 구분선) -->
-        <Style x:Key="GroupHeaderStyle" TargetType="GroupItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="GroupItem">
-                        <StackPanel>
-                            <Border Background="#F1F5F9" Padding="12,6" Margin="0,4,0,0">
-                                <TextBlock FontSize="12" FontWeight="Bold" Foreground="#475569">
-                                    <Run Text="📦 "/>
-                                    <Run Text="{Binding Name, Mode=OneWay}"/>
-                                    <Run Text=" ("/>
-                                    <Run Text="{Binding ItemCount, Mode=OneWay}"/>
-                                    <Run Text="종)"/>
-                                </TextBlock>
-                            </Border>
-                            <ItemsPresenter/>
-                        </StackPanel>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="CenterCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CurrentStockCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLow}" Value="True">
+                    <Setter Property="Foreground" Value="#DC2626"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ItemCodeCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <Style x:Key="CategoryBadge" TargetType="Border">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="LocationBadge" TargetType="Border" BasedOn="{StaticResource CategoryBadge}">
+            <Setter Property="Background" Value="#EFF6FF"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="FieldInput" TargetType="Control">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
 
     </UserControl.Resources>
@@ -137,9 +173,10 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 상단: 제목 + 통계 카드 -->
+        <!-- 상단: 통계 카드 -->
         <Grid Grid.Row="0" Margin="0,0,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -169,20 +206,24 @@
 
         <!-- 툴바 -->
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,0">
-            <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <TextBlock x:Name="TxtGroupFilter" Text="전체 보관위치" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <ComboBox x:Name="CmbLocationFilter" MinWidth="140" FontSize="13" Padding="8,5"
-                              SelectionChanged="CmbLocationFilter_SelectionChanged" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtLastSaved" Text="" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <TextBlock x:Name="TxtLastSaved" Text="" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <Button x:Name="BtnAddLocation" Content="+ 위치 추가" Style="{StaticResource GhostBtn}" Click="BtnAddLocation_Click" Margin="0,0,8,0"/>
-                    <Button x:Name="BtnAddRow" Content="+ 항목 추가" Style="{StaticResource GhostBtn}" Click="BtnAddRow_Click" Margin="0,0,8,0"/>
+
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="등록일자" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <DatePicker x:Name="DpFrom" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,4,0"/>
+                    <TextBlock Text="~" VerticalAlignment="Center" Margin="2,0"/>
+                    <DatePicker x:Name="DpTo" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,10,0"/>
+                    <TextBox x:Name="TxtSearch" Width="220" FontSize="13" Padding="8,5" Margin="0,0,8,0"
+                             VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
                     <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
-                    <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click"/>
+                    <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnAddLocation" Content="+ 위치 추가" Style="{StaticResource GhostBtn}" Click="BtnAddLocation_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnAddRow" Content="+ 상품 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -192,85 +233,215 @@
             <DataGrid x:Name="DgInventory"
                       Style="{StaticResource GridStyle}"
                       ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                      CellEditEnding="DgInventory_CellEditEnding">
-                <DataGrid.GroupStyle>
-                    <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
-                </DataGrid.GroupStyle>
-                <DataGrid.RowStyleSelector>
-                    <local:InventoryRowStyleSelector
-                        xmlns:local="clr-namespace:CleanPotal"
-                        NormalStyle="{StaticResource NormalRowStyle}"
-                        LowStockStyle="{StaticResource LowStockRowStyle}"/>
-                </DataGrid.RowStyleSelector>
+                      Sorting="DgInventory_Sorting">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="NO" Binding="{Binding OrderNo}" Width="48" IsReadOnly="True"/>
-                    <!-- 보관위치는 그룹 헤더(📦)에 이미 표시되므로 평소엔 비워두고, 더블클릭 시에만 변경 가능 -->
-                    <DataGridTemplateColumn Header="보관위치" Width="120">
+                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+
+                    <DataGridTextColumn Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="100" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="CenterCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="상품 코드" Binding="{Binding ItemCode}" Width="100" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="ItemCodeCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn Header="카테고리" Width="100" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text=""/>
+                                <Border Style="{StaticResource CategoryBadge}">
+                                    <TextBlock Text="{Binding Category}" FontSize="12" Foreground="#475569"/>
+                                </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
-                        <DataGridTemplateColumn.CellEditingTemplate>
-                            <DataTemplate>
-                                <TextBox Text="{Binding StorageLocation, UpdateSourceTrigger=PropertyChanged}"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="품목" Binding="{Binding ItemName}" Width="3*" MinWidth="200"/>
-                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="110">
+
+                    <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="2*" MinWidth="180" IsReadOnly="True"/>
+
+                    <DataGridTemplateColumn Header="위치" Width="110" IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource LocationBadge}">
+                                    <TextBlock Text="{Binding StorageLocation}" FontSize="12" Foreground="#2563EB" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock}" Width="90" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                            </Style>
+                            <StaticResource ResourceKey="CurrentStockCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="적정 재고" Binding="{Binding AppropriateStock}" Width="100">
+
+                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="90" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
+                            <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="최소 발주" Binding="{Binding MinOrderQty}" Width="90">
+
+                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="70" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
+                            <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="발주 날짜" Binding="{Binding OrderDate}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="발주 수량" Binding="{Binding OrderQty}" Width="90">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="입고 예정" Binding="{Binding ExpectedReceipt}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="발주 회사" Binding="{Binding Supplier}" Width="2*" MinWidth="140"/>
-                    <DataGridTextColumn Header="비고" Binding="{Binding Memo}" Width="2*" MinWidth="140"/>
+
+                    <DataGridTemplateColumn Header="작업" Width="90" IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Content="수정" Style="{StaticResource LinkBtn}" Foreground="#2563EB" Click="BtnEditItem_Click"/>
+                                    <Button Content="삭제" Style="{StaticResource LinkBtn}" Foreground="#DC2626" Click="BtnDeleteItem_Click"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
+
+        <!-- 페이지네이션 -->
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Padding="12,10">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtTotalCount" Text="총 0개" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <ComboBox x:Name="CmbPageSize" Width="110" FontSize="12" SelectionChanged="CmbPageSize_SelectionChanged" SelectedIndex="0">
+                        <ComboBoxItem Content="10개씩 보기" Tag="10"/>
+                        <ComboBoxItem Content="20개씩 보기" Tag="20"/>
+                        <ComboBoxItem Content="50개씩 보기" Tag="50"/>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel x:Name="PagerPanel" Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- 상품 등록/수정 모달 -->
+        <Grid x:Name="EditOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="12" Padding="24" Width="540" MaxHeight="680"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock x:Name="TxtModalTitle" Text="상품 정보 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                        <Button Content="✕" Style="{StaticResource LinkBtn}" FontSize="16" Foreground="#94A3B8"
+                                HorizontalAlignment="Right" Click="BtnCloseModal_Click"/>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,0,8,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="상품 코드" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditCode" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="카테고리" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditCategory" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="상품명 *" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditName" Style="{StaticResource FieldInput}"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="등록일자" Style="{StaticResource FieldLabel}"/>
+                                    <DatePicker x:Name="DpEditDate" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="상품 위치" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditLocation" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="현재고" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditCurrent" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="안전재고" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditSafe" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="단위" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditUnit" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="비고" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditMemo" Height="60" Padding="8,6" FontSize="13" Margin="0,0,0,12"
+                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+                            <TextBlock Text="발주 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" Margin="0,4,0,8"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="최소 발주" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditMinOrder" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="발주 수량" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditOrderQty" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="발주 날짜" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditOrderDate" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="입고 예정" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditExpected" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="발주 회사" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditSupplier" Style="{StaticResource FieldInput}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Button x:Name="BtnSaveModal" Grid.Row="2" Content="수정 완료" Style="{StaticResource PrimaryBtn}"
+                            HorizontalAlignment="Stretch" Padding="14,10" FontSize="14" Margin="0,12,0,0"
+                            Click="BtnSaveModal_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
