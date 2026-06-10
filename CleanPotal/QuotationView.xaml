@@ -780,12 +780,16 @@
 
                     <!-- Row 0: 타이틀 + 액션 버튼 -->
                     <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <StackPanel VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                             <TextBlock Text="단가 관리" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
                             <TextBlock Text="제품 단가를 등록하면 견적서 작성 시 빠르게 추가할 수 있습니다."
-                                       FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                                       FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <!-- 관리자(1004)만 삭제 가능 -->
                             <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
@@ -803,7 +807,12 @@
                     </Grid>
 
                     <!-- Row 1: 업체 칩 필터 (Notion 스타일) -->
-                    <Border Grid.Row="1" Margin="0,0,0,12"
+                    <Grid Grid.Row="1" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0"
                             Background="#F8FAFC" CornerRadius="10" Padding="10,8">
                         <ListBox ItemsSource="{Binding MasterVendorOptions}"
                                  SelectedItem="{Binding MasterVendorFilter, Mode=TwoWay}"
@@ -848,6 +857,11 @@
                             </ListBox.ItemContainerStyle>
                         </ListBox>
                     </Border>
+                    <Button Grid.Column="1" Content="업체명 통합" Style="{StaticResource MacSecondaryButtonStyle}"
+                            Height="36" MinWidth="92" Margin="8,0,0,0"
+                            ToolTip="선택된 업체명으로 등록된 모든 단가 항목의 업체명을 일괄 변경합니다."
+                            Click="BtnRenameVendor_Click"/>
+                    </Grid>
 
                     <!-- Row 2: 검색 박스 -->
                     <Border Grid.Row="2" Margin="0,0,0,12"

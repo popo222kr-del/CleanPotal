@@ -1889,8 +1889,76 @@ namespace CleanPotal
         {
             _isMasterDirty = true;
             if (e.EditAction == DataGridEditAction.Commit)
-                Dispatcher.BeginInvoke(new Action(SaveProductMasterSilently),
-                    System.Windows.Threading.DispatcherPriority.Background);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    SaveProductMasterSilently();
+                    // 업체명을 직접 수정한 경우 칩 필터 목록도 즉시 갱신
+                    RefreshMasterVendorOptions();
+                }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // 동일 업체가 여러 표기(예: "국제엘레트릭 코리아" / "국제엘레트릭코리아")로 등록된 경우
+        // 단가 목록 전체에서 한 번에 통일
+        private void BtnRenameVendor_Click(object sender, RoutedEventArgs e)
+        {
+            string oldName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter;
+
+            var oldBox = new TextBox { Text = oldName, Margin = new Thickness(0, 4, 0, 12), Padding = new Thickness(8), FontSize = 13 };
+            var newBox = new TextBox { Margin = new Thickness(0, 4, 0, 12), Padding = new Thickness(8), FontSize = 13 };
+
+            var panel = new StackPanel { Margin = new Thickness(20) };
+            panel.Children.Add(new TextBlock { Text = "변경 전 업체명 (단가 관리 내 일치 항목 전체)", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+            panel.Children.Add(oldBox);
+            panel.Children.Add(new TextBlock { Text = "변경 후 업체명", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+            panel.Children.Add(newBox);
+
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
+            var okBtn = new Button { Content = "변경", MinWidth = 80, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+            var cancelBtn = new Button { Content = "취소", MinWidth = 80, IsCancel = true };
+            btnPanel.Children.Add(okBtn);
+            btnPanel.Children.Add(cancelBtn);
+            panel.Children.Add(btnPanel);
+
+            var dlg = new Window
+            {
+                Title = "업체명 일괄 변경",
+                SizeToContent = SizeToContent.WidthAndHeight,
+                MinWidth = 360,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                ResizeMode = ResizeMode.NoResize,
+                Content = panel
+            };
+
+            bool confirmed = false;
+            okBtn.Click += (_, __) => { confirmed = true; dlg.Close(); };
+            cancelBtn.Click += (_, __) => dlg.Close();
+            dlg.ShowDialog();
+            if (!confirmed) return;
+
+            string from = oldBox.Text.Trim();
+            string to   = newBox.Text.Trim();
+            if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
+            if (string.Equals(from, to, StringComparison.Ordinal)) return;
+
+            int count = 0;
+            foreach (var item in _allProductMaster)
+                if (string.Equals(item.VendorName?.Trim(), from, StringComparison.OrdinalIgnoreCase))
+                {
+                    item.VendorName = to;
+                    count++;
+                }
+
+            if (count == 0)
+            {
+                MessageBox.Show($"'{from}' 업체명을 가진 항목을 찾을 수 없습니다.");
+                return;
+            }
+
+            SaveProductMasterSilently();
+            RefreshMasterVendorOptions();
+            MasterVendorFilter = MasterVendorOptions.Contains(to) ? to : "전체";
+            MessageBox.Show($"{count}개 항목의 업체명을 '{from}' → '{to}' 로 변경했습니다.");
         }
 
         // 단가 관리 변경 사항을 즉시 파일에 반영 (신규/수정 항목 자동 저장)
