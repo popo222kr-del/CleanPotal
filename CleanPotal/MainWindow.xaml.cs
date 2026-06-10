@@ -624,25 +624,34 @@ namespace CleanPotal
             switch (viewName)
             {
                 case "Portal": BtnNavPortal.Style = mainSelected; break;
-                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
-                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
-                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
-                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
-                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
-                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
-                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
+                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
+                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
+                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
+                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
+                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
             }
 
             _isUpdatingNav = false;
+        }
+
+        // Style 재할당으로 ControlTemplate이 새로 적용되면 슬라이드/Chevron 애니메이션 트리거가
+        // 재실행되지 않아 IsExpanded=true 여도 하위 메뉴가 보이지 않는 문제가 있어,
+        // false→true로 강제 토글해 진입 애니메이션을 다시 재생시킨다.
+        private static void ForceExpand(Expander expander)
+        {
+            expander.IsExpanded = false;
+            expander.IsExpanded = true;
         }
 
         private static string GetAppVersion()
