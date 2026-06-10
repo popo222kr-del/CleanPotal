@@ -1389,10 +1389,14 @@ namespace CleanPotal
 
         private ProductMasterItem? FindMasterItem(string description, string partCode, string vendorName = "")
         {
+            // "-"는 품목코드 미지정을 나타내는 placeholder일 뿐, 실제 코드 값이 아님.
+            // 그대로 매칭에 사용하면 코드가 "-"인 여러 항목끼리 서로 잘못 매칭되어 덮어써진다.
+            bool hasCode = !string.IsNullOrEmpty(partCode) && partCode != "-";
+
             // 업체명이 지정된 경우 해당 업체 항목 우선 탐색
             if (!string.IsNullOrEmpty(vendorName))
             {
-                if (!string.IsNullOrEmpty(partCode))
+                if (hasCode)
                 {
                     var byCode = _productMaster.FirstOrDefault(p =>
                         string.Equals(p.VendorName, vendorName, StringComparison.OrdinalIgnoreCase) &&
@@ -1408,7 +1412,7 @@ namespace CleanPotal
                 }
             }
             // 업체 미지정 또는 업체별 매칭 실패 시 전체 탐색
-            if (!string.IsNullOrEmpty(partCode))
+            if (hasCode)
             {
                 var byCode = _productMaster.FirstOrDefault(p =>
                     string.Equals(p.PartCode, partCode, StringComparison.OrdinalIgnoreCase));
