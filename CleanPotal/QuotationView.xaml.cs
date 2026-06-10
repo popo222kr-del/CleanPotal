@@ -1870,6 +1870,7 @@ namespace CleanPotal
 
                 decimal.TryParse(priceText.Replace(",", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal price);
 
+                string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
                 var existing = FindMasterItem(name, code, vendor);
                 if (existing != null)
                 {
@@ -1878,6 +1879,8 @@ namespace CleanPotal
                     existing.PartCode    = code;
                     existing.Spec        = spec;
                     existing.UnitPrice   = price;
+                    existing.UpdatedBy   = SessionManager.CurrentRealName;
+                    existing.UpdatedAt   = now;
                     updated++;
                 }
                 else
@@ -1888,7 +1891,9 @@ namespace CleanPotal
                         ProductName = name,
                         PartCode    = code,
                         Spec        = spec,
-                        UnitPrice   = price
+                        UnitPrice   = price,
+                        UpdatedBy   = SessionManager.CurrentRealName,
+                        UpdatedAt   = now
                     });
                     added++;
                 }
@@ -1900,12 +1905,19 @@ namespace CleanPotal
         {
             _isMasterDirty = true;
             if (e.EditAction == DataGridEditAction.Commit)
+            {
+                if (e.Row.Item is ProductMasterItem edited)
+                {
+                    edited.UpdatedBy = SessionManager.CurrentRealName;
+                    edited.UpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+                }
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     SaveProductMasterSilently();
                     // 업체명을 직접 수정한 경우 칩 필터 목록도 즉시 갱신
                     RefreshMasterVendorOptions();
                 }), System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
 
         // 동일 업체가 여러 표기(예: "국제엘레트릭 코리아" / "국제엘레트릭코리아")로 등록된 경우
@@ -1952,11 +1964,14 @@ namespace CleanPotal
             if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to)) return;
             if (string.Equals(from, to, StringComparison.Ordinal)) return;
 
+            string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             int count = 0;
             foreach (var item in _allProductMaster)
                 if (string.Equals(item.VendorName?.Trim(), from, StringComparison.OrdinalIgnoreCase))
                 {
                     item.VendorName = to;
+                    item.UpdatedBy = SessionManager.CurrentRealName;
+                    item.UpdatedAt = now;
                     count++;
                 }
 
@@ -1987,7 +2002,9 @@ namespace CleanPotal
         {
             var newItem = new ProductMasterItem
             {
-                VendorName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter
+                VendorName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter,
+                UpdatedBy  = SessionManager.CurrentRealName,
+                UpdatedAt  = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
             };
             // 맨 앞에 삽입해 바로 보이게
             _allProductMaster.Insert(0, newItem);
