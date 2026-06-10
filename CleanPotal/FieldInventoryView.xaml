@@ -172,12 +172,13 @@
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <TextBlock x:Name="TxtGroupFilter" Text="전체 창고" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="TxtGroupFilter" Text="전체 보관위치" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <ComboBox x:Name="CmbLocationFilter" MinWidth="140" FontSize="13" Padding="8,5"
                               SelectionChanged="CmbLocationFilter_SelectionChanged" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <TextBlock x:Name="TxtLastSaved" Text="" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Button x:Name="BtnAddLocation" Content="+ 위치 추가" Style="{StaticResource GhostBtn}" Click="BtnAddLocation_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnAddRow" Content="+ 항목 추가" Style="{StaticResource GhostBtn}" Click="BtnAddRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
@@ -203,7 +204,14 @@
                 </DataGrid.RowStyleSelector>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="NO" Binding="{Binding OrderNo}" Width="48" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="창고" Binding="{Binding StorageLocation}" Width="120"/>
+                    <DataGridTextColumn Header="보관위치" Binding="{Binding DisplayStorageLocation}" Width="120" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
                     <DataGridTextColumn Header="품목" Binding="{Binding ItemName}" Width="3*" MinWidth="200"/>
                     <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="110">
                         <DataGridTextColumn.ElementStyle>
