@@ -34,6 +34,9 @@ namespace CleanPotal
         private List<VendorModel> _allVendors = new();
         public ObservableCollection<VendorModel> FilteredVendors { get; } = new();
 
+        // 업체 미선택 상태에서도 전체 견적서를 최근순으로 보여주기 위한 가상 항목
+        public static readonly VendorModel AllVendorsItem = new VendorModel { VendorName = "전체 보기", Category = "" };
+
         private VendorModel? _selectedVendor;
         public VendorModel? SelectedVendor
         {
@@ -43,6 +46,8 @@ namespace CleanPotal
                 _selectedVendor = value;
                 OnPropertyChanged(nameof(SelectedVendor));
                 OnPropertyChanged(nameof(HasSelectedVendor));
+                OnPropertyChanged(nameof(IsAllVendors));
+                OnPropertyChanged(nameof(CanCreateNewQuotation));
                 OnPropertyChanged(nameof(IsNoneView));
                 OnPropertyChanged(nameof(IsListView));
                 OnPropertyChanged(nameof(IsEditing));
@@ -53,6 +58,8 @@ namespace CleanPotal
         }
 
         public bool HasSelectedVendor => _selectedVendor != null;
+        public bool IsAllVendors => ReferenceEquals(_selectedVendor, AllVendorsItem);
+        public bool CanCreateNewQuotation => HasSelectedVendor && !IsAllVendors;
 
         public ObservableCollection<QuotationModel> VendorQuotations { get; } = new();
 
@@ -90,7 +97,10 @@ namespace CleanPotal
             {
                 if (IsEditing) return "FIRM QUOTATION";
                 if (IsListView && SelectedVendor != null)
+                {
+                    if (IsAllVendors) return $"전체 견적서  ·  {VendorQuotations.Count}건";
                     return $"{SelectedVendor.VendorName}  ·  견적 {VendorQuotations.Count}건";
+                }
                 return "업체 견적서";
             }
         }
@@ -251,6 +261,9 @@ namespace CleanPotal
             // 업체 목록 초기 로드
             _allVendors = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
             FilterVendors();
+
+            // 초기 화면: 업체 미선택 상태에서도 전체 견적서를 최근순으로 표시
+            VendorListBox.SelectedItem = AllVendorsItem;
         }
 
         // ─── 업체 필터링 ───
@@ -258,6 +271,8 @@ namespace CleanPotal
         private void FilterVendors()
         {
             FilteredVendors.Clear();
+            // 업체 미선택 상태에서도 전체 견적서를 볼 수 있도록 "전체 보기" 항목을 항상 맨 위에 노출
+            FilteredVendors.Add(AllVendorsItem);
             var filtered = _allVendors.Where(v =>
                 string.IsNullOrWhiteSpace(VendorSearch) ||
                 (v.VendorName?.Contains(VendorSearch, StringComparison.OrdinalIgnoreCase) == true));
@@ -281,8 +296,9 @@ namespace CleanPotal
         {
             VendorQuotations.Clear();
             if (_selectedVendor == null) return;
-            IEnumerable<QuotationModel> list = Quotations
-                .Where(q => string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
+            IEnumerable<QuotationModel> list = IsAllVendors
+                ? Quotations
+                : Quotations.Where(q => string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(_quoteNoSearch))
             {

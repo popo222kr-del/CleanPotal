@@ -168,12 +168,32 @@
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding VendorName}" FontSize="14" FontWeight="Bold"
                                                Foreground="#1E293B" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    <TextBlock FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Text" Value="{Binding Category}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VendorName}" Value="전체 보기">
+                                                        <Setter Property="Text" Value="최근 작성순 전체 견적서"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
-                                <!-- 즐겨찾기 토글 버튼 -->
+                                <!-- 즐겨찾기 토글 버튼 ("전체 보기" 항목에는 표시 안 함) -->
                                 <Button Grid.Column="1" Width="28" Height="28" Background="Transparent"
                                         BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"
                                         ToolTip="즐겨찾기" Click="BtnToggleFavorite_Click">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding VendorName}" Value="전체 보기">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
                                     <TextBlock FontSize="15" VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -234,7 +254,7 @@
                         <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
                                 Height="38" MinWidth="110"
                                 Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}"
-                                IsEnabled="{Binding HasSelectedVendor}"
+                                IsEnabled="{Binding CanCreateNewQuotation}"
                                 Click="BtnNewQuotation_Click"/>
                         <!-- 편집 화면: 내보내기 + 저장만 표시 -->
                         <Button Content="엑셀 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
@@ -313,6 +333,17 @@
                           Margin="28,12,28,28"
                           MouseDoubleClick="QuotationListGrid_DoubleClick">
                     <DataGrid.Columns>
+                        <!-- 업체명 ("전체 보기"일 때만 표시) -->
+                        <DataGridTextColumn Header="업체명" Binding="{Binding Company}" IsReadOnly="True" Width="130"
+                                            Visibility="{Binding DataContext.IsAllVendors, Source={x:Reference VendorQuotationsGrid}, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
                         <!-- 견적번호 -->
                         <DataGridTextColumn Header="견적번호" Binding="{Binding QuoteNo}" IsReadOnly="True" Width="150">
                             <DataGridTextColumn.ElementStyle>
