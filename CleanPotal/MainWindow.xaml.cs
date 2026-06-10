@@ -613,7 +613,7 @@ namespace CleanPotal
 
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavWeeklyHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
-            BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavQuotation.Style = subNormal;
+            BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavFieldInventory.Style = subNormal; BtnNavQuotation.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
