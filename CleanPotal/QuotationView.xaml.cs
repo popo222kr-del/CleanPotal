@@ -223,6 +223,17 @@ namespace CleanPotal
 
             var loadedMaster = QuotationStore.LoadProductMaster();
             MigrateSpecToPartCode(loadedMaster);
+            // 내용이 전혀 없는 빈 항목(이전 버전에서 잘못 저장된 placeholder)은 제거
+            var blanks = loadedMaster.Where(m =>
+                string.IsNullOrWhiteSpace(m.ProductName) &&
+                string.IsNullOrWhiteSpace(m.PartCode) &&
+                string.IsNullOrWhiteSpace(m.Spec) &&
+                m.UnitPrice == 0).ToList();
+            if (blanks.Count > 0)
+            {
+                foreach (var b in blanks) loadedMaster.Remove(b);
+                QuotationStore.SaveProductMaster(loadedMaster);
+            }
             _allProductMaster = loadedMaster.ToList();
             _productMaster = loadedMaster;
             ProductMasterGrid.ItemsSource = _productMaster;
@@ -1981,8 +1992,7 @@ namespace CleanPotal
             // 맨 앞에 삽입해 바로 보이게
             _allProductMaster.Insert(0, newItem);
             _productMaster.Insert(0, newItem);
-            RefreshMasterVendorOptions();
-            SaveProductMasterSilently();
+            _isMasterDirty = true;
             // 맨 위로 스크롤 후 해당 행 선택
             ProductMasterGrid.ScrollIntoView(newItem);
             ProductMasterGrid.SelectedItem = newItem;

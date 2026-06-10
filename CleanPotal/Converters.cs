@@ -62,6 +62,27 @@ namespace CleanPotal
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
     }
 
+    // 3-1. decimal <-> 천단위 콤마 문자열 (단가 입력란용)
+    public sealed class DecimalThousandsConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is decimal d) return d.ToString("N0", CultureInfo.InvariantCulture);
+            if (value is double db) return db.ToString("N0", CultureInfo.InvariantCulture);
+            return value?.ToString() ?? "";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string text = value?.ToString() ?? "";
+            text = text.Replace(",", "").Trim();
+            if (string.IsNullOrEmpty(text)) return 0m;
+            if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var result))
+                return result;
+            return Binding.DoNothing;
+        }
+    }
+
     // 4. bool -> Visibility (표시/숨김)
     public sealed class BoolToVisibilityConverter : IValueConverter
     {

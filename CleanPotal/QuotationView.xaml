@@ -9,6 +9,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:DecimalThousandsConverter x:Key="DecimalThousandsConverter"/>
 
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
@@ -677,7 +678,7 @@
                                     <DataGridTemplateColumn Header="단가 (₩)" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource DecimalThousandsConverter}}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0,14,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Right"
                                                          GotFocus="LineItemTextBox_GotFocus">
