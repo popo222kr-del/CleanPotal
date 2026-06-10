@@ -381,6 +381,20 @@ namespace CleanPotal
 
         public void TryRefresh() { }
 
+        private void BtnToggleDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            if (TopDashboardArea.Visibility == Visibility.Visible)
+            {
+                TopDashboardArea.Visibility = Visibility.Collapsed;
+                BtnToggleDashboard.Content = "대시보드 펴기 ▼";
+            }
+            else
+            {
+                TopDashboardArea.Visibility = Visibility.Visible;
+                BtnToggleDashboard.Content = "대시보드 접기 ▲";
+            }
+        }
+
         // 사용자계정(users.json)에서 이름→직위/입사일 매칭 디렉터리 구성
         private static void LoadUserDirectory()
         {

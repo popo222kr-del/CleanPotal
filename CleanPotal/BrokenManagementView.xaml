@@ -11,6 +11,8 @@
         <local:FileNameConverter x:Key="FileNameConverter"/>
         <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
 
+        <SolidColorBrush x:Key="BorderLight" Color="#E5E7EB"/>
+
         <Style x:Key="SectionCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
@@ -356,11 +358,12 @@
     <Grid Margin="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- 대시보드 (월별 차트 + 팀/제품종류 현황) -->
-        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
+        <Border x:Name="TopDashboardArea" Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
             <Grid MinHeight="252">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -544,8 +547,37 @@
             </Grid>
         </Border>
 
+        <!-- 대시보드 접기/펴기 토글 -->
+        <Grid x:Name="DashboardToggleRow" Grid.Row="1" Margin="8,12,8,12">
+            <Rectangle Height="1" Fill="{StaticResource BorderLight}" VerticalAlignment="Center"/>
+            <Button x:Name="BtnToggleDashboard" Content="대시보드 접기 ▲"
+                    HorizontalAlignment="Center" Padding="24,6"
+                    Background="#FFFFFF" Foreground="#64748B"
+                    BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
+                    FontSize="13" FontWeight="Bold" Cursor="Hand"
+                    Click="BtnToggleDashboard_Click">
+                <Button.Resources>
+                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="16"/></Style>
+                </Button.Resources>
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+
         <!-- 탭 -->
-        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="0">
 
             <!-- Tab 1: Broken 현황 -->
             <TabItem Header="Broken 현황" Style="{StaticResource TabHeaderStyle}">
