@@ -61,50 +61,53 @@ namespace CleanPotal
     }
 
     // ============================================================
-    // API 키 / 모델 설정 로컬 저장 (SessionManager의 자동로그인 패턴과 동일)
+    // Ollama 서버 주소 / 모델 설정 로컬 저장
     // ============================================================
-    internal static class AiSettingsStore
+    internal static class OllamaSettingsStore
     {
         private static readonly string SettingsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CleanPotal", "ai_settings.dat");
 
-        public static void Save(string apiKey, string model)
+        private const string DefaultEndpoint = "http://localhost:11434";
+        private const string DefaultModel = "llama3.1:8b";
+
+        public static void Save(string endpoint, string model)
         {
             try
             {
                 string? dir = Path.GetDirectoryName(SettingsPath);
                 if (dir != null) Directory.CreateDirectory(dir);
-                string data = $"{apiKey}|{model}";
-                string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
-                File.WriteAllText(SettingsPath, encoded);
+                string data = $"{endpoint}|{model}";
+                File.WriteAllText(SettingsPath, data);
             }
             catch { }
         }
 
-        public static (string apiKey, string model) Load()
+        public static (string endpoint, string model) Load()
         {
-            if (!File.Exists(SettingsPath)) return ("", "claude-sonnet-4-6");
+            if (!File.Exists(SettingsPath)) return (DefaultEndpoint, DefaultModel);
             try
             {
-                string encoded = File.ReadAllText(SettingsPath);
-                string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
-                string[] parts = decoded.Split('|', 2);
-                if (parts.Length == 2) return (parts[0], parts[1]);
+                string data = File.ReadAllText(SettingsPath);
+                string[] parts = data.Split('|', 2);
+                if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]))
+                    return (parts[0], parts[1]);
             }
             catch { }
-            return ("", "claude-sonnet-4-6");
+            return (DefaultEndpoint, DefaultModel);
         }
     }
 
     // ============================================================
-    // AiDocSearchView - 관리자 전용 AI 문서 검색
+    // AiDocSearchView - 관리자 전용 AI 문서 검색 (로컬 Ollama 기반)
     // ============================================================
     public partial class AiDocSearchView : UserControl
     {
         private readonly ObservableCollection<AiDocumentItem> _documents = new();
         private readonly ObservableCollection<AiChatMessage> _chatMessages = new();
 
-        private const int MaxCharsPerDocument = 200_000;
+        private const int MaxTotalContextChars = 16_000;
+        private const int MaxHistoryMessages = 10;
 
         private static string DocStoreRoot => Path.Combine(AppPaths.DataRoot, "ai_doc_search");
         private static string DocumentsFilePath => Path.Combine(DocStoreRoot, "documents.json");
@@ -136,23 +139,21 @@ namespace CleanPotal
         // ============================================================
         private void LoadSettingsIntoUi()
         {
-            var (apiKey, model) = AiSettingsStore.Load();
-            PwdApiKey.Password = apiKey;
-            foreach (var obj in CmbModel.Items)
-            {
-                if (obj is ComboBoxItem item && (string?)item.Tag == model)
-                {
-                    CmbModel.SelectedItem = item;
-                    break;
-                }
-            }
+            var (endpoint, model) = OllamaSettingsStore.Load();
+            TxtOllamaEndpoint.Text = endpoint;
+            CmbModel.Text = model;
         }
 
         private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
         {
-            string apiKey = PwdApiKey.Password.Trim();
-            string model = (CmbModel.SelectedItem as ComboBoxItem)?.Tag as string ?? "claude-sonnet-4-6";
-            AiSettingsStore.Save(apiKey, model);
+            string endpoint = TxtOllamaEndpoint.Text.Trim().TrimEnd('/');
+            string model = CmbModel.Text.Trim();
+            if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(model))
+            {
+                MessageBox.Show("Ollama 서버 주소와 모델 이름을 모두 입력해주세요.", "AI 문서 검색", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            OllamaSettingsStore.Save(endpoint, model);
             TxtSettingsStatus.Text = "저장되었습니다.";
         }
 
@@ -313,18 +314,13 @@ namespace CleanPotal
             string question = TxtQuestion.Text.Trim();
             if (string.IsNullOrEmpty(question)) return;
 
-            var (apiKey, model) = AiSettingsStore.Load();
-            if (string.IsNullOrEmpty(apiKey))
-            {
-                MessageBox.Show("API 키를 입력하고 [설정 저장]을 눌러주세요.", "AI 문서 검색", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+            var (endpoint, model) = OllamaSettingsStore.Load();
 
             TxtQuestion.Clear();
             BtnSend.IsEnabled = false;
 
             _chatMessages.Add(new AiChatMessage { Role = "user", Content = question });
-            var assistantMsg = new AiChatMessage { Role = "assistant", Content = "답변 작성 중..." };
+            var assistantMsg = new AiChatMessage { Role = "assistant", Content = "답변 작성 중... (로컬 모델은 응답이 느릴 수 있습니다)" };
             _chatMessages.Add(assistantMsg);
             ScrollChatToEnd();
 
@@ -332,7 +328,9 @@ namespace CleanPotal
             {
                 string systemPrompt = BuildSystemPrompt();
                 var history = _chatMessages.Where(m => m != assistantMsg).ToList();
-                string answer = await CallClaudeApiAsync(apiKey, model, systemPrompt, history);
+                if (history.Count > MaxHistoryMessages)
+                    history = history.Skip(history.Count - MaxHistoryMessages).ToList();
+                string answer = await CallOllamaApiAsync(endpoint, model, systemPrompt, history);
                 assistantMsg.Content = string.IsNullOrWhiteSpace(answer) ? "(빈 응답을 받았습니다.)" : answer;
             }
             catch (Exception ex)
@@ -360,14 +358,22 @@ namespace CleanPotal
                 return sb.ToString();
             }
 
+            int remaining = MaxTotalContextChars;
             foreach (var doc in _documents)
             {
+                if (remaining <= 0)
+                {
+                    sb.AppendLine($"===== 문서: {doc.FileName} (컨텍스트 한도 초과로 생략됨) =====");
+                    continue;
+                }
+
                 sb.AppendLine($"===== 문서: {doc.FileName} =====");
                 string text = doc.ExtractedText;
-                if (text.Length > MaxCharsPerDocument)
-                    text = text.Substring(0, MaxCharsPerDocument) + "\n...(이하 생략)...";
+                if (text.Length > remaining)
+                    text = text.Substring(0, remaining) + "\n...(이하 생략)...";
                 sb.AppendLine(text);
                 sb.AppendLine();
+                remaining -= text.Length;
             }
 
             return sb.ToString();
@@ -379,27 +385,37 @@ namespace CleanPotal
         }
 
         // ============================================================
-        // Claude API 호출 (HttpClient 직접 호출)
+        // Ollama API 호출 (로컬 서버, /api/chat)
         // ============================================================
-        private static async Task<string> CallClaudeApiAsync(string apiKey, string model, string systemPrompt, List<AiChatMessage> history)
+        private static async Task<string> CallOllamaApiAsync(string endpoint, string model, string systemPrompt, List<AiChatMessage> history)
         {
             using var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("x-api-key", apiKey);
-            client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+            client.Timeout = TimeSpan.FromMinutes(5);
 
-            var messages = history.Select(m => new { role = m.Role, content = m.Content }).ToList();
+            var messages = new List<object> { new { role = "system", content = systemPrompt } };
+            messages.AddRange(history.Select(m => (object)new { role = m.Role, content = m.Content }));
+
             var body = new
             {
                 model,
-                max_tokens = 4096,
-                system = systemPrompt,
-                messages
+                messages,
+                stream = false,
+                options = new { num_ctx = 8192 }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
             using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
-            using var response = await client.PostAsync("https://api.anthropic.com/v1/messages", content);
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.PostAsync($"{endpoint}/api/chat", content);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ollama 서버({endpoint})에 연결할 수 없습니다. Ollama가 실행 중인지 확인해주세요.\n{ex.Message}");
+            }
+
             string responseBody = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -407,27 +423,18 @@ namespace CleanPotal
                 try
                 {
                     using var errDoc = JsonDocument.Parse(responseBody);
-                    if (errDoc.RootElement.TryGetProperty("error", out var err) && err.TryGetProperty("message", out var msg))
-                        throw new Exception($"API 오류 ({(int)response.StatusCode}): {msg.GetString()}");
+                    if (errDoc.RootElement.TryGetProperty("error", out var err))
+                        throw new Exception($"Ollama 오류: {err.GetString()}");
                 }
                 catch (JsonException) { }
-                throw new Exception($"API 오류 ({(int)response.StatusCode}): {responseBody}");
+                throw new Exception($"Ollama 오류 ({(int)response.StatusCode}): {responseBody}");
             }
 
             using var doc = JsonDocument.Parse(responseBody);
-            var sb = new StringBuilder();
-            if (doc.RootElement.TryGetProperty("content", out var contentArr))
-            {
-                foreach (var block in contentArr.EnumerateArray())
-                {
-                    if (block.TryGetProperty("type", out var typeProp) && typeProp.GetString() == "text"
-                        && block.TryGetProperty("text", out var textProp))
-                    {
-                        sb.Append(textProp.GetString());
-                    }
-                }
-            }
-            return sb.ToString();
+            if (doc.RootElement.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
+                return contentEl.GetString() ?? "";
+
+            return "";
         }
     }
 }
