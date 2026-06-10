@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using CleanPotal.FieldInventory.Models;
 using CleanPotal.FieldInventory.Repositories;
 using ClosedXML.Excel;
@@ -78,9 +79,10 @@ namespace CleanPotal
                     i.Category.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             }
 
+            source = source.OrderBy(i => i.StorageLocation);
             source = _sortDescending
-                ? source.OrderByDescending(i => i.RegisteredDate).ThenByDescending(i => i.OrderNo)
-                : source.OrderBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
+                ? source.ThenByDescending(i => i.RegisteredDate).ThenByDescending(i => i.OrderNo)
+                : source.ThenBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
 
             _filtered = source.ToList();
             if (resetPage) _currentPage = 1;
@@ -92,7 +94,9 @@ namespace CleanPotal
         private void RenderPage()
         {
             var page = _filtered.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
-            DgInventory.ItemsSource = page;
+            var view = new CollectionViewSource { Source = page };
+            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
+            DgInventory.ItemsSource = view.View;
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
         }
 
