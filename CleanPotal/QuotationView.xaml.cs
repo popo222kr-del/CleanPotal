@@ -349,6 +349,7 @@ namespace CleanPotal
         /// <summary>품목의 단가를 ProductMaster에 추가(신규) 또는 갱신(변경).</summary>
         private void UpsertProductMasterPrice(QuotationLineItem item)
         {
+            // 무상(0원) 품목은 단가 관리에 반영하지 않음 - 기존 단가가 0으로 초기화되는 것을 방지
             if (item.ListPrice <= 0) return;
             if (string.IsNullOrEmpty(item.Description) && string.IsNullOrEmpty(item.PartCode)) return;
 

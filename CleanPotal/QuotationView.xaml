@@ -680,7 +680,18 @@
                                                 <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          BorderThickness="0" Background="Transparent" Padding="10,0,14,0"
                                                          FontSize="13" VerticalContentAlignment="Center" TextAlignment="Right"
-                                                         GotFocus="LineItemTextBox_GotFocus"/>
+                                                         GotFocus="LineItemTextBox_GotFocus">
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ListPrice}" Value="0">
+                                                                    <Setter Property="Foreground" Value="#DC2626"/>
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -689,10 +700,21 @@
                                     <DataGridTemplateColumn Header="금액 (₩)" Width="140" IsReadOnly="True">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}"
-                                                           Style="{StaticResource CellTextStyle}"
-                                                           HorizontalAlignment="Right" Padding="10,0,14,0"
-                                                           FontWeight="SemiBold" Foreground="#1E40AF"/>
+                                                <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                            <Setter Property="Padding" Value="10,0,14,0"/>
+                                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                                            <Setter Property="Foreground" Value="#1E40AF"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ListPrice}" Value="0">
+                                                                    <Setter Property="Foreground" Value="#DC2626"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
