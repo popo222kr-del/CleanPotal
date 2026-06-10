@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -1674,9 +1675,233 @@ namespace CleanPotal
             ProductMasterOverlay.Visibility = Visibility.Collapsed;
         }
 
+        // ─── 단가 관리 엑셀 업로드 / 다운로드 ───
+
+        private static readonly string[] MasterExcelHeaders = { "업체", "Part's Name", "품목코드", "규격", "단가" };
+
+        private void BtnExportMasterExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog
+            {
+                Title    = "단가 목록 엑셀로 저장",
+                Filter   = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = $"단가관리_{DateTime.Now:yyyyMMdd}.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                ExportProductMasterToExcel(_productMaster, dlg.FileName);
+                var result = MessageBox.Show(
+                    "엑셀 파일이 저장되었습니다.\n바로 열어보시겠습니까?",
+                    "완료", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                    Process.Start(new ProcessStartInfo(dlg.FileName) { UseShellExecute = true });
+            }
+            catch (IOException)
+            {
+                MessageBox.Show(
+                    "파일이 다른 프로그램에서 열려 있습니다.\n파일을 닫은 후 다시 시도하세요.",
+                    "저장 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("엑셀 내보내기 오류: " + ex.Message);
+            }
+        }
+
+        private void BtnImportMasterExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title  = "단가 목록 엑셀 가져오기",
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                var (added, updated) = ImportProductMasterFromExcel(dlg.FileName);
+                QuotationStore.SaveProductMaster(_allProductMaster);
+                RefreshMasterVendorOptions();
+                ApplyMasterFilter();
+                _isMasterDirty = false;
+                MessageBox.Show($"가져오기 완료\n• 신규 {added}개 추가\n• 기존 {updated}개 갱신", "완료");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("가져오기 오류: " + ex.Message);
+            }
+        }
+
+        // 텍스트가 잘리지 않도록 한글/영문 폭을 고려한 컬럼 너비 계산
+        private static double GetTextWidth(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return 0;
+            double w = 0;
+            foreach (char c in text)
+                w += c > 0x7F ? 2.0 : 1.0;
+            return w;
+        }
+
+        private static void ExportProductMasterToExcel(IEnumerable<ProductMasterItem> items, string filePath)
+        {
+            var list = items.ToList();
+
+            using var doc = SpreadsheetDocument.Create(filePath, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook);
+            var wbPart = doc.AddWorkbookPart();
+            wbPart.Workbook = new Workbook();
+            var wsPart = wbPart.AddNewPart<WorksheetPart>();
+            var sheetData = new SheetData();
+
+            // 헤더 + 데이터의 최대 글자 폭으로 컬럼 너비 산정 (잘림 방지)
+            var widths = MasterExcelHeaders.Select(GetTextWidth).ToArray();
+            foreach (var item in list)
+            {
+                widths[0] = Math.Max(widths[0], GetTextWidth(item.VendorName));
+                widths[1] = Math.Max(widths[1], GetTextWidth(item.ProductName));
+                widths[2] = Math.Max(widths[2], GetTextWidth(item.PartCode));
+                widths[3] = Math.Max(widths[3], GetTextWidth(item.Spec));
+                widths[4] = Math.Max(widths[4], GetTextWidth(item.UnitPrice.ToString("N0")));
+            }
+
+            var columns = new Columns();
+            for (int i = 0; i < widths.Length; i++)
+                columns.Append(new Column
+                {
+                    Min = (uint)(i + 1), Max = (uint)(i + 1),
+                    Width = Math.Min(widths[i] + 4, 60),
+                    CustomWidth = true
+                });
+
+            var worksheet = new Worksheet();
+            worksheet.Append(columns);
+            worksheet.Append(sheetData);
+            wsPart.Worksheet = worksheet;
+
+            wbPart.Workbook.AppendChild(new Sheets()).Append(new Sheet
+            {
+                Id = wbPart.GetIdOfPart(wsPart), SheetId = 1, Name = "단가관리"
+            });
+
+            sheetData.AppendChild(MakeMasterExcelRow(1u, MasterExcelHeaders.Cast<object>().ToArray()));
+
+            uint ri = 2;
+            foreach (var item in list)
+                sheetData.AppendChild(MakeMasterExcelRow(ri++, new object[]
+                {
+                    item.VendorName, item.ProductName, item.PartCode, item.Spec, item.UnitPrice
+                }));
+
+            wbPart.Workbook.Save();
+        }
+
+        private static Row MakeMasterExcelRow(uint rowIdx, object[] values)
+        {
+            var row = new Row { RowIndex = rowIdx };
+            for (int c = 0; c < values.Length; c++)
+            {
+                var cell = new Cell { CellReference = MasterExcelColRef(c) + rowIdx };
+                if (values[c] is decimal d)
+                {
+                    cell.DataType  = CellValues.Number;
+                    cell.CellValue = new CellValue(d.ToString(CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    cell.DataType     = CellValues.InlineString;
+                    cell.InlineString = new InlineString { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(values[c]?.ToString() ?? "") };
+                }
+                row.AppendChild(cell);
+            }
+            return row;
+        }
+
+        private static string MasterExcelColRef(int c)
+        {
+            string r = ""; c++;
+            while (c > 0) { r = (char)('A' + (c - 1) % 26) + r; c = (c - 1) / 26; }
+            return r;
+        }
+
+        /// <summary>업체/Part's Name/품목코드/규격/단가 형식의 엑셀을 읽어 단가 목록에 추가/갱신. (added, updated) 반환.</summary>
+        private (int added, int updated) ImportProductMasterFromExcel(string filePath)
+        {
+            using var doc = SpreadsheetDocument.Open(filePath, isEditable: false);
+            var wbPart = doc.WorkbookPart!;
+            var sheet  = wbPart.Workbook.Sheets!.Elements<Sheet>().First();
+            var wsPart = (WorksheetPart)wbPart.GetPartById(sheet.Id!);
+            var sd     = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+            var ss     = BuildSharedStrings(wbPart);
+
+            int added = 0, updated = 0;
+            bool firstRow = true;
+            foreach (Row row in sd.Elements<Row>())
+            {
+                if (firstRow) { firstRow = false; continue; } // 헤더 행 스킵
+
+                var byCol = new Dictionary<string, Cell>(StringComparer.OrdinalIgnoreCase);
+                foreach (Cell cell in row.Elements<Cell>())
+                {
+                    var m = Regex.Match(cell.CellReference?.Value ?? "", "^([A-Za-z]+)\\d+$");
+                    if (m.Success) byCol[m.Groups[1].Value] = cell;
+                }
+                string GetCol(int idx) =>
+                    byCol.TryGetValue(MasterExcelColRef(idx), out var cell) ? XlsxCellText(cell, ss).Trim() : "";
+
+                string vendor    = GetCol(0);
+                string name      = GetCol(1);
+                string code      = GetCol(2);
+                string spec      = GetCol(3);
+                string priceText = GetCol(4);
+
+                if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(code)) continue;
+
+                decimal.TryParse(priceText.Replace(",", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal price);
+
+                var existing = FindMasterItem(name, code, vendor);
+                if (existing != null)
+                {
+                    existing.VendorName  = vendor;
+                    existing.ProductName = name;
+                    existing.PartCode    = code;
+                    existing.Spec        = spec;
+                    existing.UnitPrice   = price;
+                    updated++;
+                }
+                else
+                {
+                    _allProductMaster.Add(new ProductMasterItem
+                    {
+                        VendorName  = vendor,
+                        ProductName = name,
+                        PartCode    = code,
+                        Spec        = spec,
+                        UnitPrice   = price
+                    });
+                    added++;
+                }
+            }
+            return (added, updated);
+        }
+
         private void ProductMasterGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             _isMasterDirty = true;
+            if (e.EditAction == DataGridEditAction.Commit)
+                Dispatcher.BeginInvoke(new Action(SaveProductMasterSilently),
+                    System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // 단가 관리 변경 사항을 즉시 파일에 반영 (신규/수정 항목 자동 저장)
+        private void SaveProductMasterSilently()
+        {
+            try
+            {
+                QuotationStore.SaveProductMaster(_allProductMaster);
+                _isMasterDirty = false;
+            }
+            catch (Exception ex) { MessageBox.Show("단가 저장 오류: " + ex.Message); }
         }
 
         private void BtnAddMasterItem_Click(object sender, RoutedEventArgs e)
@@ -1689,7 +1914,7 @@ namespace CleanPotal
             _allProductMaster.Insert(0, newItem);
             _productMaster.Insert(0, newItem);
             RefreshMasterVendorOptions();
-            _isMasterDirty = true;
+            SaveProductMasterSilently();
             // 맨 위로 스크롤 후 해당 행 선택
             ProductMasterGrid.ScrollIntoView(newItem);
             ProductMasterGrid.SelectedItem = newItem;
@@ -1710,7 +1935,7 @@ namespace CleanPotal
                 _productMaster.Remove(item);
                 _allProductMaster.Remove(item);
             }
-            _isMasterDirty = true;
+            SaveProductMasterSilently();
         }
 
         private void BtnInsertFromMasterModal_Click(object sender, RoutedEventArgs e)

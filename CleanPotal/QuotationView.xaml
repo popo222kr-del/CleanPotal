@@ -791,6 +791,10 @@
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
                                     Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Click="BtnDeleteMasterItem_Click"/>
+                            <Button Content="📥 엑셀 업로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="36" MinWidth="110" Margin="0,0,8,0" Click="BtnImportMasterExcel_Click"/>
+                            <Button Content="📤 엑셀 다운로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="36" MinWidth="120" Margin="0,0,8,0" Click="BtnExportMasterExcel_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
