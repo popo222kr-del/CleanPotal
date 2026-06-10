@@ -60,7 +60,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void ApplyFilters(bool resetPage = true)
         {
-            if (DgInventory == null) return;
+            if (DgInventory == null || PagerPanel == null) return;
 
             IEnumerable<FieldInventoryItem> source = _items;
 
@@ -131,7 +131,7 @@ namespace CleanPotal
 
         private void CmbPageSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (DgInventory == null) return;
+            if (DgInventory == null || PagerPanel == null) return;
             if (CmbPageSize.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out int size))
             {
                 _pageSize = size;
