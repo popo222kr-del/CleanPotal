@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using CleanPotal.FieldInventory.Models;
 using CleanPotal.FieldInventory.Repositories;
 using ClosedXML.Excel;
@@ -17,9 +19,8 @@ namespace CleanPotal
     {
         private readonly ObservableCollection<FieldInventoryItem> _items = new();
         private List<FieldInventoryItem> _filtered = new();
-        private int _pageSize = 10;
-        private int _currentPage = 1;
         private bool _sortDescending = true;
+        private string _locationFilter = "전체";
         private FieldInventoryItem? _editingItem;
 
         public FieldInventoryView()
@@ -36,6 +37,7 @@ namespace CleanPotal
                 _items.Clear();
                 foreach (var i in all) _items.Add(i);
 
+                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
@@ -57,13 +59,16 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // 필터 / 정렬 / 페이징
+        // 필터 / 정렬 / 위치 탭
         // -----------------------------------------------------------------------
-        private void ApplyFilters(bool resetPage = true)
+        private void ApplyFilters()
         {
-            if (DgInventory == null || PagerPanel == null) return;
+            if (DgInventory == null || LocationTabPanel == null) return;
 
             IEnumerable<FieldInventoryItem> source = _items;
+
+            if (_locationFilter != "전체")
+                source = source.Where(i => i.StorageLocation == _locationFilter);
 
             if (DpFrom.SelectedDate.HasValue)
                 source = source.Where(i => i.RegisteredDate.Date >= DpFrom.SelectedDate.Value.Date);
@@ -85,65 +90,61 @@ namespace CleanPotal
                 : ordered.ThenBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
 
             _filtered = source.ToList();
-            if (resetPage) _currentPage = 1;
-
-            RenderPage();
-            RenderPager();
+            RenderList();
         }
 
-        private void RenderPage()
+        private void RenderList()
         {
-            var page = _filtered.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
-            var view = new CollectionViewSource { Source = page };
+            var view = new CollectionViewSource { Source = _filtered };
             view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
             DgInventory.ItemsSource = view.View;
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
         }
 
-        private void RenderPager()
+        // 보관위치 탭 구성 ("전체" + 등장한 모든 위치, 위치별 색상 적용)
+        private void RenderLocationTabs()
         {
-            PagerPanel.Children.Clear();
+            LocationTabPanel.Children.Clear();
 
-            int totalPages = Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)_pageSize));
-            if (_currentPage > totalPages) _currentPage = totalPages;
+            var locations = new[] { "전체" }
+                .Concat(_items.Select(i => i.StorageLocation).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s))
+                .ToList();
+            if (!locations.Contains(_locationFilter)) _locationFilter = "전체";
 
-            var prev = new Button { Content = "<", Style = (Style)FindResource("PageBtn"), Margin = new Thickness(2, 0, 2, 0), IsEnabled = _currentPage > 1 };
-            prev.Click += (_, __) => { _currentPage--; RenderPage(); RenderPager(); };
-            PagerPanel.Children.Add(prev);
-
-            for (int p = 1; p <= totalPages; p++)
+            foreach (var loc in locations)
             {
-                int page = p;
+                bool active = loc == _locationFilter;
+                var (bg, fg) = GetLocationColors(loc);
+
                 var btn = new Button
                 {
-                    Content = page.ToString(),
-                    Style = (Style)FindResource(page == _currentPage ? "PageBtnActive" : "PageBtn"),
-                    Margin = new Thickness(2, 0, 2, 0)
+                    Content = loc,
+                    Margin = new Thickness(0, 0, 6, 0),
+                    Style = (Style)FindResource("PageBtn"),
+                    FontWeight = active ? FontWeights.Bold : FontWeights.SemiBold,
+                    Background = (Brush)new BrushConverter().ConvertFromString(bg)!,
+                    Foreground = (Brush)new BrushConverter().ConvertFromString(fg)!,
+                    BorderBrush = active ? (Brush)new BrushConverter().ConvertFromString(fg)! : (Brush)new BrushConverter().ConvertFromString(bg)!,
+                    BorderThickness = new Thickness(active ? 2 : 1)
                 };
-                btn.Click += (_, __) => { _currentPage = page; RenderPage(); RenderPager(); };
-                PagerPanel.Children.Add(btn);
+                btn.Click += (_, __) => { _locationFilter = loc; ApplyFilters(); RenderLocationTabs(); };
+                LocationTabPanel.Children.Add(btn);
             }
+        }
 
-            var next = new Button { Content = ">", Style = (Style)FindResource("PageBtn"), Margin = new Thickness(2, 0, 2, 0), IsEnabled = _currentPage < totalPages };
-            next.Click += (_, __) => { _currentPage++; RenderPage(); RenderPager(); };
-            PagerPanel.Children.Add(next);
+        // 위치명에 따른 (배경색, 글자색) 매핑
+        public static (string Bg, string Fg) GetLocationColors(string location)
+        {
+            if (location.Contains("논메탈")) return ("#FCE7F3", "#BE185D");
+            if (location.Contains("메탈")) return ("#DBEAFE", "#1D4ED8");
+            if (location.Contains("세정")) return ("#EDE9FE", "#6D28D9");
+            if (location.Contains("OFFICE", StringComparison.OrdinalIgnoreCase)) return ("#DCFCE7", "#15803D");
+            return ("#F1F5F9", "#475569");
         }
 
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
 
         private void DateFilter_Changed(object sender, SelectionChangedEventArgs e) => ApplyFilters();
-
-        private void CmbPageSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (DgInventory == null || PagerPanel == null) return;
-            if (CmbPageSize.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag?.ToString(), out int size))
-            {
-                _pageSize = size;
-                _currentPage = 1;
-                RenderPage();
-                RenderPager();
-            }
-        }
 
         private void DgInventory_Sorting(object sender, DataGridSortingEventArgs e)
         {
@@ -156,7 +157,7 @@ namespace CleanPotal
             e.Handled = true;
             _sortDescending = e.Column.SortDirection != ListSortDirection.Descending;
             e.Column.SortDirection = _sortDescending ? ListSortDirection.Descending : ListSortDirection.Ascending;
-            ApplyFilters(resetPage: false);
+            ApplyFilters();
         }
 
         // -----------------------------------------------------------------------
@@ -187,7 +188,8 @@ namespace CleanPotal
             {
                 FieldInventoryRepository.Delete(item.ItemId);
                 _items.Remove(item);
-                ApplyFilters(resetPage: false);
+                RenderLocationTabs();
+                ApplyFilters();
                 RefreshStats();
             }
             catch (Exception ex)
@@ -214,7 +216,8 @@ namespace CleanPotal
                     FieldInventoryRepository.Delete(item.ItemId);
                     _items.Remove(item);
                 }
-                ApplyFilters(resetPage: false);
+                RenderLocationTabs();
+                ApplyFilters();
                 RefreshStats();
             }
             catch (Exception ex)
@@ -317,7 +320,8 @@ namespace CleanPotal
                 EditOverlay.Visibility = Visibility.Collapsed;
                 _editingItem = null;
                 TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
-                ApplyFilters(resetPage: false);
+                RenderLocationTabs();
+                ApplyFilters();
                 RefreshStats();
             }
             catch (Exception ex)
@@ -428,5 +432,20 @@ namespace CleanPotal
                 MessageBox.Show($"엑셀 내보내기 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+    /// <summary>보관위치 문자열을 (배경색, 글자색)으로 변환. ConverterParameter="Fg"이면 글자색 반환.</summary>
+    public class LocationColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string location = value as string ?? "";
+            var (bg, fg) = FieldInventoryView.GetLocationColors(location);
+            string hex = (parameter as string) == "Fg" ? fg : bg;
+            return new BrushConverter().ConvertFromString(hex)!;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
     }
 }
