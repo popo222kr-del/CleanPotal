@@ -269,14 +269,30 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 건수 표시 -->
-                <Border Grid.Row="0" Padding="28,16,28,0">
-                    <TextBlock FontSize="13" Foreground="#64748B">
+                <!-- 건수 표시 + 견적번호 검색 -->
+                <Grid Grid.Row="0" Margin="28,16,28,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" FontSize="13" Foreground="#64748B" VerticalAlignment="Center">
                         <Run Text="총 "/>
                         <Run Text="{Binding VendorQuotations.Count, Mode=OneWay}"/>
                         <Run Text="건"/>
                     </TextBlock>
-                </Border>
+                    <Border Grid.Column="1"
+                            Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                            CornerRadius="8" Padding="12,0" Height="36" Width="220">
+                        <Grid>
+                            <TextBlock Text="🔍" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8"/>
+                            <TextBox Text="{Binding QuoteNoSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" BorderThickness="0"
+                                     VerticalContentAlignment="Center" FontSize="13"
+                                     Foreground="#1E293B" Padding="24,0,0,0"
+                                     Tag="견적번호 검색..."/>
+                        </Grid>
+                    </Border>
+                </Grid>
 
                 <!-- 견적 목록 그리드 -->
                 <DataGrid Grid.Row="1" x:Name="VendorQuotationsGrid"
@@ -796,9 +812,9 @@
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
                                     Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Click="BtnDeleteMasterItem_Click"/>
-                            <Button Content="📥 엑셀 업로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                            <Button Content="엑셀 업로드" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="110" Margin="0,0,8,0" Click="BtnImportMasterExcel_Click"/>
-                            <Button Content="📤 엑셀 다운로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                            <Button Content="엑셀 다운로드" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="120" Margin="0,0,8,0" Click="BtnExportMasterExcel_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>

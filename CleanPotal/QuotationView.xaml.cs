@@ -56,6 +56,13 @@ namespace CleanPotal
 
         public ObservableCollection<QuotationModel> VendorQuotations { get; } = new();
 
+        private string _quoteNoSearch = "";
+        public string QuoteNoSearch
+        {
+            get => _quoteNoSearch;
+            set { _quoteNoSearch = value; OnPropertyChanged(nameof(QuoteNoSearch)); RefreshVendorQuotations(); }
+        }
+
         // ─── 뷰 상태 ───
 
         public bool IsNoneView    => !HasSelectedVendor;
@@ -274,9 +281,19 @@ namespace CleanPotal
         {
             VendorQuotations.Clear();
             if (_selectedVendor == null) return;
-            foreach (var q in Quotations
-                .Where(q => string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(q => q.Date))
+            IEnumerable<QuotationModel> list = Quotations
+                .Where(q => string.Equals(q.Company, _selectedVendor.VendorName, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(_quoteNoSearch))
+            {
+                var s = _quoteNoSearch.Trim();
+                list = list.Where(q => q.QuoteNo?.Contains(s, StringComparison.OrdinalIgnoreCase) == true);
+            }
+
+            // 최근 작성된 순으로 정렬 (작성일시 기준, 없으면 견적일 기준)
+            foreach (var q in list.OrderByDescending(q =>
+                DateTime.TryParse(q.CreatedAt, out var c) ? c : DateTime.MinValue)
+                .ThenByDescending(q => q.Date))
                 VendorQuotations.Add(q);
             OnPropertyChanged(nameof(ToolbarTitle));
         }
