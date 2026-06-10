@@ -19,14 +19,6 @@ namespace CleanPotal.FieldInventory.Models
             set { _storageLocation = value; OnPropChanged(nameof(StorageLocation)); }
         }
 
-        // 그리드에서 같은 보관위치가 연속될 때 첫 행에만 표시(엑셀 셀 병합 효과)하기 위한 표시 전용 값
-        private string _displayStorageLocation = "";
-        public string DisplayStorageLocation
-        {
-            get => _displayStorageLocation;
-            set { _displayStorageLocation = value; OnPropChanged(nameof(DisplayStorageLocation)); }
-        }
-
         private string _itemName = "";
         public string ItemName
         {

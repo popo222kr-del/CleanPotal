@@ -204,14 +204,19 @@
                 </DataGrid.RowStyleSelector>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="NO" Binding="{Binding OrderNo}" Width="48" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="보관위치" Binding="{Binding DisplayStorageLocation}" Width="120" IsReadOnly="True">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                    <!-- 보관위치는 그룹 헤더(📦)에 이미 표시되므로 평소엔 비워두고, 더블클릭 시에만 변경 가능 -->
+                    <DataGridTemplateColumn Header="보관위치" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text=""/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding StorageLocation, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="품목" Binding="{Binding ItemName}" Width="3*" MinWidth="200"/>
                     <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="110">
                         <DataGridTextColumn.ElementStyle>

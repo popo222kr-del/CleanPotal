@@ -58,14 +58,6 @@ namespace CleanPotal
                 : _items.Where(i => i.StorageLocation == location))
                 .OrderBy(i => i.OrderNo).ToList();
 
-            // 같은 보관위치가 연속될 때는 첫 행에만 표시 (엑셀 셀 병합 효과)
-            string? last = null;
-            foreach (var item in source)
-            {
-                item.DisplayStorageLocation = item.StorageLocation == last ? "" : item.StorageLocation;
-                last = item.StorageLocation;
-            }
-
             var view = new CollectionViewSource { Source = source };
             view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
             DgInventory.ItemsSource = view.View;
