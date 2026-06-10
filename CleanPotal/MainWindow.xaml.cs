@@ -648,10 +648,18 @@ namespace CleanPotal
         // Style 재할당으로 ControlTemplate이 새로 적용되면 슬라이드/Chevron 애니메이션 트리거가
         // 재실행되지 않아 IsExpanded=true 여도 하위 메뉴가 보이지 않는 문제가 있어,
         // false→true로 강제 토글해 진입 애니메이션을 다시 재생시킨다.
-        private static void ForceExpand(Expander expander)
+        // 새 Style의 ControlTemplate은 비동기로 적용되므로, true로 되돌리는 작업은
+        // 레이아웃이 갱신된 뒤(Loaded 우선순위)로 미뤄야 새 템플릿에서 애니메이션이 재생된다.
+        private void ForceExpand(Expander expander)
         {
             expander.IsExpanded = false;
-            expander.IsExpanded = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                bool prev = _isUpdatingNav;
+                _isUpdatingNav = true;
+                expander.IsExpanded = true;
+                _isUpdatingNav = prev;
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private static string GetAppVersion()

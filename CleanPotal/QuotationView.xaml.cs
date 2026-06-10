@@ -52,6 +52,7 @@ namespace CleanPotal
                 OnPropertyChanged(nameof(IsListView));
                 OnPropertyChanged(nameof(IsEditing));
                 OnPropertyChanged(nameof(ToolbarTitle));
+                VendorQuotationCompanyColumn.Visibility = IsAllVendors ? Visibility.Visible : Visibility.Collapsed;
                 CurrentQuotation = null;
                 RefreshVendorQuotations();
             }

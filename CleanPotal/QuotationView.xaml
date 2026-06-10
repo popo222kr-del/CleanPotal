@@ -334,8 +334,8 @@
                           MouseDoubleClick="QuotationListGrid_DoubleClick">
                     <DataGrid.Columns>
                         <!-- 업체명 ("전체 보기"일 때만 표시) -->
-                        <DataGridTextColumn Header="업체명" Binding="{Binding Company}" IsReadOnly="True" Width="130"
-                                            Visibility="{Binding DataContext.IsAllVendors, Source={x:Reference VendorQuotationsGrid}, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <DataGridTextColumn x:Name="VendorQuotationCompanyColumn" Header="업체명" Binding="{Binding Company}" IsReadOnly="True" Width="130"
+                                            Visibility="Collapsed">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
