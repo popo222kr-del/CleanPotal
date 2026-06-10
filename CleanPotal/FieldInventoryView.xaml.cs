@@ -79,10 +79,10 @@ namespace CleanPotal
                     i.Category.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             }
 
-            source = source.OrderBy(i => i.StorageLocation);
+            var ordered = source.OrderBy(i => i.StorageLocation);
             source = _sortDescending
-                ? source.ThenByDescending(i => i.RegisteredDate).ThenByDescending(i => i.OrderNo)
-                : source.ThenBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
+                ? ordered.ThenByDescending(i => i.RegisteredDate).ThenByDescending(i => i.OrderNo)
+                : ordered.ThenBy(i => i.RegisteredDate).ThenBy(i => i.OrderNo);
 
             _filtered = source.ToList();
             if (resetPage) _currentPage = 1;
