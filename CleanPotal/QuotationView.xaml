@@ -763,7 +763,7 @@
         <Grid x:Name="ProductMasterOverlay" Grid.ColumnSpan="2"
               Background="#CC000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="16"
-                    Width="920" MaxHeight="680"
+                    Width="920" MaxHeight="860"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Padding="32,28">
                 <Border.Effect>
