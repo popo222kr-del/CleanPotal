@@ -239,6 +239,15 @@ namespace CleanPotal
             var saved = QuotationStore.LoadQuotations();
             foreach (var q in saved) Quotations.Add(q);
 
+            // 과거 "25년" 폴더명이 그대로 회사명으로 저장된 원익 견적서를 정정
+            var misnamed = Quotations.Where(q => q.Company == "25년").ToList();
+            if (misnamed.Count > 0)
+            {
+                foreach (var q in misnamed) q.Company = "원익";
+                QuotationStore.SaveQuotations(Quotations);
+                AutoRegisterVendors(new[] { "원익" });
+            }
+
             var loadedMaster = QuotationStore.LoadProductMaster();
             MigrateSpecToPartCode(loadedMaster);
             // 내용이 전혀 없는 빈 항목(이전 버전에서 잘못 저장된 placeholder)은 제거
