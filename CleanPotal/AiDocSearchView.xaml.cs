@@ -46,7 +46,7 @@ namespace CleanPotal
         }
 
         [System.Text.Json.Serialization.JsonIgnore]
-        public string RoleLabel => Role == "user" ? "나" : "Claude";
+        public string RoleLabel => Role == "user" ? "나" : "AI";
 
         [System.Text.Json.Serialization.JsonIgnore]
         public Brush BubbleBackground => Role == "user"

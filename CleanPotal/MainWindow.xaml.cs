@@ -384,7 +384,7 @@ namespace CleanPotal
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "AiDocSearch";
-            ApplySectionMeta("AI 문서 검색", "업로드한 기준서/문서를 기반으로 Claude AI에게 질문하고 답변을 받습니다.");
+            ApplySectionMeta("AI 문서 검색", "업로드한 기준서/문서를 기반으로 로컬 AI(Ollama)에게 질문하고 답변을 받습니다.");
             UpdateNavSelection("AiDocSearch");
             if (_aiDocSearchView == null) _aiDocSearchView = new AiDocSearchView();
             else _aiDocSearchView.TryRefresh();
