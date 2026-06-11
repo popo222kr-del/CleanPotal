@@ -193,6 +193,7 @@
                 <Border Grid.Column="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Margin="0,0,8,0">
                     <TextBox x:Name="TxtQuestion" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="13"
                              TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="100" VerticalScrollBarVisibility="Auto"
+                             TextOptions.TextFormattingMode="Ideal"
                              SpellCheck.IsEnabled="False" PreviewKeyDown="TxtQuestion_PreviewKeyDown"/>
                 </Border>
                 <Button x:Name="BtnSend" Grid.Column="1" Content="전송" Style="{StaticResource PrimaryButtonStyle}" Width="80" Click="BtnSend_Click"/>
