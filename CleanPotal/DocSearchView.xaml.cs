@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using ClosedXML.Excel;
 using UglyToad.PdfPig;
 
@@ -18,10 +22,18 @@ namespace CleanPotal
         public string FileName { get; set; } = "";
         public string FileType { get; set; } = "";
         public string ExtractedText { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string StoredPath { get; set; } = "";
         public DateTime UploadedAt { get; set; } = DateTime.Now;
 
         [System.Text.Json.Serialization.JsonIgnore]
         public string SummaryInfo => $"{FileType.ToUpperInvariant()} · {ExtractedText.Length:N0}자 · {UploadedAt:yyyy-MM-dd}";
+    }
+
+    public class DocCategoryGroup
+    {
+        public string Name { get; set; } = "";
+        public ObservableCollection<DocSearchItem> Items { get; } = new();
     }
 
     public class SearchResultItem
@@ -29,6 +41,7 @@ namespace CleanPotal
         public string FileName { get; set; } = "";
         public string Snippet { get; set; } = "";
         public int MatchCount { get; set; }
+        public DocSearchItem? Document { get; set; }
 
         public string MatchCountLabel => $"{MatchCount}건 일치";
     }
@@ -40,14 +53,16 @@ namespace CleanPotal
         private const int SnippetContext = 30;
         private const int MaxSnippetsPerDoc = 3;
 
+        // 문서 번호 기준 분류 순서
+        private static readonly string[] CategoryOrder = { "검사 기준서", "관리 기준서", "작업 표준서", "기타 문서" };
+
         private static string DocStoreRoot => Path.Combine(AppPaths.DataRoot, "doc_search");
+        private static string FilesRoot => Path.Combine(DocStoreRoot, "files");
         private static string DocumentsFilePath => Path.Combine(DocStoreRoot, "documents.json");
 
         public DocSearchView()
         {
             InitializeComponent();
-
-            DocListControl.ItemsSource = _documents;
 
             Loaded += DocSearchView_Loaded;
         }
@@ -56,11 +71,12 @@ namespace CleanPotal
         {
             LoadDocuments();
             UpdateDocCount();
+            RebuildGroups();
         }
 
         public void TryRefresh()
         {
-            try { LoadDocuments(); UpdateDocCount(); } catch { }
+            try { LoadDocuments(); UpdateDocCount(); RebuildGroups(); } catch { }
         }
 
         // ============================================================
@@ -74,7 +90,11 @@ namespace CleanPotal
             {
                 string json = File.ReadAllText(DocumentsFilePath);
                 var items = JsonSerializer.Deserialize<List<DocSearchItem>>(json) ?? new List<DocSearchItem>();
-                foreach (var item in items) _documents.Add(item);
+                foreach (var item in items)
+                {
+                    if (string.IsNullOrEmpty(item.Category)) item.Category = DetermineCategory(item.FileName);
+                    _documents.Add(item);
+                }
             }
             catch { }
         }
@@ -99,6 +119,40 @@ namespace CleanPotal
         }
 
         // ============================================================
+        // 문서 번호(AQI-XXX) 기준 분류 / 그룹화
+        // ============================================================
+        private static string DetermineCategory(string fileName)
+        {
+            var match = Regex.Match(fileName, "AQI[-_]?(\\d{3})", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                switch (match.Groups[1].Value)
+                {
+                    case "803": return "검사 기준서";
+                    case "804": return "관리 기준서";
+                    case "802": return "작업 표준서";
+                }
+            }
+            return "기타 문서";
+        }
+
+        private void RebuildGroups()
+        {
+            var groups = new List<DocCategoryGroup>();
+            foreach (var categoryName in CategoryOrder)
+            {
+                var items = _documents.Where(d => d.Category == categoryName).ToList();
+                if (items.Count == 0) continue;
+
+                var group = new DocCategoryGroup { Name = categoryName };
+                foreach (var item in items) group.Items.Add(item);
+                groups.Add(group);
+            }
+
+            DocListControl.ItemsSource = groups;
+        }
+
+        // ============================================================
         // 문서 업로드 / 삭제 / 텍스트 추출
         // ============================================================
         private void BtnUploadDoc_Click(object sender, RoutedEventArgs e)
@@ -116,13 +170,23 @@ namespace CleanPotal
                 {
                     string ext = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
                     string text = ExtractText(path, ext);
-                    _documents.Add(new DocSearchItem
+                    string fileName = Path.GetFileName(path);
+
+                    var item = new DocSearchItem
                     {
-                        FileName = Path.GetFileName(path),
+                        FileName = fileName,
                         FileType = ext,
                         ExtractedText = text,
+                        Category = DetermineCategory(fileName),
                         UploadedAt = DateTime.Now
-                    });
+                    };
+
+                    Directory.CreateDirectory(FilesRoot);
+                    string storedPath = Path.Combine(FilesRoot, $"{item.Id}{Path.GetExtension(path)}");
+                    File.Copy(path, storedPath, overwrite: true);
+                    item.StoredPath = storedPath;
+
+                    _documents.Add(item);
                 }
                 catch (Exception ex)
                 {
@@ -132,6 +196,7 @@ namespace CleanPotal
 
             SaveDocuments();
             UpdateDocCount();
+            RebuildGroups();
             RunSearch();
         }
 
@@ -141,9 +206,59 @@ namespace CleanPotal
             {
                 if (MessageBox.Show($"'{doc.FileName}' 문서를 삭제하시겠습니까?", "문서 삭제", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
                 _documents.Remove(doc);
+
+                if (!string.IsNullOrEmpty(doc.StoredPath) && File.Exists(doc.StoredPath))
+                {
+                    try { File.Delete(doc.StoredPath); } catch { }
+                }
+
                 SaveDocuments();
                 UpdateDocCount();
+                RebuildGroups();
                 RunSearch();
+            }
+        }
+
+        // ============================================================
+        // 문서 열기
+        // ============================================================
+        private void DocItem_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (IsDescendantOfButton(e.OriginalSource as DependencyObject)) return;
+            if (sender is FrameworkElement fe && fe.Tag is DocSearchItem doc) OpenDocument(doc);
+        }
+
+        private void ResultItem_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is SearchResultItem result && result.Document != null)
+                OpenDocument(result.Document);
+        }
+
+        private static bool IsDescendantOfButton(DependencyObject? element)
+        {
+            while (element != null)
+            {
+                if (element is Button) return true;
+                element = VisualTreeHelper.GetParent(element);
+            }
+            return false;
+        }
+
+        private static void OpenDocument(DocSearchItem doc)
+        {
+            if (string.IsNullOrEmpty(doc.StoredPath) || !File.Exists(doc.StoredPath))
+            {
+                MessageBox.Show("문서 파일을 찾을 수 없습니다.", "문서 열기", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(doc.StoredPath) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"문서를 여는 중 오류가 발생했습니다.\n{ex.Message}", "문서 열기", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -256,7 +371,8 @@ namespace CleanPotal
                     {
                         FileName = doc.FileName,
                         Snippet = string.Join("\n", snippets),
-                        MatchCount = matchCount
+                        MatchCount = matchCount,
+                        Document = doc
                     });
                 }
             }
