@@ -402,7 +402,7 @@ namespace CleanPotal
                 messages,
                 stream = false,
                 keep_alive = "30m",
-                options = new { num_ctx = 4096, num_predict = 1024 }
+                options = new { num_ctx = 4096, num_predict = 1024, temperature = 0.3 }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
