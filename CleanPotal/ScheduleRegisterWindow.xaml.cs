@@ -242,13 +242,21 @@ namespace CleanPotal
 
         private void LstShiftSuggest_ItemClick(object sender, MouseButtonEventArgs e)
         {
-            if (LstShiftSuggest.SelectedItem is string selected)
+            // PreviewMouseLeftButtonDown 시점에는 SelectedItem이 아직 클릭한 항목으로
+            // 갱신되기 전이므로, 클릭된 항목을 비주얼 트리에서 직접 찾아 확정한다.
+            // (기존에는 첫 클릭이 무시되어 기본값인 등록자 본인 이름으로 저장되는 버그가 있었음)
+            DependencyObject? element = e.OriginalSource as DependencyObject;
+            while (element != null && element is not ListBoxItem)
+                element = VisualTreeHelper.GetParent(element);
+
+            if (element is ListBoxItem lbi && lbi.Content is string selected)
             {
                 TxtShiftName.Text = selected;
                 TxtShiftName.CaretIndex = selected.Length;
                 PopShiftSuggest.IsOpen = false;
                 CmbShiftName.SelectedItem = selected;
                 RefreshPreview();
+                e.Handled = true;
             }
         }
 
@@ -430,6 +438,13 @@ namespace CleanPotal
                     string name = selection.Contains("]") ? selection.Substring(selection.IndexOf(']') + 1).Trim() : selection;
 
                     if (string.IsNullOrEmpty(name) || !DpShiftStart.SelectedDate.HasValue || !DpShiftEnd.SelectedDate.HasValue) return;
+
+                    // 직원 목록에 없는 이름(부분 입력 등)으로 등록되는 것을 방지
+                    if (_canManageAttendance && _allUsers.All(u => u.RealName != name))
+                    {
+                        MessageBox.Show("직원 이름을 목록에서 선택해주세요.\n입력된 이름이 직원 목록에 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
 
                     DateTime startDate = DpShiftStart.SelectedDate.Value.Date;
                     DateTime endDate = DpShiftEnd.SelectedDate.Value.Date;
