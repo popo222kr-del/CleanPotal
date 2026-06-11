@@ -178,6 +178,17 @@
                                         <StackPanel>
                                             <TextBlock Text="{Binding RoleLabel}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,4"/>
                                             <TextBlock Text="{Binding Content}" FontSize="13" Foreground="#1E293B" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding ElapsedLabel}" FontSize="10" Foreground="#94A3B8" Margin="0,4,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ElapsedLabel}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </StackPanel>
                                     </Border>
                                 </Grid>

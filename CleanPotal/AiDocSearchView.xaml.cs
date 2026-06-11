@@ -45,6 +45,13 @@ namespace CleanPotal
             set { if (_content == value) return; _content = value; OnPropertyChanged(); }
         }
 
+        private string _elapsedLabel = "";
+        public string ElapsedLabel
+        {
+            get => _elapsedLabel;
+            set { if (_elapsedLabel == value) return; _elapsedLabel = value; OnPropertyChanged(); }
+        }
+
         [System.Text.Json.Serialization.JsonIgnore]
         public string RoleLabel => Role == "user" ? "나" : "주언비서";
 
@@ -324,14 +331,27 @@ namespace CleanPotal
             _chatMessages.Add(assistantMsg);
             ScrollChatToEnd();
 
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 string systemPrompt = BuildSystemPrompt();
                 var history = _chatMessages.Where(m => m != assistantMsg).ToList();
                 if (history.Count > MaxHistoryMessages)
                     history = history.Skip(history.Count - MaxHistoryMessages).ToList();
-                string answer = await CallOllamaApiAsync(endpoint, model, systemPrompt, history);
-                assistantMsg.Content = string.IsNullOrWhiteSpace(answer) ? "(빈 응답을 받았습니다.)" : answer;
+
+                bool firstChunk = true;
+                string answer = await CallOllamaApiAsync(endpoint, model, systemPrompt, history, partial =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (firstChunk) { assistantMsg.Content = ""; firstChunk = false; }
+                        assistantMsg.Content += partial;
+                        ScrollChatToEnd();
+                    });
+                });
+
+                if (firstChunk)
+                    assistantMsg.Content = string.IsNullOrWhiteSpace(answer) ? "(빈 응답을 받았습니다.)" : answer;
             }
             catch (Exception ex)
             {
@@ -339,6 +359,11 @@ namespace CleanPotal
             }
             finally
             {
+                stopwatch.Stop();
+                var ts = stopwatch.Elapsed;
+                assistantMsg.ElapsedLabel = ts.TotalMinutes >= 1
+                    ? $"응답 시간: {(int)ts.TotalMinutes}분 {ts.Seconds}초"
+                    : $"응답 시간: {ts.Seconds}초";
                 BtnSend.IsEnabled = true;
                 ScrollChatToEnd();
             }
@@ -388,10 +413,10 @@ namespace CleanPotal
         // ============================================================
         // Ollama API 호출 (로컬 서버, /api/chat)
         // ============================================================
-        private static async Task<string> CallOllamaApiAsync(string endpoint, string model, string systemPrompt, List<AiChatMessage> history)
+        private static async Task<string> CallOllamaApiAsync(string endpoint, string model, string systemPrompt, List<AiChatMessage> history, Action<string>? onPartial = null)
         {
             using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromMinutes(5);
+            client.Timeout = TimeSpan.FromMinutes(10);
 
             var messages = new List<object> { new { role = "system", content = systemPrompt } };
             messages.AddRange(history.Select(m => (object)new { role = m.Role, content = m.Content }));
@@ -400,43 +425,74 @@ namespace CleanPotal
             {
                 model,
                 messages,
-                stream = false,
+                stream = true,
                 keep_alive = "30m",
-                options = new { num_ctx = 4096, num_predict = 1024, temperature = 0.3, num_thread = 16 }
+                options = new { num_ctx = 4096, num_predict = 1024, temperature = 0.3, num_thread = 12 }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
-            using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{endpoint}/api/chat")
+            {
+                Content = new StringContent(requestJson, Encoding.UTF8, "application/json")
+            };
 
             HttpResponseMessage response;
             try
             {
-                response = await client.PostAsync($"{endpoint}/api/chat", content);
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             }
             catch (Exception ex)
             {
                 throw new Exception($"Ollama 서버({endpoint})에 연결할 수 없습니다. Ollama가 실행 중인지 확인해주세요.\n{ex.Message}");
             }
 
-            string responseBody = await response.Content.ReadAsStringAsync();
-
             if (!response.IsSuccessStatusCode)
             {
+                string errBody = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    using var errDoc = JsonDocument.Parse(responseBody);
+                    using var errDoc = JsonDocument.Parse(errBody);
                     if (errDoc.RootElement.TryGetProperty("error", out var err))
                         throw new Exception($"Ollama 오류: {err.GetString()}");
                 }
                 catch (JsonException) { }
-                throw new Exception($"Ollama 오류 ({(int)response.StatusCode}): {responseBody}");
+                throw new Exception($"Ollama 오류 ({(int)response.StatusCode}): {errBody}");
             }
 
-            using var doc = JsonDocument.Parse(responseBody);
-            if (doc.RootElement.TryGetProperty("message", out var messageEl) && messageEl.TryGetProperty("content", out var contentEl))
-                return contentEl.GetString() ?? "";
+            var fullAnswer = new StringBuilder();
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var reader = new StreamReader(stream, Encoding.UTF8);
 
-            return "";
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                try
+                {
+                    using var doc = JsonDocument.Parse(line);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("error", out var streamErr))
+                        throw new Exception($"Ollama 오류: {streamErr.GetString()}");
+
+                    if (root.TryGetProperty("message", out var messageEl) &&
+                        messageEl.TryGetProperty("content", out var contentEl))
+                    {
+                        string piece = contentEl.GetString() ?? "";
+                        if (piece.Length > 0)
+                        {
+                            fullAnswer.Append(piece);
+                            onPartial?.Invoke(piece);
+                        }
+                    }
+
+                    if (root.TryGetProperty("done", out var doneEl) && doneEl.GetBoolean())
+                        break;
+                }
+                catch (JsonException) { }
+            }
+
+            return fullAnswer.ToString();
         }
     }
 }
