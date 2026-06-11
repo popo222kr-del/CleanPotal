@@ -392,6 +392,7 @@
                             <StackPanel>
                                 <Button x:Name="BtnNavReport" Content="성적서 자동 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenReport_Click"/>
                                 <Button x:Name="BtnNavDispatchCert" Content="반출등록 성적서 생성" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDispatchCert_Click"/>
+                                <Button x:Name="BtnNavDocSearch" Content="문서 검색" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDocSearch_Click"/>
                             </StackPanel>
                         </Expander>
 
@@ -400,7 +401,6 @@
                         <Expander x:Name="ExpanderAdmin" Header="관리자 영역" Tag="&#xE72E;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderAdmin_Expanded" Visibility="Collapsed">
                             <StackPanel>
                                 <Button x:Name="BtnNavUserManagement" Content="사용자 계정 관리" Style="{StaticResource ErpSubButtonStyle}" Click="OpenUserManagement_Click"/>
-                                <Button x:Name="BtnNavDocSearch" Content="문서 검색" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDocSearch_Click"/>
                             </StackPanel>
                         </Expander>
                     </StackPanel>

@@ -248,7 +248,7 @@ namespace CleanPotal
         private void RestoreActiveExpander()
         {
             _isUpdatingNav = true;
-            if (_currentViewName == "Report" || _currentViewName == "DispatchCert") ExpanderEtc.IsExpanded = true;
+            if (_currentViewName == "Report" || _currentViewName == "DispatchCert" || _currentViewName == "DocSearch") ExpanderEtc.IsExpanded = true;
             else if (_currentViewName == "Handover" || _currentViewName == "WeeklyHandover" || _currentViewName == "ProdReq" || _currentViewName == "Schedule") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "Quotation" || _currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
@@ -262,7 +262,7 @@ namespace CleanPotal
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
-        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
+        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert" && _currentViewName != "DocSearch") OpenReport_Click(sender, e); }
         private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory") OpenFieldChecklist_Click(sender, e); }
         private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
@@ -376,7 +376,6 @@ namespace CleanPotal
         private void OpenDocSearch_Click(object sender, RoutedEventArgs e)
         {
             OpenSidebar();
-            if (!CanOpenAdminFeature()) return;
             ShowDocSearch();
         }
 
@@ -661,7 +660,7 @@ namespace CleanPotal
                 case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
                 case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
                 case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderAdmin.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAdmin); break;
+                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
             }
 
             _isUpdatingNav = false;
