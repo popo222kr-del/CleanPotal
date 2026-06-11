@@ -589,11 +589,10 @@
                                          Text="{Binding Date, Mode=OneWay}"
                                          IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
-                                <!-- 유효기간 (자동: 견적일 +7일) -->
+                                <!-- 유효기간 (기본: 견적일 +7일, 필요 시 수정 가능) -->
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid Until (유효일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
-                                         Text="{Binding Validity, Mode=OneWay}"
-                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
+                                         Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <!-- AETS 담당자 -->
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Our Contact (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
