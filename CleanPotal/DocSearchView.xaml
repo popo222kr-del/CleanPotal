@@ -1,0 +1,119 @@
+<UserControl x:Class="CleanPotal.DocSearchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F8FAFC"
+             SnapsToDevicePixels="True" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== 왼쪽: 문서 목록 ========== -->
+        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
+            <Grid Margin="14,16,14,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 문서 목록 헤더 -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="등록 문서 목록" FontSize="13" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtDocCount" Grid.Column="1" Text="0개" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- 업로드 버튼 -->
+                <Button Grid.Row="1" Content="+ 문서 업로드 (xlsx / pdf / txt)" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,10" Click="BtnUploadDoc_Click"/>
+
+                <!-- 문서 목록 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="DocListControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding FileName}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding SummaryInfo}" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="삭제" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11" Click="BtnDeleteDoc_Click" Tag="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- ========== 오른쪽: 검색 영역 ========== -->
+        <Grid Grid.Column="1" Margin="20,16,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 상단 바 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="문서 검색" FontSize="20" FontWeight="ExtraBold" Foreground="#0F172A"/>
+                <TextBlock Text="등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- 검색 입력 -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
+                    <TextBox x:Name="TxtSearch" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="13"
+                             TextOptions.TextFormattingMode="Ideal"
+                             SpellCheck.IsEnabled="False" TextChanged="TxtSearch_TextChanged"/>
+                </Border>
+            </Grid>
+
+            <!-- 검색 결과 -->
+            <Border Grid.Row="2" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="TxtResultSummary" Grid.Row="0" Text="검색어를 입력해주세요." FontSize="12" Foreground="#94A3B8" Margin="16,12,16,0"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                        <ItemsControl x:Name="ResultListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding MatchCountLabel}" FontSize="11" Foreground="#2563EB"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Snippet}" FontSize="12" Foreground="#475569" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

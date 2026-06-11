@@ -26,6 +26,7 @@ namespace CleanPotal
         private WorkAssignmentView? _workAssignmentView;
         private QuotationView? _quotationView;
         private BrokenManagementView? _brokenMgmtView;
+        private DocSearchView? _docSearchView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -372,6 +373,25 @@ namespace CleanPotal
             new UserManagementWindow { Owner = this }.ShowDialog();
         }
 
+        private void OpenDocSearch_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenAdminFeature()) return;
+            ShowDocSearch();
+        }
+
+        private void ShowDocSearch()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "DocSearch";
+            ApplySectionMeta("문서 검색", "등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다.");
+            UpdateNavSelection("DocSearch");
+            if (_docSearchView == null) _docSearchView = new DocSearchView();
+            else _docSearchView.TryRefresh();
+            MainContent.Content = _docSearchView;
+            HideAllHeaderButtons();
+        }
+
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
         private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
@@ -617,6 +637,7 @@ namespace CleanPotal
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
+            if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
@@ -640,6 +661,7 @@ namespace CleanPotal
                 case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
                 case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
                 case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderAdmin.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAdmin); break;
             }
 
             _isUpdatingNav = false;
