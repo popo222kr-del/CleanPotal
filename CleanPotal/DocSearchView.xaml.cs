@@ -24,6 +24,7 @@ namespace CleanPotal
         public string ExtractedText { get; set; } = "";
         public string Category { get; set; } = "";
         public string StoredPath { get; set; } = "";
+        public string SourcePath { get; set; } = "";
         public DateTime UploadedAt { get; set; } = DateTime.Now;
 
         [System.Text.Json.Serialization.JsonIgnore]
@@ -178,6 +179,7 @@ namespace CleanPotal
                         FileType = ext,
                         ExtractedText = text,
                         Category = DetermineCategory(fileName),
+                        SourcePath = path,
                         UploadedAt = DateTime.Now
                     };
 
@@ -246,15 +248,24 @@ namespace CleanPotal
 
         private static void OpenDocument(DocSearchItem doc)
         {
-            if (string.IsNullOrEmpty(doc.StoredPath) || !File.Exists(doc.StoredPath))
+            // 보관본 우선, 없으면 업로드 당시 원본 경로로 폴백
+            string? openPath = null;
+            if (!string.IsNullOrEmpty(doc.StoredPath) && File.Exists(doc.StoredPath)) openPath = doc.StoredPath;
+            else if (!string.IsNullOrEmpty(doc.SourcePath) && File.Exists(doc.SourcePath)) openPath = doc.SourcePath;
+
+            if (openPath == null)
             {
-                MessageBox.Show("문서 파일을 찾을 수 없습니다.", "문서 열기", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
+                    $"'{doc.FileName}' 문서의 원본 파일이 보관되어 있지 않습니다.\n\n" +
+                    "문서 열기 기능이 추가되기 전에 등록된 문서는 파일이 보관되지 않았습니다.\n" +
+                    "해당 문서를 삭제 후 다시 업로드하면 클릭으로 열 수 있습니다.",
+                    "문서 열기", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             try
             {
-                Process.Start(new ProcessStartInfo(doc.StoredPath) { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo(openPath) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
