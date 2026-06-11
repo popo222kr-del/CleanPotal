@@ -106,8 +106,8 @@ namespace CleanPotal
         private readonly ObservableCollection<AiDocumentItem> _documents = new();
         private readonly ObservableCollection<AiChatMessage> _chatMessages = new();
 
-        private const int MaxTotalContextChars = 16_000;
-        private const int MaxHistoryMessages = 10;
+        private const int MaxTotalContextChars = 8_000;
+        private const int MaxHistoryMessages = 6;
 
         private static string DocStoreRoot => Path.Combine(AppPaths.DataRoot, "ai_doc_search");
         private static string DocumentsFilePath => Path.Combine(DocStoreRoot, "documents.json");
@@ -400,7 +400,7 @@ namespace CleanPotal
                 model,
                 messages,
                 stream = false,
-                options = new { num_ctx = 8192 }
+                options = new { num_ctx = 4096, num_predict = 1024 }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
