@@ -400,7 +400,7 @@ namespace CleanPotal
                 model,
                 messages,
                 stream = false,
-                options = new { num_ctx = 4096, num_predict = 1024 }
+                options = new { num_ctx = 4096, num_predict = 1024, num_thread = Environment.ProcessorCount }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
