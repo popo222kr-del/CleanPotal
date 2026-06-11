@@ -61,7 +61,7 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="430"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -111,10 +111,10 @@
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
                                                         <StackPanel Grid.Column="0">
-                                                            <TextBlock Text="{Binding FileName}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding FileName}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" TextWrapping="Wrap"/>
                                                             <TextBlock Text="{Binding SummaryInfo}" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,0"/>
                                                         </StackPanel>
-                                                        <Button Grid.Column="1" Content="삭제" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11" Click="BtnDeleteDoc_Click" Tag="{Binding}"/>
+                                                        <Button Grid.Column="1" Content="삭제" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11" VerticalAlignment="Top" Click="BtnDeleteDoc_Click" Tag="{Binding}"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
