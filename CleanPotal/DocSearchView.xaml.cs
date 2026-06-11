@@ -207,6 +207,12 @@ namespace CleanPotal
 
         private void BtnDeleteDoc_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.CurrentUsername != "1004")
+            {
+                MessageBox.Show("문서 삭제는 시스템 관리자(마스터)만 가능합니다.", "문서 삭제", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
             if (sender is Button btn && btn.Tag is DocSearchItem doc)
             {
                 if (MessageBox.Show($"'{doc.FileName}' 문서를 삭제하시겠습니까?", "문서 삭제", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
@@ -332,71 +338,89 @@ namespace CleanPotal
             RunSearch();
         }
 
+        private void CmbCategoryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            RunSearch();
+        }
+
+        private string SelectedCategoryFilter =>
+            (CmbCategoryFilter.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "전체 문서";
+
         private void RunSearch()
         {
-            string keyword = TxtSearch.Text.Trim();
+            string input = TxtSearch.Text.Trim();
 
-            if (string.IsNullOrEmpty(keyword))
+            if (string.IsNullOrEmpty(input))
             {
                 ResultListControl.ItemsSource = null;
                 TxtResultSummary.Text = "검색어를 입력해주세요.";
                 return;
             }
 
+            // 공백으로 구분된 여러 단어를 모두 포함(AND 조건)하는 문서만 검색
+            string[] keywords = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string categoryFilter = SelectedCategoryFilter;
+
             var results = new List<SearchResultItem>();
 
             foreach (var doc in _documents)
             {
+                if (categoryFilter != "전체 문서" && doc.Category != categoryFilter) continue;
+
                 string text = doc.ExtractedText;
                 if (string.IsNullOrEmpty(text)) continue;
 
+                if (keywords.Any(k => text.IndexOf(k, StringComparison.OrdinalIgnoreCase) < 0)) continue;
+
                 var snippets = new List<string>();
                 int matchCount = 0;
-                int searchFrom = 0;
 
-                while (true)
+                foreach (var keyword in keywords)
                 {
-                    int idx = text.IndexOf(keyword, searchFrom, StringComparison.OrdinalIgnoreCase);
-                    if (idx < 0) break;
-
-                    matchCount++;
-
-                    if (snippets.Count < MaxSnippetsPerDoc)
+                    int searchFrom = 0;
+                    while (true)
                     {
-                        int start = Math.Max(0, idx - SnippetContext);
-                        int end = Math.Min(text.Length, idx + keyword.Length + SnippetContext);
+                        int idx = text.IndexOf(keyword, searchFrom, StringComparison.OrdinalIgnoreCase);
+                        if (idx < 0) break;
 
-                        string before = text.Substring(start, idx - start).Replace("\r", " ").Replace("\n", " ");
-                        string match = text.Substring(idx, keyword.Length);
-                        string after = text.Substring(idx + keyword.Length, end - (idx + keyword.Length)).Replace("\r", " ").Replace("\n", " ");
+                        matchCount++;
 
-                        string prefix = start > 0 ? "…" : "";
-                        string suffix = end < text.Length ? "…" : "";
+                        if (snippets.Count < MaxSnippetsPerDoc)
+                        {
+                            int start = Math.Max(0, idx - SnippetContext);
+                            int end = Math.Min(text.Length, idx + keyword.Length + SnippetContext);
 
-                        snippets.Add($"{prefix}{before}【{match}】{after}{suffix}");
+                            string before = text.Substring(start, idx - start).Replace("\r", " ").Replace("\n", " ");
+                            string match = text.Substring(idx, keyword.Length);
+                            string after = text.Substring(idx + keyword.Length, end - (idx + keyword.Length)).Replace("\r", " ").Replace("\n", " ");
+
+                            string prefix = start > 0 ? "…" : "";
+                            string suffix = end < text.Length ? "…" : "";
+
+                            snippets.Add($"{prefix}{before}【{match}】{after}{suffix}");
+                        }
+
+                        searchFrom = idx + keyword.Length;
                     }
-
-                    searchFrom = idx + keyword.Length;
                 }
 
-                if (matchCount > 0)
+                results.Add(new SearchResultItem
                 {
-                    results.Add(new SearchResultItem
-                    {
-                        FileName = doc.FileName,
-                        Snippet = string.Join("\n", snippets),
-                        MatchCount = matchCount,
-                        Document = doc
-                    });
-                }
+                    FileName = doc.FileName,
+                    Snippet = string.Join("\n", snippets),
+                    MatchCount = matchCount,
+                    Document = doc
+                });
             }
 
             results = results.OrderByDescending(r => r.MatchCount).ToList();
 
+            string scopeLabel = categoryFilter == "전체 문서" ? "" : $" ({categoryFilter})";
             ResultListControl.ItemsSource = results;
             TxtResultSummary.Text = results.Count > 0
-                ? $"'{keyword}' 검색 결과: 문서 {results.Count}건에서 발견됨"
-                : $"'{keyword}'에 대한 검색 결과가 없습니다.";
+                ? $"'{input}' 검색 결과{scopeLabel}: 문서 {results.Count}건에서 발견됨"
+                : $"'{input}'에 대한 검색 결과가 없습니다.{scopeLabel}";
         }
     }
 }

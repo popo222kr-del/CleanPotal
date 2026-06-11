@@ -139,12 +139,26 @@
             <!-- 상단 바 -->
             <StackPanel Grid.Row="0" Margin="0,0,0,12">
                 <TextBlock Text="문서 검색" FontSize="20" FontWeight="ExtraBold" Foreground="#0F172A"/>
-                <TextBlock Text="등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                <TextBlock Text="등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다. 여러 단어를 공백으로 구분해 입력하면 모두 포함된 문서만 찾습니다." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
             </StackPanel>
 
             <!-- 검색 입력 -->
             <Grid Grid.Row="1" Margin="0,0,0,12">
-                <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Margin="0,0,8,0">
+                    <ComboBox x:Name="CmbCategoryFilter" Background="Transparent" BorderThickness="0" Padding="10,8" FontSize="13"
+                              VerticalContentAlignment="Center" SelectionChanged="CmbCategoryFilter_SelectionChanged">
+                        <ComboBoxItem Content="전체 문서" IsSelected="True"/>
+                        <ComboBoxItem Content="검사 기준서"/>
+                        <ComboBoxItem Content="관리 기준서"/>
+                        <ComboBoxItem Content="작업 표준서"/>
+                        <ComboBoxItem Content="기타 문서"/>
+                    </ComboBox>
+                </Border>
+                <Border Grid.Column="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
                     <TextBox x:Name="TxtSearch" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="13"
                              TextOptions.TextFormattingMode="Ideal"
                              SpellCheck.IsEnabled="False" TextChanged="TxtSearch_TextChanged"/>
