@@ -92,9 +92,16 @@
                     <ItemsControl x:Name="DocListControl">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="0,0,0,14">
-                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" Foreground="#2563EB" Margin="0,0,0,6"/>
-                                    <ItemsControl ItemsSource="{Binding Items}">
+                                <Expander IsExpanded="True" Margin="0,0,0,8">
+                                    <Expander.Header>
+                                        <Border Background="#EFF6FF" CornerRadius="6" Padding="8,6" Margin="0,0,0,2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8"/>
+                                                <TextBlock Text="{Binding CountLabel}" FontSize="11" Foreground="#60A5FA" Margin="6,1,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Expander.Header>
+                                    <ItemsControl ItemsSource="{Binding Items}" Margin="6,6,0,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8" Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="DocItem_Click">
@@ -113,7 +120,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                </StackPanel>
+                                </Expander>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

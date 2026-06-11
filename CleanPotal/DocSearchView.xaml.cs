@@ -35,6 +35,8 @@ namespace CleanPotal
     {
         public string Name { get; set; } = "";
         public ObservableCollection<DocSearchItem> Items { get; } = new();
+
+        public string CountLabel => $"({Items.Count})";
     }
 
     public class SearchResultItem
@@ -143,7 +145,8 @@ namespace CleanPotal
             foreach (var categoryName in CategoryOrder)
             {
                 var items = _documents.Where(d => d.Category == categoryName).ToList();
-                if (items.Count == 0) continue;
+                // 기준서 3종은 비어 있어도 상위 메뉴로 항상 표시, 기타 문서는 있을 때만 표시
+                if (items.Count == 0 && categoryName == "기타 문서") continue;
 
                 var group = new DocCategoryGroup { Name = categoryName };
                 foreach (var item in items) group.Items.Add(item);
