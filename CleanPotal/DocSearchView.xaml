@@ -57,6 +57,127 @@
         <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
             <Setter Property="Foreground" Value="#DC2626"/>
         </Style>
+
+        <Style x:Key="FilterComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="26"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center"
+                                                      IsHitTestVisible="False"/>
+                                    <!-- 화살표 아이콘 -->
+                                    <Path Grid.Column="1"
+                                          Data="M 0 0 L 4 4 L 8 0"
+                                          Stroke="#64748B" StrokeThickness="1.5"
+                                          Fill="Transparent"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          IsHitTestVisible="False" x:Name="arrow"/>
+                                </Grid>
+                            </Border>
+                            <ToggleButton Focusable="False" IsTabStop="False"
+                                          Background="Transparent" BorderThickness="0"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade"
+                                   Placement="Bottom"
+                                   VerticalOffset="4">
+                                <Border Background="White"
+                                        BorderBrush="#CBD5E1" BorderThickness="1"
+                                        CornerRadius="8"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        Margin="0">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" Opacity="0.10"
+                                                          BlurRadius="12" ShadowDepth="3" Direction="270"/>
+                                    </Border.Effect>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
+                                        <ItemsPresenter Margin="0,4,0,4"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="arrow" Property="Stroke" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="12,7"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="Foreground" Value="#1E293B"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="bd" Background="Transparent"
+                                            Margin="0" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="True"/>
+                                                <Condition Property="IsHighlighted" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="bd" Property="Background" Value="#BFDBFE"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -148,16 +269,14 @@
                     <ColumnDefinition Width="150"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Margin="0,0,8,0">
-                    <ComboBox x:Name="CmbCategoryFilter" Background="Transparent" BorderThickness="0" Padding="10,8" FontSize="13"
-                              VerticalContentAlignment="Center" SelectionChanged="CmbCategoryFilter_SelectionChanged">
-                        <ComboBoxItem Content="전체 문서" IsSelected="True"/>
-                        <ComboBoxItem Content="검사 기준서"/>
-                        <ComboBoxItem Content="관리 기준서"/>
-                        <ComboBoxItem Content="작업 표준서"/>
-                        <ComboBoxItem Content="기타 문서"/>
-                    </ComboBox>
-                </Border>
+                <ComboBox x:Name="CmbCategoryFilter" Grid.Column="0" Style="{StaticResource FilterComboStyle}" Margin="0,0,8,0"
+                          SelectionChanged="CmbCategoryFilter_SelectionChanged">
+                    <ComboBoxItem Content="전체 문서" IsSelected="True"/>
+                    <ComboBoxItem Content="검사 기준서"/>
+                    <ComboBoxItem Content="관리 기준서"/>
+                    <ComboBoxItem Content="작업 표준서"/>
+                    <ComboBoxItem Content="기타 문서"/>
+                </ComboBox>
                 <Border Grid.Column="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
                     <TextBox x:Name="TxtSearch" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="13"
                              TextOptions.TextFormattingMode="Ideal"
