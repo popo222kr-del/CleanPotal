@@ -350,7 +350,6 @@ namespace CleanPotal
             sb.AppendLine("당신은 회사 내부 기준서와 문서를 기반으로 질문에 답변하는 AI 어시스턴트입니다.");
             sb.AppendLine("아래에 제공된 문서 내용을 참고하여 정확하게 답변하고, 문서에서 근거를 찾을 수 없는 내용은 추측하지 말고 모른다고 답하세요.");
             sb.AppendLine("가능하면 어떤 문서를 참고했는지 함께 알려주세요.");
-            sb.AppendLine("답변은 핵심 위주로 간결하게 작성하세요.");
             sb.AppendLine();
 
             if (_documents.Count == 0)
@@ -402,7 +401,7 @@ namespace CleanPotal
                 messages,
                 stream = false,
                 keep_alive = "30m",
-                options = new { num_ctx = 4096, num_predict = 512, num_thread = Environment.ProcessorCount }
+                options = new { num_ctx = 4096, num_predict = 1024, num_thread = Environment.ProcessorCount }
             };
 
             string requestJson = JsonSerializer.Serialize(body);
