@@ -716,6 +716,19 @@ namespace CleanPotal
         private void AttachChipTrainingImages_Click(object sender, MouseButtonEventArgs e)
             => HandleChipClick(sender, r => r.TrainingImages);
 
+        // 첨부 파일을 공용 저장소(AppPaths.DataRoot)에 복사하여 모든 사용자가 열 수 있도록 한다
+        private static string SharedAttachmentsRoot => Path.Combine(AppPaths.DataRoot, "broken_mgmt", "attachments");
+
+        private static string CopyToSharedStorage(string sourcePath)
+        {
+            Directory.CreateDirectory(SharedAttachmentsRoot);
+            string ext = Path.GetExtension(sourcePath);
+            string baseName = Path.GetFileNameWithoutExtension(sourcePath);
+            string destPath = Path.Combine(SharedAttachmentsRoot, $"{baseName}_{Guid.NewGuid():N}{ext}");
+            File.Copy(sourcePath, destPath, overwrite: true);
+            return destPath;
+        }
+
         private void HandleChipClick(object sender, Func<BrokenRecord, ObservableCollection<string>> getCol)
         {
             if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
@@ -725,8 +738,7 @@ namespace CleanPotal
             {
                 var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
                 if (dlg.ShowDialog() != true) return;
-                foreach (var path in dlg.FileNames)
-                    if (!col.Contains(path)) col.Add(path);
+                AddAttachments(col, dlg.FileNames);
                 return;
             }
 
@@ -751,8 +763,7 @@ namespace CleanPotal
             {
                 var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
                 if (dlg.ShowDialog() != true) return;
-                foreach (var path in dlg.FileNames)
-                    if (!col.Contains(path)) col.Add(path);
+                AddAttachments(col, dlg.FileNames);
             };
             menu.Items.Add(addItem);
             menu.Items.Add(new Separator());
@@ -764,8 +775,34 @@ namespace CleanPotal
             menu.IsOpen = true;
         }
 
+        private static void AddAttachments(ObservableCollection<string> col, IEnumerable<string> paths)
+        {
+            foreach (var path in paths)
+            {
+                try
+                {
+                    string stored = CopyToSharedStorage(path);
+                    if (!col.Contains(stored)) col.Add(stored);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"'{Path.GetFileName(path)}' 파일을 복사하는 중 오류가 발생했습니다.\n{ex.Message}", "파일 첨부", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
         private static void OpenFile(string path)
         {
+            if (!File.Exists(path))
+            {
+                MessageBox.Show(
+                    $"'{Path.GetFileName(path)}' 파일을 찾을 수 없습니다.\n\n" +
+                    "공유 저장소로 옮기기 전에 첨부된 파일은 업로드한 사람의 PC에만 저장되어 다른 사용자가 열 수 없습니다.\n" +
+                    "해당 항목을 삭제 후 다시 첨부하면 모든 사용자가 열 수 있습니다.",
+                    "파일 열기", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); }
             catch (Exception ex) { MessageBox.Show($"파일 열기 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
@@ -819,9 +856,7 @@ namespace CleanPotal
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
             var col = getCol(record);
-            foreach (var path in files)
-                if (_allowedExts.Contains(Path.GetExtension(path)) && !col.Contains(path))
-                    col.Add(path);
+            AddAttachments(col, files.Where(path => _allowedExts.Contains(Path.GetExtension(path))));
             e.Handled = true;
         }
 
