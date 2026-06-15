@@ -1018,7 +1018,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- 생산 -->
-                        <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
+                        <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1034,7 +1034,8 @@
                                             Padding="10,5" FontSize="12" Height="28"
                                             Click="BtnDeleteTrainingRowProd_Click"/>
                                 </StackPanel>
-                                <DataGrid Grid.Row="1" x:Name="DgTrainingProd"
+                                <Border Grid.Row="1" Margin="0,0,0,8">
+                                <DataGrid x:Name="DgTrainingProd"
                                           Style="{StaticResource BrokenDataGridStyle}"
                                           ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
                                           CanUserAddRows="False"
@@ -1054,11 +1055,12 @@
                                                                  CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
+                                </Border>
                             </Grid>
                         </Border>
 
                         <!-- 물류 -->
-                        <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
+                        <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1074,7 +1076,8 @@
                                             Padding="10,5" FontSize="12" Height="28"
                                             Click="BtnDeleteTrainingRowLogi_Click"/>
                                 </StackPanel>
-                                <DataGrid Grid.Row="1" x:Name="DgTrainingLogi"
+                                <Border Grid.Row="1" Margin="0,0,0,8">
+                                <DataGrid x:Name="DgTrainingLogi"
                                           Style="{StaticResource BrokenDataGridStyle}"
                                           ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
                                           CanUserAddRows="False"
@@ -1094,6 +1097,7 @@
                                                                  CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>
