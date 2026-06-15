@@ -51,6 +51,7 @@ namespace CleanPotal
                 SessionManager.CanManageNotices = user.CanManageNotices;
                 SessionManager.CanManageVendors = user.CanManageVendors;
                 SessionManager.CanManageSchedule = user.CanManageSchedule;
+                SessionManager.CanManageBroken = user.CanManageBroken;
                 SessionManager.CanAccessEtcMenu = user.CanAccessEtcMenu;
 
                 // 자동 로그인 체크 시 저장, 해제 시 기존 저장 정보 삭제

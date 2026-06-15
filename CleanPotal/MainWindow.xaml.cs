@@ -351,6 +351,7 @@ namespace CleanPotal
 
         private void OpenBrokenMgmt_Click(object sender, RoutedEventArgs e)
         {
+            if (!AuthManager.CheckAuth(PermissionType.BrokenMgmt)) return;
             OpenSidebar();
             ShowBrokenMgmt();
         }

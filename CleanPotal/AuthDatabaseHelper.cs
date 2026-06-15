@@ -25,6 +25,7 @@ namespace CleanPotal
         public bool CanManageNotices { get; set; } = false;
         public bool CanManageVendors { get; set; } = false;
         public bool CanManageSchedule { get; set; } = false;
+        public bool CanManageBroken { get; set; } = false;
         public bool CanAccessEtcMenu { get; set; } = false;
         public bool IsResigned { get; set; } = false;
         public string ResignDate { get; set; } = "";

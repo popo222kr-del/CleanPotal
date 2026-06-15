@@ -180,6 +180,7 @@ namespace CleanPotal
             ChkManageNotices.IsChecked = user.CanManageNotices;
             ChkManageVendors.IsChecked = user.CanManageVendors;
             ChkManageSchedule.IsChecked = user.CanManageSchedule;
+            ChkManageBroken.IsChecked = user.CanManageBroken;
             ChkAccessEtcMenu.IsChecked = user.CanAccessEtcMenu;
             ChkIsResigned.IsChecked = user.IsResigned;
             DpResignDate.SelectedDate = string.IsNullOrEmpty(user.ResignDate) ? null
@@ -232,6 +233,7 @@ namespace CleanPotal
                     CanManageNotices = ChkManageNotices.IsChecked == true,
                     CanManageVendors = ChkManageVendors.IsChecked == true,
                     CanManageSchedule = ChkManageSchedule.IsChecked == true,
+                    CanManageBroken = ChkManageBroken.IsChecked == true,
                     CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true,
                     IsResigned = ChkIsResigned.IsChecked == true,
                     ResignDate = DpResignDate.SelectedDate?.ToString("yyyy-MM-dd") ?? ""
@@ -279,6 +281,7 @@ namespace CleanPotal
                 _selectedUser.CanManageNotices = ChkManageNotices.IsChecked == true;
                 _selectedUser.CanManageVendors = ChkManageVendors.IsChecked == true;
                 _selectedUser.CanManageSchedule = ChkManageSchedule.IsChecked == true;
+                _selectedUser.CanManageBroken = ChkManageBroken.IsChecked == true;
                 _selectedUser.CanAccessEtcMenu = ChkAccessEtcMenu.IsChecked == true;
                 _selectedUser.IsResigned = ChkIsResigned.IsChecked == true;
                 _selectedUser.ResignDate = DpResignDate.SelectedDate?.ToString("yyyy-MM-dd") ?? "";
@@ -351,7 +354,7 @@ namespace CleanPotal
                 {
                     "이름", "아이디", "소속팀", "직위", "사번",
                     "입사일", "근속", "이메일", "전화번호",
-                    "파일관리", "공지관리", "업체관리", "일정관리"
+                    "파일관리", "공지관리", "업체관리", "일정관리", "BROKEN관리"
                 };
 
                 for (int c = 0; c < headers.Length; c++)
@@ -382,6 +385,7 @@ namespace CleanPotal
                     ws.Cell(row, 11).Value = u.CanManageNotices   ? "O" : "";
                     ws.Cell(row, 12).Value = u.CanManageVendors   ? "O" : "";
                     ws.Cell(row, 13).Value = u.CanManageSchedule  ? "O" : "";
+                    ws.Cell(row, 14).Value = u.CanManageBroken    ? "O" : "";
 
                     // 짝수 행 연한 배경 — 행 전체가 아닌 데이터 범위 셀만 적용
                     if (row % 2 == 0)
@@ -393,7 +397,7 @@ namespace CleanPotal
                 for (int c = 1; c <= headers.Length; c++)
                     ws.Column(c).AdjustToContents(1, users.Count + 1);
                 // 권한 열은 좁게 고정
-                foreach (int col in new[] { 10, 11, 12, 13 })
+                foreach (int col in new[] { 10, 11, 12, 13, 14 })
                     ws.Column(col).Width = 8;
 
                 wb.SaveAs(dlg.FileName);
@@ -421,7 +425,7 @@ namespace CleanPotal
             TxtEmployeeNumber.Clear(); TxtHireDate.Clear(); TxtNewEmail.Clear(); TxtNewPhone.Clear();
             ChkManageFiles.IsChecked = false; ChkManageNotices.IsChecked = false;
             ChkManageVendors.IsChecked = false; ChkManageSchedule.IsChecked = false;
-            ChkAccessEtcMenu.IsChecked = false;
+            ChkManageBroken.IsChecked = false; ChkAccessEtcMenu.IsChecked = false;
             ChkIsResigned.IsChecked = false; DpResignDate.SelectedDate = null;
         }
     }
