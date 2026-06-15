@@ -361,6 +361,10 @@ namespace CleanPotal
         private bool _suppressFilter = false;
         private string _memo = "";   // 메모 UI는 제거되었으나 기존 데이터 보존용
 
+        // 임원(직위='임원')은 관리자가 '공식'으로 표시한 항목만 조회 가능한 화면을 본다
+        private readonly bool _isExecutiveView =
+            (SessionManager.CurrentJobTitle ?? "").Trim() == "임원" && SessionManager.CurrentUsername != "1004";
+
         public BrokenManagementView()
         {
             InitializeComponent();
@@ -376,8 +380,19 @@ namespace CleanPotal
             CmbCauser.SelectionChanged      += SubFilter_SelectionChanged;
 
             ResetFilterComboBoxes();
+
+            if (_isExecutiveView)
+            {
+                BrokenToolbar.Visibility = Visibility.Collapsed;
+                ColIsOfficial.Visibility = Visibility.Collapsed;
+                DgBroken.IsReadOnly = true;
+            }
+
             LoadAppData();
         }
+
+        // 공식/비공식 값을 "공식" / "비공식" 두 가지로 정규화
+        private static string NormalizeOfficial(string? v) => (v ?? "").Trim() == "공식" ? "공식" : "비공식";
 
         public void TryRefresh() { }
 
@@ -485,7 +500,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnAddRow_Click(object sender, RoutedEventArgs e)
         {
-            var newRecord = new BrokenRecord { OccurDate = DateTime.Today };
+            var newRecord = new BrokenRecord { OccurDate = DateTime.Today, IsOfficial = "비공식" };
             _allRecords.Add(newRecord);
             newRecord.DisplayNo = _filteredRecords.Count + 1;
             _filteredRecords.Add(newRecord);
@@ -597,7 +612,7 @@ namespace CleanPotal
                         Team = d.Team, Causer = d.Causer, JobTitle = d.JobTitle,
                         Career = d.Career, PositionFrozen = d.PositionFrozen,
                         ProductType = d.ProductType, OccurStage = d.OccurStage,
-                        Status = d.Status, IsOfficial = d.IsOfficial
+                        Status = d.Status, IsOfficial = NormalizeOfficial(d.IsOfficial)
                     };
                     foreach (var p in d.IncidentReports)      r.IncidentReports.Add(p);
                     foreach (var p in d.CountermeasureReports) r.CountermeasureReports.Add(p);
@@ -917,7 +932,7 @@ namespace CleanPotal
                     ProductName = GetCellValue(cells, "D", sst),
                     Line        = GetCellValue(cells, "E", sst),
                     SN          = GetCellValue(cells, "F", sst),
-                    IsOfficial  = GetCellValue(cells, "G", sst),
+                    IsOfficial  = NormalizeOfficial(GetCellValue(cells, "G", sst)),
                     Causer      = GetCellValue(cells, "H", sst),
                     Team        = GetCellValue(cells, "I", sst),
                     ProductType = GetCellValue(cells, "J", sst),
@@ -1023,6 +1038,8 @@ namespace CleanPotal
             string causerText = TxtCauserSearch?.Text?.Trim() ?? "";
 
             var filtered = _allRecords.AsEnumerable();
+            if (_isExecutiveView)
+                filtered = filtered.Where(r => r.IsOfficial == "공식");
             if (years.Count > 0)
                 filtered = filtered.Where(r => r.OccurDate.HasValue && years.Contains(r.OccurDate.Value.Year.ToString()));
             if (lines.Count > 0)

@@ -623,7 +623,7 @@
                     </Border>
 
                     <!-- 툴바 -->
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel x:Name="BrokenToolbar" Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
                         <Button Content="파일 불러오기" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnLoadFile_Click"/>
@@ -690,6 +690,34 @@
 
                                 <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
+
+                                <!-- ── 공식/비공식 ── -->
+                                <DataGridTemplateColumn x:Name="ColIsOfficial" Header="공식여부" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="offBd" CornerRadius="6" Padding="8,3"
+                                                    HorizontalAlignment="Center" Background="#F1F5F9">
+                                                <TextBlock x:Name="offTxt" Text="{Binding IsOfficial}"
+                                                           FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsOfficial}" Value="공식">
+                                                    <Setter TargetName="offBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="offTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <ComboBox SelectedValue="{Binding IsOfficial, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectedValuePath="Content" VerticalAlignment="Center" Margin="2,0">
+                                                <ComboBoxItem Content="공식"/>
+                                                <ComboBoxItem Content="비공식"/>
+                                            </ComboBox>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
 
                                 <!-- ── 경위서 ── -->
                                 <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="58" IsReadOnly="True">
