@@ -89,10 +89,10 @@ namespace CleanPotal
     // ---------------------------------------------------------------------------
     public partial class BrokenManagementView
     {
-        // 교육 활동 실행률 표 컬럼 헤더를 현재 연도 기준으로 설정 ("25년 실적", "26년 목표", "26년 실적" 등)
+        // 교육 활동 실행률 표 컬럼 헤더를 선택된 연도 기준으로 설정 ("25년 실적", "26년 목표", "26년 실적" 등)
         private void SetupTrainingSummaryHeaders()
         {
-            int curYear = DateTime.Now.Year % 100;
+            int curYear = _trainingYear % 100;
             int prevYear = curYear - 1;
             ColPrevYearActual.Header = $"{prevYear}년 실적";
             ColCurYearTarget.Header = $"{curYear}년 목표";
@@ -102,17 +102,19 @@ namespace CleanPotal
         // 교육 기록 리스트를 바탕으로 실행률 표(생산/물류/합계)를 다시 계산
         private void RebuildTrainingSummary()
         {
-            int curYear = DateTime.Now.Year;
+            int curYear = _trainingYear;
 
             var prod = new TrainingSummaryRow
             {
                 CategoryLabel = "생산(월 1회)", CategoryKey = "생산",
-                Target2025 = _trainingGoals.ProductionTarget2025, Target2026 = _trainingGoals.ProductionTarget2026
+                Target2025 = _trainingGoals.ProductionTargets.GetValueOrDefault(curYear - 1),
+                Target2026 = _trainingGoals.ProductionTargets.GetValueOrDefault(curYear)
             };
             var logi = new TrainingSummaryRow
             {
                 CategoryLabel = "물류(월 1회)", CategoryKey = "물류",
-                Target2025 = _trainingGoals.LogisticsTarget2025, Target2026 = _trainingGoals.LogisticsTarget2026
+                Target2025 = _trainingGoals.LogisticsTargets.GetValueOrDefault(curYear - 1),
+                Target2026 = _trainingGoals.LogisticsTargets.GetValueOrDefault(curYear)
             };
             var total = new TrainingSummaryRow { CategoryLabel = "합계", CategoryKey = "합계", IsTotal = true };
 
@@ -163,13 +165,13 @@ namespace CleanPotal
             {
                 if (row.CategoryKey == "생산")
                 {
-                    _trainingGoals.ProductionTarget2025 = row.Target2025;
-                    _trainingGoals.ProductionTarget2026 = row.Target2026;
+                    _trainingGoals.ProductionTargets[_trainingYear - 1] = row.Target2025;
+                    _trainingGoals.ProductionTargets[_trainingYear] = row.Target2026;
                 }
                 else if (row.CategoryKey == "물류")
                 {
-                    _trainingGoals.LogisticsTarget2025 = row.Target2025;
-                    _trainingGoals.LogisticsTarget2026 = row.Target2026;
+                    _trainingGoals.LogisticsTargets[_trainingYear - 1] = row.Target2025;
+                    _trainingGoals.LogisticsTargets[_trainingYear] = row.Target2026;
                 }
                 RebuildTrainingSummary();
             }), System.Windows.Threading.DispatcherPriority.Background);
@@ -180,10 +182,48 @@ namespace CleanPotal
             for (int i = 0; i < records.Count; i++) records[i].DisplayNo = i + 1;
         }
 
-        private void RenumberTrainingRecords()
+        // 연도 선택 콤보박스의 항목을 구성 (현재 연도, 선택된 연도, 기록이 존재하는 연도들을 모두 포함)
+        private void SetupTrainingYearOptions()
         {
-            RenumberTrainingRecords(_trainingRecordsProd);
-            RenumberTrainingRecords(_trainingRecordsLogi);
+            var years = new SortedSet<int>(Comparer<int>.Create((a, b) => b.CompareTo(a)))
+            {
+                DateTime.Now.Year,
+                _trainingYear
+            };
+            foreach (var rec in _trainingRecordsProd.Concat(_trainingRecordsLogi))
+                if (rec.TrainingDate.HasValue) years.Add(rec.TrainingDate.Value.Year);
+
+            _suppressTrainingYearChange = true;
+            CmbTrainingYear.ItemsSource = years.ToList();
+            CmbTrainingYear.SelectedItem = _trainingYear;
+            _suppressTrainingYearChange = false;
+        }
+
+        // 연도 선택이 바뀌면 실행률 표와 교육 기록 목록을 모두 해당 연도 기준으로 전환
+        private void CmbTrainingYear_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_suppressTrainingYearChange) return;
+            if (CmbTrainingYear.SelectedItem is not int year) return;
+            _trainingYear = year;
+            SetupTrainingSummaryHeaders();
+            RebuildTrainingSummary();
+            RefreshTrainingRecordViews();
+        }
+
+        // 마스터 목록에서 선택된 연도에 해당하는 기록만 뷰 목록으로 옮겨 표시
+        private void RefreshTrainingRecordView(ObservableCollection<TrainingRecord> source, ObservableCollection<TrainingRecord> view)
+        {
+            view.Clear();
+            foreach (var rec in source)
+                if (rec.TrainingDate.HasValue && rec.TrainingDate.Value.Year == _trainingYear)
+                    view.Add(rec);
+            RenumberTrainingRecords(view);
+        }
+
+        private void RefreshTrainingRecordViews()
+        {
+            RefreshTrainingRecordView(_trainingRecordsProd, _trainingRecordsProdView);
+            RefreshTrainingRecordView(_trainingRecordsLogi, _trainingRecordsLogiView);
         }
 
         // -----------------------------------------------------------------------
@@ -191,10 +231,12 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void AddTrainingRow(ObservableCollection<TrainingRecord> records, DataGrid grid)
         {
-            var rec = new TrainingRecord { TrainingDate = DateTime.Today };
+            var date = _trainingYear == DateTime.Today.Year ? DateTime.Today : new DateTime(_trainingYear, 1, 1);
+            var rec = new TrainingRecord { TrainingDate = date };
             records.Add(rec);
-            RenumberTrainingRecords();
+            RefreshTrainingRecordViews();
             RebuildTrainingSummary();
+            SetupTrainingYearOptions();
 
             grid.SelectedItem = rec;
             grid.ScrollIntoView(rec);
@@ -212,7 +254,7 @@ namespace CleanPotal
             if (MessageBox.Show("선택한 행을 삭제하시겠습니까?", "확인",
                     MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
             records.Remove(selected);
-            RenumberTrainingRecords();
+            RefreshTrainingRecordViews();
             RebuildTrainingSummary();
         }
 
@@ -241,12 +283,16 @@ namespace CleanPotal
             }
         }
 
-        // 교육일자가 바뀌면 실행률 표를 다시 계산
+        // 교육일자가 바뀌면 실행률 표와 연도 목록/기록 목록을 다시 계산
         private void DgTrainingRecord_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction != DataGridEditAction.Commit) return;
-            Dispatcher.BeginInvoke(new Action(RebuildTrainingSummary),
-                System.Windows.Threading.DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                SetupTrainingYearOptions();
+                RebuildTrainingSummary();
+                RefreshTrainingRecordViews();
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         // -----------------------------------------------------------------------

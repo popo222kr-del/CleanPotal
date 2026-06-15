@@ -293,10 +293,8 @@ namespace CleanPotal
 
     public class TrainingGoalsDto
     {
-        public int ProductionTarget2025 { get; set; } = 11;
-        public int ProductionTarget2026 { get; set; } = 12;
-        public int LogisticsTarget2025 { get; set; } = 10;
-        public int LogisticsTarget2026 { get; set; } = 12;
+        public Dictionary<int, int> ProductionTargets { get; set; } = new() { [2025] = 11, [2026] = 12 };
+        public Dictionary<int, int> LogisticsTargets { get; set; } = new() { [2025] = 10, [2026] = 12 };
     }
 
     public class BrokenRecordDto
@@ -383,8 +381,12 @@ namespace CleanPotal
         // 교육 현황 탭
         private readonly ObservableCollection<TrainingRecord> _trainingRecordsProd = new();
         private readonly ObservableCollection<TrainingRecord> _trainingRecordsLogi = new();
+        private readonly ObservableCollection<TrainingRecord> _trainingRecordsProdView = new();
+        private readonly ObservableCollection<TrainingRecord> _trainingRecordsLogiView = new();
         private readonly ObservableCollection<TrainingSummaryRow> _trainingSummary = new();
         private TrainingGoalsDto _trainingGoals = new();
+        private int _trainingYear = DateTime.Now.Year;
+        private bool _suppressTrainingYearChange = false;
 
         // 임원(직위='임원')은 관리자가 '공식'으로 표시한 항목만 조회 가능한 화면을 본다
         private readonly bool _isExecutiveView =
@@ -416,11 +418,13 @@ namespace CleanPotal
                 DgBroken.IsReadOnly = true;
             }
 
-            DgTrainingProd.ItemsSource = _trainingRecordsProd;
-            DgTrainingLogi.ItemsSource = _trainingRecordsLogi;
+            DgTrainingProd.ItemsSource = _trainingRecordsProdView;
+            DgTrainingLogi.ItemsSource = _trainingRecordsLogiView;
             DgTrainingSummary.ItemsSource = _trainingSummary;
+            SetupTrainingYearOptions();
             SetupTrainingSummaryHeaders();
             RebuildTrainingSummary();
+            RefreshTrainingRecordViews();
 
             LoadAppData();
         }
@@ -690,10 +694,11 @@ namespace CleanPotal
                     foreach (var p in d.Images) r.Images.Add(p);
                     _trainingRecordsLogi.Add(r);
                 }
-                RenumberTrainingRecords();
-
                 _trainingGoals = dto.TrainingGoals ?? new TrainingGoalsDto();
+                SetupTrainingYearOptions();
+                SetupTrainingSummaryHeaders();
                 RebuildTrainingSummary();
+                RefreshTrainingRecordViews();
             }
             catch { /* 손상된 저장파일 무시 */ }
         }
