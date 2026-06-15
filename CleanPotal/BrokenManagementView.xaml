@@ -624,19 +624,19 @@
 
                     <!-- 툴바 -->
                     <StackPanel x:Name="BrokenToolbar" Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
-                        <Button Content="파일 불러오기" Style="{StaticResource GhostButtonStyle}"
+                        <Button x:Name="BtnLoadFile" Content="파일 불러오기" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnLoadFile_Click"/>
-                        <Button Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                        <Button x:Name="BtnAddRow" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnAddRow_Click"/>
-                        <Button Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                        <Button x:Name="BtnDeleteRow" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnDeleteRow_Click"/>
-                        <Button Content="저장" Style="{StaticResource PrimaryButtonStyle}"
+                        <Button x:Name="BtnSaveData" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
                                 Click="BtnSave_Click"/>
-                        <Button Content="엑셀 내보내기" Style="{StaticResource GhostButtonStyle}"
+                        <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30"
                                 Click="BtnExportExcel_Click"/>
                     </StackPanel>
@@ -730,7 +730,8 @@
                                                 <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
                                                         HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
                                                         Background="#F1F5F9" Tag="{Binding}"
-                                                        MouseLeftButtonUp="AttachChipIncident_Click">
+                                                        MouseLeftButtonUp="AttachChipIncident_Click"
+                                                        MouseRightButtonUp="AttachChipIncident_RightClick">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBlock x:Name="chipTxt" Text="{Binding IncidentLabel}"
@@ -760,7 +761,8 @@
                                                 <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
                                                         HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
                                                         Background="#F1F5F9" Tag="{Binding}"
-                                                        MouseLeftButtonUp="AttachChipCountermeasure_Click">
+                                                        MouseLeftButtonUp="AttachChipCountermeasure_Click"
+                                                        MouseRightButtonUp="AttachChipCountermeasure_RightClick">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBlock x:Name="chipTxt" Text="{Binding CountermeasureLabel}"
@@ -790,7 +792,8 @@
                                                 <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
                                                         HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
                                                         Background="#F1F5F9" Tag="{Binding}"
-                                                        MouseLeftButtonUp="AttachChipTraining_Click">
+                                                        MouseLeftButtonUp="AttachChipTraining_Click"
+                                                        MouseRightButtonUp="AttachChipTraining_RightClick">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBlock x:Name="chipTxt" Text="{Binding TrainingLabel}"
@@ -820,7 +823,8 @@
                                                 <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
                                                         HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
                                                         Background="#F1F5F9" Tag="{Binding}"
-                                                        MouseLeftButtonUp="AttachChipTrainingImages_Click">
+                                                        MouseLeftButtonUp="AttachChipTrainingImages_Click"
+                                                        MouseRightButtonUp="AttachChipTrainingImages_RightClick">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBlock x:Name="chipTxt" Text="{Binding TrainingImageLabel}"

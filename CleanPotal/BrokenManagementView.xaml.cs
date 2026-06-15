@@ -237,16 +237,16 @@ namespace CleanPotal
 
         public bool   HasIncident        => IncidentReports.Count > 0;
         public string IncidentLabel      => IncidentReports.Count switch {
-            0 => "첨부", 1 => $"경위서{Path.GetExtension(IncidentReports[0])}", _ => $"경위서 {IncidentReports.Count}건" };
+            0 => "첨부", 1 => "경위서", _ => $"경위서 {IncidentReports.Count}건" };
         public bool   HasCountermeasure  => CountermeasureReports.Count > 0;
         public string CountermeasureLabel => CountermeasureReports.Count switch {
-            0 => "첨부", 1 => $"대책서{Path.GetExtension(CountermeasureReports[0])}", _ => $"대책서 {CountermeasureReports.Count}건" };
+            0 => "첨부", 1 => "대책서", _ => $"대책서 {CountermeasureReports.Count}건" };
         public bool   HasTraining        => TrainingDocs.Count > 0;
         public string TrainingLabel      => TrainingDocs.Count switch {
-            0 => "첨부", 1 => $"교육서{Path.GetExtension(TrainingDocs[0])}", _ => $"교육서 {TrainingDocs.Count}건" };
+            0 => "첨부", 1 => "교육서", _ => $"교육서 {TrainingDocs.Count}건" };
         public bool   HasTrainingImage   => TrainingImages.Count > 0;
         public string TrainingImageLabel => TrainingImages.Count switch {
-            0 => "첨부", 1 => $"교육이미지{Path.GetExtension(TrainingImages[0])}", _ => $"교육이미지 {TrainingImages.Count}건" };
+            0 => "첨부", 1 => "교육이미지", _ => $"교육이미지 {TrainingImages.Count}건" };
 
         private static string DayOfWeekKorean(DateTime d) => d.DayOfWeek switch
         {
@@ -383,7 +383,10 @@ namespace CleanPotal
 
             if (_isExecutiveView)
             {
-                BrokenToolbar.Visibility = Visibility.Collapsed;
+                BtnLoadFile.Visibility = Visibility.Collapsed;
+                BtnAddRow.Visibility = Visibility.Collapsed;
+                BtnDeleteRow.Visibility = Visibility.Collapsed;
+                BtnSaveData.Visibility = Visibility.Collapsed;
                 ColIsOfficial.Visibility = Visibility.Collapsed;
                 DgBroken.IsReadOnly = true;
             }
@@ -672,8 +675,12 @@ namespace CleanPotal
             string[] headers = { "NO", "발생일", "라인", "제품명", "S/N", "팀", "유발자", "직위", "제품종류", "발생단계", "경위서", "대책서", "교육서", "교육이미지" };
             sheetData.AppendChild(MakeSaveRow(1u, headers));
 
+            var exportRecords = _isExecutiveView
+                ? _allRecords.Where(r => r.IsOfficial == "공식").ToList()
+                : _allRecords;
+
             uint ri = 2; int no = 1;
-            foreach (var r in _allRecords)
+            foreach (var r in exportRecords)
             {
                 sheetData.AppendChild(MakeSaveRow(ri++, new[]
                 {
@@ -731,6 +738,18 @@ namespace CleanPotal
         private void AttachChipTrainingImages_Click(object sender, MouseButtonEventArgs e)
             => HandleChipClick(sender, r => r.TrainingImages);
 
+        private void AttachChipIncident_RightClick(object sender, MouseButtonEventArgs e)
+            => HandleChipRightClick(sender, r => r.IncidentReports);
+
+        private void AttachChipCountermeasure_RightClick(object sender, MouseButtonEventArgs e)
+            => HandleChipRightClick(sender, r => r.CountermeasureReports);
+
+        private void AttachChipTraining_RightClick(object sender, MouseButtonEventArgs e)
+            => HandleChipRightClick(sender, r => r.TrainingDocs);
+
+        private void AttachChipTrainingImages_RightClick(object sender, MouseButtonEventArgs e)
+            => HandleChipRightClick(sender, r => r.TrainingImages);
+
         // 첨부 파일을 공용 저장소(AppPaths.DataRoot)에 복사하여 모든 사용자가 열 수 있도록 한다
         private static string SharedAttachmentsRoot => Path.Combine(AppPaths.DataRoot, "broken_mgmt", "attachments");
 
@@ -785,6 +804,69 @@ namespace CleanPotal
             var delItem = new MenuItem { Header = "모두 삭제" };
             delItem.Click += (_, _) => col.Clear();
             menu.Items.Add(delItem);
+
+            menu.PlacementTarget = fe;
+            menu.IsOpen = true;
+        }
+
+        // 마우스 우클릭: 파일 개수에 관계없이 추가/삭제 메뉴를 표시
+        private void HandleChipRightClick(object sender, Func<BrokenRecord, ObservableCollection<string>> getCol)
+        {
+            if (sender is not FrameworkElement fe || fe.Tag is not BrokenRecord record) return;
+            ShowAttachMenu(fe, getCol(record));
+        }
+
+        // 첨부 목록에 대한 컨텍스트 메뉴 (열기 / 추가 / 삭제)를 파일 개수에 따라 구성한다
+        private void ShowAttachMenu(FrameworkElement fe, ObservableCollection<string> col)
+        {
+            var menu = new ContextMenu();
+
+            if (col.Count == 0)
+            {
+                var attachItem = new MenuItem { Header = "파일 첨부" };
+                attachItem.Click += (_, _) =>
+                {
+                    var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
+                    if (dlg.ShowDialog() != true) return;
+                    AddAttachments(col, dlg.FileNames);
+                };
+                menu.Items.Add(attachItem);
+            }
+            else
+            {
+                foreach (var path in col.ToList())
+                {
+                    var captured = path;
+                    var mi = new MenuItem { Header = Path.GetFileName(captured) };
+                    mi.Click += (_, _) => OpenFile(captured);
+                    menu.Items.Add(mi);
+                }
+                menu.Items.Add(new Separator());
+
+                var addItem = new MenuItem { Header = "파일 추가" };
+                addItem.Click += (_, _) =>
+                {
+                    var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
+                    if (dlg.ShowDialog() != true) return;
+                    AddAttachments(col, dlg.FileNames);
+                };
+                menu.Items.Add(addItem);
+                menu.Items.Add(new Separator());
+
+                if (col.Count == 1)
+                {
+                    var delItem = new MenuItem { Header = "삭제" };
+                    var captured = col[0];
+                    delItem.Click += (_, _) => col.Remove(captured);
+                    menu.Items.Add(delItem);
+                }
+                else
+                {
+                    var delAllItem = new MenuItem { Header = "모두 삭제" };
+                    delAllItem.Click += (_, _) => col.Clear();
+                    menu.Items.Add(delAllItem);
+                }
+            }
 
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
