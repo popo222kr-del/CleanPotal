@@ -359,6 +359,18 @@
             <Setter Property="Foreground" Value="#2563EB"/>
         </Style>
 
+        <!-- 교육현황 표: 월별 셀 (실적이 있는 월만 강조) -->
+        <Style x:Key="MonthlyHighlightCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Style.Triggers>
+                <Trigger Property="Text" Value="0">
+                    <Setter Property="FontWeight" Value="Normal"/>
+                    <Setter Property="Foreground" Value="#94A3B8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- 교육 기록: 교육일자 셀 / 편집 템플릿 -->
         <DataTemplate x:Key="TrainingDateCellTemplate">
             <TextBlock Text="{Binding TrainingDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>
@@ -969,18 +981,18 @@
                                                          ElementStyle="{StaticResource CenterCell}"/>
                                     <DataGridTextColumn x:Name="ColCurYearActual" Header="26년 실적" Binding="{Binding Actual2026}" Width="75"
                                                          IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
-                                    <DataGridTextColumn Header="1월"  Binding="{Binding Monthly[0]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="2월"  Binding="{Binding Monthly[1]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="3월"  Binding="{Binding Monthly[2]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="4월"  Binding="{Binding Monthly[3]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="5월"  Binding="{Binding Monthly[4]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="6월"  Binding="{Binding Monthly[5]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="7월"  Binding="{Binding Monthly[6]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="8월"  Binding="{Binding Monthly[7]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="9월"  Binding="{Binding Monthly[8]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="10월" Binding="{Binding Monthly[9]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="11월" Binding="{Binding Monthly[10]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
-                                    <DataGridTextColumn Header="12월" Binding="{Binding Monthly[11]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                    <DataGridTextColumn Header="1월"  Binding="{Binding Monthly[0]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="2월"  Binding="{Binding Monthly[1]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="3월"  Binding="{Binding Monthly[2]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="4월"  Binding="{Binding Monthly[3]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="5월"  Binding="{Binding Monthly[4]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="6월"  Binding="{Binding Monthly[5]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="7월"  Binding="{Binding Monthly[6]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="8월"  Binding="{Binding Monthly[7]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="9월"  Binding="{Binding Monthly[8]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="10월" Binding="{Binding Monthly[9]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="11월" Binding="{Binding Monthly[10]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="12월" Binding="{Binding Monthly[11]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
                                     <DataGridTextColumn Header="상반기" Binding="{Binding FirstHalf}"  Width="70" IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
                                     <DataGridTextColumn Header="하반기" Binding="{Binding SecondHalf}" Width="70" IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
                                 </DataGrid.Columns>
