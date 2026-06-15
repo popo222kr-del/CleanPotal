@@ -37,9 +37,6 @@ namespace CleanPotal
             ? $"{TrainingDate.Value.Year}년 {TrainingDate.Value.Month:D2}월 {TrainingDate.Value.Day:D2}일"
             : "-";
 
-        private string _category = "생산";
-        public string Category { get => _category; set { _category = value; Notify(nameof(Category)); } }
-
         public ObservableCollection<string> Documents { get; } = new();
 
         public bool   HasDocument   => Documents.Count > 0;
@@ -110,12 +107,11 @@ namespace CleanPotal
             };
             var total = new TrainingSummaryRow { CategoryLabel = "합계", CategoryKey = "합계", IsTotal = true };
 
-            foreach (var row in new[] { prod, logi })
+            foreach (var (row, records) in new[] { (prod, _trainingRecordsProd), (logi, _trainingRecordsLogi) })
             {
                 var monthly = new List<int>(new int[12]);
-                foreach (var rec in _trainingRecords)
+                foreach (var rec in records)
                 {
-                    if (rec.Category != row.CategoryKey) continue;
                     if (!rec.TrainingDate.HasValue || rec.TrainingDate.Value.Year != curYear) continue;
                     monthly[rec.TrainingDate.Value.Month - 1]++;
                 }
@@ -170,40 +166,58 @@ namespace CleanPotal
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
+        private static void RenumberTrainingRecords(ObservableCollection<TrainingRecord> records)
+        {
+            for (int i = 0; i < records.Count; i++) records[i].DisplayNo = i + 1;
+        }
+
         private void RenumberTrainingRecords()
         {
-            for (int i = 0; i < _trainingRecords.Count; i++) _trainingRecords[i].DisplayNo = i + 1;
+            RenumberTrainingRecords(_trainingRecordsProd);
+            RenumberTrainingRecords(_trainingRecordsLogi);
         }
 
         // -----------------------------------------------------------------------
         // 교육 기록 - 행 추가 / 삭제 / 저장
         // -----------------------------------------------------------------------
-        private void BtnAddTrainingRow_Click(object sender, RoutedEventArgs e)
+        private void AddTrainingRow(ObservableCollection<TrainingRecord> records, DataGrid grid)
         {
-            var rec = new TrainingRecord { TrainingDate = DateTime.Today, Category = "생산" };
-            _trainingRecords.Add(rec);
+            var rec = new TrainingRecord { TrainingDate = DateTime.Today };
+            records.Add(rec);
             RenumberTrainingRecords();
             RebuildTrainingSummary();
 
-            DgTrainingRecords.SelectedItem = rec;
-            DgTrainingRecords.ScrollIntoView(rec);
+            grid.SelectedItem = rec;
+            grid.ScrollIntoView(rec);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
             {
-                DgTrainingRecords.UpdateLayout();
-                DgTrainingRecords.CurrentCell = new DataGridCellInfo(rec, DgTrainingRecords.Columns[1]);
-                DgTrainingRecords.BeginEdit();
+                grid.UpdateLayout();
+                grid.CurrentCell = new DataGridCellInfo(rec, grid.Columns[1]);
+                grid.BeginEdit();
             });
         }
 
-        private void BtnDeleteTrainingRow_Click(object sender, RoutedEventArgs e)
+        private void DeleteTrainingRow(ObservableCollection<TrainingRecord> records, DataGrid grid)
         {
-            if (DgTrainingRecords.SelectedItem is not TrainingRecord selected) return;
+            if (grid.SelectedItem is not TrainingRecord selected) return;
             if (MessageBox.Show("선택한 행을 삭제하시겠습니까?", "확인",
                     MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-            _trainingRecords.Remove(selected);
+            records.Remove(selected);
             RenumberTrainingRecords();
             RebuildTrainingSummary();
         }
+
+        private void BtnAddTrainingRowProd_Click(object sender, RoutedEventArgs e)
+            => AddTrainingRow(_trainingRecordsProd, DgTrainingProd);
+
+        private void BtnAddTrainingRowLogi_Click(object sender, RoutedEventArgs e)
+            => AddTrainingRow(_trainingRecordsLogi, DgTrainingLogi);
+
+        private void BtnDeleteTrainingRowProd_Click(object sender, RoutedEventArgs e)
+            => DeleteTrainingRow(_trainingRecordsProd, DgTrainingProd);
+
+        private void BtnDeleteTrainingRowLogi_Click(object sender, RoutedEventArgs e)
+            => DeleteTrainingRow(_trainingRecordsLogi, DgTrainingLogi);
 
         private void BtnSaveTraining_Click(object sender, RoutedEventArgs e)
         {
@@ -219,7 +233,7 @@ namespace CleanPotal
         }
 
         // 교육일자가 바뀌면 실행률 표를 다시 계산
-        private void DgTrainingRecords_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        private void DgTrainingRecord_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction != DataGridEditAction.Commit) return;
             Dispatcher.BeginInvoke(new Action(RebuildTrainingSummary),

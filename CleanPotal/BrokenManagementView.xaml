@@ -359,6 +359,42 @@
             <Setter Property="Foreground" Value="#2563EB"/>
         </Style>
 
+        <!-- 교육 기록: 교육일자 셀 / 편집 템플릿 -->
+        <DataTemplate x:Key="TrainingDateCellTemplate">
+            <TextBlock Text="{Binding TrainingDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TrainingDateEditTemplate">
+            <DatePicker SelectedDate="{Binding TrainingDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        VerticalAlignment="Center" Margin="2,0"/>
+        </DataTemplate>
+
+        <!-- 교육 기록: 교육기록서 첨부 칩 -->
+        <DataTemplate x:Key="TrainingDocCellTemplate">
+            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                    DragOver="CellAttachment_DragOver"
+                    DragLeave="CellAttachment_DragLeave"
+                    Drop="CellDropTrainingRecord_Drop">
+                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                        Background="#F1F5F9" Tag="{Binding}"
+                        MouseLeftButtonUp="AttachChipTrainingRecord_Click"
+                        MouseRightButtonUp="AttachChipTrainingRecord_RightClick">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="chipTxt" Text="{Binding DocumentLabel}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasDocument}" Value="True">
+                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <Grid Margin="6">
@@ -914,98 +950,93 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- 2) 교육 기록 - 툴바 -->
+                    <!-- 2) 교육 기록 - 헤더 -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,6">
                         <TextBlock Text="2) 교육 기록" FontSize="14" FontWeight="Bold"
                                    Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                        <Button x:Name="BtnAddTrainingRow" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
-                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
-                                Click="BtnAddTrainingRow_Click"/>
-                        <Button x:Name="BtnDeleteTrainingRow" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
-                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
-                                Click="BtnDeleteTrainingRow_Click"/>
                         <Button x:Name="BtnSaveTraining" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
                                 Padding="12,6" FontSize="12" Height="30"
                                 Click="BtnSaveTraining_Click"/>
                     </StackPanel>
 
-                    <!-- 2) 교육 기록 - 리스트 -->
-                    <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
-                        <DataGrid x:Name="DgTrainingRecords"
-                                  Style="{StaticResource BrokenDataGridStyle}"
-                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
-                                  CanUserAddRows="False"
-                                  CellEditEnding="DgTrainingRecords_CellEditEnding">
-                            <DataGrid.Columns>
+                    <!-- 2) 교육 기록 - 생산 / 물류 분리 리스트 -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                                <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
-                                                     IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                        <!-- 생산 -->
+                        <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,6">
+                                    <TextBlock Text="생산" FontSize="13" FontWeight="Bold" Foreground="#0F172A"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button x:Name="BtnAddTrainingRowProd" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28" Margin="0,0,6,0"
+                                            Click="BtnAddTrainingRowProd_Click"/>
+                                    <Button x:Name="BtnDeleteTrainingRowProd" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28"
+                                            Click="BtnDeleteTrainingRowProd_Click"/>
+                                </StackPanel>
+                                <DataGrid Grid.Row="1" x:Name="DgTrainingProd"
+                                          Style="{StaticResource BrokenDataGridStyle}"
+                                          ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                          CanUserAddRows="False"
+                                          CellEditEnding="DgTrainingRecord_CellEditEnding">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
+                                                             IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTemplateColumn Header="교육일자" Width="150"
+                                                                 CellTemplate="{StaticResource TrainingDateCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="*" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
 
-                                <DataGridTemplateColumn Header="교육일자" Width="150">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding TrainingDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                    <DataGridTemplateColumn.CellEditingTemplate>
-                                        <DataTemplate>
-                                            <DatePicker SelectedDate="{Binding TrainingDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                        VerticalAlignment="Center" Margin="2,0"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellEditingTemplate>
-                                </DataGridTemplateColumn>
-
-                                <DataGridTemplateColumn Header="구분" Width="90">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Category}" Style="{StaticResource CenterCell}"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                    <DataGridTemplateColumn.CellEditingTemplate>
-                                        <DataTemplate>
-                                            <ComboBox SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                      SelectedValuePath="Content" VerticalAlignment="Center" Margin="2,0">
-                                                <ComboBoxItem Content="생산"/>
-                                                <ComboBoxItem Content="물류"/>
-                                            </ComboBox>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellEditingTemplate>
-                                </DataGridTemplateColumn>
-
-                                <!-- ── 교육기록서 ── -->
-                                <DataGridTemplateColumn Header="교육기록서" Width="*" MinWidth="58" IsReadOnly="True">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
-                                                    DragOver="CellAttachment_DragOver"
-                                                    DragLeave="CellAttachment_DragLeave"
-                                                    Drop="CellDropTrainingRecord_Drop">
-                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
-                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
-                                                        Background="#F1F5F9" Tag="{Binding}"
-                                                        MouseLeftButtonUp="AttachChipTrainingRecord_Click"
-                                                        MouseRightButtonUp="AttachChipTrainingRecord_RightClick">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                        <TextBlock x:Name="chipTxt" Text="{Binding DocumentLabel}"
-                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
-                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Border>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding HasDocument}" Value="True">
-                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
-                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Border>
+                        <!-- 물류 -->
+                        <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,6">
+                                    <TextBlock Text="물류" FontSize="13" FontWeight="Bold" Foreground="#0F172A"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button x:Name="BtnAddTrainingRowLogi" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28" Margin="0,0,6,0"
+                                            Click="BtnAddTrainingRowLogi_Click"/>
+                                    <Button x:Name="BtnDeleteTrainingRowLogi" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28"
+                                            Click="BtnDeleteTrainingRowLogi_Click"/>
+                                </StackPanel>
+                                <DataGrid Grid.Row="1" x:Name="DgTrainingLogi"
+                                          Style="{StaticResource BrokenDataGridStyle}"
+                                          ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                          CanUserAddRows="False"
+                                          CellEditEnding="DgTrainingRecord_CellEditEnding">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
+                                                             IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTemplateColumn Header="교육일자" Width="150"
+                                                                 CellTemplate="{StaticResource TrainingDateCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="*" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
 

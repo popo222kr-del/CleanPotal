@@ -278,14 +278,14 @@ namespace CleanPotal
     {
         public List<BrokenRecordDto> Records { get; set; } = new();
         public string Memo { get; set; } = "";
-        public List<TrainingRecordDto> TrainingRecords { get; set; } = new();
+        public List<TrainingRecordDto> TrainingRecordsProduction { get; set; } = new();
+        public List<TrainingRecordDto> TrainingRecordsLogistics { get; set; } = new();
         public TrainingGoalsDto TrainingGoals { get; set; } = new();
     }
 
     public class TrainingRecordDto
     {
         public DateTime? TrainingDate { get; set; }
-        public string Category { get; set; } = "";
         public List<string> Documents { get; set; } = new();
     }
 
@@ -379,7 +379,8 @@ namespace CleanPotal
         private string _memo = "";   // 메모 UI는 제거되었으나 기존 데이터 보존용
 
         // 교육 현황 탭
-        private readonly ObservableCollection<TrainingRecord> _trainingRecords = new();
+        private readonly ObservableCollection<TrainingRecord> _trainingRecordsProd = new();
+        private readonly ObservableCollection<TrainingRecord> _trainingRecordsLogi = new();
         private readonly ObservableCollection<TrainingSummaryRow> _trainingSummary = new();
         private TrainingGoalsDto _trainingGoals = new();
 
@@ -413,7 +414,8 @@ namespace CleanPotal
                 DgBroken.IsReadOnly = true;
             }
 
-            DgTrainingRecords.ItemsSource = _trainingRecords;
+            DgTrainingProd.ItemsSource = _trainingRecordsProd;
+            DgTrainingLogi.ItemsSource = _trainingRecordsLogi;
             DgTrainingSummary.ItemsSource = _trainingSummary;
             SetupTrainingSummaryHeaders();
             RebuildTrainingSummary();
@@ -601,10 +603,14 @@ namespace CleanPotal
                     TrainingDocs = r.TrainingDocs.ToList(),
                     TrainingImages = r.TrainingImages.ToList()
                 }).ToList(),
-                TrainingRecords = _trainingRecords.Select(r => new TrainingRecordDto
+                TrainingRecordsProduction = _trainingRecordsProd.Select(r => new TrainingRecordDto
                 {
                     TrainingDate = r.TrainingDate,
-                    Category = r.Category,
+                    Documents = r.Documents.ToList()
+                }).ToList(),
+                TrainingRecordsLogistics = _trainingRecordsLogi.Select(r => new TrainingRecordDto
+                {
+                    TrainingDate = r.TrainingDate,
                     Documents = r.Documents.ToList()
                 }).ToList(),
                 TrainingGoals = _trainingGoals
@@ -662,12 +668,19 @@ namespace CleanPotal
                 PopulateFilterComboBoxes();
                 ApplyFilter();
 
-                _trainingRecords.Clear();
-                foreach (var d in dto.TrainingRecords)
+                _trainingRecordsProd.Clear();
+                foreach (var d in dto.TrainingRecordsProduction)
                 {
-                    var r = new TrainingRecord { TrainingDate = d.TrainingDate, Category = d.Category };
+                    var r = new TrainingRecord { TrainingDate = d.TrainingDate };
                     foreach (var p in d.Documents) r.Documents.Add(p);
-                    _trainingRecords.Add(r);
+                    _trainingRecordsProd.Add(r);
+                }
+                _trainingRecordsLogi.Clear();
+                foreach (var d in dto.TrainingRecordsLogistics)
+                {
+                    var r = new TrainingRecord { TrainingDate = d.TrainingDate };
+                    foreach (var p in d.Documents) r.Documents.Add(p);
+                    _trainingRecordsLogi.Add(r);
                 }
                 RenumberTrainingRecords();
 
