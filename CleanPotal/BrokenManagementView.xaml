@@ -395,6 +395,44 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
+        <!-- 교육 기록: 교육이미지 첨부 칩 -->
+        <DataTemplate x:Key="TrainingImageCellTemplate">
+            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                    DragOver="CellAttachment_DragOver"
+                    DragLeave="CellAttachment_DragLeave"
+                    Drop="CellDropTrainingImage_Drop">
+                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                        Background="#F1F5F9" Tag="{Binding}"
+                        MouseLeftButtonUp="AttachChipTrainingImage_Click"
+                        MouseRightButtonUp="AttachChipTrainingImage_RightClick">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🖼" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="chipTxt" Text="{Binding ImageLabel}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasImage}" Value="True">
+                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 교육 기록: 교육 내용 셀 / 편집 템플릿 -->
+        <DataTemplate x:Key="TrainingContentCellTemplate">
+            <TextBlock Text="{Binding Content}" VerticalAlignment="Center" Margin="10,0"
+                       TextTrimming="CharacterEllipsis"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TrainingContentEditTemplate">
+            <TextBox Text="{Binding Content, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalAlignment="Center" Margin="2,0" BorderThickness="0"
+                     Background="Transparent" Padding="8,0"/>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <Grid Margin="6">
@@ -995,8 +1033,13 @@
                                         <DataGridTemplateColumn Header="교육일자" Width="150"
                                                                  CellTemplate="{StaticResource TrainingDateCellTemplate}"
                                                                  CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
-                                        <DataGridTemplateColumn Header="교육기록서" Width="*" MinWidth="58" IsReadOnly="True"
+                                        <DataGridTemplateColumn Header="교육 내용" Width="*"
+                                                                 CellTemplate="{StaticResource TrainingContentCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingContentEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="120" MinWidth="58" IsReadOnly="True"
                                                                  CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육이미지" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
@@ -1030,8 +1073,13 @@
                                         <DataGridTemplateColumn Header="교육일자" Width="150"
                                                                  CellTemplate="{StaticResource TrainingDateCellTemplate}"
                                                                  CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
-                                        <DataGridTemplateColumn Header="교육기록서" Width="*" MinWidth="58" IsReadOnly="True"
+                                        <DataGridTemplateColumn Header="교육 내용" Width="*"
+                                                                 CellTemplate="{StaticResource TrainingContentCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingContentEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="120" MinWidth="58" IsReadOnly="True"
                                                                  CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육이미지" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>

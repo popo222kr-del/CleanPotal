@@ -286,7 +286,9 @@ namespace CleanPotal
     public class TrainingRecordDto
     {
         public DateTime? TrainingDate { get; set; }
+        public string Content { get; set; } = "";
         public List<string> Documents { get; set; } = new();
+        public List<string> Images { get; set; } = new();
     }
 
     public class TrainingGoalsDto
@@ -606,12 +608,16 @@ namespace CleanPotal
                 TrainingRecordsProduction = _trainingRecordsProd.Select(r => new TrainingRecordDto
                 {
                     TrainingDate = r.TrainingDate,
-                    Documents = r.Documents.ToList()
+                    Content = r.Content,
+                    Documents = r.Documents.ToList(),
+                    Images = r.Images.ToList()
                 }).ToList(),
                 TrainingRecordsLogistics = _trainingRecordsLogi.Select(r => new TrainingRecordDto
                 {
                     TrainingDate = r.TrainingDate,
-                    Documents = r.Documents.ToList()
+                    Content = r.Content,
+                    Documents = r.Documents.ToList(),
+                    Images = r.Images.ToList()
                 }).ToList(),
                 TrainingGoals = _trainingGoals
             };
@@ -671,15 +677,17 @@ namespace CleanPotal
                 _trainingRecordsProd.Clear();
                 foreach (var d in dto.TrainingRecordsProduction)
                 {
-                    var r = new TrainingRecord { TrainingDate = d.TrainingDate };
+                    var r = new TrainingRecord { TrainingDate = d.TrainingDate, Content = d.Content };
                     foreach (var p in d.Documents) r.Documents.Add(p);
+                    foreach (var p in d.Images) r.Images.Add(p);
                     _trainingRecordsProd.Add(r);
                 }
                 _trainingRecordsLogi.Clear();
                 foreach (var d in dto.TrainingRecordsLogistics)
                 {
-                    var r = new TrainingRecord { TrainingDate = d.TrainingDate };
+                    var r = new TrainingRecord { TrainingDate = d.TrainingDate, Content = d.Content };
                     foreach (var p in d.Documents) r.Documents.Add(p);
+                    foreach (var p in d.Images) r.Images.Add(p);
                     _trainingRecordsLogi.Add(r);
                 }
                 RenumberTrainingRecords();

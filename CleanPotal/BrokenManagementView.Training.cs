@@ -22,6 +22,7 @@ namespace CleanPotal
         public TrainingRecord()
         {
             Documents.CollectionChanged += (_, _) => { Notify(nameof(HasDocument)); Notify(nameof(DocumentLabel)); };
+            Images.CollectionChanged    += (_, _) => { Notify(nameof(HasImage));    Notify(nameof(ImageLabel));    };
         }
 
         private int _displayNo;
@@ -37,11 +38,19 @@ namespace CleanPotal
             ? $"{TrainingDate.Value.Year}년 {TrainingDate.Value.Month:D2}월 {TrainingDate.Value.Day:D2}일"
             : "-";
 
+        private string _content = "";
+        public string Content { get => _content; set { _content = value; Notify(nameof(Content)); } }
+
         public ObservableCollection<string> Documents { get; } = new();
+        public ObservableCollection<string> Images { get; } = new();
 
         public bool   HasDocument   => Documents.Count > 0;
         public string DocumentLabel => Documents.Count switch {
             0 => "첨부", 1 => "교육기록서", _ => $"교육기록서 {Documents.Count}건" };
+
+        public bool   HasImage   => Images.Count > 0;
+        public string ImageLabel => Images.Count switch {
+            0 => "첨부", 1 => "교육이미지", _ => $"교육이미지 {Images.Count}건" };
     }
 
     // 교육 활동 실행률 표의 한 행 (생산 / 물류 / 합계)
@@ -278,6 +287,47 @@ namespace CleanPotal
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
             AddAttachments(record.Documents, files.Where(path => _allowedExts.Contains(System.IO.Path.GetExtension(path))));
+            e.Handled = true;
+        }
+
+        // -----------------------------------------------------------------------
+        // 교육 이미지 첨부 - 클릭 / 우클릭 / 드래그앤드롭
+        // -----------------------------------------------------------------------
+        private void AttachChipTrainingImage_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.Tag is not TrainingRecord record) return;
+            var col = record.Images;
+
+            if (col.Count == 0)
+            {
+                var dlg = new OpenFileDialog { Title = "파일 첨부", Filter = AttachFilter, Multiselect = true };
+                if (dlg.ShowDialog() != true) return;
+                AddAttachments(col, dlg.FileNames);
+                return;
+            }
+
+            if (col.Count == 1)
+            {
+                OpenFile(col[0]);
+                return;
+            }
+
+            ShowAttachMenu(fe, col);
+        }
+
+        private void AttachChipTrainingImage_RightClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.Tag is not TrainingRecord record) return;
+            ShowAttachMenu(fe, record.Images);
+        }
+
+        private void CellDropTrainingImage_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is WpfBorder bd) bd.ClearValue(WpfBorder.BackgroundProperty);
+            if (sender is not FrameworkElement fe || fe.Tag is not TrainingRecord record) return;
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? Array.Empty<string>();
+            AddAttachments(record.Images, files.Where(path => _allowedExts.Contains(System.IO.Path.GetExtension(path))));
             e.Handled = true;
         }
     }
