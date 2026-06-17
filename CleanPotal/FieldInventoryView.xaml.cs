@@ -73,7 +73,7 @@ namespace CleanPotal
             g.Columns.Add(catTemplate);
 
             AddTextColumn(g, "품목명", "ItemName", 0, "LeftCell", minWidth: 120, star: true);
-            AddTextColumn(g, "현재 재고", "CurrentStock", 80, "CurrentStockCell", updateSourceTrigger: true);
+            g.Columns.Add(CreateCurrentStockColumn());
             AddTextColumn(g, "이전 재고", "PreviousStock", 70, "CenterCell", readOnly: true);
             AddTextColumn(g, "이전 대비", "WeeklyDeltaText", 70, "WeeklyDeltaCell", readOnly: true);
             AddTextColumn(g, "안전재고", "AppropriateStock", 75, "CenterCell");
@@ -100,6 +100,31 @@ namespace CleanPotal
                 CellTemplate = CreateActionTemplate()
             };
             g.Columns.Add(actionCol);
+        }
+
+        // 현재 재고 컬럼: 표시는 단위 포함(CurrentStockDisplay), 편집은 원본 숫자(CurrentStock)
+        private DataGridTemplateColumn CreateCurrentStockColumn()
+        {
+            var col = new DataGridTemplateColumn
+            {
+                Header = "현재 재고",
+                Width = new DataGridLength(80),
+                SortMemberPath = "CurrentStock"
+            };
+
+            var disp = new FrameworkElementFactory(typeof(TextBlock));
+            disp.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("CurrentStockDisplay"));
+            disp.SetValue(FrameworkElement.StyleProperty, FindResource("CurrentStockCell"));
+            col.CellTemplate = new DataTemplate { VisualTree = disp };
+
+            var edit = new FrameworkElementFactory(typeof(TextBox));
+            edit.SetBinding(TextBox.TextProperty,
+                new System.Windows.Data.Binding("CurrentStock") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            edit.SetValue(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center);
+            edit.SetValue(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Center);
+            col.CellEditingTemplate = new DataTemplate { VisualTree = edit };
+
+            return col;
         }
 
         private void AddTextColumn(DataGrid g, string header, string bindingPath, double width, string styleKey,

@@ -650,7 +650,7 @@
                                     <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*" MinWidth="140">
                                         <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="LeftCell"/></DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="80">
+                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStockDisplay}" Width="80">
                                         <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="70">
@@ -723,7 +723,7 @@
                                 <DataGridTextColumn Header="위치" Binding="{Binding StorageLocation}" Width="90">
                                     <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="80">
+                                <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStockDisplay}" Width="80">
                                     <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
