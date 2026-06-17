@@ -295,18 +295,6 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- 점검일자 필터 (노션풍 pill) -->
-                    <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="점검일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DpFrom_SelectedDateChanged"/>
-                            <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
-                            <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}"/>
-                        </StackPanel>
-                    </Border>
-                    <Button x:Name="BtnDateSearch" Content="조회" Style="{StaticResource PrimaryBtn}"
-                            Padding="14,6" FontSize="12" Click="BtnDateSearch_Click" Margin="0,0,12,0"/>
-
                     <!-- 검색 (노션풍 pill + 아이콘 + 플레이스홀더) -->
                     <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
                             Padding="10,0" Margin="0,0,12,0" VerticalAlignment="Center">
@@ -519,8 +507,27 @@
         <Border x:Name="PanelAnalysis" Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0" Visibility="Collapsed">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="20,16">
-                    <!-- 요약 카드 -->
-                    <TextBlock Text="재고 분석 대시보드" FontSize="18" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,16"/>
+                    <!-- 헤더 + 점검일자(마감) 기간 조회 -->
+                    <DockPanel LastChildFill="False" Margin="0,0,0,16">
+                        <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <TextBlock Text="재고 분석 대시보드" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
+                            <TextBlock x:Name="TxtAnalysisRange" Text="전체 기간" FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                            <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="점검일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DpFrom_SelectedDateChanged"/>
+                                    <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
+                                    <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}"/>
+                                </StackPanel>
+                            </Border>
+                            <Button x:Name="BtnDateSearch" Content="조회" Style="{StaticResource PrimaryBtn}"
+                                    Padding="14,6" FontSize="12" Click="BtnDateSearch_Click" Margin="0,0,8,0"/>
+                            <Button x:Name="BtnAnalysisReset" Content="전체 기간" Style="{StaticResource GhostBtn}"
+                                    Padding="12,6" FontSize="12" Click="BtnAnalysisReset_Click"/>
+                        </StackPanel>
+                    </DockPanel>
                     <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

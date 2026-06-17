@@ -371,11 +371,26 @@ namespace CleanPotal
         {
             try
             {
-                var snapDates = FieldInventoryRepository.GetSnapshotDates();
-                var allSnapshots = FieldInventoryRepository.GetAllSnapshots();
+                // 점검일자(마감) 기간 필터 — DateSearch에서 설정한 범위 적용 (없으면 전체)
+                bool InRange(string dateStr)
+                {
+                    if (!DateTime.TryParse(dateStr, out var d)) return false;
+                    if (_filterFrom.HasValue && d.Date < _filterFrom.Value.Date) return false;
+                    if (_filterTo.HasValue && d.Date > _filterTo.Value.Date) return false;
+                    return true;
+                }
+
+                var snapDates = FieldInventoryRepository.GetSnapshotDates().Where(InRange).ToList();
+                var allSnapshots = FieldInventoryRepository.GetAllSnapshots().Where(s => InRange(s.Date)).ToList();
                 int lowCount = _items.Count(i => i.IsLow);
                 int totalItems = _items.Count;
                 var zones = _items.Select(i => ClassifyZone(i.StorageLocation)).Distinct().Count();
+
+                // 기간 표시
+                string rangeLabel = (_filterFrom.HasValue || _filterTo.HasValue)
+                    ? $"{(_filterFrom?.ToString("yyyy-MM-dd") ?? "처음")} ~ {(_filterTo?.ToString("yyyy-MM-dd") ?? "최근")}"
+                    : "전체 기간";
+                TxtAnalysisRange.Text = rangeLabel;
 
                 // 요약 카드
                 AnalSnapCount.Text = $"{snapDates.Count}회";
@@ -537,11 +552,6 @@ namespace CleanPotal
 
             IEnumerable<FieldInventoryItem> source = _items;
 
-            if (_filterFrom.HasValue)
-                source = source.Where(i => i.RegisteredDate.Date >= _filterFrom.Value.Date);
-            if (_filterTo.HasValue)
-                source = source.Where(i => i.RegisteredDate.Date <= _filterTo.Value.Date);
-
             string keyword = TxtSearch.Text.Trim();
             if (!string.IsNullOrEmpty(keyword))
             {
@@ -630,12 +640,22 @@ namespace CleanPotal
             ApplyFilters();
         }
 
+        // 재고 분석: 선택한 점검일자(마감) 범위로 대시보드를 다시 집계
         private void BtnDateSearch_Click(object sender, RoutedEventArgs e)
         {
-            // 선택한 점검일자 범위를 확정한 뒤 조회
             _filterFrom = DpFrom.SelectedDate;
             _filterTo = DpTo.SelectedDate;
-            ApplyFilters();
+            LoadAnalysisDashboard();
+        }
+
+        // 재고 분석: 기간 필터 해제 → 전체 기간 집계
+        private void BtnAnalysisReset_Click(object sender, RoutedEventArgs e)
+        {
+            DpFrom.SelectedDate = null;
+            DpTo.SelectedDate = null;
+            _filterFrom = null;
+            _filterTo = null;
+            LoadAnalysisDashboard();
         }
 
         // 점검일자 앞(시작) 날짜를 고르면 뒤(종료) 날짜를 우선 동일하게 채움
