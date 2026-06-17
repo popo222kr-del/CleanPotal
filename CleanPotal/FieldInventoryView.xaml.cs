@@ -7,6 +7,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using CleanPotal.FieldInventory.Models;
 using CleanPotal.FieldInventory.Repositories;
@@ -109,7 +111,7 @@ namespace CleanPotal
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
         }
 
-        // 보관위치 탭 구성 ("전체" + 등장한 모든 위치, 위치별 색상 적용)
+        // 보관위치 탭 구성 ("전체" + 등장한 모든 위치, 탭 스타일로 렌더링)
         private void RenderLocationTabs()
         {
             LocationTabPanel.Children.Clear();
@@ -123,20 +125,35 @@ namespace CleanPotal
             {
                 bool active = loc == _locationFilter;
                 var (bg, fg) = GetLocationColors(loc);
+                int count = loc == "전체" ? _items.Count : _items.Count(i => i.StorageLocation == loc);
 
-                var btn = new Button
+                var border = new System.Windows.Controls.Border
                 {
-                    Content = loc,
-                    Margin = new Thickness(0, 0, 6, 0),
-                    Style = (Style)FindResource("PageBtn"),
-                    FontWeight = active ? FontWeights.Bold : FontWeights.SemiBold,
-                    Background = (Brush)new BrushConverter().ConvertFromString(bg)!,
-                    Foreground = (Brush)new BrushConverter().ConvertFromString(fg)!,
-                    BorderBrush = active ? (Brush)new BrushConverter().ConvertFromString(fg)! : (Brush)new BrushConverter().ConvertFromString(bg)!,
-                    BorderThickness = new Thickness(active ? 2 : 1)
+                    CornerRadius = new CornerRadius(8, 8, 0, 0),
+                    Padding = new Thickness(14, 8, 14, 8),
+                    Margin = new Thickness(0, 0, 2, 0),
+                    Cursor = Cursors.Hand,
+                    Background = active ? Brushes.White : (Brush)new BrushConverter().ConvertFromString(bg)!,
+                    BorderThickness = active ? new Thickness(1, 1, 1, 0) : new Thickness(0),
+                    BorderBrush = active ? (Brush)new BrushConverter().ConvertFromString("#E2E8F0")! : Brushes.Transparent,
                 };
-                btn.Click += (_, __) => { _locationFilter = loc; ApplyFilters(); RenderLocationTabs(); };
-                LocationTabPanel.Children.Add(btn);
+
+                var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+                label.Inlines.Add(new Run(loc)
+                {
+                    FontSize = 13,
+                    FontWeight = active ? FontWeights.Bold : FontWeights.SemiBold,
+                    Foreground = active ? (Brush)new BrushConverter().ConvertFromString("#0F172A")! : (Brush)new BrushConverter().ConvertFromString(fg)!
+                });
+                label.Inlines.Add(new Run($" {count}")
+                {
+                    FontSize = 11,
+                    Foreground = (Brush)new BrushConverter().ConvertFromString(active ? "#64748B" : "#94A3B8")!
+                });
+
+                border.Child = label;
+                border.MouseLeftButtonDown += (_, __) => { _locationFilter = loc; ApplyFilters(); RenderLocationTabs(); };
+                LocationTabPanel.Children.Add(border);
             }
         }
 
@@ -166,6 +183,80 @@ namespace CleanPotal
             _sortDescending = e.Column.SortDirection != ListSortDirection.Descending;
             e.Column.SortDirection = _sortDescending ? ListSortDirection.Descending : ListSortDirection.Ascending;
             ApplyFilters();
+        }
+
+        // -----------------------------------------------------------------------
+        // 일괄 수정
+        // -----------------------------------------------------------------------
+        private List<FieldInventoryItem> _batchTargets = new();
+
+        private void BtnBatchEdit_Click(object sender, RoutedEventArgs e)
+        {
+            _batchTargets = _items.Where(i => i.IsSelected).ToList();
+            if (!_batchTargets.Any())
+            {
+                MessageBox.Show("일괄 수정할 항목을 체크박스로 선택해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            TxtBatchCount.Text = $"({_batchTargets.Count}개 선택)";
+            DgBatchPreview.ItemsSource = _batchTargets;
+            CmbBatchField.SelectedIndex = 0;
+            TxtBatchValue.Text = "";
+            TxtBatchValue.Visibility = Visibility.Visible;
+            LblBatchValue.Visibility = Visibility.Visible;
+            BatchOverlay.Visibility = Visibility.Visible;
+            TxtBatchValue.Focus();
+        }
+
+        private void BtnCloseBatch_Click(object sender, RoutedEventArgs e)
+        {
+            BatchOverlay.Visibility = Visibility.Collapsed;
+            _batchTargets.Clear();
+        }
+
+        private void BtnApplyBatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_batchTargets.Any()) return;
+
+            int fieldIdx = CmbBatchField.SelectedIndex;
+            string val = TxtBatchValue.Text.Trim();
+
+            // 발주 완료/해제는 값 입력 불필요
+            if (fieldIdx < 4 && string.IsNullOrEmpty(val))
+            {
+                MessageBox.Show("변경할 값을 입력해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                foreach (var item in _batchTargets)
+                {
+                    switch (fieldIdx)
+                    {
+                        case 0: item.CurrentStock = val; break;
+                        case 1: item.AppropriateStock = val; break;
+                        case 2: item.Unit = val; break;
+                        case 3: item.Category = val; break;
+                        case 4: item.IsOrdered = true; break;
+                        case 5: item.IsOrdered = false; break;
+                    }
+                    FieldInventoryRepository.Update(item);
+                    item.IsSelected = false;
+                }
+
+                BatchOverlay.Visibility = Visibility.Collapsed;
+                _batchTargets.Clear();
+                TxtLastSaved.Text = $"일괄 저장됨 {DateTime.Now:HH:mm:ss}";
+                RenderLocationTabs();
+                ApplyFilters();
+                RefreshStats();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"일괄 수정 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // -----------------------------------------------------------------------

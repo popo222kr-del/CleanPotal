@@ -218,7 +218,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -276,17 +275,25 @@
             </DockPanel>
         </Border>
 
-        <!-- 보관위치 탭 -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10,8">
-            <DockPanel LastChildFill="False">
-                <StackPanel x:Name="LocationTabPanel" Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                <TextBlock x:Name="TxtTotalCount" Text="총 0개" FontSize="13" Foreground="#64748B"
-                           DockPanel.Dock="Right" VerticalAlignment="Center"/>
-            </DockPanel>
-        </Border>
+        <!-- 보관위치 탭 + 재고 그리드 -->
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-        <!-- 재고 그리드 -->
-        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
+                <!-- 탭 헤더 -->
+                <DockPanel Grid.Row="0" Margin="12,10,12,0" LastChildFill="False">
+                    <StackPanel x:Name="LocationTabPanel" Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Bottom"/>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtTotalCount" Text="총 0개" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <Button x:Name="BtnBatchEdit" Content="일괄 수정" Style="{StaticResource GhostBtn}"
+                                Padding="10,5" FontSize="12" Click="BtnBatchEdit_Click"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Margin="0,4,0,0">
             <DataGrid x:Name="DgInventory"
                       Style="{StaticResource GridStyle}"
                       ColumnHeaderStyle="{StaticResource HeaderStyle}"
@@ -384,10 +391,70 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
+                </Border>
+            </Grid>
         </Border>
 
+        <!-- 일괄 수정 모달 -->
+        <Grid x:Name="BatchOverlay" Grid.RowSpan="3" Background="#80000000" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="12" Padding="24" Width="480" MaxHeight="560"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="일괄 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="TxtBatchCount" Text="" FontSize="13" Foreground="#64748B" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Content="✕" Style="{StaticResource LinkBtn}" FontSize="16" Foreground="#94A3B8"
+                                HorizontalAlignment="Right" Click="BtnCloseBatch_Click"/>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                        <TextBlock Text="수정할 항목" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CmbBatchField" FontSize="13" Padding="8,6" Margin="0,0,0,8" SelectedIndex="0">
+                            <ComboBoxItem Content="현재고"/>
+                            <ComboBoxItem Content="안전재고"/>
+                            <ComboBoxItem Content="단위"/>
+                            <ComboBoxItem Content="카테고리"/>
+                            <ComboBoxItem Content="발주 완료 처리"/>
+                            <ComboBoxItem Content="발주 해제 처리"/>
+                        </ComboBox>
+                        <TextBlock Text="변경 값" Style="{StaticResource FieldLabel}" x:Name="LblBatchValue"/>
+                        <TextBox x:Name="TxtBatchValue" FontSize="13" Padding="8,6"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                        <DataGrid x:Name="DgBatchPreview" Style="{StaticResource GridStyle}"
+                                  ColumnHeaderStyle="{StaticResource HeaderStyle}" IsReadOnly="True"
+                                  RowHeight="32" MaxHeight="280">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="*"/>
+                                <DataGridTextColumn Header="위치" Binding="{Binding StorageLocation}" Width="90">
+                                    <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock}" Width="80">
+                                    <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+
+                    <Button x:Name="BtnApplyBatch" Grid.Row="3" Content="일괄 적용" Style="{StaticResource PrimaryBtn}"
+                            HorizontalAlignment="Stretch" Padding="14,10" FontSize="14" Margin="0,12,0,0"
+                            Click="BtnApplyBatch_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+
         <!-- 상품 등록/수정 모달 -->
-        <Grid x:Name="EditOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
+        <Grid x:Name="EditOverlay" Grid.RowSpan="3" Background="#80000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="12" Padding="24" Width="540" MaxHeight="680"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid>
