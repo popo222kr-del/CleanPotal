@@ -60,7 +60,13 @@ namespace CleanPotal.FieldInventory.Models
         public string CurrentStock
         {
             get => _currentStock;
-            set { _currentStock = value; OnPropChanged(nameof(CurrentStock)); OnPropChanged(nameof(IsLow)); }
+            set
+            {
+                _currentStock = value;
+                OnPropChanged(nameof(CurrentStock));
+                OnPropChanged(nameof(IsLow));
+                NotifyWeeklyDelta();
+            }
         }
 
         private string _appropriateStock = "";
@@ -105,6 +111,57 @@ namespace CleanPotal.FieldInventory.Models
             set { _expectedReceipt = value; OnPropChanged(nameof(ExpectedReceipt)); }
         }
 
+        // 발주 완료 여부 (체크박스)
+        private bool _isOrdered;
+        public bool IsOrdered
+        {
+            get => _isOrdered;
+            set { _isOrdered = value; OnPropChanged(nameof(IsOrdered)); }
+        }
+
+        // 전주 마감 스냅샷의 재고값 (DB 컬럼 아님 — 로드 시 스냅샷에서 주입)
+        private string _previousStock = "";
+        public string PreviousStock
+        {
+            get => _previousStock;
+            set { _previousStock = value; OnPropChanged(nameof(PreviousStock)); NotifyWeeklyDelta(); }
+        }
+
+        private void NotifyWeeklyDelta()
+        {
+            OnPropChanged(nameof(WeeklyDelta));
+            OnPropChanged(nameof(WeeklyDeltaText));
+            OnPropChanged(nameof(HasWeeklyDelta));
+            OnPropChanged(nameof(WeeklyDeltaIsDecrease));
+        }
+
+        // 전주 대비 증감 (현재고 - 전주재고). 둘 다 숫자로 해석될 때만 계산
+        public double? WeeklyDelta
+        {
+            get
+            {
+                double? cur = ParseNumber(_currentStock);
+                double? prev = ParseNumber(_previousStock);
+                if (cur == null || prev == null) return null;
+                return cur.Value - prev.Value;
+            }
+        }
+
+        public bool HasWeeklyDelta => WeeklyDelta is double d && d != 0;
+        public bool WeeklyDeltaIsDecrease => WeeklyDelta is double d && d < 0;
+
+        public string WeeklyDeltaText
+        {
+            get
+            {
+                if (WeeklyDelta is not double d) return "-";
+                if (d == 0) return "0";
+                double abs = Math.Abs(d);
+                string n = abs % 1 == 0 ? ((long)abs).ToString() : abs.ToString("0.##");
+                return d > 0 ? $"+{n}" : $"-{n}";
+            }
+        }
+
         private string _memo = "";
         public string Memo
         {
@@ -129,7 +186,9 @@ namespace CleanPotal.FieldInventory.Models
         private static double? ParseNumber(string s)
         {
             if (string.IsNullOrWhiteSpace(s)) return null;
-            var m = Regex.Match(s.Trim(), @"^(\d+(?:\.\d+)?)");
+            // 천단위 콤마 제거 후 선행 숫자 추출 ("1,200매" → 1200, "600매 이상" → 600)
+            string cleaned = s.Trim().Replace(",", "");
+            var m = Regex.Match(cleaned, @"^(\d+(?:\.\d+)?)");
             if (!m.Success) return null;
             return double.TryParse(m.Groups[1].Value, out double v) ? v : (double?)null;
         }

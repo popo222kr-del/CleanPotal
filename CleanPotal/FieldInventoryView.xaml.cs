@@ -34,8 +34,13 @@ namespace CleanPotal
             try
             {
                 var all = FieldInventoryRepository.GetAll();
+                var snapshot = FieldInventoryRepository.GetLatestSnapshotStocks();
                 _items.Clear();
-                foreach (var i in all) _items.Add(i);
+                foreach (var i in all)
+                {
+                    i.PreviousStock = snapshot.TryGetValue(i.ItemId, out var s) ? s : "";
+                    _items.Add(i);
+                }
 
                 RenderLocationTabs();
                 ApplyFilters();
@@ -56,6 +61,9 @@ namespace CleanPotal
 
             var latest = _items.Where(i => i.UpdatedAt != default).OrderByDescending(i => i.UpdatedAt).FirstOrDefault();
             StatUpdatedText.Text = latest != null ? latest.UpdatedAt.ToString("yyyy-MM-dd HH:mm") : "-";
+
+            var snapDate = FieldInventoryRepository.GetLatestSnapshotDate();
+            TxtLastSnapshot.Text = snapDate.HasValue ? $"전주 마감: {snapDate.Value:yyyy-MM-dd}" : "전주 마감 기록 없음";
         }
 
         // -----------------------------------------------------------------------
@@ -161,6 +169,52 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
+        // 인라인 편집 — 셀 편집이 끝나면 즉시 저장
+        // -----------------------------------------------------------------------
+        private void DgInventory_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            if (e.Column == ColSelect) return;                 // 선택용 체크박스는 저장 대상 아님
+            if (e.Row.Item is not FieldInventoryItem item) return;
+
+            // 바인딩이 모델에 반영된 뒤 저장 (편집 커밋 직후 디스패치)
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    FieldInventoryRepository.Update(item);
+                    TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
+                    RefreshStats();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"저장 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // -----------------------------------------------------------------------
+        // 주간 마감 — 현재고를 오늘 날짜 스냅샷으로 저장 → 다음 주 '전주 대비' 기준이 됨
+        // -----------------------------------------------------------------------
+        private void BtnWeeklyClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show(
+                    "현재 재고 현황을 이번 주 마감으로 저장합니다.\n다음 주부터 '전주 대비 증감'의 비교 기준이 됩니다.\n\n진행하시겠습니까?",
+                    "주간 마감", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+            try
+            {
+                FieldInventoryRepository.CreateSnapshot(DateTime.Today);
+                Load();
+                MessageBox.Show("이번 주 재고가 마감 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"주간 마감 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // -----------------------------------------------------------------------
         // 항목 추가 / 수정 / 삭제
         // -----------------------------------------------------------------------
         private void BtnAddRow_Click(object sender, RoutedEventArgs e) => OpenModal(null);
@@ -253,6 +307,7 @@ namespace CleanPotal
             TxtEditOrderDate.Text = item?.OrderDate ?? "";
             TxtEditExpected.Text = item?.ExpectedReceipt ?? "";
             TxtEditSupplier.Text = item?.Supplier ?? "";
+            ChkEditOrdered.IsChecked = item?.IsOrdered ?? false;
 
             EditOverlay.Visibility = Visibility.Visible;
         }
@@ -292,7 +347,8 @@ namespace CleanPotal
                         OrderQty = TxtEditOrderQty.Text.Trim(),
                         OrderDate = TxtEditOrderDate.Text.Trim(),
                         ExpectedReceipt = TxtEditExpected.Text.Trim(),
-                        Supplier = TxtEditSupplier.Text.Trim()
+                        Supplier = TxtEditSupplier.Text.Trim(),
+                        IsOrdered = ChkEditOrdered.IsChecked == true
                     };
                     newItem.ItemId = FieldInventoryRepository.Insert(newItem);
                     _items.Add(newItem);
@@ -314,6 +370,7 @@ namespace CleanPotal
                     item.OrderDate = TxtEditOrderDate.Text.Trim();
                     item.ExpectedReceipt = TxtEditExpected.Text.Trim();
                     item.Supplier = TxtEditSupplier.Text.Trim();
+                    item.IsOrdered = ChkEditOrdered.IsChecked == true;
                     FieldInventoryRepository.Update(item);
                 }
 
@@ -382,7 +439,7 @@ namespace CleanPotal
                 using var wb = new XLWorkbook();
                 var ws = wb.AddWorksheet("재고 현황");
 
-                var headers = new[] { "NO", "등록일자", "상품코드", "카테고리", "상품명", "위치", "현재고", "안전재고", "단위", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
+                var headers = new[] { "NO", "등록일자", "상품코드", "카테고리", "상품명", "위치", "현재고", "전주재고", "전주대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
                 for (int c = 0; c < headers.Length; c++)
                 {
                     var cell = ws.Cell(1, c + 1);
@@ -404,14 +461,17 @@ namespace CleanPotal
                     ws.Cell(row, 5).Value = item.ItemName;
                     ws.Cell(row, 6).Value = item.StorageLocation;
                     ws.Cell(row, 7).Value = item.CurrentStock;
-                    ws.Cell(row, 8).Value = item.AppropriateStock;
-                    ws.Cell(row, 9).Value = item.Unit;
-                    ws.Cell(row, 10).Value = item.MinOrderQty;
-                    ws.Cell(row, 11).Value = item.OrderDate;
-                    ws.Cell(row, 12).Value = item.OrderQty;
-                    ws.Cell(row, 13).Value = item.ExpectedReceipt;
-                    ws.Cell(row, 14).Value = item.Supplier;
-                    ws.Cell(row, 15).Value = item.Memo;
+                    ws.Cell(row, 8).Value = item.PreviousStock;
+                    ws.Cell(row, 9).Value = item.WeeklyDeltaText;
+                    ws.Cell(row, 10).Value = item.AppropriateStock;
+                    ws.Cell(row, 11).Value = item.Unit;
+                    ws.Cell(row, 12).Value = item.IsOrdered ? "발주완료" : "미발주";
+                    ws.Cell(row, 13).Value = item.MinOrderQty;
+                    ws.Cell(row, 14).Value = item.OrderDate;
+                    ws.Cell(row, 15).Value = item.OrderQty;
+                    ws.Cell(row, 16).Value = item.ExpectedReceipt;
+                    ws.Cell(row, 17).Value = item.Supplier;
+                    ws.Cell(row, 18).Value = item.Memo;
 
                     if (item.IsLow)
                     {

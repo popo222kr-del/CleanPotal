@@ -579,7 +579,7 @@ namespace CleanPotal
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "FieldInventory";
-            ApplySectionMeta("현장 점검 - 재고관리", "현장 소모품·자재 재고 현황을 관리합니다. 현재재고 ≤ 적정재고이면 빨간색으로 표시됩니다.");
+            ApplySectionMeta("재고관리", "현장 소모품·자재 재고 현황을 관리합니다. 현재재고 ≤ 적정재고이면 빨간색으로 표시됩니다.");
             UpdateNavSelection("FieldInventory");
             if (_fieldInventoryView == null) _fieldInventoryView = new FieldInventoryView();
             MainContent.Content = _fieldInventoryView;
@@ -590,7 +590,7 @@ namespace CleanPotal
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "FieldChecklist";
-            ApplySectionMeta("현장 점검 - 체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
+            ApplySectionMeta("체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
             UpdateNavSelection("FieldChecklist");
             if (_fieldChecklistView == null) _fieldChecklistView = new FieldChecklistView();
             else _fieldChecklistView.RefreshDashboardCounters();

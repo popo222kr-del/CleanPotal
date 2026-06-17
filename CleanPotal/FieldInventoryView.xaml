@@ -174,6 +174,24 @@
             <Setter Property="FontWeight" Value="Bold"/>
         </Style>
 
+        <!-- 전주 대비 증감: 감소(소비) 빨강, 증가(입고) 초록, 변동 없음/미산정 회색 -->
+        <Style x:Key="WeeklyDeltaCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding WeeklyDeltaIsDecrease}" Value="True">
+                    <Setter Property="Foreground" Value="#DC2626"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding HasWeeklyDelta}" Value="True"/>
+                        <Condition Binding="{Binding WeeklyDeltaIsDecrease}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Foreground" Value="#16A34A"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="CategoryBadge" TargetType="Border">
             <Setter Property="Background" Value="#F1F5F9"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -237,6 +255,7 @@
             <DockPanel LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock x:Name="TxtLastSnapshot" Text="" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock x:Name="TxtLastSaved" Text="" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -245,8 +264,9 @@
                     <DatePicker x:Name="DpFrom" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,4,0"/>
                     <TextBlock Text="~" VerticalAlignment="Center" Margin="2,0"/>
                     <DatePicker x:Name="DpTo" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,10,0"/>
-                    <TextBox x:Name="TxtSearch" Width="220" FontSize="13" Padding="8,5" Margin="0,0,8,0"
+                    <TextBox x:Name="TxtSearch" Width="180" FontSize="13" Padding="8,5" Margin="0,0,8,0"
                              VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
+                    <Button x:Name="BtnWeeklyClose" Content="주간 마감" Style="{StaticResource GhostBtn}" Click="BtnWeeklyClose_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
@@ -270,12 +290,13 @@
             <DataGrid x:Name="DgInventory"
                       Style="{StaticResource GridStyle}"
                       ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                      Sorting="DgInventory_Sorting">
+                      Sorting="DgInventory_Sorting"
+                      CellEditEnding="DgInventory_CellEditEnding">
                 <DataGrid.GroupStyle>
                     <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
                 </DataGrid.GroupStyle>
                 <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                    <DataGridCheckBoxColumn x:Name="ColSelect" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
 
                     <DataGridTextColumn Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="100" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
                         <DataGridTextColumn.ElementStyle>
@@ -283,13 +304,13 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="상품 코드" Binding="{Binding ItemCode}" Width="100" IsReadOnly="True">
+                    <DataGridTextColumn Header="상품 코드" Binding="{Binding ItemCode}" Width="100">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="ItemCodeCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTemplateColumn Header="카테고리" Width="100" IsReadOnly="True">
+                    <DataGridTemplateColumn Header="카테고리" Width="100" SortMemberPath="Category">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border Style="{StaticResource CategoryBadge}">
@@ -297,9 +318,15 @@
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="12"
+                                         VerticalContentAlignment="Center" BorderThickness="1" BorderBrush="#2563EB"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="2*" MinWidth="180" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="2*" MinWidth="160"/>
 
                     <DataGridTemplateColumn Header="위치" Width="110" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
@@ -313,23 +340,37 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock}" Width="90" IsReadOnly="True">
+                    <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="90">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CurrentStockCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="90" IsReadOnly="True">
+                    <DataGridTextColumn Header="전주재고" Binding="{Binding PreviousStock}" Width="80" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="70" IsReadOnly="True">
+                    <DataGridTextColumn Header="전주 대비" Binding="{Binding WeeklyDeltaText}" Width="80" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="WeeklyDeltaCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="90">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="CenterCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridCheckBoxColumn Header="발주" Binding="{Binding IsOrdered, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
 
                     <DataGridTemplateColumn Header="작업" Width="90" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
@@ -425,7 +466,11 @@
                             <TextBox x:Name="TxtEditMemo" Height="60" Padding="8,6" FontSize="13" Margin="0,0,0,12"
                                      AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
 
-                            <TextBlock Text="발주 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" Margin="0,4,0,8"/>
+                            <Grid Margin="0,4,0,8">
+                                <TextBlock Text="발주 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="ChkEditOrdered" Content="발주 완료" FontSize="12" FontWeight="SemiBold"
+                                          Foreground="#2563EB" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
 
                             <Grid>
                                 <Grid.ColumnDefinitions>

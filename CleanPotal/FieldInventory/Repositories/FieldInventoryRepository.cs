@@ -30,17 +30,31 @@ namespace CleanPotal.FieldInventory.Repositories
                     OrderQty         TEXT NOT NULL DEFAULT '',
                     ExpectedReceipt  TEXT NOT NULL DEFAULT '',
                     Memo             TEXT NOT NULL DEFAULT '',
+                    IsOrdered        INTEGER NOT NULL DEFAULT 0,
                     UpdatedAt        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 );");
 
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInventory_Location ON FieldInventoryItems(StorageLocation);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInventory_Order ON FieldInventoryItems(OrderNo);");
 
+            // 주간 재고 스냅샷 (주간 마감 시점의 현재고를 누적 저장 → 전주 대비 증감 / 추후 월별 집계)
+            db.Execute(@"
+                CREATE TABLE IF NOT EXISTS FieldInventorySnapshots (
+                    SnapshotId   INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ItemId       INTEGER NOT NULL,
+                    SnapshotDate TEXT NOT NULL,
+                    Stock        TEXT NOT NULL DEFAULT '',
+                    CreatedAt    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                );");
+            db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInvSnap_Item ON FieldInventorySnapshots(ItemId);");
+            db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldInvSnap_Date ON FieldInventorySnapshots(SnapshotDate);");
+
             // 마이그레이션: 기존 DB에 신규 컬럼 추가
             try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN ItemCode TEXT NOT NULL DEFAULT '';"); } catch { }
             try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN Category TEXT NOT NULL DEFAULT '';"); } catch { }
             try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN Unit TEXT NOT NULL DEFAULT '';"); } catch { }
             try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN RegisteredDate TEXT NOT NULL DEFAULT '';"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInventoryItems ADD COLUMN IsOrdered INTEGER NOT NULL DEFAULT 0;"); } catch { }
 
             SeedIfEmpty(db);
 
@@ -61,10 +75,10 @@ namespace CleanPotal.FieldInventory.Repositories
             string sql = @"
                 INSERT INTO FieldInventoryItems
                     (OrderNo, ItemCode, Category, Unit, RegisteredDate, StorageLocation, ItemName, CurrentStock, AppropriateStock,
-                     MinOrderQty, Supplier, OrderDate, OrderQty, ExpectedReceipt, Memo, UpdatedAt)
+                     MinOrderQty, Supplier, OrderDate, OrderQty, ExpectedReceipt, Memo, IsOrdered, UpdatedAt)
                 VALUES
                     (@OrderNo, @ItemCode, @Category, @Unit, @RegisteredDate, @StorageLocation, @ItemName, @CurrentStock, @AppropriateStock,
-                     @MinOrderQty, @Supplier, @OrderDate, @OrderQty, @ExpectedReceipt, @Memo, @UpdatedAt);
+                     @MinOrderQty, @Supplier, @OrderDate, @OrderQty, @ExpectedReceipt, @Memo, @IsOrdered, @UpdatedAt);
                 SELECT last_insert_rowid();";
             return db.ExecuteScalar<long>(sql, ToParam(item));
         }
@@ -80,7 +94,7 @@ namespace CleanPotal.FieldInventory.Repositories
                     CurrentStock=@CurrentStock, AppropriateStock=@AppropriateStock,
                     MinOrderQty=@MinOrderQty, Supplier=@Supplier,
                     OrderDate=@OrderDate, OrderQty=@OrderQty, ExpectedReceipt=@ExpectedReceipt,
-                    Memo=@Memo, UpdatedAt=@UpdatedAt
+                    Memo=@Memo, IsOrdered=@IsOrdered, UpdatedAt=@UpdatedAt
                 WHERE ItemId=@ItemId", ToParam(item));
         }
 
@@ -95,9 +109,46 @@ namespace CleanPotal.FieldInventory.Repositories
             i.ItemId, i.OrderNo, i.ItemCode, i.Category, i.Unit, i.StorageLocation, i.ItemName,
             i.CurrentStock, i.AppropriateStock, i.MinOrderQty, i.Supplier,
             i.OrderDate, i.OrderQty, i.ExpectedReceipt, i.Memo,
+            IsOrdered = i.IsOrdered ? 1 : 0,
             RegisteredDate = i.RegisteredDate.ToString("yyyy-MM-dd"),
             UpdatedAt = i.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")
         };
+
+        // -----------------------------------------------------------------------
+        // 주간 스냅샷
+        // -----------------------------------------------------------------------
+        /// <summary>현재 모든 항목의 현재고를 지정한 날짜의 스냅샷으로 저장 (같은 날짜는 덮어쓰기).</summary>
+        public static void CreateSnapshot(DateTime date)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            string d = date.ToString("yyyy-MM-dd");
+            db.Execute("DELETE FROM FieldInventorySnapshots WHERE SnapshotDate = @D", new { D = d });
+            db.Execute(@"
+                INSERT INTO FieldInventorySnapshots (ItemId, SnapshotDate, Stock, CreatedAt)
+                SELECT ItemId, @D, CurrentStock, @At FROM FieldInventoryItems",
+                new { D = d, At = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+        }
+
+        /// <summary>가장 최근 스냅샷 날짜의 (ItemId → 재고값) 맵. 스냅샷이 없으면 빈 맵.</summary>
+        public static Dictionary<long, string> GetLatestSnapshotStocks()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            string? latest = db.ExecuteScalar<string?>("SELECT MAX(SnapshotDate) FROM FieldInventorySnapshots");
+            var map = new Dictionary<long, string>();
+            if (string.IsNullOrEmpty(latest)) return map;
+
+            foreach (var row in db.Query("SELECT ItemId, Stock FROM FieldInventorySnapshots WHERE SnapshotDate = @D", new { D = latest }))
+                map[(long)row.ItemId] = (string)(row.Stock ?? "");
+            return map;
+        }
+
+        /// <summary>가장 최근 스냅샷 날짜 (없으면 null).</summary>
+        public static DateTime? GetLatestSnapshotDate()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            string? latest = db.ExecuteScalar<string?>("SELECT MAX(SnapshotDate) FROM FieldInventorySnapshots");
+            return DateTime.TryParse(latest, out var dt) ? dt : (DateTime?)null;
+        }
 
         // 초기 데이터 — 엑셀의 "26년 6월 1주" 시트 내용을 그대로 주입
         private static void SeedIfEmpty(System.Data.IDbConnection db)
