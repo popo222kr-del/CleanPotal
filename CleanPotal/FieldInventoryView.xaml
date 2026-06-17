@@ -281,7 +281,7 @@
         </Grid>
 
         <!-- 툴바 -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,0">
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
             <DockPanel LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
