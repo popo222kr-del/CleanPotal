@@ -536,6 +536,9 @@ namespace CleanPotal
                     TxtNoConsumData.Visibility = Visibility.Visible;
                     ChartTopConsumption.Series = Array.Empty<ISeries>();
                 }
+
+                // ----- 5. 품목 상세 조회 목록 -----
+                RefreshAnalysisDetail();
             }
             catch (Exception ex)
             {
@@ -656,6 +659,28 @@ namespace CleanPotal
             _filterFrom = null;
             _filterTo = null;
             LoadAnalysisDashboard();
+        }
+
+        // 재고 분석: 품목 상세 조회 검색 (품목명·코드)
+        private void TxtAnalysisSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TxtAnalysisSearchPlaceholder != null)
+                TxtAnalysisSearchPlaceholder.Visibility = string.IsNullOrEmpty(TxtAnalysisSearch.Text) ? Visibility.Visible : Visibility.Collapsed;
+            RefreshAnalysisDetail();
+        }
+
+        private void RefreshAnalysisDetail()
+        {
+            if (DgAnalysisDetail == null) return;
+            string keyword = TxtAnalysisSearch.Text.Trim();
+            IEnumerable<FieldInventoryItem> source = _items;
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                source = source.Where(i =>
+                    i.ItemName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    i.ItemCode.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+            }
+            DgAnalysisDetail.ItemsSource = source.OrderBy(i => i.StorageLocation).ThenBy(i => i.OrderNo).ToList();
         }
 
         // 점검일자 앞(시작) 날짜를 고르면 뒤(종료) 날짜를 우선 동일하게 채움

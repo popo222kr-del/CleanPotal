@@ -301,7 +301,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="🔍" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <Grid Width="170">
-                                <TextBlock x:Name="TxtSearchPlaceholder" Text="품목명·코드·카테고리 검색" FontSize="13" Foreground="#94A3B8"
+                                <TextBlock x:Name="TxtSearchPlaceholder" Text="품목명·코드 검색" FontSize="13" Foreground="#94A3B8"
                                            VerticalAlignment="Center" IsHitTestVisible="False"/>
                                 <TextBox x:Name="TxtSearch" FontSize="13" Padding="0,7" BorderThickness="0" Background="Transparent"
                                          VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
@@ -609,6 +609,66 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+
+                    <!-- 품목 상세 조회 (검색) -->
+                    <Border Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                <TextBlock Text="품목 상세 조회" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                                           DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Right" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
+                                        Padding="10,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🔍" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <Grid Width="200">
+                                            <TextBlock x:Name="TxtAnalysisSearchPlaceholder" Text="품목명·코드 검색" FontSize="13" Foreground="#94A3B8"
+                                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                            <TextBox x:Name="TxtAnalysisSearch" FontSize="13" Padding="0,7" BorderThickness="0" Background="Transparent"
+                                                     VerticalContentAlignment="Center" TextChanged="TxtAnalysisSearch_TextChanged"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </DockPanel>
+                            <DataGrid x:Name="DgAnalysisDetail"
+                                      Style="{StaticResource GridStyle}"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      IsReadOnly="True" MaxHeight="400"
+                                      HorizontalScrollBarVisibility="Auto">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="구역" Binding="{Binding StorageLocation}" Width="110">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*" MinWidth="140">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="LeftCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="80">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="70">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="70">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="WeeklyDeltaCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="75">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="50">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="ItemCodeCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="발주 회사" Binding="{Binding Supplier}" Width="110">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>
