@@ -107,7 +107,9 @@ namespace CleanPotal.StatusBoard.Views
                 foreach (var entry in dataRows)
                     _rows.Add(entry);
 
-                TxtSpecialNotes.Text = memoRow?.Memo ?? "";
+                // 특이사항: 오전 = AmDestination, 오후 = PmDestination (구버전 호환: Memo는 오전으로)
+                TxtAmNotes.Text = memoRow?.AmDestination ?? memoRow?.Memo ?? "";
+                TxtPmNotes.Text = memoRow?.PmDestination ?? "";
 
                 // If no data for this date, add a few blank rows
                 if (_rows.Count == 0)
@@ -150,7 +152,7 @@ namespace CleanPotal.StatusBoard.Views
 
             // ── Define columns ──
             // Col 0: 담당자
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
             // Col 1: 오전 목적지
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 140 });
             // Col 2-6: 오전 vehicles
@@ -169,7 +171,8 @@ namespace CleanPotal.StatusBoard.Views
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(44) });
 
             // ── Row 0: Section Headers ──
-            AddSectionHeader(grid, "담당자", 0, 0, 1, 2, "#0F172A", "#F1F5F9");
+            // 담당자는 row 0만 차지 (이름 헤더와 겹쳐 잘리던 문제 수정 — 기존 rowSpan=2 제거)
+            AddSectionHeader(grid, "담당자", 0, 0, 1, 1, "#0F172A", "#F1F5F9");
 
             // AM section
             AddSectionHeader(grid, "오전 (AM)", 0, ColAmDest, 1 + Vehicles.Length, 1, "#1E40AF", "#DBEAFE");
@@ -249,7 +252,7 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBlock
             {
                 Text = text,
-                FontSize = 14,
+                FontSize = 16,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -276,8 +279,8 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBlock
             {
                 Text = text,
-                FontSize = 11,
-                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -304,8 +307,8 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBox
             {
                 Text = value ?? "",
-                FontSize = 13,
-                FontWeight = isBold ? FontWeights.SemiBold : FontWeights.Normal,
+                FontSize = 15,
+                FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
@@ -407,8 +410,9 @@ namespace CleanPotal.StatusBoard.Views
                 // Sync all TextBox values from the grid into the model objects
                 SyncGridToModel();
 
-                // Read special notes memo (stored as a row with PersonName = "__MEMO__" or separate table)
-                string memo = TxtSpecialNotes.Text?.Trim() ?? "";
+                // 특이사항 오전/오후
+                string amMemo = TxtAmNotes.Text?.Trim() ?? "";
+                string pmMemo = TxtPmNotes.Text?.Trim() ?? "";
 
                 foreach (var row in _rows)
                 {
@@ -429,13 +433,14 @@ namespace CleanPotal.StatusBoard.Views
                     StatusBoardRepository.InsertMaterialLogistics(row);
                 }
 
-                if (!string.IsNullOrWhiteSpace(memo))
+                if (!string.IsNullOrWhiteSpace(amMemo) || !string.IsNullOrWhiteSpace(pmMemo))
                 {
                     StatusBoardRepository.InsertMaterialLogistics(new MaterialLogisticsRow
                     {
                         BoardDate = dateKey,
                         PersonName = "__MEMO__",
-                        Memo = memo,
+                        AmDestination = amMemo,   // 오전 특이사항
+                        PmDestination = pmMemo,   // 오후 특이사항
                         OrderNo = 9999,
                         UpdatedAt = DateTime.Now
                     });
@@ -611,15 +616,28 @@ namespace CleanPotal.StatusBoard.Views
                     exRow++;
                 }
 
-                // ── Special notes row ──
-                string notes = TxtSpecialNotes.Text?.Trim() ?? "";
-                if (!string.IsNullOrEmpty(notes))
+                // ── Special notes rows (오전/오후 분리) ──
+                string amNotes = TxtAmNotes.Text?.Trim() ?? "";
+                string pmNotes = TxtPmNotes.Text?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(amNotes) || !string.IsNullOrEmpty(pmNotes))
                 {
                     exRow++;
-                    ws.Cell(exRow, 1).Value = "특이사항";
+                    // 오전 특이사항
+                    ws.Cell(exRow, 1).Value = "특이사항(오전)";
                     ws.Cell(exRow, 1).Style.Font.Bold = true;
+                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
                     ws.Range(exRow, 2, exRow, totalCols).Merge();
-                    ws.Cell(exRow, 2).Value = notes;
+                    ws.Cell(exRow, 2).Value = amNotes;
+                    ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
+                    ws.Row(exRow).Height = 40;
+
+                    exRow++;
+                    // 오후 특이사항
+                    ws.Cell(exRow, 1).Value = "특이사항(오후)";
+                    ws.Cell(exRow, 1).Style.Font.Bold = true;
+                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
+                    ws.Range(exRow, 2, exRow, totalCols).Merge();
+                    ws.Cell(exRow, 2).Value = pmNotes;
                     ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
                     ws.Row(exRow).Height = 40;
                 }

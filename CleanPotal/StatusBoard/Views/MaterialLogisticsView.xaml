@@ -182,22 +182,55 @@
         </Border>
 
         <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- Row 3: Special Notes                                      -->
+        <!-- Row 3: Special Notes (오전/오후 분리)                       -->
         <!-- ══════════════════════════════════════════════════════════ -->
         <Border Grid.Row="3" Style="{StaticResource CardStyle}">
             <StackPanel>
-                <TextBlock Text="특이사항" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                <TextBlock Text="특이사항" FontSize="15" FontWeight="Bold" Foreground="#0F172A"
                            Margin="0,0,0,8"/>
-                <TextBox x:Name="TxtSpecialNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                         MinHeight="80" MaxHeight="160" FontSize="13" Foreground="#334155"
-                         BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8"
-                         VerticalScrollBarVisibility="Auto">
-                    <TextBox.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="8"/>
-                        </Style>
-                    </TextBox.Resources>
-                </TextBox>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 오전 -->
+                    <StackPanel Grid.Column="0">
+                        <Border Background="#DBEAFE" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
+                        </Border>
+                        <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                                 MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
+                                 BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8"
+                                 VerticalScrollBarVisibility="Auto">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </StackPanel>
+
+                    <!-- 오후 -->
+                    <StackPanel Grid.Column="2">
+                        <Border Background="#FED7AA" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
+                        </Border>
+                        <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                                 MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
+                                 BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8"
+                                 VerticalScrollBarVisibility="Auto">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
 
