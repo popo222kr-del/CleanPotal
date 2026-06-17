@@ -58,12 +58,30 @@ namespace CleanPotal
             TxtModeManage.Foreground = _editMode ? Brushes.White : gray;
             TxtModeManage.FontWeight = _editMode ? FontWeights.Bold : FontWeights.SemiBold;
 
-            // 편집 기능: 관리 모드에서만 노출
-            DgInventory.IsReadOnly = !_editMode;
-            ColSelect.Visibility = _editMode ? Visibility.Visible : Visibility.Collapsed;
-            ColActions.Visibility = _editMode ? Visibility.Visible : Visibility.Collapsed;
+            // 그리드 자체는 항상 편집 허용 — 컬럼별로 편집 가능 여부를 제어
+            // (현재 재고는 조회 모드에서도 수정 가능, 나머지는 관리 모드에서만)
+            DgInventory.IsReadOnly = false;
 
             var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
+
+            // 관리 모드 전용 컬럼 (선택/등록일자/위치/작업)
+            ColSelect.Visibility = editVis;
+            ColRegDate.Visibility = editVis;
+            ColLocation.Visibility = editVis;
+            ColActions.Visibility = editVis;
+
+            // 관리 모드에서만 편집 가능한 컬럼
+            bool ro = !_editMode;
+            ColItemCode.IsReadOnly = ro;
+            ColOrderDate.IsReadOnly = ro;
+            ColExpected.IsReadOnly = ro;
+            ColCategory.IsReadOnly = ro;
+            ColItemName.IsReadOnly = ro;
+            ColSafe.IsReadOnly = ro;
+            ColUnit.IsReadOnly = ro;
+            // ColCurrentStock 은 항상 편집 가능 (조회 모드에서 주간 재고 갱신용)
+
+            // 편집 기능 버튼: 관리 모드에서만 노출
             BtnWeeklyClose.Visibility = editVis;
             BtnDeleteRow.Visibility = editVis;
             BtnAddLocation.Visibility = editVis;
@@ -570,7 +588,7 @@ namespace CleanPotal
                 using var wb = new XLWorkbook();
                 var ws = wb.AddWorksheet("재고 현황");
 
-                var headers = new[] { "NO", "등록일자", "품목코드", "카테고리", "품목명", "위치", "현재고", "이전재고", "이전대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
+                var headers = new[] { "NO", "등록일자", "품목코드", "카테고리", "품목명", "위치", "현재 재고", "이전재고", "이전대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
                 for (int c = 0; c < headers.Length; c++)
                 {
                     var cell = ws.Cell(1, c + 1);

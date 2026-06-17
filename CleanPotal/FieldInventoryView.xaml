@@ -160,6 +160,12 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
+        <!-- 좌측 정렬 + 상하 중앙 (품목명 등) -->
+        <Style x:Key="LeftCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <Style x:Key="CurrentStockCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
             <Setter Property="FontWeight" Value="Bold"/>
             <Style.Triggers>
@@ -320,22 +326,34 @@
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn x:Name="ColSelect" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
 
-                    <DataGridTextColumn Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="100" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
+                    <DataGridTextColumn x:Name="ColRegDate" Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="100" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="100">
+                    <DataGridTextColumn x:Name="ColItemCode" Header="품목코드" Binding="{Binding ItemCode}" Width="100">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="ItemCodeCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTemplateColumn Header="카테고리" Width="100" SortMemberPath="Category">
+                    <DataGridTextColumn x:Name="ColOrderDate" Header="발주일" Binding="{Binding OrderDate}" Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="CenterCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn x:Name="ColExpected" Header="입고 예정일" Binding="{Binding ExpectedReceipt}" Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="CenterCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn x:Name="ColCategory" Header="카테고리" Width="100" SortMemberPath="Category">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource CategoryBadge}">
+                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Category}" FontSize="12" Foreground="#475569"/>
                                 </Border>
                             </DataTemplate>
@@ -348,12 +366,16 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="2*" MinWidth="160"/>
+                    <DataGridTextColumn x:Name="ColItemName" Header="품목명" Binding="{Binding ItemName}" Width="2*" MinWidth="160">
+                        <DataGridTextColumn.ElementStyle>
+                            <StaticResource ResourceKey="LeftCell"/>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
 
-                    <DataGridTemplateColumn Header="위치" Width="110" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColLocation" Header="위치" Width="110" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource CategoryBadge}"
+                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center"
                                         Background="{Binding StorageLocation, Converter={StaticResource LocationColorConv}}">
                                     <TextBlock Text="{Binding StorageLocation}" FontSize="12" FontWeight="SemiBold"
                                                Foreground="{Binding StorageLocation, Converter={StaticResource LocationColorConv}, ConverterParameter=Fg}"/>
@@ -362,7 +384,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="90">
+                    <DataGridTextColumn x:Name="ColCurrentStock" Header="현재 재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="90">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CurrentStockCell"/>
                         </DataGridTextColumn.ElementStyle>
@@ -380,19 +402,17 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="90">
+                    <DataGridTextColumn x:Name="ColSafe" Header="안전재고" Binding="{Binding AppropriateStock}" Width="90">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="60">
+                    <DataGridTextColumn x:Name="ColUnit" Header="단위" Binding="{Binding Unit}" Width="60">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-
-                    <DataGridCheckBoxColumn Header="발주" Binding="{Binding IsOrdered, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
 
                     <DataGridTemplateColumn x:Name="ColActions" Header="작업" Width="90" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
@@ -434,7 +454,7 @@
                     <StackPanel Grid.Row="1" Margin="0,0,0,12">
                         <TextBlock Text="수정할 항목" Style="{StaticResource FieldLabel}"/>
                         <ComboBox x:Name="CmbBatchField" FontSize="13" Padding="8,6" Margin="0,0,0,8" SelectedIndex="0">
-                            <ComboBoxItem Content="현재고"/>
+                            <ComboBoxItem Content="현재 재고"/>
                             <ComboBoxItem Content="안전재고"/>
                             <ComboBoxItem Content="단위"/>
                             <ComboBoxItem Content="카테고리"/>
@@ -454,7 +474,7 @@
                                 <DataGridTextColumn Header="위치" Binding="{Binding StorageLocation}" Width="90">
                                     <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="현재고" Binding="{Binding CurrentStock}" Width="80">
+                                <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock}" Width="80">
                                     <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
@@ -531,7 +551,7 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="현재고" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="현재 재고" Style="{StaticResource FieldLabel}"/>
                                     <TextBox x:Name="TxtEditCurrent" Style="{StaticResource FieldInput}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
