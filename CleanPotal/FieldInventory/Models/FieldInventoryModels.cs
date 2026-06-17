@@ -30,7 +30,7 @@ namespace CleanPotal.FieldInventory.Models
         public string Unit
         {
             get => _unit;
-            set { _unit = value; OnPropChanged(nameof(Unit)); OnPropChanged(nameof(CurrentStockDisplay)); }
+            set { _unit = value; OnPropChanged(nameof(Unit)); OnPropChanged(nameof(CurrentStockDisplay)); OnPropChanged(nameof(PreviousStockDisplay)); }
         }
 
         public DateTime RegisteredDate { get; set; } = DateTime.Now.Date;
@@ -72,17 +72,20 @@ namespace CleanPotal.FieldInventory.Models
 
         // 화면 표시용 현재 재고: 순수 숫자(콤마 허용)면 단위를 붙이고,
         // "50EA 이상" 같이 이미 단위/문구가 포함된 특수 표기는 그대로 표시
-        public string CurrentStockDisplay
+        public string CurrentStockDisplay => WithUnit(_currentStock);
+
+        // 화면 표시용 이전 재고: 현재 재고와 동일한 규칙으로 단위 자동 표시
+        public string PreviousStockDisplay => WithUnit(_previousStock);
+
+        // 순수 숫자(콤마 허용)면 단위를 붙이고, 그 외 특수 표기는 그대로 반환
+        private string WithUnit(string value)
         {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(_currentStock)) return _currentStock;
-                string trimmed = _currentStock.Trim();
-                bool numericOnly = Regex.IsMatch(trimmed.Replace(",", ""), @"^\d+(?:\.\d+)?$");
-                if (numericOnly && !string.IsNullOrWhiteSpace(_unit))
-                    return trimmed + _unit;
-                return _currentStock;
-            }
+            if (string.IsNullOrWhiteSpace(value)) return value;
+            string trimmed = value.Trim();
+            bool numericOnly = Regex.IsMatch(trimmed.Replace(",", ""), @"^\d+(?:\.\d+)?$");
+            if (numericOnly && !string.IsNullOrWhiteSpace(_unit))
+                return trimmed + _unit;
+            return value;
         }
 
         private string _appropriateStock = "";
@@ -140,7 +143,7 @@ namespace CleanPotal.FieldInventory.Models
         public string PreviousStock
         {
             get => _previousStock;
-            set { _previousStock = value; OnPropChanged(nameof(PreviousStock)); NotifyWeeklyDelta(); }
+            set { _previousStock = value; OnPropChanged(nameof(PreviousStock)); OnPropChanged(nameof(PreviousStockDisplay)); NotifyWeeklyDelta(); }
         }
 
         private void NotifyWeeklyDelta()

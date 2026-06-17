@@ -88,7 +88,7 @@ namespace CleanPotal
 
             AddTextColumn(g, "품목명", "ItemName", 0, "LeftCell", minWidth: 120, star: true);
             g.Columns.Add(CreateCurrentStockColumn());
-            AddTextColumn(g, "이전 재고", "PreviousStock", 70, "CenterCell", readOnly: true);
+            AddTextColumn(g, "이전 재고", "PreviousStockDisplay", 70, "CenterCell", readOnly: true);
             AddTextColumn(g, "이전 대비", "WeeklyDeltaText", 70, "WeeklyDeltaCell", readOnly: true);
             AddTextColumn(g, "안전재고", "AppropriateStock", 75, "CenterCell");
             AddTextColumn(g, "단위", "Unit", 50, "CenterCell");

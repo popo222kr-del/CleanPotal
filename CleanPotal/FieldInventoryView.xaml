@@ -653,7 +653,7 @@
                                     <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStockDisplay}" Width="80">
                                         <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="70">
+                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStockDisplay}" Width="70">
                                         <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="70">
