@@ -514,19 +514,21 @@
                                             <Border Width="3" Height="14" Background="#7C3AED" CornerRadius="2" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                             <TextBlock Text="메뉴 접근 권한" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <UniformGrid Rows="1" Columns="6">
+                                        <UniformGrid Rows="2" Columns="4">
                                             <CheckBox x:Name="ChkManageFiles" Content="파일 관리자"
-                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
+                                            <CheckBox x:Name="ChkManageInventory" Content="재고 관리"
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageNotices" Content="공지사항 관리"
-                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageVendors" Content="업체 관리"
-                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageSchedule" Content="교육 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                             <CheckBox x:Name="ChkManageBroken" Content="BROKEN 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                             <CheckBox x:Name="ChkAccessEtcMenu" Content="기타 메뉴"
-                                                      Style="{StaticResource PermCheck}"/>
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                         </UniformGrid>
                                     </StackPanel>
                                 </Border>

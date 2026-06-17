@@ -53,6 +53,7 @@ namespace CleanPotal
                 SessionManager.CanManageSchedule = user.CanManageSchedule;
                 SessionManager.CanManageBroken = user.CanManageBroken;
                 SessionManager.CanAccessEtcMenu = user.CanAccessEtcMenu;
+                SessionManager.CanManageInventory = user.CanManageInventory;
 
                 // 자동 로그인 체크 시 저장, 해제 시 기존 저장 정보 삭제
                 if (ChkAutoLogin.IsChecked == true) SessionManager.SaveAutoLogin(id, pw);

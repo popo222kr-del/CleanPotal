@@ -225,6 +225,7 @@ namespace CleanPotal
         {
             if (sender is not FrameworkElement fe || fe.Tag is not string tag) return;
             if (tag == _mode) return;
+            if (tag is "analysis" or "manage" && !AuthManager.CheckAuth(PermissionType.InventoryManage)) return;
             _mode = tag;
             ApplyEditMode();
             if (_mode == "analysis") LoadAnalysisDashboard();
