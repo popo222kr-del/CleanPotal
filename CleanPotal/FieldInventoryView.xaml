@@ -369,7 +369,7 @@
                                         <Border Grid.Row="0" Background="#DBEAFE" Padding="12,8"
                                                 BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                                             <DockPanel LastChildFill="False">
-                                                <TextBlock Text="METAL 반입구" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtMetalTitle" Text="METAL 반입구" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
                                                 <TextBlock x:Name="TxtMetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
                                             </DockPanel>
                                         </Border>
@@ -404,7 +404,7 @@
                                         <Border Grid.Row="0" Background="#FCE7F3" Padding="12,8"
                                                 BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                                             <DockPanel LastChildFill="False">
-                                                <TextBlock Text="N-METAL 출고실" FontSize="13" FontWeight="Bold" Foreground="#BE185D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtNonmetalTitle" Text="N-METAL 출고실" FontSize="13" FontWeight="Bold" Foreground="#BE185D" DockPanel.Dock="Left"/>
                                                 <TextBlock x:Name="TxtNonmetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
                                             </DockPanel>
                                         </Border>
@@ -448,7 +448,7 @@
                                         <Border Grid.Row="0" Background="#DCFCE7" Padding="12,8"
                                                 BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                                             <DockPanel LastChildFill="False">
-                                                <TextBlock Text="Office 보관" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtOfficeTitle" Text="Office 보관" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
                                                 <TextBlock x:Name="TxtOfficeCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
                                             </DockPanel>
                                         </Border>
@@ -483,7 +483,7 @@
                                         <Border Grid.Row="0" Background="#EDE9FE" Padding="12,8"
                                                 BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
                                             <DockPanel LastChildFill="False">
-                                                <TextBlock Text="세정랩" FontSize="13" FontWeight="Bold" Foreground="#6D28D9" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtCleaningTitle" Text="세정랩" FontSize="13" FontWeight="Bold" Foreground="#6D28D9" DockPanel.Dock="Left"/>
                                                 <TextBlock x:Name="TxtCleaningCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
                                             </DockPanel>
                                         </Border>

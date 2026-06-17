@@ -657,6 +657,22 @@ namespace CleanPotal
             TxtOfficeCount.Text = $"{office.Count}개";
             TxtCleaningCount.Text = $"{cleaning.Count}개";
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
+
+            // 구역 카드 제목을 실제 위치 이름으로 동적 표시 (이름 변경 즉시 반영)
+            TxtMetalTitle.Text = ZoneTitle(metal, "METAL 반입구");
+            TxtNonmetalTitle.Text = ZoneTitle(nonmetal, "N-METAL 출고실");
+            TxtOfficeTitle.Text = ZoneTitle(office, "Office 보관");
+            TxtCleaningTitle.Text = ZoneTitle(cleaning, "세정랩");
+        }
+
+        // 구역 내 실제 위치명을 제목으로 사용. 비어 있으면 기본 라벨 유지,
+        // 여러 위치가 섞여 있으면 " / "로 연결해 표시.
+        private static string ZoneTitle(List<FieldInventoryItem> zoneItems, string fallback)
+        {
+            var names = zoneItems.Select(i => i.StorageLocation)
+                                 .Where(s => !string.IsNullOrWhiteSpace(s))
+                                 .Distinct().ToList();
+            return names.Count == 0 ? fallback : string.Join(" / ", names);
         }
 
         // 위치명에 따른 (배경색, 글자색) 매핑
@@ -1307,9 +1323,10 @@ namespace CleanPotal
                                           .OrderBy(i => i.OrderNo).ToList();
                     if (zoneItems.Count == 0) continue;
 
-                    // 구역 구분 헤더 (전체 열 병합)
+                    // 구역 구분 헤더 (전체 열 병합) — 실제 위치명 반영
+                    string actualTitle = ZoneTitle(zoneItems, zoneTitle);
                     var zoneCell = ws.Cell(row, 1);
-                    zoneCell.Value = $"◤ {zoneTitle}  ({zoneItems.Count}개)";
+                    zoneCell.Value = $"◤ {actualTitle}  ({zoneItems.Count}개)";
                     ws.Range(row, 1, row, cols).Merge();
                     zoneCell.Style.Font.Bold = true;
                     zoneCell.Style.Font.FontColor = XLColor.White;
