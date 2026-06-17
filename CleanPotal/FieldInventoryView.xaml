@@ -357,51 +357,73 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- 메탈 (반입구) -->
-                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#DBEAFE" CornerRadius="8,8,0,0" Padding="12,8"
-                                            BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                                        <DockPanel LastChildFill="False">
-                                            <TextBlock Text="메탈 (반입구)" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
-                                            <TextBlock x:Name="TxtMetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
-                                        </DockPanel>
-                                    </Border>
-                                    <DataGrid x:Name="DgMetal" Grid.Row="1"
-                                              Style="{StaticResource GridStyle}"
-                                              ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                              HorizontalScrollBarVisibility="Auto"
-                                              Sorting="DgInventory_Sorting"
-                                              PreviewMouseWheel="DgZone_PreviewMouseWheel"
-                                              CellEditEnding="DgInventory_CellEditEnding"/>
-                                </Grid>
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#DBEAFE" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock Text="메탈 (반입구)" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtMetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgMetal" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
                             </Border>
 
                             <!-- 논메탈 (반입구) -->
-                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#FCE7F3" CornerRadius="8,8,0,0" Padding="12,8"
-                                            BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                                        <DockPanel LastChildFill="False">
-                                            <TextBlock Text="논메탈 (반입구)" FontSize="13" FontWeight="Bold" Foreground="#BE185D" DockPanel.Dock="Left"/>
-                                            <TextBlock x:Name="TxtNonmetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
-                                        </DockPanel>
-                                    </Border>
-                                    <DataGrid x:Name="DgNonmetal" Grid.Row="1"
-                                              Style="{StaticResource GridStyle}"
-                                              ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                              HorizontalScrollBarVisibility="Auto"
-                                              Sorting="DgInventory_Sorting"
-                                              PreviewMouseWheel="DgZone_PreviewMouseWheel"
-                                              CellEditEnding="DgInventory_CellEditEnding"/>
-                                </Grid>
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#FCE7F3" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock Text="논메탈 (반입구)" FontSize="13" FontWeight="Bold" Foreground="#BE185D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtNonmetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgNonmetal" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
                             </Border>
                         </Grid>
 
@@ -414,51 +436,73 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- 오피스 (OFFICE 보관) -->
-                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#DCFCE7" CornerRadius="8,8,0,0" Padding="12,8"
-                                            BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                                        <DockPanel LastChildFill="False">
-                                            <TextBlock Text="오피스 (OFFICE 보관)" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
-                                            <TextBlock x:Name="TxtOfficeCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
-                                        </DockPanel>
-                                    </Border>
-                                    <DataGrid x:Name="DgOffice" Grid.Row="1"
-                                              Style="{StaticResource GridStyle}"
-                                              ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                              HorizontalScrollBarVisibility="Auto"
-                                              Sorting="DgInventory_Sorting"
-                                              PreviewMouseWheel="DgZone_PreviewMouseWheel"
-                                              CellEditEnding="DgInventory_CellEditEnding"/>
-                                </Grid>
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#DCFCE7" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock Text="오피스 (OFFICE 보관)" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtOfficeCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgOffice" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
                             </Border>
 
                             <!-- 세정랩 -->
-                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#EDE9FE" CornerRadius="8,8,0,0" Padding="12,8"
-                                            BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                                        <DockPanel LastChildFill="False">
-                                            <TextBlock Text="세정랩" FontSize="13" FontWeight="Bold" Foreground="#6D28D9" DockPanel.Dock="Left"/>
-                                            <TextBlock x:Name="TxtCleaningCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
-                                        </DockPanel>
-                                    </Border>
-                                    <DataGrid x:Name="DgCleaning" Grid.Row="1"
-                                              Style="{StaticResource GridStyle}"
-                                              ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                              HorizontalScrollBarVisibility="Auto"
-                                              Sorting="DgInventory_Sorting"
-                                              PreviewMouseWheel="DgZone_PreviewMouseWheel"
-                                              CellEditEnding="DgInventory_CellEditEnding"/>
-                                </Grid>
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#EDE9FE" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock Text="세정랩" FontSize="13" FontWeight="Bold" Foreground="#6D28D9" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtCleaningCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgCleaning" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
                             </Border>
                         </Grid>
                     </StackPanel>

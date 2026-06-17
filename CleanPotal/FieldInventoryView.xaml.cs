@@ -431,14 +431,6 @@ namespace CleanPotal
             return null;
         }
 
-        // 둥근 모서리 깨짐 방지 — 구역 박스 내용물을 라운드 사각형으로 클리핑
-        private void ZoneBorder_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (sender is not Border b) return;
-            double r = b.CornerRadius.TopLeft;
-            b.Clip = new RectangleGeometry(new Rect(0, 0, b.ActualWidth, b.ActualHeight), r, r);
-        }
-
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (TxtSearchPlaceholder != null)
