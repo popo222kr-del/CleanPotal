@@ -1104,61 +1104,140 @@ namespace CleanPotal
         {
             var dlg = new SaveFileDialog
             {
-                Title = "재고 현황 엑셀 내보내기",
+                Title = "재고 리스트 엑셀 내보내기 (A4 가로)",
                 Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = $"재고현황_{DateTime.Now:yyyyMMdd}"
+                FileName = $"재고리스트_{DateTime.Now:yyyyMMdd}"
             };
             if (dlg.ShowDialog() != true) return;
 
             try
             {
                 using var wb = new XLWorkbook();
-                var ws = wb.AddWorksheet("재고 현황");
+                var ws = wb.AddWorksheet("재고 리스트");
 
-                var headers = new[] { "NO", "등록일자", "품목코드", "카테고리", "품목명", "위치", "현재 재고", "이전재고", "이전대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
-                for (int c = 0; c < headers.Length; c++)
+                // ── A4 가로 출력 설정 ──
+                ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+                ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+                ws.PageSetup.Margins.Top = 0.5;
+                ws.PageSetup.Margins.Bottom = 0.5;
+                ws.PageSetup.Margins.Left = 0.4;
+                ws.PageSetup.Margins.Right = 0.4;
+                ws.PageSetup.CenterHorizontally = true;
+                ws.PageSetup.FitToPages(1, 0);              // 가로 1페이지에 맞춤
+                ws.PageSetup.SetRowsToRepeatAtTop(1, 2);    // 제목/머리글 행 반복 인쇄
+
+                // 인쇄에 꼭 필요한 핵심 컬럼만 (A4 가로 기준)
+                var headers = new[] { "NO", "품목명", "위치", "현재재고", "적정재고", "단위", "발주여부", "발주날짜", "입고예정", "발주회사", "비고" };
+                int cols = headers.Length;
+
+                // ── 제목 행 ──
+                var titleCell = ws.Cell(1, 1);
+                titleCell.Value = $"현장 재고 리스트  ({DateTime.Now:yyyy-MM-dd} 기준)";
+                ws.Range(1, 1, 1, cols).Merge();
+                titleCell.Style.Font.Bold = true;
+                titleCell.Style.Font.FontSize = 14;
+                titleCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                titleCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Row(1).Height = 26;
+
+                // ── 머리글 행 ──
+                for (int c = 0; c < cols; c++)
                 {
-                    var cell = ws.Cell(1, c + 1);
+                    var cell = ws.Cell(2, c + 1);
                     cell.Value = headers[c];
                     cell.Style.Font.Bold = true;
-                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");
+                    cell.Style.Font.FontColor = XLColor.White;
+                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#334155");
                     cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
                 }
+                ws.Row(2).Height = 22;
 
-                var data = _items.OrderBy(i => i.OrderNo).ToList();
-                for (int r = 0; r < data.Count; r++)
+                // ── 구역별 그룹핑 ──
+                var zoneInfo = new (Zone z, string title, string color)[]
                 {
-                    var item = data[r];
-                    int row = r + 2;
-                    ws.Cell(row, 1).Value = item.OrderNo;
-                    ws.Cell(row, 2).Value = item.RegisteredDate.ToString("yyyy-MM-dd");
-                    ws.Cell(row, 3).Value = item.ItemCode;
-                    ws.Cell(row, 4).Value = item.Category;
-                    ws.Cell(row, 5).Value = item.ItemName;
-                    ws.Cell(row, 6).Value = item.StorageLocation;
-                    ws.Cell(row, 7).Value = item.CurrentStock;
-                    ws.Cell(row, 8).Value = item.PreviousStock;
-                    ws.Cell(row, 9).Value = item.WeeklyDeltaText;
-                    ws.Cell(row, 10).Value = item.AppropriateStock;
-                    ws.Cell(row, 11).Value = item.Unit;
-                    ws.Cell(row, 12).Value = item.IsOrdered ? "발주완료" : "미발주";
-                    ws.Cell(row, 13).Value = item.MinOrderQty;
-                    ws.Cell(row, 14).Value = item.OrderDate;
-                    ws.Cell(row, 15).Value = item.OrderQty;
-                    ws.Cell(row, 16).Value = item.ExpectedReceipt;
-                    ws.Cell(row, 17).Value = item.Supplier;
-                    ws.Cell(row, 18).Value = item.Memo;
+                    (Zone.Metal,    "METAL 반입구",   "#1D4ED8"),
+                    (Zone.Nonmetal, "N-METAL 출고실", "#BE185D"),
+                    (Zone.Office,   "Office 보관",    "#15803D"),
+                    (Zone.Cleaning, "세정랩",         "#6D28D9")
+                };
 
-                    if (item.IsLow)
+                int row = 3;
+                foreach (var (zone, zoneTitle, zoneColor) in zoneInfo)
+                {
+                    var zoneItems = _items.Where(i => ClassifyZone(i.StorageLocation) == zone)
+                                          .OrderBy(i => i.OrderNo).ToList();
+                    if (zoneItems.Count == 0) continue;
+
+                    // 구역 구분 헤더 (전체 열 병합)
+                    var zoneCell = ws.Cell(row, 1);
+                    zoneCell.Value = $"◤ {zoneTitle}  ({zoneItems.Count}개)";
+                    ws.Range(row, 1, row, cols).Merge();
+                    zoneCell.Style.Font.Bold = true;
+                    zoneCell.Style.Font.FontColor = XLColor.White;
+                    zoneCell.Style.Fill.BackgroundColor = XLColor.FromHtml(zoneColor);
+                    zoneCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                    ws.Row(row).Height = 20;
+                    row++;
+
+                    foreach (var item in zoneItems)
                     {
-                        var rowRange = ws.Range(row, 1, row, headers.Length);
-                        rowRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#FEF2F2");
-                        rowRange.Style.Font.FontColor = XLColor.FromHtml("#B91C1C");
+                        ws.Cell(row, 1).Value = item.OrderNo;
+                        ws.Cell(row, 2).Value = item.ItemName;
+                        ws.Cell(row, 3).Value = item.StorageLocation;
+                        ws.Cell(row, 4).Value = item.CurrentStock;
+                        ws.Cell(row, 5).Value = item.AppropriateStock;
+                        ws.Cell(row, 6).Value = item.Unit;
+                        ws.Cell(row, 7).Value = item.IsOrdered ? "발주완료" : "미발주";
+                        ws.Cell(row, 8).Value = item.OrderDate;
+                        ws.Cell(row, 9).Value = item.ExpectedReceipt;
+                        ws.Cell(row, 10).Value = item.Supplier;
+                        ws.Cell(row, 11).Value = item.Memo;
+
+                        // 숫자/구분 컬럼 가운데 정렬
+                        foreach (int c in new[] { 1, 4, 5, 6, 7 })
+                            ws.Cell(row, c).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                        if (item.IsLow)
+                        {
+                            var rng = ws.Range(row, 1, row, cols);
+                            rng.Style.Fill.BackgroundColor = XLColor.FromHtml("#FEF2F2");
+                            rng.Style.Font.FontColor = XLColor.FromHtml("#B91C1C");
+                            rng.Style.Font.Bold = true;
+                        }
+                        row++;
                     }
                 }
 
-                ws.Columns().AdjustToContents();
-                ws.Cell(data.Count + 3, 1).Value = "※ 현재재고 ≤ 적정재고 항목은 즉시 발주 필요 (빨간색 행)";
+                int lastDataRow = row - 1;
+
+                // ── 테두리 (머리글 ~ 마지막 데이터) ──
+                if (lastDataRow >= 2)
+                {
+                    var table = ws.Range(2, 1, lastDataRow, cols);
+                    table.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                    table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                    table.Style.Border.OutsideBorderColor = XLColor.FromHtml("#475569");
+                    table.Style.Border.InsideBorderColor = XLColor.FromHtml("#CBD5E1");
+                }
+
+                // ── 컬럼 너비 (A4 가로 기준 고정) ──
+                ws.Column(1).Width = 5;    // NO
+                ws.Column(2).Width = 26;   // 품목명
+                ws.Column(3).Width = 14;   // 위치
+                ws.Column(4).Width = 9;    // 현재재고
+                ws.Column(5).Width = 9;    // 적정재고
+                ws.Column(6).Width = 7;    // 단위
+                ws.Column(7).Width = 9;    // 발주여부
+                ws.Column(8).Width = 13;   // 발주날짜
+                ws.Column(9).Width = 13;   // 입고예정
+                ws.Column(10).Width = 16;  // 발주회사
+                ws.Column(11).Width = 22;  // 비고
+
+                ws.Range(2, 1, lastDataRow, cols).Style.Font.FontSize = 10;
+                ws.Cell(lastDataRow + 2, 1).Value = "※ 현재재고 ≤ 적정재고 항목은 즉시 발주 필요 (빨간색 행)";
+                ws.Cell(lastDataRow + 2, 1).Style.Font.FontColor = XLColor.FromHtml("#B91C1C");
+                ws.Cell(lastDataRow + 2, 1).Style.Font.FontSize = 9;
 
                 wb.SaveAs(dlg.FileName);
                 MessageBox.Show("엑셀 파일이 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
