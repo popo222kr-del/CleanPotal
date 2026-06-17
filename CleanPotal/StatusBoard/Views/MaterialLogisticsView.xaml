@@ -121,8 +121,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- toolbar -->
             <RowDefinition Height="Auto"/>  <!-- header -->
-            <RowDefinition Height="*"/>     <!-- table -->
+            <RowDefinition Height="Auto"/>  <!-- table (내용 크기에 맞춰 표·특이사항 사이 공백 제거) -->
             <RowDefinition Height="Auto"/>  <!-- special notes -->
+            <RowDefinition Height="*"/>     <!-- 남는 공간은 맨 아래로 -->
         </Grid.RowDefinitions>
 
         <!-- ══════════════════════════════════════════════════════════ -->
@@ -173,8 +174,10 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- Row 2: Main Schedule Table                                -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
+                VerticalAlignment="Top">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          MaxHeight="640">
                 <Grid x:Name="ScheduleGrid" Margin="0">
                     <!-- Columns defined in code-behind -->
                 </Grid>
