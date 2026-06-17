@@ -270,6 +270,7 @@ namespace CleanPotal
             // 편집 기능 버튼: 관리 모드에서만 노출
             BtnDeleteRow.Visibility = editVis;
             BtnManageLocation.Visibility = editVis;
+            BtnImportExcel.Visibility = editVis;
             BtnAddRow.Visibility = editVis;
             BtnBatchEdit.Visibility = editVis;
         }
@@ -1342,7 +1343,7 @@ namespace CleanPotal
                         ws.Cell(row, 3).Value = item.StorageLocation;
                         ws.Cell(row, 4).Value = item.CurrentStock;
                         ws.Cell(row, 5).Value = item.AppropriateStock;
-                        ws.Cell(row, 6).Value = item.Unit;
+                        // 체크(6) 칸은 실사 수량을 직접 적도록 빈칸으로 둠
                         ws.Cell(row, 7).Value = item.IsOrdered ? "발주완료" : "미발주";
                         ws.Cell(row, 8).Value = item.OrderDate;
                         ws.Cell(row, 9).Value = item.ExpectedReceipt;
@@ -1404,6 +1405,79 @@ namespace CleanPotal
             catch (Exception ex)
             {
                 MessageBox.Show($"엑셀 내보내기 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // 엑셀 업로드: 내보낸 양식의 '체크'(6열)에 적은 실사 수량을 현재 재고로 반영.
+        // 반영 전 현재 재고를 스냅샷으로 저장해 '이전 재고'·'증감'이 자동 계산됨.
+        private void BtnImportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "재고 리스트 엑셀 업로드",
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                // NO(1열) → 체크(6열) 수량 매핑
+                var updates = new Dictionary<int, string>();
+                using (var wb = new XLWorkbook(dlg.FileName))
+                {
+                    var ws = wb.Worksheets.First();
+                    var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
+                    for (int r = 1; r <= lastRow; r++)
+                    {
+                        string noText = ws.Cell(r, 1).GetString().Trim();
+                        if (!int.TryParse(noText, out int orderNo)) continue;   // 제목/머리글/구역행 건너뜀
+
+                        string check = ws.Cell(r, 6).GetString().Trim();
+                        if (string.IsNullOrWhiteSpace(check)) continue;          // 빈칸은 변경 안 함
+                        updates[orderNo] = check;
+                    }
+                }
+
+                if (updates.Count == 0)
+                {
+                    MessageBox.Show("체크 칸에 입력된 수량이 없습니다.\n실사 수량을 체크 칸에 적은 후 업로드하세요.",
+                        "안내", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 실제 변경 대상 집계 (값이 달라지는 항목만)
+                var targets = _items.Where(i => updates.ContainsKey(i.OrderNo)
+                                                && i.CurrentStock.Trim() != updates[i.OrderNo]).ToList();
+                if (targets.Count == 0)
+                {
+                    MessageBox.Show($"체크 칸 {updates.Count}건을 읽었지만 기존 재고와 동일하여 변경된 항목이 없습니다.",
+                        "안내", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                if (MessageBox.Show(
+                        $"체크 칸 수량으로 현재 재고를 업데이트합니다.\n변경 대상: {targets.Count}개 품목\n\n" +
+                        "업로드 직전 재고는 '이전 재고'로 저장되어 증감이 표시됩니다.\n진행하시겠습니까?",
+                        "엑셀 업로드", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+                // 1) 업로드 직전 현재고를 스냅샷으로 저장 (이전 재고 기준)
+                FieldInventoryRepository.CreateSnapshot(DateTime.Today);
+
+                // 2) 체크 수량을 현재 재고로 반영
+                foreach (var item in targets)
+                {
+                    item.CurrentStock = updates[item.OrderNo];
+                    FieldInventoryRepository.Update(item);
+                }
+
+                // 3) 재로드 → 방금 저장한 스냅샷이 '이전 재고'로 주입되어 증감 계산
+                Load();
+                MessageBox.Show($"{targets.Count}개 품목의 현재 재고가 업데이트되었습니다.\n이전 재고 대비 증감을 확인하세요.",
+                    "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"엑셀 업로드 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

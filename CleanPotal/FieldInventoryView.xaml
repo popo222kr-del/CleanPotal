@@ -312,6 +312,7 @@
                     <Button x:Name="BtnWeeklyClose" Content="주간 마감" Style="{StaticResource GhostBtn}" Click="BtnWeeklyClose_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnImportExcel" Content="엑셀 업로드" Style="{StaticResource GhostBtn}" Click="BtnImportExcel_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnManageLocation" Content="위치 관리" Style="{StaticResource GhostBtn}" Click="BtnManageLocation_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnAddRow" Content="+ 품목 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
