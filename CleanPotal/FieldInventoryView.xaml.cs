@@ -476,6 +476,16 @@ namespace CleanPotal
             RenderStockTrend(DgAnalysisDetail.SelectedItem as FieldInventoryItem);
         }
 
+        // 품목 상세 조회 초기화 — 검색어·선택 해제 후 추이 차트를 구역별 기본 보기로 복귀
+        private void BtnAnalysisDetailReset_Click(object sender, RoutedEventArgs e)
+        {
+            TxtAnalysisSearch.Text = "";
+            DgAnalysisDetail.UnselectAll();
+            DgAnalysisDetail.SelectedItem = null;
+            RefreshAnalysisDetail();
+            RenderStockTrend(null);
+        }
+
         private void LoadAnalysisDashboard()
         {
             try
