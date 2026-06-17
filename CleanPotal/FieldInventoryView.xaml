@@ -296,7 +296,7 @@
             </DockPanel>
         </Border>
 
-        <!-- 보관위치 탭 + 재고 그리드 -->
+        <!-- 구역 2분할 재고 그리드 (반입구 / 오피스·세정랩) -->
         <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
             <Grid>
                 <Grid.RowDefinitions>
@@ -304,9 +304,10 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 탭 헤더 -->
-                <DockPanel Grid.Row="0" Margin="12,10,12,0" LastChildFill="False">
-                    <StackPanel x:Name="LocationTabPanel" Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Bottom"/>
+                <!-- 헤더: 총 개수 + 일괄 수정 -->
+                <DockPanel Grid.Row="0" Margin="12,10,12,8" LastChildFill="False">
+                    <TextBlock Text="재고 리스트" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                               DockPanel.Dock="Left" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
                         <TextBlock x:Name="TxtTotalCount" Text="총 0개" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <Button x:Name="BtnBatchEdit" Content="일괄 수정" Style="{StaticResource GhostBtn}"
@@ -314,119 +315,184 @@
                     </StackPanel>
                 </DockPanel>
 
-                <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Margin="0,4,0,0">
-            <DataGrid x:Name="DgInventory"
-                      Style="{StaticResource GridStyle}"
-                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                      Sorting="DgInventory_Sorting"
-                      CellEditEnding="DgInventory_CellEditEnding">
-                <DataGrid.GroupStyle>
-                    <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
-                </DataGrid.GroupStyle>
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn x:Name="ColSelect" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <!-- 좌/우 2구역 -->
+                <Grid Grid.Row="1" Margin="8,0,8,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                    <DataGridTextColumn x:Name="ColRegDate" Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="100" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
+                    <!-- 좌: 반입구 (메탈 · 논메탈) -->
+                    <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,8"
+                                    BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock Text="반입구 (메탈 · 논메탈)" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
+                                    <TextBlock x:Name="TxtLeftCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Border>
+                            <DataGrid x:Name="DgLeft" Grid.Row="1"
+                                      Style="{StaticResource GridStyle}"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      Sorting="DgInventory_Sorting"
+                                      CellEditEnding="DgInventory_CellEditEnding">
+                                <DataGrid.GroupStyle>
+                                    <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
+                                </DataGrid.GroupStyle>
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="36"/>
+                                    <DataGridTextColumn Header="발주일" Binding="{Binding OrderDate}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="입고 예정일" Binding="{Binding ExpectedReceipt}" Width="95">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Header="카테고리" Width="90" SortMemberPath="Category">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Category}" FontSize="12" Foreground="#475569"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="12"
+                                                         VerticalContentAlignment="Center" BorderThickness="1" BorderBrush="#2563EB"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*" MinWidth="120">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="LeftCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="80">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="70" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="70" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="WeeklyDeltaCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="75">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="50">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="ItemCodeCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="95" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Header="작업" Width="80" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="수정" Style="{StaticResource LinkBtn}" Foreground="#2563EB" Click="BtnEditItem_Click"/>
+                                                    <Button Content="삭제" Style="{StaticResource LinkBtn}" Foreground="#DC2626" Click="BtnDeleteItem_Click"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
 
-                    <DataGridTextColumn x:Name="ColItemCode" Header="품목코드" Binding="{Binding ItemCode}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="ItemCodeCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn x:Name="ColOrderDate" Header="발주일" Binding="{Binding OrderDate}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn x:Name="ColExpected" Header="입고 예정일" Binding="{Binding ExpectedReceipt}" Width="100">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTemplateColumn x:Name="ColCategory" Header="카테고리" Width="100" SortMemberPath="Category">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Category}" FontSize="12" Foreground="#475569"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                        <DataGridTemplateColumn.CellEditingTemplate>
-                            <DataTemplate>
-                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="12"
-                                         VerticalContentAlignment="Center" BorderThickness="1" BorderBrush="#2563EB"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellEditingTemplate>
-                    </DataGridTemplateColumn>
-
-                    <DataGridTextColumn x:Name="ColItemName" Header="품목명" Binding="{Binding ItemName}" Width="2*" MinWidth="160">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="LeftCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTemplateColumn x:Name="ColLocation" Header="위치" Width="110" IsReadOnly="True">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center"
-                                        Background="{Binding StorageLocation, Converter={StaticResource LocationColorConv}}">
-                                    <TextBlock Text="{Binding StorageLocation}" FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{Binding StorageLocation, Converter={StaticResource LocationColorConv}, ConverterParameter=Fg}"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <DataGridTextColumn x:Name="ColCurrentStock" Header="현재 재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="90">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CurrentStockCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="80" IsReadOnly="True">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="80" IsReadOnly="True">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="WeeklyDeltaCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn x:Name="ColSafe" Header="안전재고" Binding="{Binding AppropriateStock}" Width="90">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn x:Name="ColUnit" Header="단위" Binding="{Binding Unit}" Width="60">
-                        <DataGridTextColumn.ElementStyle>
-                            <StaticResource ResourceKey="CenterCell"/>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTemplateColumn x:Name="ColActions" Header="작업" Width="90" IsReadOnly="True">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button Content="수정" Style="{StaticResource LinkBtn}" Foreground="#2563EB" Click="BtnEditItem_Click"/>
-                                    <Button Content="삭제" Style="{StaticResource LinkBtn}" Foreground="#DC2626" Click="BtnDeleteItem_Click"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-                </Border>
+                    <!-- 우: 오피스 · 세정랩 -->
+                    <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="8,8,0,0" Padding="12,8"
+                                    BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock Text="오피스 · 세정랩" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
+                                    <TextBlock x:Name="TxtRightCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Border>
+                            <DataGrid x:Name="DgRight" Grid.Row="1"
+                                      Style="{StaticResource GridStyle}"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      Sorting="DgInventory_Sorting"
+                                      CellEditEnding="DgInventory_CellEditEnding">
+                                <DataGrid.GroupStyle>
+                                    <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
+                                </DataGrid.GroupStyle>
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="36"/>
+                                    <DataGridTextColumn Header="발주일" Binding="{Binding OrderDate}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="입고 예정일" Binding="{Binding ExpectedReceipt}" Width="95">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Header="카테고리" Width="90" SortMemberPath="Category">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource CategoryBadge}" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Category}" FontSize="12" Foreground="#475569"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" FontSize="12"
+                                                         VerticalContentAlignment="Center" BorderThickness="1" BorderBrush="#2563EB"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*" MinWidth="120">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="LeftCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStock, UpdateSourceTrigger=PropertyChanged}" Width="80">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="70" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="70" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="WeeklyDeltaCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="75">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="50">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="ItemCodeCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="등록일자" Binding="{Binding RegisteredDate, StringFormat=yyyy-MM-dd}" Width="95" IsReadOnly="True" CanUserSort="True" SortMemberPath="RegisteredDate">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Header="작업" Width="80" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="수정" Style="{StaticResource LinkBtn}" Foreground="#2563EB" Click="BtnEditItem_Click"/>
+                                                    <Button Content="삭제" Style="{StaticResource LinkBtn}" Foreground="#DC2626" Click="BtnDeleteItem_Click"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
 

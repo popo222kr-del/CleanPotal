@@ -22,7 +22,6 @@ namespace CleanPotal
         private readonly ObservableCollection<FieldInventoryItem> _items = new();
         private List<FieldInventoryItem> _filtered = new();
         private bool _sortDescending = true;
-        private string _locationFilter = "전체";
         private FieldInventoryItem? _editingItem;
         private bool _editMode = false;   // false=재고 현황(조회), true=재고 리스트 관리(편집)
 
@@ -58,28 +57,11 @@ namespace CleanPotal
             TxtModeManage.Foreground = _editMode ? Brushes.White : gray;
             TxtModeManage.FontWeight = _editMode ? FontWeights.Bold : FontWeights.SemiBold;
 
-            // 그리드 자체는 항상 편집 허용 — 컬럼별로 편집 가능 여부를 제어
-            // (현재 재고는 조회 모드에서도 수정 가능, 나머지는 관리 모드에서만)
-            DgInventory.IsReadOnly = false;
-
             var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
 
-            // 관리 모드 전용 컬럼 (선택/등록일자/위치/작업)
-            ColSelect.Visibility = editVis;
-            ColRegDate.Visibility = editVis;
-            ColLocation.Visibility = editVis;
-            ColActions.Visibility = editVis;
-
-            // 관리 모드에서만 편집 가능한 컬럼
-            bool ro = !_editMode;
-            ColItemCode.IsReadOnly = ro;
-            ColOrderDate.IsReadOnly = ro;
-            ColExpected.IsReadOnly = ro;
-            ColCategory.IsReadOnly = ro;
-            ColItemName.IsReadOnly = ro;
-            ColSafe.IsReadOnly = ro;
-            ColUnit.IsReadOnly = ro;
-            // ColCurrentStock 은 항상 편집 가능 (조회 모드에서 주간 재고 갱신용)
+            // 두 구역 그리드의 컬럼 편집 가능/표시 여부 설정
+            ConfigureColumns(DgLeft);
+            ConfigureColumns(DgRight);
 
             // 편집 기능 버튼: 관리 모드에서만 노출
             BtnWeeklyClose.Visibility = editVis;
@@ -87,6 +69,38 @@ namespace CleanPotal
             BtnAddLocation.Visibility = editVis;
             BtnAddRow.Visibility = editVis;
             BtnBatchEdit.Visibility = editVis;
+        }
+
+        // 컬럼 순서: 0 선택, 1 발주일, 2 입고예정일, 3 카테고리, 4 품목명, 5 현재 재고,
+        //            6 이전 재고, 7 이전 대비, 8 안전재고, 9 단위, 10 품목코드, 11 등록일자, 12 작업
+        private void ConfigureColumns(DataGrid g)
+        {
+            if (g == null || g.Columns.Count < 13) return;
+            g.IsReadOnly = false;   // 그리드는 항상 편집 허용 — 컬럼별로 제어
+
+            var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
+            bool ro = !_editMode;
+            var c = g.Columns;
+
+            c[0].Visibility = editVis;   // 선택 (관리 모드 전용)
+            c[1].IsReadOnly = false;     // 발주일      — 항상 수정 가능
+            c[2].IsReadOnly = false;     // 입고 예정일 — 항상 수정 가능
+            c[3].IsReadOnly = ro;        // 카테고리
+            c[4].IsReadOnly = ro;        // 품목명
+            c[5].IsReadOnly = false;     // 현재 재고   — 항상 수정 가능 (주간 재고 갱신용)
+            // 6 이전 재고 / 7 이전 대비 — 항상 읽기 전용 (XAML 고정)
+            c[8].IsReadOnly = ro;        // 안전재고
+            c[9].IsReadOnly = ro;        // 단위
+            c[10].IsReadOnly = ro;       // 품목코드
+            c[11].Visibility = editVis;  // 등록일자 (관리 모드 전용)
+            c[12].Visibility = editVis;  // 작업     (관리 모드 전용)
+        }
+
+        // 보관위치를 좌(반입구: 메탈·논메탈) / 우(오피스·세정랩) 구역으로 분류
+        private static bool IsLeftZone(string location)
+        {
+            string s = location ?? "";
+            return s.Contains("메탈") || s.Contains("반입구");
         }
 
         private void Load()
@@ -102,7 +116,6 @@ namespace CleanPotal
                     _items.Add(i);
                 }
 
-                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
@@ -127,16 +140,13 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // 필터 / 정렬 / 위치 탭
+        // 필터 / 정렬
         // -----------------------------------------------------------------------
         private void ApplyFilters()
         {
-            if (DgInventory == null || LocationTabPanel == null) return;
+            if (DgLeft == null || DgRight == null) return;
 
             IEnumerable<FieldInventoryItem> source = _items;
-
-            if (_locationFilter != "전체")
-                source = source.Where(i => i.StorageLocation == _locationFilter);
 
             if (DpFrom.SelectedDate.HasValue)
                 source = source.Where(i => i.RegisteredDate.Date >= DpFrom.SelectedDate.Value.Date);
@@ -163,56 +173,23 @@ namespace CleanPotal
 
         private void RenderList()
         {
-            var view = new CollectionViewSource { Source = _filtered };
-            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
-            DgInventory.ItemsSource = view.View;
+            var left = _filtered.Where(i => IsLeftZone(i.StorageLocation)).ToList();
+            var right = _filtered.Where(i => !IsLeftZone(i.StorageLocation)).ToList();
+
+            DgLeft.ItemsSource = GroupedView(left);
+            DgRight.ItemsSource = GroupedView(right);
+
+            TxtLeftCount.Text = $"{left.Count}개";
+            TxtRightCount.Text = $"{right.Count}개";
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
         }
 
-        // 보관위치 탭 구성 ("전체" + 등장한 모든 위치, 탭 스타일로 렌더링)
-        private void RenderLocationTabs()
+        // 보관위치별로 그룹핑한 뷰 생성
+        private static System.ComponentModel.ICollectionView GroupedView(IEnumerable<FieldInventoryItem> items)
         {
-            LocationTabPanel.Children.Clear();
-
-            var locations = new[] { "전체" }
-                .Concat(_items.Select(i => i.StorageLocation).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s))
-                .ToList();
-            if (!locations.Contains(_locationFilter)) _locationFilter = "전체";
-
-            foreach (var loc in locations)
-            {
-                bool active = loc == _locationFilter;
-                var (bg, fg) = GetLocationColors(loc);
-                int count = loc == "전체" ? _items.Count : _items.Count(i => i.StorageLocation == loc);
-
-                var border = new System.Windows.Controls.Border
-                {
-                    CornerRadius = new CornerRadius(8, 8, 0, 0),
-                    Padding = new Thickness(14, 8, 14, 8),
-                    Margin = new Thickness(0, 0, 2, 0),
-                    Cursor = Cursors.Hand,
-                    Background = active ? Brushes.White : (Brush)new BrushConverter().ConvertFromString(bg)!,
-                    BorderThickness = active ? new Thickness(1, 1, 1, 0) : new Thickness(0),
-                    BorderBrush = active ? (Brush)new BrushConverter().ConvertFromString("#E2E8F0")! : Brushes.Transparent,
-                };
-
-                var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-                label.Inlines.Add(new Run(loc)
-                {
-                    FontSize = 13,
-                    FontWeight = active ? FontWeights.Bold : FontWeights.SemiBold,
-                    Foreground = active ? (Brush)new BrushConverter().ConvertFromString("#0F172A")! : (Brush)new BrushConverter().ConvertFromString(fg)!
-                });
-                label.Inlines.Add(new Run($" {count}")
-                {
-                    FontSize = 11,
-                    Foreground = (Brush)new BrushConverter().ConvertFromString(active ? "#64748B" : "#94A3B8")!
-                });
-
-                border.Child = label;
-                border.MouseLeftButtonDown += (_, __) => { _locationFilter = loc; ApplyFilters(); RenderLocationTabs(); };
-                LocationTabPanel.Children.Add(border);
-            }
+            var view = new CollectionViewSource { Source = items };
+            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
+            return view.View;
         }
 
         // 위치명에 따른 (배경색, 글자색) 매핑
@@ -307,7 +284,6 @@ namespace CleanPotal
                 BatchOverlay.Visibility = Visibility.Collapsed;
                 _batchTargets.Clear();
                 TxtLastSaved.Text = $"일괄 저장됨 {DateTime.Now:HH:mm:ss}";
-                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
@@ -323,7 +299,9 @@ namespace CleanPotal
         private void DgInventory_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction != DataGridEditAction.Commit) return;
-            if (e.Column == ColSelect) return;                 // 선택용 체크박스는 저장 대상 아님
+            // 선택용 체크박스(IsSelected)는 저장 대상 아님
+            if ((e.Column as DataGridCheckBoxColumn)?.Binding is System.Windows.Data.Binding b
+                && b.Path?.Path == nameof(FieldInventoryItem.IsSelected)) return;
             if (e.Row.Item is not FieldInventoryItem item) return;
 
             // 바인딩이 모델에 반영된 뒤 저장 (편집 커밋 직후 디스패치)
@@ -391,7 +369,6 @@ namespace CleanPotal
             {
                 FieldInventoryRepository.Delete(item.ItemId);
                 _items.Remove(item);
-                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
@@ -419,7 +396,6 @@ namespace CleanPotal
                     FieldInventoryRepository.Delete(item.ItemId);
                     _items.Remove(item);
                 }
-                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
@@ -526,7 +502,6 @@ namespace CleanPotal
                 EditOverlay.Visibility = Visibility.Collapsed;
                 _editingItem = null;
                 TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
-                RenderLocationTabs();
                 ApplyFilters();
                 RefreshStats();
             }
