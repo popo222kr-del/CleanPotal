@@ -573,7 +573,7 @@
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="주간 재고 추이 (최근 마감 기준)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <TextBlock x:Name="TxtTrendTitle" Text="주간 재고 추이 (구역별 · 행 클릭 시 품목별)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
                                 <lvc:CartesianChart x:Name="ChartStockTrend" Height="280" LegendPosition="Bottom"/>
                                 <TextBlock x:Name="TxtNoTrendData" Text="마감 데이터가 2건 이상 쌓이면 추이 차트가 표시됩니다."
                                            FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,8,0,0"/>
@@ -633,7 +633,8 @@
                                       Style="{StaticResource GridStyle}"
                                       ColumnHeaderStyle="{StaticResource HeaderStyle}"
                                       IsReadOnly="True" MaxHeight="400"
-                                      HorizontalScrollBarVisibility="Auto">
+                                      HorizontalScrollBarVisibility="Auto"
+                                      SelectionChanged="DgAnalysisDetail_SelectionChanged">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="구역" Binding="{Binding StorageLocation}" Width="110">
                                         <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>

@@ -367,21 +367,120 @@ namespace CleanPotal
             return m.Success && double.TryParse(m.Groups[1].Value, out double v) ? v : 0;
         }
 
+        // 점검일자(마감) 기간 필터 — DateSearch에서 설정한 범위 적용 (없으면 전체)
+        private bool SnapshotInRange(string dateStr)
+        {
+            if (!DateTime.TryParse(dateStr, out var d)) return false;
+            if (_filterFrom.HasValue && d.Date < _filterFrom.Value.Date) return false;
+            if (_filterTo.HasValue && d.Date > _filterTo.Value.Date) return false;
+            return true;
+        }
+
+        // 추이 차트 렌더링 — item이 null이면 구역별 합산, 아니면 선택 품목의 재고 추이
+        private void RenderStockTrend(FieldInventoryItem? item)
+        {
+            var snapDates = FieldInventoryRepository.GetSnapshotDates().Where(SnapshotInRange).ToList();
+            var allSnapshots = FieldInventoryRepository.GetAllSnapshots().Where(s => SnapshotInRange(s.Date)).ToList();
+            var snapshotByDate = allSnapshots.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.ToList());
+
+            var xLabels = snapDates.Select(d => DateTime.TryParse(d, out var dt) ? dt.ToString("MM/dd") : d).ToArray();
+
+            if (item != null)
+            {
+                // ---- 선택 품목의 재고 추이 ----
+                TxtTrendTitle.Text = $"📈 {item.ItemName} — 재고 추이";
+
+                if (snapDates.Count >= 1)
+                {
+                    TxtNoTrendData.Visibility = Visibility.Collapsed;
+                    var values = snapDates.Select(date =>
+                    {
+                        var snaps = snapshotByDate.GetValueOrDefault(date) ?? new();
+                        var hit = snaps.FirstOrDefault(s => s.ItemId == item.ItemId);
+                        return ParseStockNumber(hit.Stock);
+                    }).ToList();
+
+                    var color = new SKColor(37, 99, 235);
+                    ChartStockTrend.Series = new ISeries[]
+                    {
+                        new LineSeries<double>
+                        {
+                            Name = item.ItemName,
+                            Values = values,
+                            Stroke = new SolidColorPaint(color, 3),
+                            GeometryStroke = new SolidColorPaint(color, 3),
+                            GeometrySize = 8,
+                            Fill = new SolidColorPaint(new SKColor(37, 99, 235, 30))
+                        }
+                    };
+                    ChartStockTrend.XAxes = new[] { new Axis { Labels = xLabels, TextSize = 11 } };
+                    ChartStockTrend.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
+                }
+                else
+                {
+                    TxtNoTrendData.Visibility = Visibility.Visible;
+                    ChartStockTrend.Series = Array.Empty<ISeries>();
+                }
+                return;
+            }
+
+            // ---- 구역별 합산 추이 (기본) ----
+            TxtTrendTitle.Text = "주간 재고 추이 (구역별 · 행 클릭 시 품목별)";
+
+            if (snapDates.Count >= 2)
+            {
+                TxtNoTrendData.Visibility = Visibility.Collapsed;
+                var itemLocMap = _items.ToDictionary(i => i.ItemId, i => ClassifyZone(i.StorageLocation));
+
+                var zoneSeries = new[] {
+                    (Zone.Metal, "METAL 반입구", new SKColor(29, 78, 216)),
+                    (Zone.Nonmetal, "N-METAL 출고실", new SKColor(190, 24, 93)),
+                    (Zone.Office, "Office 보관", new SKColor(21, 128, 61)),
+                    (Zone.Cleaning, "세정랩", new SKColor(109, 40, 217))
+                };
+
+                var series = new List<ISeries>();
+                foreach (var (zone, label, color) in zoneSeries)
+                {
+                    var values = snapDates.Select(date =>
+                    {
+                        var snaps = snapshotByDate.GetValueOrDefault(date) ?? new();
+                        return snaps.Where(s => itemLocMap.TryGetValue(s.ItemId, out var z) && z == zone)
+                            .Sum(s => ParseStockNumber(s.Stock));
+                    }).ToList();
+                    series.Add(new LineSeries<double>
+                    {
+                        Name = label,
+                        Values = values,
+                        Stroke = new SolidColorPaint(color, 2),
+                        GeometryStroke = new SolidColorPaint(color, 2),
+                        GeometrySize = 6,
+                        Fill = null
+                    });
+                }
+
+                ChartStockTrend.Series = series;
+                ChartStockTrend.XAxes = new[] { new Axis { Labels = xLabels, TextSize = 11 } };
+                ChartStockTrend.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
+            }
+            else
+            {
+                TxtNoTrendData.Visibility = Visibility.Visible;
+                ChartStockTrend.Series = Array.Empty<ISeries>();
+            }
+        }
+
+        // 품목 상세 그리드에서 행을 선택하면 추이 차트를 해당 품목으로 전환
+        private void DgAnalysisDetail_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            RenderStockTrend(DgAnalysisDetail.SelectedItem as FieldInventoryItem);
+        }
+
         private void LoadAnalysisDashboard()
         {
             try
             {
-                // 점검일자(마감) 기간 필터 — DateSearch에서 설정한 범위 적용 (없으면 전체)
-                bool InRange(string dateStr)
-                {
-                    if (!DateTime.TryParse(dateStr, out var d)) return false;
-                    if (_filterFrom.HasValue && d.Date < _filterFrom.Value.Date) return false;
-                    if (_filterTo.HasValue && d.Date > _filterTo.Value.Date) return false;
-                    return true;
-                }
-
-                var snapDates = FieldInventoryRepository.GetSnapshotDates().Where(InRange).ToList();
-                var allSnapshots = FieldInventoryRepository.GetAllSnapshots().Where(s => InRange(s.Date)).ToList();
+                var snapDates = FieldInventoryRepository.GetSnapshotDates().Where(SnapshotInRange).ToList();
                 int lowCount = _items.Count(i => i.IsLow);
                 int totalItems = _items.Count;
                 var zones = _items.Select(i => ClassifyZone(i.StorageLocation)).Distinct().Count();
@@ -398,54 +497,8 @@ namespace CleanPotal
                 AnalTotalItems.Text = $"{totalItems}개";
                 AnalZoneCount.Text = $"{zones}개";
 
-                // ----- 1. 주간 재고 추이 (구역별 총 재고 합산) -----
-                if (snapDates.Count >= 2)
-                {
-                    TxtNoTrendData.Visibility = Visibility.Collapsed;
-                    var snapshotByDate = allSnapshots.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.ToList());
-                    var itemLocMap = _items.ToDictionary(i => i.ItemId, i => ClassifyZone(i.StorageLocation));
-
-                    var zoneSeries = new[] {
-                        (Zone.Metal, "METAL 반입구", new SKColor(29, 78, 216)),
-                        (Zone.Nonmetal, "N-METAL 출고실", new SKColor(190, 24, 93)),
-                        (Zone.Office, "Office 보관", new SKColor(21, 128, 61)),
-                        (Zone.Cleaning, "세정랩", new SKColor(109, 40, 217))
-                    };
-
-                    var series = new List<ISeries>();
-                    foreach (var (zone, label, color) in zoneSeries)
-                    {
-                        var values = new List<double>();
-                        foreach (var date in snapDates)
-                        {
-                            var items = snapshotByDate.GetValueOrDefault(date) ?? new();
-                            double total = items.Where(s => itemLocMap.TryGetValue(s.ItemId, out var z) && z == zone)
-                                .Sum(s => ParseStockNumber(s.Stock));
-                            values.Add(total);
-                        }
-                        series.Add(new LineSeries<double>
-                        {
-                            Name = label,
-                            Values = values,
-                            Stroke = new SolidColorPaint(color, 2),
-                            GeometryStroke = new SolidColorPaint(color, 2),
-                            GeometrySize = 6,
-                            Fill = null
-                        });
-                    }
-
-                    ChartStockTrend.Series = series;
-                    ChartStockTrend.XAxes = new[] { new Axis {
-                        Labels = snapDates.Select(d => DateTime.TryParse(d, out var dt) ? dt.ToString("MM/dd") : d).ToArray(),
-                        TextSize = 11
-                    }};
-                    ChartStockTrend.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
-                }
-                else
-                {
-                    TxtNoTrendData.Visibility = Visibility.Visible;
-                    ChartStockTrend.Series = Array.Empty<ISeries>();
-                }
+                // ----- 1. 주간 재고 추이 (구역별 총 재고 합산, 또는 선택 품목) -----
+                RenderStockTrend(DgAnalysisDetail?.SelectedItem as FieldInventoryItem);
 
                 // ----- 2. 구역별 품목 분포 (파이 차트) -----
                 var zoneGroups = _items.GroupBy(i => ClassifyZone(i.StorageLocation));
