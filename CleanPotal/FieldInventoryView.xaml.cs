@@ -25,11 +25,134 @@ namespace CleanPotal
         private FieldInventoryItem? _editingItem;
         private bool _editMode = false;   // false=재고 현황(조회), true=재고 리스트 관리(편집)
 
+        private DataGrid[] AllGrids => new[] { DgMetal, DgNonmetal, DgOffice, DgCleaning };
+
         public FieldInventoryView()
         {
             InitializeComponent();
+            foreach (var g in AllGrids)
+                BuildColumns(g);
             ApplyEditMode();
             Loaded += (s, e) => Load();
+        }
+
+        private void BuildColumns(DataGrid g)
+        {
+            g.Columns.Clear();
+
+            g.Columns.Add(new DataGridCheckBoxColumn
+            {
+                Binding = new System.Windows.Data.Binding("IsSelected") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged },
+                Width = new DataGridLength(36)
+            });
+
+            AddTextColumn(g, "발주일", "OrderDate", 90, "CenterCell");
+            AddTextColumn(g, "입고 예정일", "ExpectedReceipt", 95, "CenterCell");
+
+            var catTemplate = new DataGridTemplateColumn
+            {
+                Header = "카테고리",
+                Width = new DataGridLength(90),
+                SortMemberPath = "Category"
+            };
+            catTemplate.CellTemplate = CreateCategoryDisplayTemplate();
+            catTemplate.CellEditingTemplate = CreateCategoryEditTemplate();
+            g.Columns.Add(catTemplate);
+
+            AddTextColumn(g, "품목명", "ItemName", 0, "LeftCell", minWidth: 120, star: true);
+            AddTextColumn(g, "현재 재고", "CurrentStock", 80, "CurrentStockCell", updateSourceTrigger: true);
+            AddTextColumn(g, "이전 재고", "PreviousStock", 70, "CenterCell", readOnly: true);
+            AddTextColumn(g, "이전 대비", "WeeklyDeltaText", 70, "WeeklyDeltaCell", readOnly: true);
+            AddTextColumn(g, "안전재고", "AppropriateStock", 75, "CenterCell");
+            AddTextColumn(g, "단위", "Unit", 50, "CenterCell");
+            AddTextColumn(g, "품목코드", "ItemCode", 90, "ItemCodeCell");
+
+            var regCol = new DataGridTextColumn
+            {
+                Header = "등록일자",
+                Binding = new System.Windows.Data.Binding("RegisteredDate") { StringFormat = "yyyy-MM-dd" },
+                Width = new DataGridLength(95),
+                IsReadOnly = true,
+                CanUserSort = true,
+                SortMemberPath = "RegisteredDate"
+            };
+            regCol.ElementStyle = (Style)FindResource("CenterCell");
+            g.Columns.Add(regCol);
+
+            var actionCol = new DataGridTemplateColumn
+            {
+                Header = "작업",
+                Width = new DataGridLength(80),
+                IsReadOnly = true,
+                CellTemplate = CreateActionTemplate()
+            };
+            g.Columns.Add(actionCol);
+        }
+
+        private void AddTextColumn(DataGrid g, string header, string bindingPath, double width, string styleKey,
+            bool readOnly = false, double minWidth = 0, bool star = false, bool updateSourceTrigger = false)
+        {
+            var binding = new System.Windows.Data.Binding(bindingPath);
+            if (updateSourceTrigger)
+                binding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
+
+            var col = new DataGridTextColumn
+            {
+                Header = header,
+                Binding = binding,
+                Width = star ? new DataGridLength(1, DataGridLengthUnitType.Star) : new DataGridLength(width),
+                IsReadOnly = readOnly
+            };
+            if (minWidth > 0) col.MinWidth = minWidth;
+            col.ElementStyle = (Style)FindResource(styleKey);
+            g.Columns.Add(col);
+        }
+
+        private DataTemplate CreateCategoryDisplayTemplate()
+        {
+            var factory = new FrameworkElementFactory(typeof(Border));
+            factory.SetValue(FrameworkElement.StyleProperty, FindResource("CategoryBadge"));
+            factory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            var txt = new FrameworkElementFactory(typeof(TextBlock));
+            txt.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("Category"));
+            txt.SetValue(TextBlock.FontSizeProperty, 12.0);
+            txt.SetValue(TextBlock.ForegroundProperty, (Brush)new BrushConverter().ConvertFromString("#475569")!);
+            factory.AppendChild(txt);
+            return new DataTemplate { VisualTree = factory };
+        }
+
+        private DataTemplate CreateCategoryEditTemplate()
+        {
+            var factory = new FrameworkElementFactory(typeof(TextBox));
+            factory.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("Category") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            factory.SetValue(TextBox.FontSizeProperty, 12.0);
+            factory.SetValue(Control.VerticalContentAlignmentProperty, VerticalAlignment.Center);
+            factory.SetValue(Control.BorderThicknessProperty, new Thickness(1));
+            factory.SetValue(Control.BorderBrushProperty, (Brush)new BrushConverter().ConvertFromString("#2563EB")!);
+            return new DataTemplate { VisualTree = factory };
+        }
+
+        private DataTemplate CreateActionTemplate()
+        {
+            var sp = new FrameworkElementFactory(typeof(StackPanel));
+            sp.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+            sp.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+
+            var btnEdit = new FrameworkElementFactory(typeof(Button));
+            btnEdit.SetValue(ContentControl.ContentProperty, "수정");
+            btnEdit.SetValue(FrameworkElement.StyleProperty, FindResource("LinkBtn"));
+            btnEdit.SetValue(Control.ForegroundProperty, (Brush)new BrushConverter().ConvertFromString("#2563EB")!);
+            btnEdit.AddHandler(Button.ClickEvent, new RoutedEventHandler(BtnEditItem_Click));
+            sp.AppendChild(btnEdit);
+
+            var btnDel = new FrameworkElementFactory(typeof(Button));
+            btnDel.SetValue(ContentControl.ContentProperty, "삭제");
+            btnDel.SetValue(FrameworkElement.StyleProperty, FindResource("LinkBtn"));
+            btnDel.SetValue(Control.ForegroundProperty, (Brush)new BrushConverter().ConvertFromString("#DC2626")!);
+            btnDel.AddHandler(Button.ClickEvent, new RoutedEventHandler(BtnDeleteItem_Click));
+            sp.AppendChild(btnDel);
+
+            return new DataTemplate { VisualTree = sp };
         }
 
         // -----------------------------------------------------------------------
@@ -59,9 +182,8 @@ namespace CleanPotal
 
             var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
 
-            // 두 구역 그리드의 컬럼 편집 가능/표시 여부 설정
-            ConfigureColumns(DgLeft);
-            ConfigureColumns(DgRight);
+            foreach (var g in AllGrids)
+                ConfigureColumns(g);
 
             // 편집 기능 버튼: 관리 모드에서만 노출
             BtnWeeklyClose.Visibility = editVis;
@@ -96,11 +218,15 @@ namespace CleanPotal
             c[12].Visibility = editVis;  // 작업     (관리 모드 전용)
         }
 
-        // 보관위치를 좌(반입구: 메탈·논메탈) / 우(오피스·세정랩) 구역으로 분류
-        private static bool IsLeftZone(string location)
+        private enum Zone { Metal, Nonmetal, Office, Cleaning }
+
+        private static Zone ClassifyZone(string location)
         {
             string s = location ?? "";
-            return s.Contains("메탈") || s.Contains("반입구");
+            if (s.Contains("논메탈")) return Zone.Nonmetal;
+            if (s.Contains("메탈") || s.Contains("반입구")) return Zone.Metal;
+            if (s.Contains("OFFICE", StringComparison.OrdinalIgnoreCase)) return Zone.Office;
+            return Zone.Cleaning;
         }
 
         private void Load()
@@ -144,7 +270,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void ApplyFilters()
         {
-            if (DgLeft == null || DgRight == null) return;
+            if (DgMetal == null) return;
 
             IEnumerable<FieldInventoryItem> source = _items;
 
@@ -173,14 +299,23 @@ namespace CleanPotal
 
         private void RenderList()
         {
-            var left = _filtered.Where(i => IsLeftZone(i.StorageLocation)).ToList();
-            var right = _filtered.Where(i => !IsLeftZone(i.StorageLocation)).ToList();
+            var grouped = _filtered.GroupBy(i => ClassifyZone(i.StorageLocation))
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            DgLeft.ItemsSource = GroupedView(left);
-            DgRight.ItemsSource = GroupedView(right);
+            var metal = grouped.GetValueOrDefault(Zone.Metal) ?? new List<FieldInventoryItem>();
+            var nonmetal = grouped.GetValueOrDefault(Zone.Nonmetal) ?? new List<FieldInventoryItem>();
+            var office = grouped.GetValueOrDefault(Zone.Office) ?? new List<FieldInventoryItem>();
+            var cleaning = grouped.GetValueOrDefault(Zone.Cleaning) ?? new List<FieldInventoryItem>();
 
-            TxtLeftCount.Text = $"{left.Count}개";
-            TxtRightCount.Text = $"{right.Count}개";
+            DgMetal.ItemsSource = GroupedView(metal);
+            DgNonmetal.ItemsSource = GroupedView(nonmetal);
+            DgOffice.ItemsSource = GroupedView(office);
+            DgCleaning.ItemsSource = GroupedView(cleaning);
+
+            TxtMetalCount.Text = $"{metal.Count}개";
+            TxtNonmetalCount.Text = $"{nonmetal.Count}개";
+            TxtOfficeCount.Text = $"{office.Count}개";
+            TxtCleaningCount.Text = $"{cleaning.Count}개";
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
         }
 
