@@ -269,8 +269,7 @@ namespace CleanPotal
 
             // 편집 기능 버튼: 관리 모드에서만 노출
             BtnDeleteRow.Visibility = editVis;
-            BtnAddLocation.Visibility = editVis;
-            BtnEditLocation.Visibility = editVis;
+            BtnManageLocation.Visibility = editVis;
             BtnAddRow.Visibility = editVis;
             BtnBatchEdit.Visibility = editVis;
         }
@@ -899,87 +898,146 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnAddRow_Click(object sender, RoutedEventArgs e) => OpenModal(null);
 
-        private void BtnAddLocation_Click(object sender, RoutedEventArgs e)
+        private void BtnManageLocation_Click(object sender, RoutedEventArgs e)
         {
-            string? name = ShowSimpleInputDialog("보관위치 추가", "새 보관위치 이름을 입력하세요.");
-            if (string.IsNullOrWhiteSpace(name)) return;
-            OpenModal(null, presetLocation: name.Trim());
+            ShowLocationManagerDialog();
         }
 
-        private void BtnEditLocation_Click(object sender, RoutedEventArgs e)
+        // 현재 위치 목록 + 이름 변경 + 새 위치 추가를 한 곳에서 관리
+        private void ShowLocationManagerDialog()
         {
-            var locations = _items.Select(i => i.StorageLocation)
-                                  .Where(s => !string.IsNullOrWhiteSpace(s))
-                                  .Distinct().OrderBy(s => s).ToList();
-            if (locations.Count == 0)
-            {
-                MessageBox.Show("등록된 위치가 없습니다.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var (oldName, newName) = ShowLocationRenameDialog(locations);
-            if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) return;
-            oldName = oldName.Trim();
-            newName = newName.Trim();
-            if (oldName == newName) return;
-
-            var targets = _items.Where(i => i.StorageLocation == oldName).ToList();
-            if (targets.Count == 0) return;
-
-            if (MessageBox.Show($"'{oldName}' 위치의 {targets.Count}개 품목을 '{newName}'(으)로 변경하시겠습니까?",
-                    "위치명 수정", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-
-            try
-            {
-                foreach (var item in targets)
-                {
-                    item.StorageLocation = newName;
-                    FieldInventoryRepository.Update(item);
-                }
-                ApplyFilters();
-                RefreshStats();
-                MessageBox.Show($"위치명이 '{newName}'(으)로 변경되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"위치명 수정 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private (string? oldName, string? newName) ShowLocationRenameDialog(System.Collections.Generic.List<string> locations)
-        {
+            var brush = new BrushConverter();
             var dlg = new Window
             {
-                Title = "위치명 수정",
-                Width = 380,
-                Height = 210,
+                Title = "위치 관리",
+                Width = 420,
+                Height = 460,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
-                Owner = Window.GetWindow(this)
+                Owner = Window.GetWindow(this),
+                Background = (Brush)brush.ConvertFromString("#F8FAFC")!
             };
-            var sp = new StackPanel { Margin = new Thickness(16) };
-            sp.Children.Add(new TextBlock { Text = "수정할 위치를 선택하세요.", FontSize = 13, Margin = new Thickness(0, 0, 0, 6) });
-            var cmb = new ComboBox { ItemsSource = locations, SelectedIndex = 0, FontSize = 14, Padding = new Thickness(8, 6, 8, 6) };
-            sp.Children.Add(cmb);
-            sp.Children.Add(new TextBlock { Text = "새 위치 이름", FontSize = 13, Margin = new Thickness(0, 12, 0, 6) });
-            var tb = new TextBox { Text = locations[0], FontSize = 14, Padding = new Thickness(8, 6, 8, 6) };
-            sp.Children.Add(tb);
-            cmb.SelectionChanged += (_, __) => { if (cmb.SelectedItem is string s) tb.Text = s; };
 
-            var bp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
-            string? oldName = null, newName = null;
-            var btnOk = new Button { Content = "확인", Width = 70, Height = 28, Margin = new Thickness(0, 0, 6, 0), IsDefault = true };
-            btnOk.Click += (_, __) => { oldName = cmb.SelectedItem as string; newName = tb.Text; dlg.Close(); };
-            var btnCancel = new Button { Content = "취소", Width = 70, Height = 28, IsCancel = true };
-            btnCancel.Click += (_, __) => dlg.Close();
-            bp.Children.Add(btnOk);
-            bp.Children.Add(btnCancel);
-            sp.Children.Add(bp);
-            dlg.Content = sp;
-            tb.Focus();
-            tb.SelectAll();
+            var root = new DockPanel { Margin = new Thickness(16) };
+
+            // 상단 안내
+            var header = new TextBlock
+            {
+                Text = "현재 등록된 위치",
+                FontSize = 13, FontWeight = FontWeights.Bold,
+                Foreground = (Brush)brush.ConvertFromString("#0F172A")!,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            DockPanel.SetDock(header, Dock.Top);
+            root.Children.Add(header);
+
+            // 하단 액션 영역
+            var bottom = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+            DockPanel.SetDock(bottom, Dock.Bottom);
+
+            var renameLabel = new TextBlock { Text = "선택한 위치의 새 이름", FontSize = 12, Foreground = (Brush)brush.ConvertFromString("#64748B")!, Margin = new Thickness(0, 0, 0, 4) };
+            var renameRow = new StackPanel { Orientation = Orientation.Horizontal };
+            var tbRename = new TextBox { Width = 250, FontSize = 14, Padding = new Thickness(8, 6, 8, 6), VerticalContentAlignment = VerticalAlignment.Center };
+            var btnRename = new Button { Content = "이름 변경", Width = 90, Height = 32, Margin = new Thickness(8, 0, 0, 0), Cursor = Cursors.Hand };
+            renameRow.Children.Add(tbRename);
+            renameRow.Children.Add(btnRename);
+
+            var divider = new Border { Height = 1, Background = (Brush)brush.ConvertFromString("#E2E8F0")!, Margin = new Thickness(0, 14, 0, 14) };
+
+            var btnAddNew = new Button { Content = "+ 새 위치 추가 (품목 등록)", Height = 34, Cursor = Cursors.Hand, FontWeight = FontWeights.SemiBold };
+            var btnClose = new Button { Content = "닫기", Height = 30, Margin = new Thickness(0, 8, 0, 0), Cursor = Cursors.Hand };
+
+            bottom.Children.Add(renameLabel);
+            bottom.Children.Add(renameRow);
+            bottom.Children.Add(divider);
+            bottom.Children.Add(btnAddNew);
+            bottom.Children.Add(btnClose);
+            root.Children.Add(bottom);
+
+            // 위치 목록 (가운데)
+            var listCard = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = (Brush)brush.ConvertFromString("#E2E8F0")!,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(4)
+            };
+            var list = new ListBox { BorderThickness = new Thickness(0), Background = Brushes.Transparent, FontSize = 13 };
+            listCard.Child = list;
+            root.Children.Add(listCard);
+
+            void RefreshList()
+            {
+                var locs = _items.GroupBy(i => i.StorageLocation)
+                                 .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                                 .OrderBy(g => g.Key)
+                                 .Select(g => new { Name = g.Key, Count = g.Count() })
+                                 .ToList();
+                list.Items.Clear();
+                foreach (var l in locs)
+                    list.Items.Add($"{l.Name}   ({l.Count}개)");
+            }
+            RefreshList();
+
+            string? SelectedLocationName()
+            {
+                if (list.SelectedItem is not string s) return null;
+                int idx = s.LastIndexOf("   (");
+                return idx > 0 ? s.Substring(0, idx) : s;
+            }
+
+            list.SelectionChanged += (_, __) =>
+            {
+                var name = SelectedLocationName();
+                if (name != null) tbRename.Text = name;
+            };
+
+            btnRename.Click += (_, __) =>
+            {
+                var oldName = SelectedLocationName();
+                if (string.IsNullOrWhiteSpace(oldName))
+                {
+                    MessageBox.Show("이름을 변경할 위치를 선택하세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                string newName = tbRename.Text.Trim();
+                if (string.IsNullOrWhiteSpace(newName) || newName == oldName) return;
+
+                var targets = _items.Where(i => i.StorageLocation == oldName).ToList();
+                if (MessageBox.Show($"'{oldName}' 위치의 {targets.Count}개 품목을 '{newName}'(으)로 변경하시겠습니까?",
+                        "위치명 수정", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+                try
+                {
+                    foreach (var item in targets)
+                    {
+                        item.StorageLocation = newName;
+                        FieldInventoryRepository.Update(item);
+                    }
+                    ApplyFilters();
+                    RefreshStats();
+                    RefreshList();
+                    MessageBox.Show($"위치명이 '{newName}'(으)로 변경되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"위치명 수정 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            btnAddNew.Click += (_, __) =>
+            {
+                string? name = ShowSimpleInputDialog("새 위치 추가", "새 보관위치 이름을 입력하세요.");
+                if (string.IsNullOrWhiteSpace(name)) return;
+                dlg.Close();
+                OpenModal(null, presetLocation: name.Trim());
+            };
+
+            btnClose.Click += (_, __) => dlg.Close();
+
+            dlg.Content = root;
             dlg.ShowDialog();
-            return (oldName, newName);
         }
 
         private void BtnEditItem_Click(object sender, RoutedEventArgs e)
