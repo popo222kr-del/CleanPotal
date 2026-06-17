@@ -294,7 +294,7 @@
                     <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="점검일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}"/>
+                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DpFrom_SelectedDateChanged"/>
                             <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
                             <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}"/>
                         </StackPanel>

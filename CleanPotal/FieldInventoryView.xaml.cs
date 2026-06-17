@@ -25,6 +25,10 @@ namespace CleanPotal
         private FieldInventoryItem? _editingItem;
         private bool _editMode = false;   // false=재고 현황(조회), true=재고 리스트 관리(편집)
 
+        // 점검일자 필터는 '조회' 버튼을 눌렀을 때만 확정 적용 (선택 즉시 반영 안 함)
+        private DateTime? _filterFrom;
+        private DateTime? _filterTo;
+
         private DataGrid[] AllGrids => new[] { DgMetal, DgNonmetal, DgOffice, DgCleaning };
 
         public FieldInventoryView()
@@ -155,30 +159,51 @@ namespace CleanPotal
             return new DataTemplate { VisualTree = sp };
         }
 
+        private readonly StringDateConverter _dateConv = new();
+
+        // 셀 안에 DatePicker를 상시 배치 — 달력에서 선택하면 SelectedDate(양방향)가
+        // 즉시 모델 문자열에 반영되고 SelectedDateChanged에서 저장. DataGrid 편집 사이클을
+        // 거치지 않으므로 팝업 달력 선택이 누락되는 문제가 없음.
         private DataGridTemplateColumn CreateDatePickerColumn(string header, string bindingPath, double width)
         {
-            // Display: 텍스트로 날짜 표시 (yyyy-MM-dd)
-            var displayFactory = new FrameworkElementFactory(typeof(TextBlock));
-            displayFactory.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(bindingPath));
-            displayFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            displayFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-            // Edit: DatePicker
-            var editFactory = new FrameworkElementFactory(typeof(DatePicker));
-            editFactory.SetBinding(DatePicker.TextProperty, new System.Windows.Data.Binding(bindingPath)
+            var dpFactory = new FrameworkElementFactory(typeof(DatePicker));
+            dpFactory.SetBinding(DatePicker.SelectedDateProperty, new System.Windows.Data.Binding(bindingPath)
             {
-                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+                Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
+                Converter = _dateConv
             });
-            editFactory.SetValue(DatePicker.FontSizeProperty, 12.0);
-            editFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            dpFactory.SetValue(DatePicker.FontSizeProperty, 12.0);
+            dpFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            dpFactory.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 0, 2, 0));
+            dpFactory.AddHandler(DatePicker.SelectedDateChangedEvent,
+                new EventHandler<SelectionChangedEventArgs>(DateCell_SelectedDateChanged));
 
             return new DataGridTemplateColumn
             {
                 Header = header,
                 Width = new DataGridLength(width),
-                CellTemplate = new DataTemplate { VisualTree = displayFactory },
-                CellEditingTemplate = new DataTemplate { VisualTree = editFactory }
+                IsReadOnly = true,   // DataGrid 자체 편집 비활성화 — 셀 내 DatePicker가 직접 편집
+                CellTemplate = new DataTemplate { VisualTree = dpFactory }
             };
+        }
+
+        // 셀 내 DatePicker에서 날짜를 선택하면 모델에 반영된 뒤 즉시 DB 저장
+        private void DateCell_SelectedDateChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not DatePicker dp || dp.DataContext is not FieldInventoryItem item) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    FieldInventoryRepository.Update(item);
+                    TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"저장 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         // -----------------------------------------------------------------------
@@ -234,10 +259,10 @@ namespace CleanPotal
             var c = g.Columns;
 
             c[0].Visibility = editVis;   // 선택 (관리 모드 전용)
-            c[1].Visibility = viewVis;   // 발주일      — 조회 모드 전용
-            c[1].IsReadOnly = false;
-            c[2].Visibility = viewVis;   // 입고 예정일 — 조회 모드 전용
-            c[2].IsReadOnly = false;
+            c[1].Visibility = viewVis;   // 발주일      — 조회 모드 전용 (셀 내 DatePicker로 편집)
+            c[1].IsReadOnly = true;
+            c[2].Visibility = viewVis;   // 입고 예정일 — 조회 모드 전용 (셀 내 DatePicker로 편집)
+            c[2].IsReadOnly = true;
             c[3].Visibility = editVis;   // 카테고리    — 관리 모드 전용
             c[3].IsReadOnly = ro;
             c[4].IsReadOnly = ro;        // 품목명
@@ -313,10 +338,10 @@ namespace CleanPotal
 
             IEnumerable<FieldInventoryItem> source = _items;
 
-            if (DpFrom.SelectedDate.HasValue)
-                source = source.Where(i => i.RegisteredDate.Date >= DpFrom.SelectedDate.Value.Date);
-            if (DpTo.SelectedDate.HasValue)
-                source = source.Where(i => i.RegisteredDate.Date <= DpTo.SelectedDate.Value.Date);
+            if (_filterFrom.HasValue)
+                source = source.Where(i => i.RegisteredDate.Date >= _filterFrom.Value.Date);
+            if (_filterTo.HasValue)
+                source = source.Where(i => i.RegisteredDate.Date <= _filterTo.Value.Date);
 
             string keyword = TxtSearch.Text.Trim();
             if (!string.IsNullOrEmpty(keyword))
@@ -414,7 +439,24 @@ namespace CleanPotal
             ApplyFilters();
         }
 
-        private void BtnDateSearch_Click(object sender, RoutedEventArgs e) => ApplyFilters();
+        private void BtnDateSearch_Click(object sender, RoutedEventArgs e)
+        {
+            // 선택한 점검일자 범위를 확정한 뒤 조회
+            _filterFrom = DpFrom.SelectedDate;
+            _filterTo = DpTo.SelectedDate;
+            ApplyFilters();
+        }
+
+        // 점검일자 앞(시작) 날짜를 고르면 뒤(종료) 날짜를 우선 동일하게 채움
+        // (비어 있거나 시작보다 이전일 때만 — 사용자가 범위를 넓히는 건 그대로 허용)
+        private void DpFrom_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DpFrom.SelectedDate is DateTime from
+                && (DpTo.SelectedDate == null || DpTo.SelectedDate < from))
+            {
+                DpTo.SelectedDate = from;
+            }
+        }
 
         private void DgInventory_Sorting(object sender, DataGridSortingEventArgs e)
         {
@@ -841,5 +883,19 @@ namespace CleanPotal
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException();
+    }
+
+    /// <summary>날짜 문자열 ↔ DateTime? 변환 (셀 내 DatePicker.SelectedDate 바인딩용).</summary>
+    public class StringDateConverter : IValueConverter
+    {
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string s = value as string ?? "";
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            return DateTime.TryParse(s, out var d) ? d : (DateTime?)null;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is DateTime d ? d.ToString("yyyy-MM-dd") : "";
     }
 }
