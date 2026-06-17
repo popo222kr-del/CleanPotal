@@ -307,24 +307,16 @@ namespace CleanPotal
             var office = grouped.GetValueOrDefault(Zone.Office) ?? new List<FieldInventoryItem>();
             var cleaning = grouped.GetValueOrDefault(Zone.Cleaning) ?? new List<FieldInventoryItem>();
 
-            DgMetal.ItemsSource = GroupedView(metal);
-            DgNonmetal.ItemsSource = GroupedView(nonmetal);
-            DgOffice.ItemsSource = GroupedView(office);
-            DgCleaning.ItemsSource = GroupedView(cleaning);
+            DgMetal.ItemsSource = metal;
+            DgNonmetal.ItemsSource = nonmetal;
+            DgOffice.ItemsSource = office;
+            DgCleaning.ItemsSource = cleaning;
 
             TxtMetalCount.Text = $"{metal.Count}개";
             TxtNonmetalCount.Text = $"{nonmetal.Count}개";
             TxtOfficeCount.Text = $"{office.Count}개";
             TxtCleaningCount.Text = $"{cleaning.Count}개";
             TxtTotalCount.Text = $"총 {_filtered.Count}개";
-        }
-
-        // 보관위치별로 그룹핑한 뷰 생성
-        private static System.ComponentModel.ICollectionView GroupedView(IEnumerable<FieldInventoryItem> items)
-        {
-            var view = new CollectionViewSource { Source = items };
-            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FieldInventoryItem.StorageLocation)));
-            return view.View;
         }
 
         // 위치명에 따른 (배경색, 글자색) 매핑
@@ -335,6 +327,37 @@ namespace CleanPotal
             if (location.Contains("세정")) return ("#EDE9FE", "#6D28D9");
             if (location.Contains("OFFICE", StringComparison.OrdinalIgnoreCase)) return ("#DCFCE7", "#15803D");
             return ("#F1F5F9", "#475569");
+        }
+
+        // 구역 그리드 내부 스크롤이 끝(또는 스크롤 불필요)이면 휠 입력을 바깥 ZoneScroll로 전달
+        // → 그리드 위에서 휠을 굴려도 오피스·세정랩 구역으로 스크롤 가능
+        private void DgZone_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is not DependencyObject dep) return;
+            var inner = FindDescendantScrollViewer(dep);
+
+            bool forward = inner == null || inner.ScrollableHeight == 0
+                || (e.Delta > 0 && inner.VerticalOffset <= 0)
+                || (e.Delta < 0 && inner.VerticalOffset >= inner.ScrollableHeight);
+
+            if (forward && ZoneScroll != null)
+            {
+                ZoneScroll.ScrollToVerticalOffset(ZoneScroll.VerticalOffset - e.Delta);
+                e.Handled = true;
+            }
+        }
+
+        private static ScrollViewer? FindDescendantScrollViewer(DependencyObject root)
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is ScrollViewer sv) return sv;
+                var found = FindDescendantScrollViewer(child);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
