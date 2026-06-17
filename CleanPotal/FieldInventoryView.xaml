@@ -356,8 +356,8 @@
                                         <VisualBrush>
                                             <VisualBrush.Visual>
                                                 <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
-                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
-                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
                                             </VisualBrush.Visual>
                                         </VisualBrush>
                                     </Border.OpacityMask>
@@ -391,8 +391,8 @@
                                         <VisualBrush>
                                             <VisualBrush.Visual>
                                                 <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
-                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
-                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
                                             </VisualBrush.Visual>
                                         </VisualBrush>
                                     </Border.OpacityMask>
@@ -435,8 +435,8 @@
                                         <VisualBrush>
                                             <VisualBrush.Visual>
                                                 <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
-                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
-                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
                                             </VisualBrush.Visual>
                                         </VisualBrush>
                                     </Border.OpacityMask>
@@ -470,8 +470,8 @@
                                         <VisualBrush>
                                             <VisualBrush.Visual>
                                                 <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
-                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"
-                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=2}}"/>
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
                                             </VisualBrush.Visual>
                                         </VisualBrush>
                                     </Border.OpacityMask>
