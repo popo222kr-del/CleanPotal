@@ -201,21 +201,25 @@ namespace CleanPotal
             g.IsReadOnly = false;
 
             var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
+            var viewVis = _editMode ? Visibility.Collapsed : Visibility.Visible;  // 조회 모드 전용
             bool ro = !_editMode;
             var c = g.Columns;
 
             c[0].Visibility = editVis;   // 선택 (관리 모드 전용)
-            c[1].IsReadOnly = false;     // 발주일      — 항상 수정 가능
-            c[2].IsReadOnly = false;     // 입고 예정일 — 항상 수정 가능
+            c[1].Visibility = viewVis;   // 발주일      — 조회 모드 전용
+            c[1].IsReadOnly = false;
+            c[2].Visibility = viewVis;   // 입고 예정일 — 조회 모드 전용
+            c[2].IsReadOnly = false;
             c[3].Visibility = editVis;   // 카테고리    — 관리 모드 전용
             c[3].IsReadOnly = ro;
             c[4].IsReadOnly = ro;        // 품목명
             c[4].Width = _editMode ? new DataGridLength(1, DataGridLengthUnitType.Star) : new DataGridLength(1, DataGridLengthUnitType.Star);
             c[4].MinWidth = _editMode ? 120 : 180;
             c[5].IsReadOnly = false;     // 현재 재고   — 항상 수정 가능
-            // 6 이전 재고 / 7 이전 대비 — 항상 읽기 전용
-            c[6].Width = new DataGridLength(80);   // 이전 재고 — 제목 짤림 방지
-            c[7].Width = new DataGridLength(80);   // 이전 대비 — 제목 짤림 방지
+            c[6].Visibility = viewVis;   // 이전 재고   — 조회 모드 전용
+            c[6].Width = new DataGridLength(80);
+            c[7].Visibility = viewVis;   // 이전 대비   — 조회 모드 전용
+            c[7].Width = new DataGridLength(80);
             c[8].IsReadOnly = ro;        // 안전재고
             c[9].Visibility = editVis;   // 단위        — 관리 모드 전용
             c[9].IsReadOnly = ro;
