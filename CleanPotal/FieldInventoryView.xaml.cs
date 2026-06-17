@@ -1118,16 +1118,18 @@ namespace CleanPotal
                 // ── A4 가로 출력 설정 ──
                 ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
                 ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-                ws.PageSetup.Margins.Top = 0.5;
-                ws.PageSetup.Margins.Bottom = 0.5;
-                ws.PageSetup.Margins.Left = 0.4;
-                ws.PageSetup.Margins.Right = 0.4;
+                ws.PageSetup.Margins.Top = 0.2;
+                ws.PageSetup.Margins.Bottom = 0.2;
+                ws.PageSetup.Margins.Left = 0.3;
+                ws.PageSetup.Margins.Right = 0.3;
+                ws.PageSetup.Margins.Header = 0;
+                ws.PageSetup.Margins.Footer = 0;
                 ws.PageSetup.CenterHorizontally = true;
-                ws.PageSetup.FitToPages(1, 0);              // 가로 1페이지에 맞춤
+                ws.PageSetup.FitToPages(1, 1);              // 한 장(가로 1 × 세로 1)에 맞춤
                 ws.PageSetup.SetRowsToRepeatAtTop(1, 2);    // 제목/머리글 행 반복 인쇄
 
                 // 인쇄에 꼭 필요한 핵심 컬럼만 (A4 가로 기준)
-                var headers = new[] { "NO", "품목명", "위치", "현재재고", "적정재고", "단위", "발주여부", "발주날짜", "입고예정", "발주회사", "비고" };
+                var headers = new[] { "NO", "품목명", "위치", "현재재고", "적정재고", "체크", "발주여부", "발주날짜", "입고예정", "발주회사", "비고" };
                 int cols = headers.Length;
 
                 // ── 제목 행 ──
@@ -1205,6 +1207,9 @@ namespace CleanPotal
                             rng.Style.Font.FontColor = XLColor.FromHtml("#B91C1C");
                             rng.Style.Font.Bold = true;
                         }
+
+                        // 체크 컬럼(6)은 노란색으로 강조
+                        ws.Cell(row, 6).Style.Fill.BackgroundColor = XLColor.FromHtml("#FDE047");
                         row++;
                     }
                 }
