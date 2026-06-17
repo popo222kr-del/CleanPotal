@@ -174,7 +174,7 @@
             <Setter Property="FontWeight" Value="Bold"/>
         </Style>
 
-        <!-- 전주 대비 증감: 감소(소비) 빨강, 증가(입고) 초록, 변동 없음/미산정 회색 -->
+        <!-- 이전 대비 증감: 감소(소비) 빨강, 증가(입고) 초록, 변동 없음/미산정 회색 -->
         <Style x:Key="WeeklyDeltaCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#94A3B8"/>
@@ -218,11 +218,26 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- 화면 모드 탭: 재고 현황(조회) / 재고 리스트 관리(편집) -->
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="6" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Border x:Name="ModeTabView" CornerRadius="8" Padding="18,8" Margin="0,0,6,0" Cursor="Hand"
+                        Background="#2563EB" MouseLeftButtonDown="ModeTab_Click" Tag="view">
+                    <TextBlock x:Name="TxtModeView" Text="재고 현황" FontSize="13" FontWeight="Bold" Foreground="White"/>
+                </Border>
+                <Border x:Name="ModeTabManage" CornerRadius="8" Padding="18,8" Cursor="Hand"
+                        Background="Transparent" MouseLeftButtonDown="ModeTab_Click" Tag="manage">
+                    <TextBlock x:Name="TxtModeManage" Text="재고 리스트 관리" FontSize="13" FontWeight="SemiBold" Foreground="#64748B"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
         <!-- 상단: 통계 카드 -->
-        <Grid Grid.Row="0" Margin="0,0,0,0">
+        <Grid Grid.Row="1" Margin="0,0,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -250,7 +265,7 @@
         </Grid>
 
         <!-- 툴바 -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,0">
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,0">
             <DockPanel LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
@@ -270,13 +285,13 @@
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnAddLocation" Content="+ 위치 추가" Style="{StaticResource GhostBtn}" Click="BtnAddLocation_Click" Margin="0,0,8,0"/>
-                    <Button x:Name="BtnAddRow" Content="+ 상품 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
+                    <Button x:Name="BtnAddRow" Content="+ 품목 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- 보관위치 탭 + 재고 그리드 -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -311,7 +326,7 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="상품 코드" Binding="{Binding ItemCode}" Width="100">
+                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="100">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="ItemCodeCell"/>
                         </DataGridTextColumn.ElementStyle>
@@ -333,7 +348,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="2*" MinWidth="160"/>
+                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="2*" MinWidth="160"/>
 
                     <DataGridTemplateColumn Header="위치" Width="110" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
@@ -353,13 +368,13 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="전주재고" Binding="{Binding PreviousStock}" Width="80" IsReadOnly="True">
+                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStock}" Width="80" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="CenterCell"/>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="전주 대비" Binding="{Binding WeeklyDeltaText}" Width="80" IsReadOnly="True">
+                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="80" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <StaticResource ResourceKey="WeeklyDeltaCell"/>
                         </DataGridTextColumn.ElementStyle>
@@ -379,7 +394,7 @@
 
                     <DataGridCheckBoxColumn Header="발주" Binding="{Binding IsOrdered, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
 
-                    <DataGridTemplateColumn Header="작업" Width="90" IsReadOnly="True">
+                    <DataGridTemplateColumn x:Name="ColActions" Header="작업" Width="90" IsReadOnly="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -396,7 +411,7 @@
         </Border>
 
         <!-- 일괄 수정 모달 -->
-        <Grid x:Name="BatchOverlay" Grid.RowSpan="3" Background="#80000000" Visibility="Collapsed">
+        <Grid x:Name="BatchOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="12" Padding="24" Width="480" MaxHeight="560"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid>
@@ -435,7 +450,7 @@
                                   ColumnHeaderStyle="{StaticResource HeaderStyle}" IsReadOnly="True"
                                   RowHeight="32" MaxHeight="280">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="상품명" Binding="{Binding ItemName}" Width="*"/>
+                                <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*"/>
                                 <DataGridTextColumn Header="위치" Binding="{Binding StorageLocation}" Width="90">
                                     <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
@@ -453,8 +468,8 @@
             </Border>
         </Grid>
 
-        <!-- 상품 등록/수정 모달 -->
-        <Grid x:Name="EditOverlay" Grid.RowSpan="3" Background="#80000000" Visibility="Collapsed">
+        <!-- 품목 등록/수정 모달 -->
+        <Grid x:Name="EditOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="12" Padding="24" Width="540" MaxHeight="680"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid>
@@ -465,7 +480,7 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock x:Name="TxtModalTitle" Text="상품 정보 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock x:Name="TxtModalTitle" Text="품목 정보 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
                         <Button Content="✕" Style="{StaticResource LinkBtn}" FontSize="16" Foreground="#94A3B8"
                                 HorizontalAlignment="Right" Click="BtnCloseModal_Click"/>
                     </Grid>
@@ -479,7 +494,7 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="상품 코드" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="품목코드" Style="{StaticResource FieldLabel}"/>
                                     <TextBox x:Name="TxtEditCode" Style="{StaticResource FieldInput}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
@@ -488,7 +503,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <TextBlock Text="상품명 *" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="품목명 *" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="TxtEditName" Style="{StaticResource FieldInput}"/>
 
                             <Grid>
@@ -502,7 +517,7 @@
                                     <DatePicker x:Name="DpEditDate" Style="{StaticResource FieldInput}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="상품 위치" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Text="품목 위치" Style="{StaticResource FieldLabel}"/>
                                     <ComboBox x:Name="CmbEditLocation" Style="{StaticResource FieldInput}" IsEditable="True"/>
                                 </StackPanel>
                             </Grid>

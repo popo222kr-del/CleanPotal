@@ -24,11 +24,51 @@ namespace CleanPotal
         private bool _sortDescending = true;
         private string _locationFilter = "전체";
         private FieldInventoryItem? _editingItem;
+        private bool _editMode = false;   // false=재고 현황(조회), true=재고 리스트 관리(편집)
 
         public FieldInventoryView()
         {
             InitializeComponent();
+            ApplyEditMode();
             Loaded += (s, e) => Load();
+        }
+
+        // -----------------------------------------------------------------------
+        // 화면 모드 전환 — '재고 현황'(조회 전용) / '재고 리스트 관리'(편집)
+        // -----------------------------------------------------------------------
+        private void ModeTab_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.Tag is not string tag) return;
+            bool manage = tag == "manage";
+            if (manage == _editMode) return;
+            _editMode = manage;
+            ApplyEditMode();
+        }
+
+        private void ApplyEditMode()
+        {
+            var blue = (Brush)new BrushConverter().ConvertFromString("#2563EB")!;
+            var gray = (Brush)new BrushConverter().ConvertFromString("#64748B")!;
+
+            ModeTabView.Background = _editMode ? Brushes.Transparent : blue;
+            TxtModeView.Foreground = _editMode ? gray : Brushes.White;
+            TxtModeView.FontWeight = _editMode ? FontWeights.SemiBold : FontWeights.Bold;
+
+            ModeTabManage.Background = _editMode ? blue : Brushes.Transparent;
+            TxtModeManage.Foreground = _editMode ? Brushes.White : gray;
+            TxtModeManage.FontWeight = _editMode ? FontWeights.Bold : FontWeights.SemiBold;
+
+            // 편집 기능: 관리 모드에서만 노출
+            DgInventory.IsReadOnly = !_editMode;
+            ColSelect.Visibility = _editMode ? Visibility.Visible : Visibility.Collapsed;
+            ColActions.Visibility = _editMode ? Visibility.Visible : Visibility.Collapsed;
+
+            var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
+            BtnWeeklyClose.Visibility = editVis;
+            BtnDeleteRow.Visibility = editVis;
+            BtnAddLocation.Visibility = editVis;
+            BtnAddRow.Visibility = editVis;
+            BtnBatchEdit.Visibility = editVis;
         }
 
         private void Load()
@@ -65,7 +105,7 @@ namespace CleanPotal
             StatUpdatedText.Text = latest != null ? latest.UpdatedAt.ToString("yyyy-MM-dd HH:mm") : "-";
 
             var snapDate = FieldInventoryRepository.GetLatestSnapshotDate();
-            TxtLastSnapshot.Text = snapDate.HasValue ? $"전주 마감: {snapDate.Value:yyyy-MM-dd}" : "전주 마감 기록 없음";
+            TxtLastSnapshot.Text = snapDate.HasValue ? $"이전 마감: {snapDate.Value:yyyy-MM-dd}" : "이전 마감 기록 없음";
         }
 
         // -----------------------------------------------------------------------
@@ -285,12 +325,12 @@ namespace CleanPotal
         }
 
         // -----------------------------------------------------------------------
-        // 주간 마감 — 현재고를 오늘 날짜 스냅샷으로 저장 → 다음 주 '전주 대비' 기준이 됨
+        // 주간 마감 — 현재고를 오늘 날짜 스냅샷으로 저장 → 다음 주 '이전 대비' 기준이 됨
         // -----------------------------------------------------------------------
         private void BtnWeeklyClose_Click(object sender, RoutedEventArgs e)
         {
             if (MessageBox.Show(
-                    "현재 재고 현황을 이번 주 마감으로 저장합니다.\n다음 주부터 '전주 대비 증감'의 비교 기준이 됩니다.\n\n진행하시겠습니까?",
+                    "현재 재고 현황을 이번 주 마감으로 저장합니다.\n다음 주부터 '이전 대비 증감'의 비교 기준이 됩니다.\n\n진행하시겠습니까?",
                     "주간 마감", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
             try
@@ -377,7 +417,7 @@ namespace CleanPotal
         private void OpenModal(FieldInventoryItem? item, string? presetLocation = null)
         {
             _editingItem = item;
-            TxtModalTitle.Text = item == null ? "상품 등록" : "상품 정보 수정";
+            TxtModalTitle.Text = item == null ? "품목 등록" : "품목 정보 수정";
             BtnSaveModal.Content = item == null ? "등록 완료" : "수정 완료";
 
             CmbEditCategory.ItemsSource = _items.Select(i => i.Category).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
@@ -413,7 +453,7 @@ namespace CleanPotal
         {
             if (string.IsNullOrWhiteSpace(TxtEditName.Text))
             {
-                MessageBox.Show("상품명을 입력해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("품목명을 입력해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -530,7 +570,7 @@ namespace CleanPotal
                 using var wb = new XLWorkbook();
                 var ws = wb.AddWorksheet("재고 현황");
 
-                var headers = new[] { "NO", "등록일자", "상품코드", "카테고리", "상품명", "위치", "현재고", "전주재고", "전주대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
+                var headers = new[] { "NO", "등록일자", "품목코드", "카테고리", "품목명", "위치", "현재고", "이전재고", "이전대비", "안전재고", "단위", "발주여부", "최소발주", "발주날짜", "발주수량", "입고예정", "발주회사", "비고" };
                 for (int c = 0; c < headers.Length; c++)
                 {
                     var cell = ws.Cell(1, c + 1);
