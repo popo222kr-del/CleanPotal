@@ -150,6 +150,22 @@ namespace CleanPotal.FieldInventory.Repositories
             return DateTime.TryParse(latest, out var dt) ? dt : (DateTime?)null;
         }
 
+        /// <summary>모든 스냅샷 데이터를 날짜순으로 반환 (분석 대시보드용).</summary>
+        public static List<(string Date, long ItemId, string Stock)> GetAllSnapshots()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query("SELECT SnapshotDate, ItemId, Stock FROM FieldInventorySnapshots ORDER BY SnapshotDate")
+                .Select(r => ((string)r.SnapshotDate, (long)r.ItemId, (string)(r.Stock ?? "")))
+                .ToList();
+        }
+
+        /// <summary>스냅샷 날짜 목록 (오름차순).</summary>
+        public static List<string> GetSnapshotDates()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query<string>("SELECT DISTINCT SnapshotDate FROM FieldInventorySnapshots ORDER BY SnapshotDate").ToList();
+        }
+
         // 초기 데이터 — 엑셀의 "26년 6월 1주" 시트 내용을 그대로 주입
         private static void SeedIfEmpty(System.Data.IDbConnection db)
         {

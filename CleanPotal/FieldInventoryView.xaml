@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CleanPotal"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              Background="#F8FAFC"
              SnapsToDevicePixels="True" UseLayoutRounding="True"
              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
@@ -245,6 +246,10 @@
                         Background="#2563EB" MouseLeftButtonDown="ModeTab_Click" Tag="view">
                     <TextBlock x:Name="TxtModeView" Text="재고 현황" FontSize="13" FontWeight="Bold" Foreground="White"/>
                 </Border>
+                <Border x:Name="ModeTabAnalysis" CornerRadius="8" Padding="18,8" Margin="0,0,6,0" Cursor="Hand"
+                        Background="Transparent" MouseLeftButtonDown="ModeTab_Click" Tag="analysis">
+                    <TextBlock x:Name="TxtModeAnalysis" Text="재고 분석" FontSize="13" FontWeight="SemiBold" Foreground="#64748B"/>
+                </Border>
                 <Border x:Name="ModeTabManage" CornerRadius="8" Padding="18,8" Cursor="Hand"
                         Background="Transparent" MouseLeftButtonDown="ModeTab_Click" Tag="manage">
                     <TextBlock x:Name="TxtModeManage" Text="재고 리스트 관리" FontSize="13" FontWeight="SemiBold" Foreground="#64748B"/>
@@ -253,7 +258,7 @@
         </Border>
 
         <!-- 상단: 통계 카드 -->
-        <Grid Grid.Row="1" Margin="0,0,0,0">
+        <Grid x:Name="PanelStats" Grid.Row="1" Margin="0,0,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -281,7 +286,7 @@
         </Grid>
 
         <!-- 툴바 -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+        <Border x:Name="PanelToolbar" Grid.Row="2" Style="{StaticResource CardStyle}">
             <DockPanel LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
@@ -327,7 +332,7 @@
         </Border>
 
         <!-- 4구역 재고 그리드: 메탈 | 논메탈 (1화면) / 오피스 | 세정랩 (스크롤) -->
-        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
+        <Border x:Name="PanelZoneGrid" Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -508,6 +513,97 @@
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+        </Border>
+
+        <!-- 재고 분석 대시보드 (analysis 모드에서만 표시) -->
+        <Border x:Name="PanelAnalysis" Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0" Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20,16">
+                    <!-- 요약 카드 -->
+                    <TextBlock Text="재고 분석 대시보드" FontSize="18" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,16"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#EFF6FF" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="마감 데이터" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalSnapCount" Text="0회" FontSize="24" FontWeight="ExtraBold" Foreground="#2563EB" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FEF2F2" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="현재 부족 품목" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalLowCount" Text="0개" FontSize="24" FontWeight="ExtraBold" Foreground="#DC2626" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Background="#F0FDF4" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="전체 품목" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalTotalItems" Text="0개" FontSize="24" FontWeight="ExtraBold" Foreground="#15803D" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="6" Background="#F5F3FF" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="구역 수" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalZoneCount" Text="4개" FontSize="24" FontWeight="ExtraBold" Foreground="#6D28D9" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 차트 1행: 주간 재고 추이 + 구역별 품목 분포 -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="주간 재고 추이 (최근 마감 기준)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartStockTrend" Height="280" LegendPosition="Bottom"/>
+                                <TextBlock x:Name="TxtNoTrendData" Text="마감 데이터가 2건 이상 쌓이면 추이 차트가 표시됩니다."
+                                           FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="구역별 품목 분포" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:PieChart x:Name="ChartZoneDist" Height="280" LegendPosition="Bottom"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 차트 2행: 구역별 부족 현황 + 소비 Top 10 -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="구역별 부족 vs 정상 품목" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartZoneLow" Height="260"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="소비량 Top 10 (이전 대비 감소)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartTopConsumption" Height="260"/>
+                                <TextBlock x:Name="TxtNoConsumData" Text="마감 데이터가 필요합니다."
+                                           FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- 일괄 수정 모달 -->

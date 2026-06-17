@@ -13,7 +13,11 @@ using System.Windows.Media;
 using CleanPotal.FieldInventory.Models;
 using CleanPotal.FieldInventory.Repositories;
 using ClosedXML.Excel;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Win32;
+using SkiaSharp;
 
 namespace CleanPotal
 {
@@ -23,7 +27,8 @@ namespace CleanPotal
         private List<FieldInventoryItem> _filtered = new();
         private bool _sortDescending = true;
         private FieldInventoryItem? _editingItem;
-        private bool _editMode = false;   // false=재고 현황(조회), true=재고 리스트 관리(편집)
+        private string _mode = "view";   // "view"=재고 현황, "analysis"=재고 분석, "manage"=재고 리스트 관리
+        private bool _editMode => _mode == "manage";
 
         // 점검일자 필터는 '조회' 버튼을 눌렀을 때만 확정 적용 (선택 즉시 반영 안 함)
         private DateTime? _filterFrom;
@@ -219,10 +224,10 @@ namespace CleanPotal
         private void ModeTab_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement fe || fe.Tag is not string tag) return;
-            bool manage = tag == "manage";
-            if (manage == _editMode) return;
-            _editMode = manage;
+            if (tag == _mode) return;
+            _mode = tag;
             ApplyEditMode();
+            if (_mode == "analysis") LoadAnalysisDashboard();
         }
 
         private void ApplyEditMode()
@@ -230,13 +235,28 @@ namespace CleanPotal
             var blue = (Brush)new BrushConverter().ConvertFromString("#2563EB")!;
             var gray = (Brush)new BrushConverter().ConvertFromString("#64748B")!;
 
-            ModeTabView.Background = _editMode ? Brushes.Transparent : blue;
-            TxtModeView.Foreground = _editMode ? gray : Brushes.White;
-            TxtModeView.FontWeight = _editMode ? FontWeights.SemiBold : FontWeights.Bold;
+            // 3탭 스타일 적용
+            foreach (var (border, text, tag) in new[]
+            {
+                (ModeTabView, TxtModeView, "view"),
+                (ModeTabAnalysis, TxtModeAnalysis, "analysis"),
+                (ModeTabManage, TxtModeManage, "manage")
+            })
+            {
+                bool active = _mode == tag;
+                border.Background = active ? blue : Brushes.Transparent;
+                text.Foreground = active ? Brushes.White : gray;
+                text.FontWeight = active ? FontWeights.Bold : FontWeights.SemiBold;
+            }
 
-            ModeTabManage.Background = _editMode ? blue : Brushes.Transparent;
-            TxtModeManage.Foreground = _editMode ? Brushes.White : gray;
-            TxtModeManage.FontWeight = _editMode ? FontWeights.Bold : FontWeights.SemiBold;
+            // 재고 분석 패널 표시/숨김
+            PanelAnalysis.Visibility = _mode == "analysis" ? Visibility.Visible : Visibility.Collapsed;
+
+            // 기존 패널(통계/툴바/그리드) — 분석 모드에서는 숨김
+            var gridVis = _mode != "analysis" ? Visibility.Visible : Visibility.Collapsed;
+            PanelStats.Visibility = gridVis;
+            PanelToolbar.Visibility = gridVis;
+            PanelZoneGrid.Visibility = gridVis;
 
             var editVis = _editMode ? Visibility.Visible : Visibility.Collapsed;
 
@@ -334,6 +354,178 @@ namespace CleanPotal
 
             var snapDate = FieldInventoryRepository.GetLatestSnapshotDate();
             TxtLastSnapshot.Text = snapDate.HasValue ? $"이전 마감: {snapDate.Value:yyyy-MM-dd}" : "이전 마감 기록 없음";
+        }
+
+        // -----------------------------------------------------------------------
+        // 재고 분석 대시보드
+        // -----------------------------------------------------------------------
+        private static double ParseStockNumber(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0;
+            string cleaned = s.Trim().Replace(",", "");
+            var m = System.Text.RegularExpressions.Regex.Match(cleaned, @"^(\d+(?:\.\d+)?)");
+            return m.Success && double.TryParse(m.Groups[1].Value, out double v) ? v : 0;
+        }
+
+        private void LoadAnalysisDashboard()
+        {
+            try
+            {
+                var snapDates = FieldInventoryRepository.GetSnapshotDates();
+                var allSnapshots = FieldInventoryRepository.GetAllSnapshots();
+                int lowCount = _items.Count(i => i.IsLow);
+                int totalItems = _items.Count;
+                var zones = _items.Select(i => ClassifyZone(i.StorageLocation)).Distinct().Count();
+
+                // 요약 카드
+                AnalSnapCount.Text = $"{snapDates.Count}회";
+                AnalLowCount.Text = $"{lowCount}개";
+                AnalTotalItems.Text = $"{totalItems}개";
+                AnalZoneCount.Text = $"{zones}개";
+
+                // ----- 1. 주간 재고 추이 (구역별 총 재고 합산) -----
+                if (snapDates.Count >= 2)
+                {
+                    TxtNoTrendData.Visibility = Visibility.Collapsed;
+                    var snapshotByDate = allSnapshots.GroupBy(s => s.Date).ToDictionary(g => g.Key, g => g.ToList());
+                    var itemLocMap = _items.ToDictionary(i => i.ItemId, i => ClassifyZone(i.StorageLocation));
+
+                    var zoneSeries = new[] {
+                        (Zone.Metal, "METAL 반입구", new SKColor(29, 78, 216)),
+                        (Zone.Nonmetal, "N-METAL 출고실", new SKColor(190, 24, 93)),
+                        (Zone.Office, "Office 보관", new SKColor(21, 128, 61)),
+                        (Zone.Cleaning, "세정랩", new SKColor(109, 40, 217))
+                    };
+
+                    var series = new List<ISeries>();
+                    foreach (var (zone, label, color) in zoneSeries)
+                    {
+                        var values = new List<double>();
+                        foreach (var date in snapDates)
+                        {
+                            var items = snapshotByDate.GetValueOrDefault(date) ?? new();
+                            double total = items.Where(s => itemLocMap.TryGetValue(s.ItemId, out var z) && z == zone)
+                                .Sum(s => ParseStockNumber(s.Stock));
+                            values.Add(total);
+                        }
+                        series.Add(new LineSeries<double>
+                        {
+                            Name = label,
+                            Values = values,
+                            Stroke = new SolidColorPaint(color, 2),
+                            GeometryStroke = new SolidColorPaint(color, 2),
+                            GeometrySize = 6,
+                            Fill = null
+                        });
+                    }
+
+                    ChartStockTrend.Series = series;
+                    ChartStockTrend.XAxes = new[] { new Axis {
+                        Labels = snapDates.Select(d => DateTime.TryParse(d, out var dt) ? dt.ToString("MM/dd") : d).ToArray(),
+                        TextSize = 11
+                    }};
+                    ChartStockTrend.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
+                }
+                else
+                {
+                    TxtNoTrendData.Visibility = Visibility.Visible;
+                    ChartStockTrend.Series = Array.Empty<ISeries>();
+                }
+
+                // ----- 2. 구역별 품목 분포 (파이 차트) -----
+                var zoneGroups = _items.GroupBy(i => ClassifyZone(i.StorageLocation));
+                var pieColors = new Dictionary<Zone, SKColor> {
+                    [Zone.Metal] = new(59, 130, 246),
+                    [Zone.Nonmetal] = new(236, 72, 153),
+                    [Zone.Office] = new(34, 197, 94),
+                    [Zone.Cleaning] = new(139, 92, 246)
+                };
+                var zoneNames = new Dictionary<Zone, string> {
+                    [Zone.Metal] = "METAL 반입구",
+                    [Zone.Nonmetal] = "N-METAL 출고실",
+                    [Zone.Office] = "Office 보관",
+                    [Zone.Cleaning] = "세정랩"
+                };
+
+                ChartZoneDist.Series = zoneGroups.Select(g => new PieSeries<double>
+                {
+                    Name = zoneNames.GetValueOrDefault(g.Key, "기타"),
+                    Values = new[] { (double)g.Count() },
+                    Fill = new SolidColorPaint(pieColors.GetValueOrDefault(g.Key, new SKColor(148, 163, 184))),
+                    DataLabelsSize = 12,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = p => $"{p.Coordinate.PrimaryValue:0}"
+                }).ToArray();
+
+                // ----- 3. 구역별 부족 vs 정상 (스택 바 차트) -----
+                var zoneLabels = new[] { "METAL", "N-METAL", "Office", "세정랩" };
+                var zoneEnums = new[] { Zone.Metal, Zone.Nonmetal, Zone.Office, Zone.Cleaning };
+                var lowValues = new List<double>();
+                var okValues = new List<double>();
+                foreach (var z in zoneEnums)
+                {
+                    var zoneItems = _items.Where(i => ClassifyZone(i.StorageLocation) == z).ToList();
+                    int lo = zoneItems.Count(i => i.IsLow);
+                    lowValues.Add(lo);
+                    okValues.Add(zoneItems.Count - lo);
+                }
+
+                ChartZoneLow.Series = new ISeries[]
+                {
+                    new StackedColumnSeries<double>
+                    {
+                        Name = "부족",
+                        Values = lowValues,
+                        Fill = new SolidColorPaint(new SKColor(239, 68, 68)),
+                        MaxBarWidth = 40
+                    },
+                    new StackedColumnSeries<double>
+                    {
+                        Name = "정상",
+                        Values = okValues,
+                        Fill = new SolidColorPaint(new SKColor(34, 197, 94)),
+                        MaxBarWidth = 40
+                    }
+                };
+                ChartZoneLow.XAxes = new[] { new Axis { Labels = zoneLabels, TextSize = 11 } };
+                ChartZoneLow.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
+
+                // ----- 4. 소비량 Top 10 (이전 대비 감소) -----
+                var consumItems = _items.Where(i => i.WeeklyDelta is double d && d < 0)
+                    .OrderBy(i => i.WeeklyDelta)
+                    .Take(10)
+                    .ToList();
+
+                if (consumItems.Any())
+                {
+                    TxtNoConsumData.Visibility = Visibility.Collapsed;
+                    ChartTopConsumption.Series = new ISeries[]
+                    {
+                        new RowSeries<double>
+                        {
+                            Name = "감소량",
+                            Values = consumItems.Select(i => Math.Abs(i.WeeklyDelta!.Value)).ToArray(),
+                            Fill = new SolidColorPaint(new SKColor(239, 68, 68)),
+                            MaxBarWidth = 24
+                        }
+                    };
+                    ChartTopConsumption.YAxes = new[] { new Axis {
+                        Labels = consumItems.Select(i => i.ItemName.Length > 12 ? i.ItemName[..12] + "…" : i.ItemName).ToArray(),
+                        TextSize = 11
+                    }};
+                    ChartTopConsumption.XAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
+                }
+                else
+                {
+                    TxtNoConsumData.Visibility = Visibility.Visible;
+                    ChartTopConsumption.Series = Array.Empty<ISeries>();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"분석 데이터 로드 중 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // -----------------------------------------------------------------------
