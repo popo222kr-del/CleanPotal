@@ -290,15 +290,17 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- 등록일자 필터 (노션풍 pill) -->
+                    <!-- 점검일자 필터 (노션풍 pill) -->
                     <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="등록일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DateFilter_Changed"/>
+                            <TextBlock Text="점검일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}"/>
                             <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
-                            <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DateFilter_Changed"/>
+                            <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}"/>
                         </StackPanel>
                     </Border>
+                    <Button x:Name="BtnDateSearch" Content="조회" Style="{StaticResource PrimaryBtn}"
+                            Padding="14,6" FontSize="12" Click="BtnDateSearch_Click" Margin="0,0,12,0"/>
 
                     <!-- 검색 (노션풍 pill + 아이콘 + 플레이스홀더) -->
                     <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"

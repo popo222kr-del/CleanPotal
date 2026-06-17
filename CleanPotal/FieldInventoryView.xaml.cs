@@ -46,8 +46,8 @@ namespace CleanPotal
                 Width = new DataGridLength(36)
             });
 
-            AddTextColumn(g, "발주일", "OrderDate", 90, "CenterCell");
-            AddTextColumn(g, "입고 예정일", "ExpectedReceipt", 95, "CenterCell");
+            g.Columns.Add(CreateDatePickerColumn("발주일", "OrderDate", 110));
+            g.Columns.Add(CreateDatePickerColumn("입고 예정일", "ExpectedReceipt", 120));
 
             var catTemplate = new DataGridTemplateColumn
             {
@@ -153,6 +153,32 @@ namespace CleanPotal
             sp.AppendChild(btnDel);
 
             return new DataTemplate { VisualTree = sp };
+        }
+
+        private DataGridTemplateColumn CreateDatePickerColumn(string header, string bindingPath, double width)
+        {
+            // Display: 텍스트로 날짜 표시 (yyyy-MM-dd)
+            var displayFactory = new FrameworkElementFactory(typeof(TextBlock));
+            displayFactory.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(bindingPath));
+            displayFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            displayFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            // Edit: DatePicker
+            var editFactory = new FrameworkElementFactory(typeof(DatePicker));
+            editFactory.SetBinding(DatePicker.TextProperty, new System.Windows.Data.Binding(bindingPath)
+            {
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            });
+            editFactory.SetValue(DatePicker.FontSizeProperty, 12.0);
+            editFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            return new DataGridTemplateColumn
+            {
+                Header = header,
+                Width = new DataGridLength(width),
+                CellTemplate = new DataTemplate { VisualTree = displayFactory },
+                CellEditingTemplate = new DataTemplate { VisualTree = editFactory }
+            };
         }
 
         // -----------------------------------------------------------------------
@@ -388,7 +414,7 @@ namespace CleanPotal
             ApplyFilters();
         }
 
-        private void DateFilter_Changed(object sender, SelectionChangedEventArgs e) => ApplyFilters();
+        private void BtnDateSearch_Click(object sender, RoutedEventArgs e) => ApplyFilters();
 
         private void DgInventory_Sorting(object sender, DataGridSortingEventArgs e)
         {
