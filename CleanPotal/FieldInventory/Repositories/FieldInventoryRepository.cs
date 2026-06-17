@@ -142,6 +142,26 @@ namespace CleanPotal.FieldInventory.Repositories
             return map;
         }
 
+        /// <summary>가장 최근 스냅샷에서 특정 항목의 재고값을 새 값으로 갱신.
+        /// 입고 등 수동 현재고 조정 시 기준선(이전 재고)을 함께 옮겨 '이전 대비 증감'에 반영되지 않게 함.
+        /// 스냅샷이 없으면 아무 것도 하지 않음.</summary>
+        public static void UpdateLatestSnapshotStock(long itemId, string stock)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            string? latest = db.ExecuteScalar<string?>("SELECT MAX(SnapshotDate) FROM FieldInventorySnapshots");
+            if (string.IsNullOrEmpty(latest)) return;
+
+            int affected = db.Execute(
+                "UPDATE FieldInventorySnapshots SET Stock=@S WHERE SnapshotDate=@D AND ItemId=@Id",
+                new { S = stock, D = latest, Id = itemId });
+
+            // 최근 스냅샷에 해당 항목 행이 없으면 새로 추가 (신규 품목 등)
+            if (affected == 0)
+                db.Execute(
+                    "INSERT INTO FieldInventorySnapshots (ItemId, SnapshotDate, Stock, CreatedAt) VALUES (@Id, @D, @S, @At)",
+                    new { Id = itemId, D = latest, S = stock, At = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+        }
+
         /// <summary>가장 최근 스냅샷 날짜 (없으면 null).</summary>
         public static DateTime? GetLatestSnapshotDate()
         {

@@ -875,6 +875,7 @@ namespace CleanPotal
             {
                 foreach (var item in _batchTargets)
                 {
+                    string oldStock = item.CurrentStock;
                     switch (fieldIdx)
                     {
                         case 0: item.CurrentStock = val; break;
@@ -885,6 +886,8 @@ namespace CleanPotal
                         case 5: item.IsOrdered = false; break;
                     }
                     FieldInventoryRepository.Update(item);
+                    // 현재고 일괄 변경(입고 등)은 증감에 반영하지 않도록 기준선 이동
+                    if (fieldIdx == 0 && item.CurrentStock != oldStock) RebaselineReceivedStock(item);
                     item.IsSelected = false;
                 }
 
@@ -911,12 +914,18 @@ namespace CleanPotal
                 && b.Path?.Path == nameof(FieldInventoryItem.IsSelected)) return;
             if (e.Row.Item is not FieldInventoryItem item) return;
 
+            // 관리 모드에서 '현재 재고' 칸을 바꾸는 것은 입고 반영 → 증감에 반영하지 않도록 기준선 이동
+            bool isStockCol = (e.Column.Header as string) == "현재 재고";
+            string oldStock = item.CurrentStock;
+
             // 바인딩이 모델에 반영된 뒤 저장 (편집 커밋 직후 디스패치)
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 try
                 {
                     FieldInventoryRepository.Update(item);
+                    if (_editMode && isStockCol && item.CurrentStock != oldStock)
+                        RebaselineReceivedStock(item);
                     TxtLastSaved.Text = $"저장됨 {DateTime.Now:HH:mm:ss}";
                     RefreshStats();
                 }
@@ -946,6 +955,16 @@ namespace CleanPotal
             {
                 MessageBox.Show($"주간 마감 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // 관리 모드(재고 리스트 관리)에서 현재고를 수동으로 바꾸는 것은 발주 입고 등으로 '소비'가 아니므로,
+        // 기준선(최근 스냅샷 + 이전 재고)을 새 현재고로 함께 옮겨 '이전 대비 증감'이 0이 되도록 한다.
+        // 스냅샷이 없으면(기준선 자체가 없음) 아무 동작도 하지 않는다.
+        private static void RebaselineReceivedStock(FieldInventoryItem item)
+        {
+            FieldInventoryRepository.UpdateLatestSnapshotStock(item.ItemId, item.CurrentStock);
+            if (!string.IsNullOrWhiteSpace(item.PreviousStock))
+                item.PreviousStock = item.CurrentStock;
         }
 
         // -----------------------------------------------------------------------
@@ -1223,6 +1242,7 @@ namespace CleanPotal
                 else
                 {
                     var item = _editingItem;
+                    string oldStock = item.CurrentStock;
                     item.ItemCode = TxtEditCode.Text.Trim();
                     item.Category = CmbEditCategory.Text.Trim();
                     item.ItemName = TxtEditName.Text.Trim();
@@ -1239,6 +1259,8 @@ namespace CleanPotal
                     item.Supplier = TxtEditSupplier.Text.Trim();
                     item.IsOrdered = ChkEditOrdered.IsChecked == true;
                     FieldInventoryRepository.Update(item);
+                    // 현재고를 수동 변경(입고 등)했으면 기준선도 함께 이동 → 증감에 반영 안 함
+                    if (item.CurrentStock != oldStock) RebaselineReceivedStock(item);
                 }
 
                 EditOverlay.Visibility = Visibility.Collapsed;
