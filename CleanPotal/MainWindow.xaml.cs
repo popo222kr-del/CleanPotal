@@ -221,11 +221,30 @@ namespace CleanPotal
             if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = masterVis;
             if (ExpanderAdmin != null) ExpanderAdmin.Visibility = masterVis;
 
+            // OFFICE 업무 메뉴 전체는 OFFICE 팀(또는 마스터)만 열람 가능
+            if (ExpanderOffice != null)
+                ExpanderOffice.Visibility = IsOfficeTeam() ? Visibility.Visible : Visibility.Collapsed;
+
             // OFFICE 업무 내 교육 메뉴 가시성
             bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
             bool canViewEdu = canEditEdu || SessionManager.CurrentTeamName == "Office";
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // OFFICE 팀(또는 시스템 마스터)인지 여부
+        private static bool IsOfficeTeam()
+            => SessionManager.CurrentTeamName == "Office" || SessionManager.CurrentUsername == "1004";
+
+        // OFFICE 업무 기능 접근 가드 — OFFICE 팀이 아니면 차단
+        private bool CanOpenOfficeFeature()
+        {
+            if (!IsOfficeTeam())
+            {
+                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return false;
+            }
+            return true;
         }
 
         // 🎨 섹션 헤더(MAIN/WORKSPACE/TOOLS) Visibility 일괄 제어
@@ -273,11 +292,17 @@ namespace CleanPotal
         private void OpenTeamSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowTeamSchedule(); }
         private void OpenProdReq_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProdReq(); }
 
-        private void OpenQuotation_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowQuotation(); }
+        private void OpenQuotation_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
+            ShowQuotation();
+        }
 
         private void OpenWeeklyReport_Click(object sender, RoutedEventArgs e)
         {
             OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
             if (!AuthManager.CheckAuth(PermissionType.WeeklyReport)) return;
             ShowWeeklyReport();
         }
@@ -351,8 +376,9 @@ namespace CleanPotal
 
         private void OpenBrokenMgmt_Click(object sender, RoutedEventArgs e)
         {
-            if (!AuthManager.CheckAuth(PermissionType.BrokenMgmt)) return;
             OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
+            if (!AuthManager.CheckAuth(PermissionType.BrokenMgmt)) return;
             ShowBrokenMgmt();
         }
 
