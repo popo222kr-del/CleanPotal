@@ -38,15 +38,29 @@ namespace CleanPotal
         private bool _hasStagedUpload = false;
         private readonly HashSet<long> _stagedItems = new();
 
+        // 인라인 셀 편집 시작 시점의 '현재 재고' 원본값 (PropertyChanged 즉시 커밋 때문에 별도 보관)
+        private string _editOldStock = "";
+
         private DataGrid[] AllGrids => new[] { DgMetal, DgNonmetal, DgOffice, DgCleaning };
 
         public FieldInventoryView()
         {
             InitializeComponent();
             foreach (var g in AllGrids)
+            {
                 BuildColumns(g);
+                g.BeginningEdit += DgInventory_BeginningEdit;
+            }
             ApplyEditMode();
             Loaded += (s, e) => Load();
+        }
+
+        // 편집 시작 시점의 현재 재고 원본값을 보관 → 편집 종료 시 실제 변경 여부 판단에 사용
+        private void DgInventory_BeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
+        {
+            _editOldStock = (e.Column?.Header as string) == "현재 재고" && e.Row?.Item is FieldInventoryItem item
+                ? item.CurrentStock
+                : "";
         }
 
         private void BuildColumns(DataGrid g)
@@ -914,9 +928,10 @@ namespace CleanPotal
                 && b.Path?.Path == nameof(FieldInventoryItem.IsSelected)) return;
             if (e.Row.Item is not FieldInventoryItem item) return;
 
-            // 관리 모드에서 '현재 재고' 칸을 바꾸는 것은 입고 반영 → 증감에 반영하지 않도록 기준선 이동
+            // 관리 모드에서 '현재 재고' 칸을 바꾸는 것은 입고 반영 → 증감에 반영하지 않도록 기준선 이동.
+            // 셀 편집 TextBox는 PropertyChanged 즉시 커밋이라 BeginningEdit에서 보관한 원본값으로 변경 여부 판단.
             bool isStockCol = (e.Column.Header as string) == "현재 재고";
-            string oldStock = item.CurrentStock;
+            string oldStock = _editOldStock;
 
             // 바인딩이 모델에 반영된 뒤 저장 (편집 커밋 직후 디스패치)
             Dispatcher.BeginInvoke(new Action(() =>
