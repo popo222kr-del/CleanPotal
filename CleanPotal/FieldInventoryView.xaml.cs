@@ -185,8 +185,10 @@ namespace CleanPotal
             foreach (var g in AllGrids)
                 ConfigureColumns(g);
 
+            // 주간 마감: 재고 현황(조회) 모드에서만 노출
+            BtnWeeklyClose.Visibility = _editMode ? Visibility.Collapsed : Visibility.Visible;
+
             // 편집 기능 버튼: 관리 모드에서만 노출
-            BtnWeeklyClose.Visibility = editVis;
             BtnDeleteRow.Visibility = editVis;
             BtnAddLocation.Visibility = editVis;
             BtnAddRow.Visibility = editVis;
@@ -371,7 +373,20 @@ namespace CleanPotal
             return null;
         }
 
-        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
+        // 둥근 모서리 깨짐 방지 — 구역 박스 내용물을 라운드 사각형으로 클리핑
+        private void ZoneBorder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (sender is not Border b) return;
+            double r = b.CornerRadius.TopLeft;
+            b.Clip = new RectangleGeometry(new Rect(0, 0, b.ActualWidth, b.ActualHeight), r, r);
+        }
+
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TxtSearchPlaceholder != null)
+                TxtSearchPlaceholder.Visibility = string.IsNullOrEmpty(TxtSearch.Text) ? Visibility.Visible : Visibility.Collapsed;
+            ApplyFilters();
+        }
 
         private void DateFilter_Changed(object sender, SelectionChangedEventArgs e) => ApplyFilters();
 

@@ -218,6 +218,16 @@
             <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
 
+        <!-- 노션풍 평면 DatePicker: 테두리·배경 제거하고 pill 컨테이너에 녹임 -->
+        <Style x:Key="FlatDatePicker" TargetType="DatePicker">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
     </UserControl.Resources>
 
     <Grid Margin="6">
@@ -280,12 +290,30 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="등록일자" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <DatePicker x:Name="DpFrom" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,4,0"/>
-                    <TextBlock Text="~" VerticalAlignment="Center" Margin="2,0"/>
-                    <DatePicker x:Name="DpTo" Width="125" FontSize="12" SelectedDateChanged="DateFilter_Changed" Margin="0,0,10,0"/>
-                    <TextBox x:Name="TxtSearch" Width="180" FontSize="13" Padding="8,5" Margin="0,0,8,0"
-                             VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
+                    <!-- 등록일자 필터 (노션풍 pill) -->
+                    <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="등록일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DateFilter_Changed"/>
+                            <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
+                            <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DateFilter_Changed"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 검색 (노션풍 pill + 아이콘 + 플레이스홀더) -->
+                    <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
+                            Padding="10,0" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🔍" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <Grid Width="170">
+                                <TextBlock x:Name="TxtSearchPlaceholder" Text="품목명·코드·카테고리 검색" FontSize="13" Foreground="#94A3B8"
+                                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                <TextBox x:Name="TxtSearch" FontSize="13" Padding="0,7" BorderThickness="0" Background="Transparent"
+                                         VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <Button x:Name="BtnWeeklyClose" Content="주간 마감" Style="{StaticResource GhostBtn}" Click="BtnWeeklyClose_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
@@ -327,7 +355,7 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- 메탈 (반입구) -->
-                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -351,7 +379,7 @@
                             </Border>
 
                             <!-- 논메탈 (반입구) -->
-                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -384,7 +412,7 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- 오피스 (OFFICE 보관) -->
-                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -408,7 +436,7 @@
                             </Border>
 
                             <!-- 세정랩 -->
-                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" SizeChanged="ZoneBorder_SizeChanged">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
