@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using CleanPotal.StatusBoard.Models;
+using CleanPotal.StatusBoard.Repositories;
 using ClosedXML.Excel;
 using Microsoft.Win32;
 
@@ -98,14 +99,15 @@ namespace CleanPotal.StatusBoard.Views
 
             try
             {
-                // TODO: Replace with actual repository call:
-                // var repo = new StatusBoardRepository();
-                // var entries = repo.GetMaterialLogistics(dateKey);
-                List<MaterialLogisticsRow> entries = new();
+                var entries = StatusBoardRepository.GetAllMaterialLogistics(dateKey);
+                var memoRow = entries.FirstOrDefault(r => r.PersonName == "__MEMO__");
+                var dataRows = entries.Where(r => r.PersonName != "__MEMO__").OrderBy(r => r.OrderNo).ToList();
 
                 _rows.Clear();
-                foreach (var entry in entries.OrderBy(r => r.OrderNo))
+                foreach (var entry in dataRows)
                     _rows.Add(entry);
+
+                TxtSpecialNotes.Text = memoRow?.Memo ?? "";
 
                 // If no data for this date, add a few blank rows
                 if (_rows.Count == 0)
@@ -386,7 +388,7 @@ namespace CleanPotal.StatusBoard.Views
             if (result == MessageBoxResult.Yes)
             {
                 var lastRow = _rows.Last();
-                // TODO: If it has an Id > 0, call repo.DeleteMaterialLogistics(lastRow.Id)
+                if (lastRow.Id > 0) StatusBoardRepository.DeleteMaterialLogistics(lastRow.Id);
                 _rows.Remove(lastRow);
                 BuildGrid();
             }
@@ -414,14 +416,33 @@ namespace CleanPotal.StatusBoard.Views
                     row.UpdatedAt = DateTime.Now;
                 }
 
-                // TODO: Replace with actual repository calls:
-                // var repo = new StatusBoardRepository();
-                // repo.DeleteMaterialLogisticsByDate(dateKey);
-                // foreach (var row in _rows)
-                //     repo.InsertMaterialLogistics(row);
-                // repo.SaveMaterialLogisticsMemo(dateKey, memo);
+                // 메모를 특수 행으로 저장
+                var existing = StatusBoardRepository.GetAllMaterialLogistics(dateKey);
+                foreach (var ex in existing)
+                    StatusBoardRepository.DeleteMaterialLogistics(ex.Id);
+
+                int order = 1;
+                foreach (var row in _rows)
+                {
+                    row.OrderNo = order++;
+                    row.Id = 0;
+                    StatusBoardRepository.InsertMaterialLogistics(row);
+                }
+
+                if (!string.IsNullOrWhiteSpace(memo))
+                {
+                    StatusBoardRepository.InsertMaterialLogistics(new MaterialLogisticsRow
+                    {
+                        BoardDate = dateKey,
+                        PersonName = "__MEMO__",
+                        Memo = memo,
+                        OrderNo = 9999,
+                        UpdatedAt = DateTime.Now
+                    });
+                }
 
                 MessageBox.Show("저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                LoadData();
             }
             catch (Exception ex)
             {

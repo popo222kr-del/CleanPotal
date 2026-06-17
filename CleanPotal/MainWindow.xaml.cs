@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using CleanPotal.StatusBoard.Views;
 using System.Windows.Threading;
 
 namespace CleanPotal
@@ -27,6 +28,9 @@ namespace CleanPotal
         private QuotationView? _quotationView;
         private BrokenManagementView? _brokenMgmtView;
         private DocSearchView? _docSearchView;
+        private MaterialLogisticsView? _materialLogisticsView;
+        private ProductionBoardView? _productionBoardView;
+        private DongtanLogisticsView? _dongtanLogisticsView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -70,6 +74,7 @@ namespace CleanPotal
             BtnCommandVendor.Click += BtnCommandVendor_Click;
 
             DatabaseHelper.InitializeDatabase();
+            CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables();
 
             // 버전 표시
             VersionText.Text = GetAppVersion();
@@ -275,9 +280,11 @@ namespace CleanPotal
             else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory") ExpanderFieldInspection.IsExpanded = true;
             else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "BrokenMgmt") ExpanderOffice.IsExpanded = true;
+            else if (_currentViewName == "MaterialLogistics" || _currentViewName == "ProductionBoard" || _currentViewName == "DongtanLogistics") ExpanderStatusBoard.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
+        private void ExpanderStatusBoard_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "MaterialLogistics" && _currentViewName != "ProductionBoard" && _currentViewName != "DongtanLogistics") OpenMaterialLogistics_Click(sender, e); }
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
@@ -423,6 +430,9 @@ namespace CleanPotal
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
         private void OpenFieldChecklist_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldChecklist(); }
         private void OpenFieldInventory_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldInventory(); }
+        private void OpenMaterialLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowMaterialLogistics(); }
+        private void OpenProductionBoard_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProductionBoard(); }
+        private void OpenDongtanLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowDongtanLogistics(); }
         private void BtnCommandVendor_Click(object sender, RoutedEventArgs e) { if (!AuthManager.CheckAuth(PermissionType.Vendors)) return; new VendorManagerWindow { Owner = this }.ShowDialog(); }
 
         private void ManagePortalLinks_Click(object sender, RoutedEventArgs e)
@@ -621,6 +631,39 @@ namespace CleanPotal
             if (_fieldChecklistView == null) _fieldChecklistView = new FieldChecklistView();
             else _fieldChecklistView.RefreshDashboardCounters();
             MainContent.Content = _fieldChecklistView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowMaterialLogistics()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "MaterialLogistics";
+            ApplySectionMeta("자재물류 일정 현황", "천안사업장 자재 & 물류 배차 일정을 관리합니다.");
+            UpdateNavSelection("MaterialLogistics");
+            if (_materialLogisticsView == null) _materialLogisticsView = new MaterialLogisticsView();
+            MainContent.Content = _materialLogisticsView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowProductionBoard()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "ProductionBoard";
+            ApplySectionMeta("생산 현황판", "주간/야간 포장 수량 및 팀 구성을 관리합니다.");
+            UpdateNavSelection("ProductionBoard");
+            if (_productionBoardView == null) _productionBoardView = new ProductionBoardView();
+            MainContent.Content = _productionBoardView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowDongtanLogistics()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "DongtanLogistics";
+            ApplySectionMeta("동탄 물류 현황판", "동탄 물류 배차 및 반입/반출 물량을 관리합니다.");
+            UpdateNavSelection("DongtanLogistics");
+            if (_dongtanLogisticsView == null) _dongtanLogisticsView = new DongtanLogisticsView();
+            MainContent.Content = _dongtanLogisticsView;
             HideAllHeaderButtons();
         }
 
