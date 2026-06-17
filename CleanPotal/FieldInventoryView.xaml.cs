@@ -34,6 +34,10 @@ namespace CleanPotal
         private DateTime? _filterFrom;
         private DateTime? _filterTo;
 
+        // 엑셀 업로드 임시 반영(스테이징) 상태 — '업로드 확정' 전까지 DB 미저장
+        private bool _hasStagedUpload = false;
+        private readonly HashSet<long> _stagedItems = new();
+
         private DataGrid[] AllGrids => new[] { DgMetal, DgNonmetal, DgOffice, DgCleaning };
 
         public FieldInventoryView()
@@ -264,15 +268,24 @@ namespace CleanPotal
             foreach (var g in AllGrids)
                 ConfigureColumns(g);
 
-            // 주간 마감: 재고 현황(조회) 모드에서만 노출
+            // 주간 마감 / 엑셀 업로드: 재고 현황(조회) 모드에서만 노출
             BtnWeeklyClose.Visibility = _editMode ? Visibility.Collapsed : Visibility.Visible;
+            BtnImportExcel.Visibility = _editMode ? Visibility.Collapsed : Visibility.Visible;
 
             // 편집 기능 버튼: 관리 모드에서만 노출
             BtnDeleteRow.Visibility = editVis;
             BtnManageLocation.Visibility = editVis;
-            BtnImportExcel.Visibility = editVis;
             BtnAddRow.Visibility = editVis;
             BtnBatchEdit.Visibility = editVis;
+
+            RefreshUploadButtons();
+        }
+
+        // 업로드 임시 반영 상태에서만 '업로드 확정' 버튼 노출
+        private void RefreshUploadButtons()
+        {
+            BtnConfirmUpload.Visibility = (!_editMode && _hasStagedUpload)
+                ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // 컬럼 순서: 0 선택, 1 발주일, 2 입고예정일, 3 카테고리, 4 품목명, 5 현재 재고,
@@ -1250,7 +1263,14 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         // 새로고침 / 엑셀 내보내기
         // -----------------------------------------------------------------------
-        private void BtnRefresh_Click(object sender, RoutedEventArgs e) => Load();
+        private void BtnRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            // 새로고침: 업로드 임시 반영 내용을 모두 취소(무시)하고 DB 기준으로 재로드
+            _stagedItems.Clear();
+            _hasStagedUpload = false;
+            Load();
+            RefreshUploadButtons();
+        }
 
         private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
@@ -1456,28 +1476,68 @@ namespace CleanPotal
                 }
 
                 if (MessageBox.Show(
-                        $"체크 칸 수량으로 현재 재고를 업데이트합니다.\n변경 대상: {targets.Count}개 품목\n\n" +
-                        "업로드 직전 재고는 '이전 재고'로 저장되어 증감이 표시됩니다.\n진행하시겠습니까?",
-                        "엑셀 업로드", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                        $"체크 칸 수량을 현재 재고에 '임시 반영'합니다.\n변경 대상: {targets.Count}개 품목\n\n" +
+                        "※ 아직 저장되지 않습니다. 화면에서 증감을 확인한 뒤\n" +
+                        "   '업로드 확정'을 눌러야 저장됩니다.\n" +
+                        "   '새로고침'을 누르면 업로드 내용이 모두 취소됩니다.\n\n진행하시겠습니까?",
+                        "엑셀 업로드 (임시 반영)", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
-                // 1) 업로드 직전 현재고를 스냅샷으로 저장 (이전 재고 기준)
-                FieldInventoryRepository.CreateSnapshot(DateTime.Today);
-
-                // 2) 체크 수량을 현재 재고로 반영
+                // 메모리에만 임시 반영 — DB 미저장. 업로드 직전 값을 '이전 재고'로 미리보기.
                 foreach (var item in targets)
                 {
-                    item.CurrentStock = updates[item.OrderNo];
-                    FieldInventoryRepository.Update(item);
+                    item.PreviousStock = item.CurrentStock;       // 업로드 직전 값 = 이전 재고(미리보기)
+                    item.CurrentStock = updates[item.OrderNo];    // 체크 수량 = 새 현재고
+                    _stagedItems.Add(item.ItemId);
                 }
+                _hasStagedUpload = true;
 
-                // 3) 재로드 → 방금 저장한 스냅샷이 '이전 재고'로 주입되어 증감 계산
-                Load();
-                MessageBox.Show($"{targets.Count}개 품목의 현재 재고가 업데이트되었습니다.\n이전 재고 대비 증감을 확인하세요.",
-                    "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                ApplyFilters();
+                RefreshStats();
+                RefreshUploadButtons();
+                MessageBox.Show(
+                    $"{targets.Count}개 품목이 임시 반영되었습니다.\n증감을 확인한 뒤 '업로드 확정'으로 저장하세요.",
+                    "임시 반영 완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"엑셀 업로드 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // 업로드 확정: 임시 반영된 현재고를 DB에 저장. 직전 값은 스냅샷('이전 재고')으로 보존.
+        private void BtnConfirmUpload_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_hasStagedUpload || _stagedItems.Count == 0)
+            {
+                MessageBox.Show("확정할 업로드 내용이 없습니다.", "안내", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (MessageBox.Show(
+                    $"임시 반영된 {_stagedItems.Count}개 품목을 저장합니다.\n" +
+                    "저장 후에는 새로고침해도 유지되며, 증감 비교 기준이 갱신됩니다.\n\n저장하시겠습니까?",
+                    "업로드 확정", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+
+            try
+            {
+                // 1) DB는 아직 업로드 직전(옛) 현재고 상태 → 스냅샷이 '이전 재고'가 됨
+                FieldInventoryRepository.CreateSnapshot(DateTime.Today);
+
+                // 2) 임시 반영된 새 현재고를 DB에 저장
+                foreach (var item in _items.Where(i => _stagedItems.Contains(i.ItemId)))
+                    FieldInventoryRepository.Update(item);
+
+                _stagedItems.Clear();
+                _hasStagedUpload = false;
+
+                // 3) 재로드 → 스냅샷(옛 값)이 '이전 재고'로 주입되어 증감 확정
+                Load();
+                RefreshUploadButtons();
+                MessageBox.Show("업로드 내용이 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"업로드 확정 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
