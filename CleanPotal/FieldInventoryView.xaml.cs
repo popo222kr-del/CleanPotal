@@ -161,30 +161,37 @@ namespace CleanPotal
 
         private readonly StringDateConverter _dateConv = new();
 
-        // 셀 안에 DatePicker를 상시 배치 — 달력에서 선택하면 SelectedDate(양방향)가
-        // 즉시 모델 문자열에 반영되고 SelectedDateChanged에서 저장. DataGrid 편집 사이클을
-        // 거치지 않으므로 팝업 달력 선택이 누락되는 문제가 없음.
+        // 평소에는 날짜 텍스트만 표시(깔끔), 셀을 클릭해 편집할 때만 DatePicker 노출.
+        // 편집용 DatePicker의 SelectedDate를 양방향+PropertyChanged 컨버터로 바인딩해
+        // 달력 팝업에서 고르는 즉시 모델에 반영 → 편집이 취소돼도 값 누락 없음.
         private DataGridTemplateColumn CreateDatePickerColumn(string header, string bindingPath, double width)
         {
-            var dpFactory = new FrameworkElementFactory(typeof(DatePicker));
-            dpFactory.SetBinding(DatePicker.SelectedDateProperty, new System.Windows.Data.Binding(bindingPath)
+            // 표시 템플릿: 텍스트
+            var displayFactory = new FrameworkElementFactory(typeof(TextBlock));
+            displayFactory.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding(bindingPath));
+            displayFactory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            displayFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            displayFactory.SetValue(TextBlock.ForegroundProperty, (Brush)new BrushConverter().ConvertFromString("#334155")!);
+
+            // 편집 템플릿: DatePicker
+            var editFactory = new FrameworkElementFactory(typeof(DatePicker));
+            editFactory.SetBinding(DatePicker.SelectedDateProperty, new System.Windows.Data.Binding(bindingPath)
             {
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
                 Converter = _dateConv
             });
-            dpFactory.SetValue(DatePicker.FontSizeProperty, 12.0);
-            dpFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-            dpFactory.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 0, 2, 0));
-            dpFactory.AddHandler(DatePicker.SelectedDateChangedEvent,
+            editFactory.SetValue(DatePicker.FontSizeProperty, 12.0);
+            editFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            editFactory.AddHandler(DatePicker.SelectedDateChangedEvent,
                 new EventHandler<SelectionChangedEventArgs>(DateCell_SelectedDateChanged));
 
             return new DataGridTemplateColumn
             {
                 Header = header,
                 Width = new DataGridLength(width),
-                IsReadOnly = true,   // DataGrid 자체 편집 비활성화 — 셀 내 DatePicker가 직접 편집
-                CellTemplate = new DataTemplate { VisualTree = dpFactory }
+                CellTemplate = new DataTemplate { VisualTree = displayFactory },
+                CellEditingTemplate = new DataTemplate { VisualTree = editFactory }
             };
         }
 
@@ -259,10 +266,10 @@ namespace CleanPotal
             var c = g.Columns;
 
             c[0].Visibility = editVis;   // 선택 (관리 모드 전용)
-            c[1].Visibility = viewVis;   // 발주일      — 조회 모드 전용 (셀 내 DatePicker로 편집)
-            c[1].IsReadOnly = true;
-            c[2].Visibility = viewVis;   // 입고 예정일 — 조회 모드 전용 (셀 내 DatePicker로 편집)
-            c[2].IsReadOnly = true;
+            c[1].Visibility = viewVis;   // 발주일      — 조회 모드 전용 (클릭 시 DatePicker 편집)
+            c[1].IsReadOnly = false;
+            c[2].Visibility = viewVis;   // 입고 예정일 — 조회 모드 전용 (클릭 시 DatePicker 편집)
+            c[2].IsReadOnly = false;
             c[3].Visibility = editVis;   // 카테고리    — 관리 모드 전용
             c[3].IsReadOnly = ro;
             c[4].IsReadOnly = ro;        // 품목명
