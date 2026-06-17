@@ -15,7 +15,11 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Win32;
+using SkiaSharp;
 using WpfBorder = System.Windows.Controls.Border;
 using WpfColor = System.Windows.Media.Color;
 
@@ -322,27 +326,6 @@ namespace CleanPotal
     // ---------------------------------------------------------------------------
     // 대시보드 차트 모델
     // ---------------------------------------------------------------------------
-    public class ChartMonth
-    {
-        public string MonthLabel { get; set; } = "";
-        public int Total { get; set; }
-        public string TotalLabel => Total > 0 ? Total.ToString() : "";
-        public List<ChartSegment> Segments { get; set; } = new();
-    }
-
-    public class ChartSegment
-    {
-        public Brush Color { get; set; } = Brushes.Gray;
-        public double HeightPx { get; set; }
-        public string Tip { get; set; } = "";
-    }
-
-    public class LegendEntry
-    {
-        public Brush Color { get; set; } = Brushes.Gray;
-        public string Label { get; set; } = "";
-    }
-
     public class BreakdownEntry
     {
         public string Label { get; set; } = "";
@@ -1244,12 +1227,20 @@ namespace CleanPotal
             new SolidColorBrush(WpfColor.FromRgb(0x64, 0x74, 0x8B)), // slate
         };
 
+        // LiveCharts2용 동일 색상 팔레트 (SKColor)
+        private static readonly SKColor[] _paletteSk =
+        {
+            new(0x3B, 0x82, 0xF6), new(0x10, 0xB9, 0x81), new(0xF5, 0x9E, 0x0B),
+            new(0xEF, 0x44, 0x44), new(0x8B, 0x5C, 0xF6), new(0x06, 0xB6, 0xD4),
+            new(0xEC, 0x48, 0x99), new(0x84, 0xCC, 0x16), new(0xF9, 0x73, 0x16),
+            new(0x64, 0x74, 0x8B),
+        };
+
         // 현재 필터 결과(source)를 기준으로 대시보드를 갱신한다.
         private void BuildDashboard(List<BrokenRecord> source)
         {
-            if (ChartHost == null) return;
+            if (ChartBroken == null) return;
 
-            const double maxBar = 140.0;    // 차트 막대 최대 높이(px, 트랙 150 내)
             const double maxBreakdownBar = 118.0; // 우측 가로 막대 최대 길이(px)
 
             // 제목: 선택된 년도에 따라 표기
@@ -1261,13 +1252,13 @@ namespace CleanPotal
 
             string TypeOf(BrokenRecord r) => string.IsNullOrWhiteSpace(r.ProductType) ? "기타" : r.ProductType.Trim();
 
-            // 제품군 목록 + 색상 매핑
+            // 제품군 목록 + 색상 매핑 (우측 현황용 WPF Brush 유지)
             var types = source.Select(TypeOf).Distinct().OrderBy(t => t).ToList();
             var typeColor = new Dictionary<string, Brush>();
             for (int i = 0; i < types.Count; i++)
                 typeColor[types[i]] = _palette[i % _palette.Length];
 
-            // ── 월×제품군 누적 막대 ──
+            // ── 월×제품군 누적 막대 (LiveCharts2 StackedColumn) ──
             var perMonth = new Dictionary<int, Dictionary<string, int>>();
             for (int m = 1; m <= 12; m++)
             {
@@ -1277,31 +1268,30 @@ namespace CleanPotal
             foreach (var r in source.Where(r => r.OccurDate.HasValue))
                 perMonth[r.OccurDate!.Value.Month][TypeOf(r)]++;
 
-            int globalMax = 1;
-            for (int m = 1; m <= 12; m++)
-                globalMax = Math.Max(globalMax, perMonth[m].Values.Sum());
-
-            var months = new List<ChartMonth>();
-            for (int m = 1; m <= 12; m++)
+            var brokenSeries = new List<ISeries>();
+            for (int i = 0; i < types.Count; i++)
             {
-                int tot = perMonth[m].Values.Sum();
-                var segs = new List<ChartSegment>();
-                foreach (var t in types)
+                string t = types[i];
+                var values = Enumerable.Range(1, 12).Select(m => (double)perMonth[m][t]).ToArray();
+                brokenSeries.Add(new StackedColumnSeries<double>
                 {
-                    int c = perMonth[m][t];
-                    if (c <= 0) continue;
-                    segs.Add(new ChartSegment
-                    {
-                        Color = typeColor[t],
-                        HeightPx = Math.Max(3.0, (double)c / globalMax * maxBar),
-                        Tip = $"{m}월 · {t} : {c}건"
-                    });
-                }
-                months.Add(new ChartMonth { MonthLabel = $"{m}월", Total = tot, Segments = segs });
+                    Name = t,
+                    Values = values,
+                    Fill = new SolidColorPaint(_paletteSk[i % _paletteSk.Length]),
+                    Stroke = null,
+                    MaxBarWidth = 36,
+                    Rx = 4,
+                    Ry = 4
+                });
             }
 
-            ChartHost.ItemsSource = months;
-            LegendHost.ItemsSource = types.Select(t => new LegendEntry { Color = typeColor[t], Label = t }).ToList();
+            ChartBroken.Series = brokenSeries;
+            ChartBroken.XAxes = new[] { new Axis {
+                Labels = Enumerable.Range(1, 12).Select(m => $"{m}월").ToArray(),
+                TextSize = 11,
+                LabelsRotation = 0
+            }};
+            ChartBroken.YAxes = new[] { new Axis { TextSize = 11, MinLimit = 0 } };
 
             // ── 우측: 팀별(제품군 누적) / 제품종류별 현황 ──
             if (TeamBreakdownHost != null)
