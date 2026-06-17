@@ -1118,13 +1118,14 @@ namespace CleanPotal
                 // ── A4 가로 출력 설정 ──
                 ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
                 ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-                ws.PageSetup.Margins.Top = 0.2;
-                ws.PageSetup.Margins.Bottom = 0.2;
-                ws.PageSetup.Margins.Left = 0.3;
-                ws.PageSetup.Margins.Right = 0.3;
+                ws.PageSetup.Margins.Top = 0.1;
+                ws.PageSetup.Margins.Bottom = 0.1;
+                ws.PageSetup.Margins.Left = 0.1;
+                ws.PageSetup.Margins.Right = 0.1;
                 ws.PageSetup.Margins.Header = 0;
                 ws.PageSetup.Margins.Footer = 0;
                 ws.PageSetup.CenterHorizontally = true;
+                ws.PageSetup.CenterVertically = true;
                 ws.PageSetup.FitToPages(1, 1);              // 한 장(가로 1 × 세로 1)에 맞춤
                 ws.PageSetup.SetRowsToRepeatAtTop(1, 2);    // 제목/머리글 행 반복 인쇄
 
@@ -1226,23 +1227,24 @@ namespace CleanPotal
                     table.Style.Border.InsideBorderColor = XLColor.FromHtml("#CBD5E1");
                 }
 
-                // ── 컬럼 너비 (A4 가로 기준 고정) ──
-                ws.Column(1).Width = 5;    // NO
-                ws.Column(2).Width = 26;   // 품목명
-                ws.Column(3).Width = 14;   // 위치
-                ws.Column(4).Width = 9;    // 현재재고
-                ws.Column(5).Width = 9;    // 적정재고
-                ws.Column(6).Width = 7;    // 단위
-                ws.Column(7).Width = 9;    // 발주여부
-                ws.Column(8).Width = 13;   // 발주날짜
-                ws.Column(9).Width = 13;   // 입고예정
-                ws.Column(10).Width = 16;  // 발주회사
-                ws.Column(11).Width = 22;  // 비고
+                // ── 컬럼 너비 (A4 가로 비율 1.41:1에 맞춰 페이지를 꽉 채움) ──
+                ws.Column(1).Width = 7;    // NO
+                ws.Column(2).Width = 38;   // 품목명
+                ws.Column(3).Width = 18;   // 위치
+                ws.Column(4).Width = 13;   // 현재재고
+                ws.Column(5).Width = 13;   // 적정재고
+                ws.Column(6).Width = 10;   // 체크
+                ws.Column(7).Width = 13;   // 발주여부
+                ws.Column(8).Width = 16;   // 발주날짜
+                ws.Column(9).Width = 16;   // 입고예정
+                ws.Column(10).Width = 24;  // 발주회사
+                ws.Column(11).Width = 36;  // 비고
 
-                ws.Range(2, 1, lastDataRow, cols).Style.Font.FontSize = 10;
-                ws.Cell(lastDataRow + 2, 1).Value = "※ 현재재고 ≤ 적정재고 항목은 즉시 발주 필요 (빨간색 행)";
-                ws.Cell(lastDataRow + 2, 1).Style.Font.FontColor = XLColor.FromHtml("#B91C1C");
-                ws.Cell(lastDataRow + 2, 1).Style.Font.FontSize = 9;
+                // 데이터 행 높이를 키워 세로 공간도 채움
+                for (int rr = 3; rr <= lastDataRow; rr++)
+                    if (ws.Row(rr).Height < 19) ws.Row(rr).Height = 19;
+
+                ws.Range(2, 1, lastDataRow, cols).Style.Font.FontSize = 11;
 
                 wb.SaveAs(dlg.FileName);
                 MessageBox.Show("엑셀 파일이 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
