@@ -314,6 +314,7 @@
                     <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnAddLocation" Content="+ 위치 추가" Style="{StaticResource GhostBtn}" Click="BtnAddLocation_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnEditLocation" Content="위치명 수정" Style="{StaticResource GhostBtn}" Click="BtnEditLocation_Click" Margin="0,0,8,0"/>
                     <Button x:Name="BtnAddRow" Content="+ 품목 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
                 </StackPanel>
             </DockPanel>
