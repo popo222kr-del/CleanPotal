@@ -9,6 +9,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:DecimalThousandsConverter x:Key="DecimalThousandsConverter"/>
 
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
@@ -47,6 +48,19 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
+
+        <Style x:Key="LineItemCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource GridCellStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E0E7FF"/>
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="Background" Value="#EEF2FF"/>
+                    <Setter Property="BorderBrush" Value="#6366F1"/>
+                    <Setter Property="BorderThickness" Value="1.5"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="ListItemStyle" TargetType="ListBoxItem">
@@ -154,12 +168,32 @@
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding VendorName}" FontSize="14" FontWeight="Bold"
                                                Foreground="#1E293B" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    <TextBlock FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Text" Value="{Binding Category}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VendorName}" Value="전체 보기">
+                                                        <Setter Property="Text" Value="최근 작성순 전체 견적서"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
-                                <!-- 즐겨찾기 토글 버튼 -->
+                                <!-- 즐겨찾기 토글 버튼 ("전체 보기" 항목에는 표시 안 함) -->
                                 <Button Grid.Column="1" Width="28" Height="28" Background="Transparent"
                                         BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"
                                         ToolTip="즐겨찾기" Click="BtnToggleFavorite_Click">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding VendorName}" Value="전체 보기">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
                                     <TextBlock FontSize="15" VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -220,7 +254,7 @@
                         <Button Content="+ 새 견적서" Style="{StaticResource MacPrimaryButtonStyle}"
                                 Height="38" MinWidth="110"
                                 Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibilityConverter}}"
-                                IsEnabled="{Binding HasSelectedVendor}"
+                                IsEnabled="{Binding CanCreateNewQuotation}"
                                 Click="BtnNewQuotation_Click"/>
                         <!-- 편집 화면: 내보내기 + 저장만 표시 -->
                         <Button Content="엑셀 내보내기" Style="{StaticResource MacSecondaryButtonStyle}"
@@ -255,14 +289,30 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 건수 표시 -->
-                <Border Grid.Row="0" Padding="28,16,28,0">
-                    <TextBlock FontSize="13" Foreground="#64748B">
+                <!-- 건수 표시 + 견적번호 검색 -->
+                <Grid Grid.Row="0" Margin="28,16,28,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" FontSize="13" Foreground="#64748B" VerticalAlignment="Center">
                         <Run Text="총 "/>
                         <Run Text="{Binding VendorQuotations.Count, Mode=OneWay}"/>
                         <Run Text="건"/>
                     </TextBlock>
-                </Border>
+                    <Border Grid.Column="1"
+                            Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1"
+                            CornerRadius="8" Padding="12,0" Height="36" Width="220">
+                        <Grid>
+                            <TextBlock Text="🔍" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8"/>
+                            <TextBox Text="{Binding QuoteNoSearch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" BorderThickness="0"
+                                     VerticalContentAlignment="Center" FontSize="13"
+                                     Foreground="#1E293B" Padding="24,0,0,0"
+                                     Tag="견적번호 검색..."/>
+                        </Grid>
+                    </Border>
+                </Grid>
 
                 <!-- 견적 목록 그리드 -->
                 <DataGrid Grid.Row="1" x:Name="VendorQuotationsGrid"
@@ -283,6 +333,17 @@
                           Margin="28,12,28,28"
                           MouseDoubleClick="QuotationListGrid_DoubleClick">
                     <DataGrid.Columns>
+                        <!-- 업체명 ("전체 보기"일 때만 표시) -->
+                        <DataGridTextColumn x:Name="VendorQuotationCompanyColumn" Header="업체명" Binding="{Binding Company}" IsReadOnly="True" Width="130"
+                                            Visibility="Collapsed">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
                         <!-- 견적번호 -->
                         <DataGridTextColumn Header="견적번호" Binding="{Binding QuoteNo}" IsReadOnly="True" Width="150">
                             <DataGridTextColumn.ElementStyle>
@@ -528,11 +589,10 @@
                                          Text="{Binding Date, Mode=OneWay}"
                                          IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
 
-                                <!-- 유효기간 (자동: 견적일 +7일) -->
+                                <!-- 유효기간 (기본: 견적일 +7일, 필요 시 수정 가능) -->
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid Until (유효일)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
-                                         Text="{Binding Validity, Mode=OneWay}"
-                                         IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
+                                         Text="{Binding Validity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <!-- AETS 담당자 -->
                                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Our Contact (담당자)" Style="{StaticResource InlineLabelStyle}" TextWrapping="Wrap"/>
@@ -598,7 +658,8 @@
                                       AlternationCount="2"
                                       RowStyle="{StaticResource GridRowStyle}"
                                       ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}">
+                                      CellStyle="{StaticResource LineItemCellStyle}"
+                                      PreviewGotKeyboardFocus="LineItemsGrid_PreviewGotKeyboardFocus">
                                 <DataGrid.Columns>
                                     <!-- No -->
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" IsReadOnly="True" Width="46">
@@ -614,86 +675,93 @@
                                     <DataGridTemplateColumn Header="Part's Name" Width="2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CellTextStyle}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center"
+                                                         TextWrapping="Wrap" AcceptsReturn="True"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextWrapping="Wrap" AcceptsReturn="True"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 품목코드 -->
                                     <DataGridTemplateColumn Header="품목코드" Width="120">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding PartCode}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding PartCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 규격(SIZE) -->
                                     <DataGridTemplateColumn Header="규격 (SIZE)" Width="1.2*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding StandardSpec}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding StandardSpec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- Q'ty -->
                                     <DataGridTemplateColumn Header="Q'ty" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Qty}" Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"/>
+                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Center"
+                                                         GotFocus="LineItemTextBox_GotFocus"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 단가 -->
                                     <DataGridTemplateColumn Header="단가 (₩)" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding ListPrice, StringFormat={}{0:N0}}"
-                                                           Style="{StaticResource CellTextStyle}" HorizontalAlignment="Right" Padding="10,0,14,0"/>
+                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=LostFocus, Converter={StaticResource DecimalThousandsConverter}}"
+                                                         BorderThickness="0" Background="Transparent" Padding="10,0,14,0"
+                                                         FontSize="13" VerticalContentAlignment="Center" TextAlignment="Right"
+                                                         GotFocus="LineItemTextBox_GotFocus">
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ListPrice}" Value="0">
+                                                                    <Setter Property="Foreground" Value="#DC2626"/>
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <TextBox Text="{Binding ListPrice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
                                     <!-- 금액 (자동계산, 읽기전용) -->
                                     <DataGridTemplateColumn Header="금액 (₩)" Width="140" IsReadOnly="True">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}"
-                                                           Style="{StaticResource CellTextStyle}"
-                                                           HorizontalAlignment="Right" Padding="10,0,14,0"
-                                                           FontWeight="SemiBold" Foreground="#1E40AF"/>
+                                                <TextBlock Text="{Binding Amount, StringFormat={}{0:N0}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource CellTextStyle}">
+                                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                            <Setter Property="Padding" Value="10,0,14,0"/>
+                                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                                            <Setter Property="Foreground" Value="#1E40AF"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ListPrice}" Value="0">
+                                                                    <Setter Property="Foreground" Value="#DC2626"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -742,7 +810,7 @@
         <Grid x:Name="ProductMasterOverlay" Grid.ColumnSpan="2"
               Background="#CC000000" Visibility="Collapsed">
             <Border Background="White" CornerRadius="16"
-                    Width="920" MaxHeight="680"
+                    Width="1080" MaxHeight="860"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Padding="32,28">
                 <Border.Effect>
@@ -759,17 +827,25 @@
 
                     <!-- Row 0: 타이틀 + 액션 버튼 -->
                     <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <StackPanel VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
                             <TextBlock Text="단가 관리" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
                             <TextBlock Text="제품 단가를 등록하면 견적서 작성 시 빠르게 추가할 수 있습니다."
-                                       FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                                       FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <!-- 관리자(1004)만 삭제 가능 -->
                             <Button Content="선택 삭제" Style="{StaticResource MacDangerButtonStyle}"
                                     Height="36" MinWidth="90" Margin="0,0,8,0"
                                     Visibility="{Binding IsQuotationAdmin, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Click="BtnDeleteMasterItem_Click"/>
+                            <Button Content="엑셀 업로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="36" MinWidth="110" Margin="0,0,8,0" Click="BtnImportMasterExcel_Click"/>
+                            <Button Content="엑셀 다운로드" Style="{StaticResource MacSecondaryButtonStyle}"
+                                    Height="36" MinWidth="120" Margin="0,0,8,0" Click="BtnExportMasterExcel_Click"/>
                             <Button Content="+ 항목 추가" Style="{StaticResource MacSecondaryButtonStyle}"
                                     Height="36" MinWidth="100" Margin="0,0,8,0" Click="BtnAddMasterItem_Click"/>
                             <Button Content="견적에 추가" Style="{StaticResource MacPrimaryButtonStyle}"
@@ -778,7 +854,12 @@
                     </Grid>
 
                     <!-- Row 1: 업체 칩 필터 (Notion 스타일) -->
-                    <Border Grid.Row="1" Margin="0,0,0,12"
+                    <Grid Grid.Row="1" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0"
                             Background="#F8FAFC" CornerRadius="10" Padding="10,8">
                         <ListBox ItemsSource="{Binding MasterVendorOptions}"
                                  SelectedItem="{Binding MasterVendorFilter, Mode=TwoWay}"
@@ -823,6 +904,11 @@
                             </ListBox.ItemContainerStyle>
                         </ListBox>
                     </Border>
+                    <Button Grid.Column="1" Content="업체명 통합" Style="{StaticResource MacSecondaryButtonStyle}"
+                            Height="36" MinWidth="92" Margin="8,0,0,0"
+                            ToolTip="선택된 업체명으로 등록된 모든 단가 항목의 업체명을 일괄 변경합니다."
+                            Click="BtnRenameVendor_Click"/>
+                    </Grid>
 
                     <!-- Row 2: 검색 박스 -->
                     <Border Grid.Row="2" Margin="0,0,0,12"
@@ -926,6 +1012,16 @@
                                                  Style="{StaticResource CellEditStyle}" TextAlignment="Right"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="수정 정보" Width="170" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding UpdateInfo}"
+                                                   Style="{StaticResource CellTextStyle}" HorizontalAlignment="Center"
+                                                   FontSize="11" Foreground="#94A3B8"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>

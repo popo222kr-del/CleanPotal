@@ -117,13 +117,16 @@ namespace CleanPotal
             for (int i = 0; i < 7; i++)
             {
                 string line = i < remarkLines.Count ? remarkLines[i] : "";
-                SetStr(sd, $"C{45 + i}", line);
+                var cell = SetStr(sd, $"C{45 + i}", line);
+                // C46/C48/C50/C51 등은 템플릿에 셀이 없어 새로 생성되며 스타일이 없으면
+                // 기본 글꼴로 표시되어 비고 줄마다 서식이 달라짐 → C45와 동일한 스타일로 통일
+                cell.StyleIndex = 1U;
             }
         }
 
         // ─── 셀 쓰기 헬퍼 ────────────────────────────────────────────────
 
-        private static void SetStr(SheetData sd, string cellRef, string? value)
+        private static Cell SetStr(SheetData sd, string cellRef, string? value)
         {
             var cell = GetOrCreateCell(sd, cellRef);
             cell.RemoveAllChildren();
@@ -131,6 +134,7 @@ namespace CleanPotal
             cell.CellValue = null;
             cell.Append(new InlineString(new Text(value ?? "")
                 { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+            return cell;
         }
 
         private static void SetNum(SheetData sd, string cellRef, double value)

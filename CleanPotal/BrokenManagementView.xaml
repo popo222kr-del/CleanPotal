@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CleanPotal"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              Background="#F8FAFC"
              SnapsToDevicePixels="True" UseLayoutRounding="True"
              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
@@ -11,6 +12,8 @@
         <local:FileNameConverter x:Key="FileNameConverter"/>
         <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
 
+        <SolidColorBrush x:Key="BorderLight" Color="#E5E7EB"/>
+
         <Style x:Key="SectionCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E2E8F0"/>
@@ -19,14 +22,14 @@
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
-        <!-- Modern ComboBox -->
+        <!-- Filter ComboBox -->
         <Style x:Key="FilterComboStyle" TargetType="ComboBox">
             <Setter Property="Height" Value="34"/>
             <Setter Property="MinWidth" Value="110"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,0,8,0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -40,11 +43,11 @@
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="8">
+                                    CornerRadius="6">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="28"/>
+                                        <ColumnDefinition Width="26"/>
                                     </Grid.ColumnDefinitions>
                                     <ContentPresenter Grid.Column="0"
                                                       Content="{TemplateBinding SelectionBoxItem}"
@@ -52,12 +55,13 @@
                                                       Margin="{TemplateBinding Padding}"
                                                       VerticalAlignment="Center"
                                                       IsHitTestVisible="False"/>
+                                    <!-- 화살표 아이콘 -->
                                     <Path Grid.Column="1"
-                                          Data="M 0 0 L 5 5 L 10 0"
-                                          Stroke="#94A3B8" StrokeThickness="1.5"
+                                          Data="M 0 0 L 4 4 L 8 0"
+                                          Stroke="#64748B" StrokeThickness="1.5"
                                           Fill="Transparent"
                                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                                          IsHitTestVisible="False"/>
+                                          IsHitTestVisible="False" x:Name="arrow"/>
                                 </Grid>
                             </Border>
                             <ToggleButton Focusable="False" IsTabStop="False"
@@ -68,26 +72,30 @@
                                    AllowsTransparency="True"
                                    Focusable="False"
                                    PopupAnimation="Fade"
-                                   Placement="Bottom">
-                                <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                                        CornerRadius="8" MinWidth="{TemplateBinding ActualWidth}"
-                                        Margin="0,4,0,0">
+                                   Placement="Bottom"
+                                   VerticalOffset="-34">
+                                <Border Background="White"
+                                        BorderBrush="#CBD5E1" BorderThickness="1"
+                                        CornerRadius="4"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        Margin="0">
                                     <Border.Effect>
-                                        <DropShadowEffect Color="#0F172A" Opacity="0.1" BlurRadius="16" ShadowDepth="4" Direction="270"/>
+                                        <DropShadowEffect Color="#000000" Opacity="0.10"
+                                                          BlurRadius="12" ShadowDepth="3" Direction="270"/>
                                     </Border.Effect>
-                                    <ScrollViewer Margin="4" VerticalScrollBarVisibility="Auto" MaxHeight="220">
-                                        <ItemsPresenter/>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
+                                        <ItemsPresenter Margin="0,2,0,2"/>
                                     </ScrollViewer>
                                 </Border>
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#CBD5E1"/>
-                                <Setter TargetName="bd" Property="Background" Value="#FAFAFA"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
                             </Trigger>
                             <Trigger Property="IsDropDownOpen" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="arrow" Property="Stroke" Value="#3B82F6"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -96,33 +104,85 @@
             <Setter Property="ItemContainerStyle">
                 <Setter.Value>
                     <Style TargetType="ComboBoxItem">
-                        <Setter Property="Padding" Value="10,7"/>
+                        <Setter Property="Padding" Value="12,6"/>
+                        <Setter Property="Margin" Value="0"/>
                         <Setter Property="FontSize" Value="13"/>
-                        <Setter Property="Foreground" Value="#334155"/>
+                        <Setter Property="Foreground" Value="#1E293B"/>
                         <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ComboBoxItem">
                                     <Border x:Name="bd" Background="Transparent"
-                                            CornerRadius="6" Padding="{TemplateBinding Padding}"
-                                            Margin="0,1">
+                                            Margin="0" Padding="{TemplateBinding Padding}">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsHighlighted" Value="True">
-                                            <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                                            <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                            <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
                                             <Setter Property="Foreground" Value="#1D4ED8"/>
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                         </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="True"/>
+                                                <Condition Property="IsHighlighted" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="bd" Property="Background" Value="#BFDBFE"/>
+                                        </MultiTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
                         </Setter>
                     </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Filter search TextBox -->
+        <Style x:Key="FilterSearchBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <Grid>
+                                <TextBlock x:Name="ph" Text="🔍 이름 검색" Foreground="#94A3B8"
+                                           FontSize="13" Margin="11,0,0,0" VerticalAlignment="Center"
+                                           IsHitTestVisible="False" Visibility="Collapsed"/>
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="ph" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -293,167 +353,354 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+
+        <!-- 교육현황 표: 강조 셀 (실적/반기 합계) -->
+        <Style x:Key="SummaryHighlightCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2563EB"/>
+        </Style>
+
+        <!-- 교육현황 표: 월별 셀 (실적이 있는 월만 강조) -->
+        <Style x:Key="MonthlyHighlightCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Style.Triggers>
+                <Trigger Property="Text" Value="0">
+                    <Setter Property="FontWeight" Value="Normal"/>
+                    <Setter Property="Foreground" Value="#94A3B8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 교육 기록: 교육일자 셀 / 편집 템플릿 -->
+        <DataTemplate x:Key="TrainingDateCellTemplate">
+            <TextBlock Text="{Binding TrainingDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TrainingDateEditTemplate">
+            <DatePicker SelectedDate="{Binding TrainingDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        VerticalAlignment="Center" Margin="2,0"/>
+        </DataTemplate>
+
+        <!-- 교육 기록: 교육기록서 첨부 칩 -->
+        <DataTemplate x:Key="TrainingDocCellTemplate">
+            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                    DragOver="CellAttachment_DragOver"
+                    DragLeave="CellAttachment_DragLeave"
+                    Drop="CellDropTrainingRecord_Drop">
+                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                        Background="#F1F5F9" Tag="{Binding}"
+                        MouseLeftButtonUp="AttachChipTrainingRecord_Click"
+                        MouseRightButtonUp="AttachChipTrainingRecord_RightClick">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="chipTxt" Text="{Binding DocumentLabel}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasDocument}" Value="True">
+                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 교육 기록: 교육이미지 첨부 칩 -->
+        <DataTemplate x:Key="TrainingImageCellTemplate">
+            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                    DragOver="CellAttachment_DragOver"
+                    DragLeave="CellAttachment_DragLeave"
+                    Drop="CellDropTrainingImage_Drop">
+                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                        Background="#F1F5F9" Tag="{Binding}"
+                        MouseLeftButtonUp="AttachChipTrainingImage_Click"
+                        MouseRightButtonUp="AttachChipTrainingImage_RightClick">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🖼" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="chipTxt" Text="{Binding ImageLabel}"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasImage}" Value="True">
+                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 교육 기록: 교육 내용 셀 / 편집 템플릿 -->
+        <DataTemplate x:Key="TrainingContentCellTemplate">
+            <TextBlock Text="{Binding Content}" VerticalAlignment="Center" Margin="10,0"
+                       TextTrimming="CharacterEllipsis"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TrainingContentEditTemplate">
+            <TextBox Text="{Binding Content, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalAlignment="Center" Margin="2,0" BorderThickness="0"
+                     Background="Transparent" Padding="8,0"/>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <Grid Margin="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 드랍존 + 메모 -->
-        <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
-            <Grid MinHeight="120">
+        <!-- 대시보드 (월별 차트 + 팀/제품종류 현황) -->
+        <Border x:Name="TopDashboardArea" Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="0">
+            <Grid MinHeight="252">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="1"/>
                     <ColumnDefinition Width="270"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Drop zone -->
-                <Border x:Name="DropZoneBg" Grid.Column="0"
-                        Background="#F8FAFC" CornerRadius="11,0,0,11"
-                        AllowDrop="True"
-                        DragOver="DropZone_DragOver"
-                        DragLeave="DropZone_DragLeave"
-                        Drop="DropZone_Drop"
-                        Cursor="Hand"
-                        MouseLeftButtonUp="DropZone_Click">
-                    <Grid Margin="16,10">
-                        <!-- Dashed border overlay -->
-                        <Rectangle x:Name="RectDash"
-                                   Stroke="#CBD5E1" StrokeThickness="1.5"
-                                   StrokeDashArray="6,3" RadiusX="8" RadiusY="8"
-                                   Fill="Transparent" IsHitTestVisible="False"/>
+                <!-- 대시보드: 월별 제품군 수량 -->
+                <Grid Grid.Column="0" Margin="22,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,10">
-                            <TextBlock x:Name="TxtDropIcon" Text="📂" FontSize="26"
-                                       HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="TxtDropHint"
-                                       Text="xlsx 파일을 여기에 드래그하세요"
-                                       FontSize="13" Foreground="#64748B"
-                                       HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                            <TextBlock Text="또는 클릭하여 선택" FontSize="11" Foreground="#94A3B8"
-                                       HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                                <TextBlock x:Name="TxtFilePath" Text="" FontSize="11"
-                                           Foreground="#2563EB" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" MaxWidth="320"/>
-                                <TextBlock x:Name="TxtRecordCount" Text="" FontSize="11"
-                                           Foreground="#64748B" FontWeight="SemiBold" Margin="8,0,0,0"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                    <!-- 헤더 -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtDashTitle" Text="2026년 월별 제품군 수량"
+                                   FontSize="15" FontWeight="Bold" Foreground="#0F172A"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtRecordCount" Text="" FontSize="11"
+                                   Foreground="#94A3B8" FontWeight="SemiBold"
+                                   VerticalAlignment="Bottom" Margin="10,0,0,1"/>
+                    </StackPanel>
+
+                    <!-- 차트 (LiveCharts2 누적 세로 막대) -->
+                    <lvc:CartesianChart x:Name="ChartBroken" Grid.Row="1" Margin="0,12,0,0"
+                                        LegendPosition="Bottom" MinHeight="200"/>
+                </Grid>
 
                 <!-- Separator -->
                 <Rectangle Grid.Column="1" Fill="#E2E8F0" Margin="0,10"/>
 
-                <!-- 메모 -->
-                <Grid Grid.Column="2" Margin="14,12">
+                <!-- 팀별 / 제품종류별 현황 -->
+                <Grid Grid.Column="2" Margin="16,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="메모" FontSize="12" FontWeight="SemiBold"
-                               Foreground="#475569" Margin="0,0,0,6"/>
-                    <Grid Grid.Row="1">
-                        <TextBox x:Name="TxtMemo"
-                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 FontSize="12" Foreground="#334155"
-                                 Background="White" BorderBrush="#E2E8F0" BorderThickness="1"
-                                 Padding="8,6" MinHeight="62">
-                            <TextBox.Style>
-                                <Style TargetType="TextBox">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="TextBox">
-                                                <Border Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="8">
-                                                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </TextBox.Style>
-                        </TextBox>
-                        <TextBlock Text="메모를 입력하세요..." FontSize="12" Foreground="#CBD5E1"
-                                   Margin="10,8" IsHitTestVisible="False" VerticalAlignment="Top">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=TxtMemo}" Value="">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
+
+                    <!-- 팀별 (제품군 누적) -->
+                    <TextBlock Grid.Row="0" Text="팀별 · 제품군" FontSize="12" FontWeight="Bold"
+                               Foreground="#334155" Margin="0,0,0,8"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <ItemsControl x:Name="TeamBreakdownHost">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="56"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11"
+                                                   Foreground="#475569" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <!-- 제품군별 누적 가로 막대 -->
+                                        <Border Grid.Column="1" HorizontalAlignment="Left" Height="15"
+                                                CornerRadius="4" ClipToBounds="True" VerticalAlignment="Center">
+                                            <ItemsControl ItemsSource="{Binding Segments}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding Color}"
+                                                                Width="{Binding Length}"
+                                                                ToolTip="{Binding Tip}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                        <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"
+                                                   VerticalAlignment="Center" Margin="7,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 제품종류별 -->
+                    <TextBlock Grid.Row="2" Text="제품종류별" FontSize="12" FontWeight="Bold"
+                               Foreground="#334155" Margin="0,0,0,8"/>
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="TypeBreakdownHost">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="56"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11"
+                                                   Foreground="#475569" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="1" HorizontalAlignment="Left"
+                                                Width="{Binding BarWidth}" Height="15"
+                                                Background="{Binding Color}" CornerRadius="4"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="11"
+                                                   FontWeight="SemiBold" Foreground="#0F172A"
+                                                   VerticalAlignment="Center" Margin="7,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </Grid>
         </Border>
 
+        <!-- 대시보드 접기/펴기 토글 -->
+        <Grid x:Name="DashboardToggleRow" Grid.Row="1" Margin="8,12,8,12">
+            <Rectangle Height="1" Fill="{StaticResource BorderLight}" VerticalAlignment="Center"/>
+            <Button x:Name="BtnToggleDashboard" Content="대시보드 접기 ▲"
+                    HorizontalAlignment="Center" Padding="24,6"
+                    Background="#FFFFFF" Foreground="#64748B"
+                    BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
+                    FontSize="13" FontWeight="Bold" Cursor="Hand"
+                    Click="BtnToggleDashboard_Click">
+                <Button.Resources>
+                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="16"/></Style>
+                </Button.Resources>
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+
         <!-- 탭 -->
-        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0">
+        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="0">
 
             <!-- Tab 1: Broken 현황 -->
             <TabItem Header="Broken 현황" Style="{StaticResource TabHeaderStyle}">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- 필터 바 -->
                     <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,10">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbYear" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbYear" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="라인" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbLine" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbLine" MinWidth="110" Margin="0,0,16,0"/>
 
                             <TextBlock Text="팀" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbTeam" Style="{StaticResource FilterComboStyle}"
-                                      SelectionChanged="Filter_SelectionChanged" Margin="0,0,16,0"/>
+                            <local:MultiSelectFilter x:Name="CmbTeam" MinWidth="110" Margin="0,0,16,0"/>
+
+                            <TextBlock Text="제품종류" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <local:MultiSelectFilter x:Name="CmbProductType" MinWidth="110" Margin="0,0,16,0"/>
+
+                            <TextBlock Text="발생단계" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <local:MultiSelectFilter x:Name="CmbOccurStage" MinWidth="110" Margin="0,0,16,0"/>
+
+                            <TextBlock Text="유발자" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <local:MultiSelectFilter x:Name="CmbCauser" MinWidth="110" Margin="0,0,6,0"/>
+                            <TextBox x:Name="TxtCauserSearch" Style="{StaticResource FilterSearchBoxStyle}"
+                                     TextChanged="CauserSearch_TextChanged" Margin="0,0,16,0"/>
 
                             <Button Content="초기화" Style="{StaticResource GhostButtonStyle}"
                                     Click="BtnResetFilter_Click"/>
-                        </StackPanel>
+                        </WrapPanel>
                     </Border>
 
+                    <!-- 툴바 -->
+                    <StackPanel x:Name="BrokenToolbar" Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button x:Name="BtnLoadFile" Content="파일 불러오기" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnLoadFile_Click"/>
+                        <Button x:Name="BtnAddRow" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnAddRow_Click"/>
+                        <Button x:Name="BtnDeleteRow" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnDeleteRow_Click"/>
+                        <Button x:Name="BtnSaveData" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30" Margin="0,0,6,0"
+                                Click="BtnSave_Click"/>
+                        <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30"
+                                Click="BtnExportExcel_Click"/>
+                    </StackPanel>
+
                     <!-- 데이터 그리드 -->
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
+                    <Border Grid.Row="2" Style="{StaticResource SectionCardStyle}" Padding="0" ClipToBounds="True">
                         <DataGrid x:Name="DgBroken"
                                   Style="{StaticResource BrokenDataGridStyle}"
-                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
+                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                  CanUserAddRows="False"
+                                  CellEditEnding="DgBroken_CellEditEnding">
                             <DataGrid.Columns>
 
-                                <DataGridTextColumn Header="NO" Binding="{Binding No}" Width="50"
+                                <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="년도" Binding="{Binding OccurYear}" Width="60"
+                                <DataGridTemplateColumn Header="발생일" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding OccurDateShort}" Style="{StaticResource CenterCell}" Margin="10,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding OccurDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="발생일" Binding="{Binding OccurDateShort}" Width="130"/>
+                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="3*" MinWidth="220"/>
 
-                                <DataGridTextColumn Header="라인" Binding="{Binding Line}" Width="70"
+                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="175"
                                                     ElementStyle="{StaticResource CenterCell}"/>
-
-                                <DataGridTextColumn Header="제품명" Binding="{Binding ProductName}" Width="240"/>
-
-                                <DataGridTextColumn Header="S/N" Binding="{Binding SN}" Width="120"/>
 
                                 <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
@@ -461,119 +708,164 @@
                                 <DataGridTextColumn Header="유발자" Binding="{Binding Causer}" Width="80"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="직위" Binding="{Binding JobTitle}" Width="90"
+                                <DataGridTextColumn Header="직위 (경력)" Binding="{Binding PositionDisplay}"
+                                                    Width="140" IsReadOnly="True"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="80"
+                                <DataGridTextColumn Header="제품종류" Binding="{Binding ProductType}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
                                 <DataGridTextColumn Header="발생단계" Binding="{Binding OccurStage}" Width="90"
                                                     ElementStyle="{StaticResource CenterCell}"/>
 
-                                <DataGridTextColumn Header="처리현황" Binding="{Binding Status}" Width="110"/>
-
-                                <!-- 자료 첨부 컬럼: 경위서 / 대책서 / 교육서 -->
-                                <DataGridTemplateColumn Header="경위서" Width="120" IsReadOnly="False">
+                                <!-- ── 공식/비공식 ── -->
+                                <DataGridTemplateColumn x:Name="ColIsOfficial" Header="공식여부" Width="90">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                                <Button Content="📎"
-                                                        Tag="{Binding}"
-                                                        Style="{StaticResource SmallAttachStyle}"
-                                                        Click="BtnAttachIncident_Click"
-                                                        ToolTip="경위서 첨부"/>
-                                                <ItemsControl ItemsSource="{Binding IncidentReports}" Margin="4,0,0,0">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal"/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE"
-                                                                    BorderThickness="1" CornerRadius="4"
-                                                                    Padding="4,2" Margin="2,0"
-                                                                    Cursor="Hand" Tag="{Binding}"
-                                                                    ToolTip="{Binding}"
-                                                                    MouseLeftButtonUp="FileChip_Click">
-                                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
-                                                                           FontSize="10" Foreground="#1D4ED8"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
+                                            <Border x:Name="offBd" CornerRadius="6" Padding="8,3"
+                                                    HorizontalAlignment="Center" Background="#F1F5F9">
+                                                <TextBlock x:Name="offTxt" Text="{Binding IsOfficial}"
+                                                           FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsOfficial}" Value="공식">
+                                                    <Setter TargetName="offBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="offTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <ComboBox SelectedValue="{Binding IsOfficial, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectedValuePath="Content" VerticalAlignment="Center" Margin="2,0">
+                                                <ComboBoxItem Content="공식"/>
+                                                <ComboBoxItem Content="비공식"/>
+                                            </ComboBox>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- ── 경위서 ── -->
+                                <DataGridTemplateColumn Header="경위서" Width="*" MinWidth="58" IsReadOnly="True">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                                                    DragOver="CellAttachment_DragOver"
+                                                    DragLeave="CellAttachment_DragLeave"
+                                                    Drop="CellDropIncident_Drop">
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipIncident_Click"
+                                                        MouseRightButtonUp="AttachChipIncident_RightClick">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding IncidentLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasIncident}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="대책서" Width="120" IsReadOnly="False">
+                                <!-- ── 대책서 ── -->
+                                <DataGridTemplateColumn Header="대책서" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                                <Button Content="📎"
-                                                        Tag="{Binding}"
-                                                        Style="{StaticResource SmallAttachStyle}"
-                                                        Click="BtnAttachCountermeasure_Click"
-                                                        ToolTip="대책서 첨부"/>
-                                                <ItemsControl ItemsSource="{Binding CountermeasureReports}" Margin="4,0,0,0">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal"/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="#F0FDF4" BorderBrush="#BBF7D0"
-                                                                    BorderThickness="1" CornerRadius="4"
-                                                                    Padding="4,2" Margin="2,0"
-                                                                    Cursor="Hand" Tag="{Binding}"
-                                                                    ToolTip="{Binding}"
-                                                                    MouseLeftButtonUp="FileChip_Click">
-                                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
-                                                                           FontSize="10" Foreground="#16A34A"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                                                    DragOver="CellAttachment_DragOver"
+                                                    DragLeave="CellAttachment_DragLeave"
+                                                    Drop="CellDropCountermeasure_Drop">
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipCountermeasure_Click"
+                                                        MouseRightButtonUp="AttachChipCountermeasure_RightClick">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding CountermeasureLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasCountermeasure}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="교육서" Width="120" IsReadOnly="False">
+                                <!-- ── 교육서 ── -->
+                                <DataGridTemplateColumn Header="교육서" Width="*" MinWidth="58" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
-                                                <Button Content="📎"
-                                                        Tag="{Binding}"
-                                                        Style="{StaticResource SmallAttachStyle}"
-                                                        Click="BtnAttachTraining_Click"
-                                                        ToolTip="교육서 첨부"/>
-                                                <ItemsControl ItemsSource="{Binding TrainingDocs}" Margin="4,0,0,0">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal"/>
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="#FFF7ED" BorderBrush="#FED7AA"
-                                                                    BorderThickness="1" CornerRadius="4"
-                                                                    Padding="4,2" Margin="2,0"
-                                                                    Cursor="Hand" Tag="{Binding}"
-                                                                    ToolTip="{Binding}"
-                                                                    MouseLeftButtonUp="FileChip_Click">
-                                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
-                                                                           FontSize="10" Foreground="#EA580C"
-                                                                           MaxWidth="70" TextTrimming="CharacterEllipsis"/>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                                                    DragOver="CellAttachment_DragOver"
+                                                    DragLeave="CellAttachment_DragLeave"
+                                                    Drop="CellDropTraining_Drop">
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipTraining_Click"
+                                                        MouseRightButtonUp="AttachChipTraining_RightClick">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding TrainingLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasTraining}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- ── 교육이미지 ── -->
+                                <DataGridTemplateColumn Header="교육이미지" Width="*" MinWidth="58" IsReadOnly="True">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Transparent" AllowDrop="True" Tag="{Binding}"
+                                                    DragOver="CellAttachment_DragOver"
+                                                    DragLeave="CellAttachment_DragLeave"
+                                                    Drop="CellDropTrainingImages_Drop">
+                                                <Border x:Name="chipBd" CornerRadius="6" Padding="8,4"
+                                                        HorizontalAlignment="Left" Margin="6,0" Cursor="Hand"
+                                                        Background="#F1F5F9" Tag="{Binding}"
+                                                        MouseLeftButtonUp="AttachChipTrainingImages_Click"
+                                                        MouseRightButtonUp="AttachChipTrainingImages_RightClick">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📎" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock x:Name="chipTxt" Text="{Binding TrainingImageLabel}"
+                                                                   FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"
+                                                                   VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasTrainingImage}" Value="True">
+                                                    <Setter TargetName="chipBd" Property="Background" Value="#EFF6FF"/>
+                                                    <Setter TargetName="chipTxt" Property="Foreground" Value="#2563EB"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -584,47 +876,172 @@
                 </Grid>
             </TabItem>
 
-            <!-- Tab 2: 팀별 집계 -->
-            <TabItem Header="팀별 집계" Style="{StaticResource TabHeaderStyle}">
+            <!-- Tab 2: 교육 현황 -->
+            <TabItem Header="교육 현황" Style="{StaticResource TabHeaderStyle}">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16,12">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="팀별 Broken 사고 집계 및 보상율 현황"
-                                       FontSize="14" FontWeight="Bold" Foreground="#0F172A"
-                                       VerticalAlignment="Center"/>
-                            <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" Margin="12,0,0,0">
-                                <TextBlock Text="ACC 제품 → 사고비중 0.5 적용"
-                                           FontSize="11" Foreground="#92400E" FontWeight="SemiBold"/>
-                            </Border>
+                    <!-- 1) 교육 활동 실행률 -->
+                    <Border Grid.Row="0" Style="{StaticResource SectionCardStyle}" Padding="16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="1) 교육 활동 실행률" FontSize="14" FontWeight="Bold"
+                                           Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                <TextBlock Text="년도" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="CmbTrainingYear" Style="{StaticResource FilterComboStyle}"
+                                          MinWidth="90" SelectionChanged="CmbTrainingYear_SelectionChanged"/>
+                            </StackPanel>
+                            <DataGrid x:Name="DgTrainingSummary"
+                                      Style="{StaticResource BrokenDataGridStyle}"
+                                      ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                      CanUserAddRows="False" CanUserDeleteRows="False"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      BeginningEdit="DgTrainingSummary_BeginningEdit"
+                                      CellEditEnding="DgTrainingSummary_CellEditEnding">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTotal}" Value="True">
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                <Setter Property="Background" Value="#F8FAFC"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="구분" Binding="{Binding CategoryLabel}" Width="150"
+                                                         IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                    <DataGridTextColumn x:Name="ColPrevYearActual" Header="25년 실적" Binding="{Binding Target2025}" Width="75"
+                                                         ElementStyle="{StaticResource CenterCell}"/>
+                                    <DataGridTextColumn x:Name="ColCurYearTarget" Header="26년 목표" Binding="{Binding Target2026}" Width="75"
+                                                         ElementStyle="{StaticResource CenterCell}"/>
+                                    <DataGridTextColumn x:Name="ColCurYearActual" Header="26년 실적" Binding="{Binding Actual2026}" Width="75"
+                                                         IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
+                                    <DataGridTextColumn Header="1월"  Binding="{Binding Monthly[0]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="2월"  Binding="{Binding Monthly[1]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="3월"  Binding="{Binding Monthly[2]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="4월"  Binding="{Binding Monthly[3]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="5월"  Binding="{Binding Monthly[4]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="6월"  Binding="{Binding Monthly[5]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="7월"  Binding="{Binding Monthly[6]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="8월"  Binding="{Binding Monthly[7]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="9월"  Binding="{Binding Monthly[8]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="10월" Binding="{Binding Monthly[9]}"  Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="11월" Binding="{Binding Monthly[10]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="12월" Binding="{Binding Monthly[11]}" Width="45" IsReadOnly="True" ElementStyle="{StaticResource MonthlyHighlightCell}"/>
+                                    <DataGridTextColumn Header="상반기" Binding="{Binding FirstHalf}"  Width="70" IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
+                                    <DataGridTextColumn Header="하반기" Binding="{Binding SecondHalf}" Width="70" IsReadOnly="True" ElementStyle="{StaticResource SummaryHighlightCell}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Style="{StaticResource SectionCardStyle}" Padding="0">
-                        <DataGrid x:Name="DgTeamSummary"
-                                  Style="{StaticResource BrokenDataGridStyle}"
-                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="팀" Binding="{Binding Team}" Width="120"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="사고건수" Binding="{Binding RawCount}" Width="90"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="합계(ACC 0.5적용)"
-                                                    Binding="{Binding WeightedCount, StringFormat={}{0:0.##}}"
-                                                    Width="140" ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="목표달성" Binding="{Binding AchievedStr}" Width="90"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="지급예정월" Binding="{Binding PaymentMonth}" Width="130"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                                <DataGridTextColumn Header="보상율" Binding="{Binding RewardRate}" Width="*"
-                                                    ElementStyle="{StaticResource CenterCell}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Border>
+                    <!-- 2) 교육 기록 - 헤더 -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,6">
+                        <TextBlock Text="2) 교육 기록" FontSize="14" FontWeight="Bold"
+                                   Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        <Button x:Name="BtnSaveTraining" Content="저장" Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="12,6" FontSize="12" Height="30"
+                                Click="BtnSaveTraining_Click"/>
+                    </StackPanel>
+
+                    <!-- 2) 교육 기록 - 생산 / 물류 분리 리스트 -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 생산 -->
+                        <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,6">
+                                    <TextBlock Text="생산" FontSize="13" FontWeight="Bold" Foreground="#0F172A"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button x:Name="BtnAddTrainingRowProd" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28" Margin="0,0,6,0"
+                                            Click="BtnAddTrainingRowProd_Click"/>
+                                    <Button x:Name="BtnDeleteTrainingRowProd" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28"
+                                            Click="BtnDeleteTrainingRowProd_Click"/>
+                                </StackPanel>
+                                <Border Grid.Row="1" Margin="0,0,0,8">
+                                <DataGrid x:Name="DgTrainingProd"
+                                          Style="{StaticResource BrokenDataGridStyle}"
+                                          ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                          CanUserAddRows="False"
+                                          CellEditEnding="DgTrainingRecord_CellEditEnding">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
+                                                             IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTemplateColumn Header="교육일자" Width="150"
+                                                                 CellTemplate="{StaticResource TrainingDateCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육 내용" Width="*"
+                                                                 CellTemplate="{StaticResource TrainingContentCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingContentEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육이미지" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- 물류 -->
+                        <Border Grid.Column="2" Style="{StaticResource SectionCardStyle}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,6">
+                                    <TextBlock Text="물류" FontSize="13" FontWeight="Bold" Foreground="#0F172A"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Button x:Name="BtnAddTrainingRowLogi" Content="+ 행 추가" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28" Margin="0,0,6,0"
+                                            Click="BtnAddTrainingRowLogi_Click"/>
+                                    <Button x:Name="BtnDeleteTrainingRowLogi" Content="행 삭제" Style="{StaticResource GhostButtonStyle}"
+                                            Padding="10,5" FontSize="12" Height="28"
+                                            Click="BtnDeleteTrainingRowLogi_Click"/>
+                                </StackPanel>
+                                <Border Grid.Row="1" Margin="0,0,0,8">
+                                <DataGrid x:Name="DgTrainingLogi"
+                                          Style="{StaticResource BrokenDataGridStyle}"
+                                          ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                                          CanUserAddRows="False"
+                                          CellEditEnding="DgTrainingRecord_CellEditEnding">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="NO" Binding="{Binding DisplayNo}" Width="50"
+                                                             IsReadOnly="True" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTemplateColumn Header="교육일자" Width="150"
+                                                                 CellTemplate="{StaticResource TrainingDateCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingDateEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육 내용" Width="*"
+                                                                 CellTemplate="{StaticResource TrainingContentCellTemplate}"
+                                                                 CellEditingTemplate="{StaticResource TrainingContentEditTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육기록서" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingDocCellTemplate}"/>
+                                        <DataGridTemplateColumn Header="교육이미지" Width="120" MinWidth="58" IsReadOnly="True"
+                                                                 CellTemplate="{StaticResource TrainingImageCellTemplate}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
 

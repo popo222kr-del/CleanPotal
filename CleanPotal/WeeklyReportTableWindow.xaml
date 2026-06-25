@@ -4,8 +4,8 @@
         Title="주간보고 상세 내역" Width="1400" Height="900"
         WindowState="Maximized"
         WindowStartupLocation="CenterOwner" Background="#FFFFFF"
-        TextOptions.TextFormattingMode="Ideal" 
-        TextOptions.TextRenderingMode="Auto"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Grayscale"
         RenderOptions.BitmapScalingMode="HighQuality"
         KeyDown="Window_KeyDown">
 
@@ -104,7 +104,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="20" Background="#FFFFFF">
         <Grid.LayoutTransform>
             <ScaleTransform x:Name="ContentScaleTransform" ScaleX="1.0" ScaleY="1.0"/>
         </Grid.LayoutTransform>

@@ -25,7 +25,9 @@ namespace CleanPotal
         public bool CanManageNotices { get; set; } = false;
         public bool CanManageVendors { get; set; } = false;
         public bool CanManageSchedule { get; set; } = false;
+        public bool CanManageBroken { get; set; } = false;
         public bool CanAccessEtcMenu { get; set; } = false;
+        public bool CanManageInventory { get; set; } = false;
         public bool IsResigned { get; set; } = false;
         public string ResignDate { get; set; } = "";
         public string HireDate { get; set; } = "";
@@ -49,7 +51,7 @@ namespace CleanPotal
                     // 🔥 admin을 삭제하고 '1004' 박주언 님을 최고관리자로 지정 (초기 비번 1로 설정, 추후 변경 가능)
                     new UserModel {
                         Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
-                        CanManageFiles = true, CanManageNotices = true, CanManageVendors = true, CanManageSchedule = true
+                        CanManageFiles = true, CanManageNotices = true, CanManageVendors = true, CanManageSchedule = true, CanManageInventory = true
                     }
                 };
 

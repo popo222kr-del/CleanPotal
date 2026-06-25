@@ -45,6 +45,8 @@ namespace CleanPotal.FieldInspection.Repositories
             db.Execute(@"
                 CREATE TABLE IF NOT EXISTS FieldChecklists (
                     ChecklistId  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Code         TEXT,
+                    Category     TEXT,
                     Name         TEXT NOT NULL,
                     LocationId   INTEGER,
                     Cycle        TEXT,
@@ -59,6 +61,8 @@ namespace CleanPotal.FieldInspection.Repositories
                     ItemId       INTEGER PRIMARY KEY AUTOINCREMENT,
                     ChecklistId  INTEGER NOT NULL,
                     OrderNo      INTEGER NOT NULL,
+                    SectionName  TEXT,
+                    ShiftLabel   TEXT,
                     Title        TEXT NOT NULL,
                     InputType    TEXT NOT NULL,
                     UnitOrHint   TEXT,
@@ -75,6 +79,8 @@ namespace CleanPotal.FieldInspection.Repositories
                     TagId         TEXT,
                     LocationId    INTEGER NOT NULL,
                     ChecklistId   INTEGER NOT NULL,
+                    CheckDate     TEXT NOT NULL DEFAULT (date('now','localtime')),
+                    ShiftLabel    TEXT,
                     InspectorName TEXT NOT NULL,
                     InspectorId   TEXT,
                     StartedAt     TEXT NOT NULL,
@@ -113,11 +119,23 @@ namespace CleanPotal.FieldInspection.Repositories
                     FOREIGN KEY (RecordId) REFERENCES FieldInspectionRecords(RecordId)
                 );");
 
+            // 기존 DB 마이그레이션 (컬럼이 없으면 추가)
+            try { db.Execute("ALTER TABLE FieldChecklists ADD COLUMN Code TEXT;"); } catch { }
+            try { db.Execute("ALTER TABLE FieldChecklists ADD COLUMN Category TEXT;"); } catch { }
+            try { db.Execute("ALTER TABLE FieldChecklistItems ADD COLUMN SectionName TEXT;"); } catch { }
+            try { db.Execute("ALTER TABLE FieldChecklistItems ADD COLUMN ShiftLabel TEXT;"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInspectionRecords ADD COLUMN CheckDate TEXT;"); } catch { }
+            try { db.Execute("ALTER TABLE FieldInspectionRecords ADD COLUMN ShiftLabel TEXT;"); } catch { }
+            try { db.Execute("UPDATE FieldInspectionRecords SET CheckDate = date(StartedAt) WHERE CheckDate IS NULL;"); } catch { }
+
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldTags_Location ON FieldTags(LocationId);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldChecklistItems_Checklist ON FieldChecklistItems(ChecklistId);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldRecords_Location ON FieldInspectionRecords(LocationId);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldRecords_Started ON FieldInspectionRecords(StartedAt);");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_FieldRecordItems_Record ON FieldInspectionRecordItems(RecordId);");
+            // 같은 날 같은 체크시트(+교대)에 대한 중복 제출 방지 — "오늘 기록" 조회/이어쓰기를 단순하게 만들어줌
+            db.Execute(@"CREATE UNIQUE INDEX IF NOT EXISTS UX_FieldRecords_Daily
+                         ON FieldInspectionRecords(ChecklistId, LocationId, CheckDate, ShiftLabel);");
         }
 
         // ---------------- FieldLocations ----------------
@@ -263,11 +281,13 @@ namespace CleanPotal.FieldInspection.Repositories
         {
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
-                INSERT INTO FieldChecklists (Name, LocationId, Cycle, IsActive, Memo)
-                VALUES (@Name, @LocationId, @Cycle, @IsActive, @Memo);
+                INSERT INTO FieldChecklists (Code, Category, Name, LocationId, Cycle, IsActive, Memo)
+                VALUES (@Code, @Category, @Name, @LocationId, @Cycle, @IsActive, @Memo);
                 SELECT last_insert_rowid();";
             return db.ExecuteScalar<long>(sql, new
             {
+                item.Code,
+                item.Category,
                 item.Name,
                 item.LocationId,
                 item.Cycle,
@@ -281,11 +301,13 @@ namespace CleanPotal.FieldInspection.Repositories
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldChecklists
-                SET Name = @Name, LocationId = @LocationId, Cycle = @Cycle,
+                SET Code = @Code, Category = @Category, Name = @Name, LocationId = @LocationId, Cycle = @Cycle,
                     IsActive = @IsActive, Memo = @Memo
                 WHERE ChecklistId = @ChecklistId";
             db.Execute(sql, new
             {
+                item.Code,
+                item.Category,
                 item.Name,
                 item.LocationId,
                 item.Cycle,
@@ -293,6 +315,14 @@ namespace CleanPotal.FieldInspection.Repositories
                 item.Memo,
                 item.ChecklistId
             });
+        }
+
+        public static List<string> GetChecklistCategories()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query<string>(@"SELECT DISTINCT Category FROM FieldChecklists
+                                       WHERE Category IS NOT NULL AND Category <> ''
+                                       ORDER BY Category").ToList();
         }
 
         public static void DeleteChecklist(long checklistId)
@@ -317,14 +347,16 @@ namespace CleanPotal.FieldInspection.Repositories
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldChecklistItems
-                    (ChecklistId, OrderNo, Title, InputType, UnitOrHint, MinValue, MaxValue, IsRequired, Memo)
+                    (ChecklistId, OrderNo, SectionName, ShiftLabel, Title, InputType, UnitOrHint, MinValue, MaxValue, IsRequired, Memo)
                 VALUES
-                    (@ChecklistId, @OrderNo, @Title, @InputType, @UnitOrHint, @MinValue, @MaxValue, @IsRequired, @Memo);
+                    (@ChecklistId, @OrderNo, @SectionName, @ShiftLabel, @Title, @InputType, @UnitOrHint, @MinValue, @MaxValue, @IsRequired, @Memo);
                 SELECT last_insert_rowid();";
             return db.ExecuteScalar<long>(sql, new
             {
                 item.ChecklistId,
                 item.OrderNo,
+                item.SectionName,
+                item.ShiftLabel,
                 item.Title,
                 item.InputType,
                 item.UnitOrHint,
@@ -340,13 +372,15 @@ namespace CleanPotal.FieldInspection.Repositories
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldChecklistItems
-                SET OrderNo = @OrderNo, Title = @Title, InputType = @InputType,
+                SET OrderNo = @OrderNo, SectionName = @SectionName, ShiftLabel = @ShiftLabel, Title = @Title, InputType = @InputType,
                     UnitOrHint = @UnitOrHint, MinValue = @MinValue, MaxValue = @MaxValue,
                     IsRequired = @IsRequired, Memo = @Memo
                 WHERE ItemId = @ItemId";
             db.Execute(sql, new
             {
                 item.OrderNo,
+                item.SectionName,
+                item.ShiftLabel,
                 item.Title,
                 item.InputType,
                 item.UnitOrHint,
@@ -374,10 +408,10 @@ namespace CleanPotal.FieldInspection.Repositories
 
             string sql = @"
                 INSERT INTO FieldInspectionRecords
-                    (RecordId, TagId, LocationId, ChecklistId, InspectorName, InspectorId,
+                    (RecordId, TagId, LocationId, ChecklistId, CheckDate, ShiftLabel, InspectorName, InspectorId,
                      StartedAt, CompletedAt, OverallStatus, Note, ClientIp)
                 VALUES
-                    (@RecordId, @TagId, @LocationId, @ChecklistId, @InspectorName, @InspectorId,
+                    (@RecordId, @TagId, @LocationId, @ChecklistId, @CheckDate, @ShiftLabel, @InspectorName, @InspectorId,
                      @StartedAt, @CompletedAt, @OverallStatus, @Note, @ClientIp)";
 
             db.Execute(sql, new
@@ -386,6 +420,8 @@ namespace CleanPotal.FieldInspection.Repositories
                 record.TagId,
                 record.LocationId,
                 record.ChecklistId,
+                CheckDate = record.CheckDate.ToString("yyyy-MM-dd"),
+                record.ShiftLabel,
                 record.InspectorName,
                 record.InspectorId,
                 StartedAt = record.StartedAt.ToString("yyyy-MM-dd HH:mm:ss"),
@@ -416,6 +452,15 @@ namespace CleanPotal.FieldInspection.Repositories
             tx.Commit();
         }
 
+        // 데일리 화면에서 같은 날 재제출 시 기존 기록을 지우고 새로 기록하기 위한 헬퍼
+        public static void DeleteRecord(string recordId)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("DELETE FROM FieldInspectionAttachments WHERE RecordId = @Id", new { Id = recordId });
+            db.Execute("DELETE FROM FieldInspectionRecordItems WHERE RecordId = @Id", new { Id = recordId });
+            db.Execute("DELETE FROM FieldInspectionRecords WHERE RecordId = @Id", new { Id = recordId });
+        }
+
         public static List<FieldInspectionRecord> SearchRecords(
             DateTime? from,
             DateTime? to,
@@ -438,6 +483,22 @@ namespace CleanPotal.FieldInspection.Repositories
                 + " ORDER BY StartedAt DESC";
 
             return db.Query<FieldInspectionRecord>(sql, p).ToList();
+        }
+
+        // 데일리 화면에서 "오늘 이미 체크했는지" 확인 / 이어서 작성·조회할 때 사용
+        public static FieldInspectionRecord? GetRecordForDay(long checklistId, long locationId, DateTime checkDate, string shiftLabel)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            string sql = @"SELECT * FROM FieldInspectionRecords
+                           WHERE ChecklistId = @ChecklistId AND LocationId = @LocationId
+                             AND CheckDate = @CheckDate AND ShiftLabel = @ShiftLabel";
+            return db.QueryFirstOrDefault<FieldInspectionRecord>(sql, new
+            {
+                ChecklistId = checklistId,
+                LocationId = locationId,
+                CheckDate = checkDate.ToString("yyyy-MM-dd"),
+                ShiftLabel = shiftLabel ?? ""
+            });
         }
 
         public static List<FieldInspectionRecordItem> GetRecordItems(string recordId)

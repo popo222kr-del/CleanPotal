@@ -340,6 +340,14 @@
                         <TextBlock x:Name="SectionHeaderMain" Text="MAIN" Style="{StaticResource SectionHeaderStyle}"/>
                         <Button x:Name="BtnNavPortal" Content="업무 파일 통합 관리" Tag="&#xE80F;" Style="{StaticResource ErpMainButtonSelectedStyle}" Click="OpenPortal"/>
 
+                        <Expander x:Name="ExpanderStatusBoard" Header="세정 업무 현황판" Tag="&#xE8A1;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderStatusBoard_Expanded">
+                            <StackPanel>
+                                <Button x:Name="BtnNavMaterialLogistics" Content="자재물류 일정 현황" Style="{StaticResource ErpSubButtonStyle}" Click="OpenMaterialLogistics_Click"/>
+                                <Button x:Name="BtnNavProductionBoard" Content="생산 현황판" Style="{StaticResource ErpSubButtonStyle}" Click="OpenProductionBoard_Click"/>
+                                <Button x:Name="BtnNavDongtanLogistics" Content="동탄 물류 현황판" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDongtanLogistics_Click"/>
+                            </StackPanel>
+                        </Expander>
+
                         <!-- 섹션: WORKSPACE (일정/인수인계/오피스 업무) -->
                         <TextBlock x:Name="SectionHeaderWorkspace" Text="WORKSPACE" Style="{StaticResource SectionHeaderStyle}"/>
 
@@ -370,6 +378,7 @@
 
                         <Expander x:Name="ExpanderFieldInspection" Header="현장 점검" Tag="&#xE8C8;" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderFieldInspection_Expanded">
                             <StackPanel>
+                                <Button x:Name="BtnNavFieldInventory" Content="재고관리" Style="{StaticResource ErpSubButtonStyle}" Click="OpenFieldInventory_Click"/>
                                 <Button x:Name="BtnNavFieldChecklist" Content="체크시트" Style="{StaticResource ErpSubButtonStyle}" Click="OpenFieldChecklist_Click"/>
                             </StackPanel>
                         </Expander>
@@ -391,6 +400,7 @@
                             <StackPanel>
                                 <Button x:Name="BtnNavReport" Content="성적서 자동 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenReport_Click"/>
                                 <Button x:Name="BtnNavDispatchCert" Content="반출등록 성적서 생성" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDispatchCert_Click"/>
+                                <Button x:Name="BtnNavDocSearch" Content="문서 검색" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDocSearch_Click"/>
                             </StackPanel>
                         </Expander>
 

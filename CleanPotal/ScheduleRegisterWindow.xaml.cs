@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace CleanPotal
 {
@@ -11,6 +14,10 @@ namespace CleanPotal
         private List<UserModel> _allUsers = new List<UserModel>();
         private List<UserModel> _filteredEduUsers = new List<UserModel>();
         private EducationPlanModel? _editingPlan;
+        private List<string> _allShiftNames = new List<string>();
+        private List<string> _allEduNamesForTeam = new List<string>();
+        private bool _suppressEduFilter;
+        private bool _canManageAttendance;
 
         // 공공데이터 API에서 가져온 공휴일 정보가 동적으로 담길 리스트
         private List<string> _dynamicHolidays = new List<string>();
@@ -65,22 +72,41 @@ namespace CleanPotal
             // 권한 상관없이 전체 유저 정보는 미리 로드 (팀명 매핑 및 Upsert를 위해 필요)
             _allUsers = AuthDatabaseHelper.GetAllUsers();
 
-            CmbShiftName.ItemsSource = new List<string> { SessionManager.CurrentRealName };
-            CmbShiftName.SelectedIndex = 0;
-            CmbShiftName.IsEnabled = false;
-
             bool hasSchedulePermission = SessionManager.CanManageSchedule || eduOnly;
-            bool canManageAllAttendance = isMaster || hasSchedulePermission;
+            _canManageAttendance = isMaster || hasSchedulePermission;
 
-            if (canManageAllAttendance)
+            string myTeamName = SessionManager.CurrentTeamName ?? "";
+            string myRealName = SessionManager.CurrentRealName ?? "";
+            string myDisplayName = string.IsNullOrEmpty(myTeamName) ? myRealName : $"[{myTeamName}] {myRealName}";
+
+            if (_canManageAttendance)
             {
-                var allNames = _allUsers.Where(u => !string.IsNullOrWhiteSpace(u.RealName))
-                                        .Select(u => $"[{u.TeamName}] {u.RealName}").ToList();
-                CmbShiftName.ItemsSource = allNames;
+                // 관리자: 검색 가능한 입력 필드 활성화
+                var teamOrder = new[] { "Office", "주간팀", "장팀", "김팀" };
+                _allShiftNames = _allUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.RealName) && !u.IsResigned)
+                    .OrderBy(u => { int i = Array.IndexOf(teamOrder, u.TeamName); return i < 0 ? 99 : i; })
+                    .ThenBy(u => u.RealName)
+                    .Select(u => $"[{u.TeamName}] {u.RealName}")
+                    .ToList();
+                TxtShiftName.IsReadOnly = false;
+                TxtShiftName.Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A));
+                BdrShiftInput.Background = Brushes.White;
+                BtnShiftArrow.Visibility = Visibility.Visible;
 
-                var myItem = allNames.FirstOrDefault(n => n.Contains(SessionManager.CurrentRealName));
-                CmbShiftName.SelectedItem = myItem ?? allNames.FirstOrDefault();
-                CmbShiftName.IsEnabled = true;
+                string myItem = _allShiftNames.FirstOrDefault(n => n.Contains(myRealName)) ?? myDisplayName;
+                TxtShiftName.Text = myItem;
+                CmbShiftName.ItemsSource = _allShiftNames;
+                CmbShiftName.SelectedItem = myItem;
+            }
+            else
+            {
+                // 일반 사용자: 읽기 전용으로 본인 이름 표시
+                TxtShiftName.IsReadOnly = true;
+                TxtShiftName.Foreground = new SolidColorBrush(Color.FromRgb(0x47, 0x55, 0x69));
+                TxtShiftName.Text = myDisplayName;
+                CmbShiftName.ItemsSource = new List<string> { myDisplayName };
+                CmbShiftName.SelectedIndex = 0;
             }
 
             // 교육 일정 등록은 "관리자" 권한이 체크된 사용자만 가능
@@ -100,6 +126,8 @@ namespace CleanPotal
                 CmbEduTeam.SelectedIndex = 0;
 
                 RefreshEduNameList();
+                CmbEduName.AddHandler(TextBoxBase.TextChangedEvent,
+                    new TextChangedEventHandler(CmbEduName_TextChanged));
 
                 // 수정 모드: 기존 값 채우기
                 if (_editingPlan != null)
@@ -128,7 +156,7 @@ namespace CleanPotal
             MainTab.SelectionChanged += (_, __) => RefreshPreview();
             DpShiftEnd.SelectedDateChanged += (_, __) => RefreshPreview();
             DpEduEnd.SelectedDateChanged += (_, __) => RefreshPreview();
-            CmbShiftName.SelectionChanged += (_, __) => RefreshPreview();
+            // TxtShiftName_TextChanged가 RefreshPreview를 직접 호출하므로 별도 구독 불필요
             CmbEduName.SelectionChanged += (_, __) => RefreshPreview();
             RbMethodCollective.Checked += (_, __) => RefreshPreview();
             RbMethodELearning.Checked += (_, __) => RefreshPreview();
@@ -163,13 +191,117 @@ namespace CleanPotal
         {
             string selectedTeam = CmbEduTeam.SelectedItem?.ToString() ?? "전체";
             _filteredEduUsers = _allUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) &&
+                .Where(u => !string.IsNullOrWhiteSpace(u.RealName) && !u.IsResigned &&
                             (selectedTeam == "전체" || u.TeamName == selectedTeam))
                 .OrderBy(u => u.RealName)
                 .ToList();
 
-            CmbEduName.ItemsSource = _filteredEduUsers.Select(u => u.RealName).ToList();
+            _allEduNamesForTeam = _filteredEduUsers.Select(u => u.RealName).ToList();
+            _suppressEduFilter = true;
+            CmbEduName.Text = "";
+            CmbEduName.ItemsSource = _allEduNamesForTeam;
             if (CmbEduName.Items.Count > 0) CmbEduName.SelectedIndex = 0;
+            _suppressEduFilter = false;
+        }
+
+        // ── 직원 이름 자동완성 (TextBox + Popup) ──────────────────────────
+        private void BtnShiftArrow_Click(object sender, RoutedEventArgs e)
+        {
+            if (PopShiftSuggest.IsOpen) { PopShiftSuggest.IsOpen = false; return; }
+            LstShiftSuggest.ItemsSource = _allShiftNames;
+            BdrShiftPopup.MinWidth = BdrShiftInput.ActualWidth > 0 ? BdrShiftInput.ActualWidth : 480;
+            PopShiftSuggest.IsOpen = true;
+            TxtShiftName.Focus();
+        }
+
+        private void TxtShiftName_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_canManageAttendance) return;
+            string text = TxtShiftName.Text;
+            var filtered = string.IsNullOrWhiteSpace(text)
+                ? _allShiftNames
+                : _allShiftNames.Where(n => n.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            LstShiftSuggest.ItemsSource = filtered;
+            BdrShiftPopup.MinWidth = BdrShiftInput.ActualWidth > 0 ? BdrShiftInput.ActualWidth : 480;
+            PopShiftSuggest.IsOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text) && TxtShiftName.IsKeyboardFocused;
+
+            // 숨김 CmbShiftName 동기화
+            CmbShiftName.ItemsSource = _allShiftNames;
+            CmbShiftName.SelectedItem = _allShiftNames.FirstOrDefault(n =>
+                string.Equals(n, text, StringComparison.OrdinalIgnoreCase));
+
+            RefreshPreview();
+        }
+
+        private void LstShiftSuggest_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            SvShiftSuggest.ScrollToVerticalOffset(SvShiftSuggest.VerticalOffset - e.Delta / 3.0);
+            e.Handled = true;
+        }
+
+        private void LstShiftSuggest_ItemClick(object sender, MouseButtonEventArgs e)
+        {
+            // PreviewMouseLeftButtonDown 시점에는 SelectedItem이 아직 클릭한 항목으로
+            // 갱신되기 전이므로, 클릭된 항목을 비주얼 트리에서 직접 찾아 확정한다.
+            // (기존에는 첫 클릭이 무시되어 기본값인 등록자 본인 이름으로 저장되는 버그가 있었음)
+            DependencyObject? element = e.OriginalSource as DependencyObject;
+            while (element != null && element is not ListBoxItem)
+                element = VisualTreeHelper.GetParent(element);
+
+            if (element is ListBoxItem lbi && lbi.Content is string selected)
+            {
+                TxtShiftName.Text = selected;
+                TxtShiftName.CaretIndex = selected.Length;
+                PopShiftSuggest.IsOpen = false;
+                CmbShiftName.SelectedItem = selected;
+                RefreshPreview();
+                e.Handled = true;
+            }
+        }
+
+        private void TxtShiftName_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!PopShiftSuggest.IsOpen) return;
+            if (e.Key == Key.Down)
+            {
+                LstShiftSuggest.Focus();
+                if (LstShiftSuggest.Items.Count > 0)
+                    LstShiftSuggest.SelectedIndex = 0;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                PopShiftSuggest.IsOpen = false;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Enter && LstShiftSuggest.SelectedItem is string sel)
+            {
+                TxtShiftName.Text = sel;
+                PopShiftSuggest.IsOpen = false;
+                CmbShiftName.SelectedItem = sel;
+                RefreshPreview();
+                e.Handled = true;
+            }
+        }
+
+        private void CmbEduName_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressEduFilter) return;
+            _suppressEduFilter = true;
+            try
+            {
+                string text = CmbEduName.Text;
+                var filtered = string.IsNullOrWhiteSpace(text)
+                    ? _allEduNamesForTeam
+                    : _allEduNamesForTeam.Where(n => n.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+                CmbEduName.ItemsSource = filtered;
+                CmbEduName.IsDropDownOpen = filtered.Count > 0 && !string.IsNullOrWhiteSpace(text);
+            }
+            finally
+            {
+                _suppressEduFilter = false;
+            }
         }
 
         private void DpShiftStart_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -233,7 +365,7 @@ namespace CleanPotal
                 {
                     int total = (end - start).Days + 1;
                     int business = _isHolidayLoaded ? CountBusinessDays(start, end) : 0;
-                    string name = CmbShiftName.SelectedItem?.ToString() ?? SessionManager.CurrentRealName;
+                    string name = TxtShiftName.Text.Trim() is { Length: > 0 } t ? t : SessionManager.CurrentRealName;
                     TxtShiftPreview.Text = _isHolidayLoaded
                         ? $"대상: {name} | 선택 {total}일 → 반영 {business}일 (주말/공휴일 제외)"
                         : $"대상: {name} | 선택 {total}일 (공휴일 계산 대기중)";
@@ -302,10 +434,17 @@ namespace CleanPotal
                 }
                 else if (MainTab.SelectedItem == TabAttendance) // 근태/휴가 다중 등록
                 {
-                    string selection = CmbShiftName.SelectedItem?.ToString() ?? "";
+                    string selection = TxtShiftName.Text.Trim();
                     string name = selection.Contains("]") ? selection.Substring(selection.IndexOf(']') + 1).Trim() : selection;
 
                     if (string.IsNullOrEmpty(name) || !DpShiftStart.SelectedDate.HasValue || !DpShiftEnd.SelectedDate.HasValue) return;
+
+                    // 직원 목록에 없는 이름(부분 입력 등)으로 등록되는 것을 방지
+                    if (_canManageAttendance && _allUsers.All(u => u.RealName != name))
+                    {
+                        MessageBox.Show("직원 이름을 목록에서 선택해주세요.\n입력된 이름이 직원 목록에 없습니다.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
 
                     DateTime startDate = DpShiftStart.SelectedDate.Value.Date;
                     DateTime endDate = DpShiftEnd.SelectedDate.Value.Date;
@@ -356,7 +495,9 @@ namespace CleanPotal
                 }
                 else // 교육 일정 등록 / 수정
                 {
-                    string name = CmbEduName.SelectedItem?.ToString() ?? "";
+                    string name = CmbEduName.SelectedItem?.ToString()
+                        ?? _allEduNamesForTeam.FirstOrDefault(n => string.Equals(n, CmbEduName.Text, StringComparison.OrdinalIgnoreCase))
+                        ?? "";
                     string course = TxtEduCourse.Text.Trim();
                     string method = RbMethodELearning.IsChecked == true ? "이러닝"
                                   : RbMethodVideo.IsChecked == true ? "화상"

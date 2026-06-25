@@ -1,0 +1,323 @@
+<UserControl x:Class="CleanPotal.DocSearchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F8FAFC"
+             SnapsToDevicePixels="True" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
+
+    <UserControl.Resources>
+        <Style x:Key="GhostButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+            <Setter Property="Foreground" Value="#DC2626"/>
+        </Style>
+
+        <Style x:Key="FilterComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="26"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center"
+                                                      IsHitTestVisible="False"/>
+                                    <!-- 화살표 아이콘 -->
+                                    <Path Grid.Column="1"
+                                          Data="M 0 0 L 4 4 L 8 0"
+                                          Stroke="#64748B" StrokeThickness="1.5"
+                                          Fill="Transparent"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          IsHitTestVisible="False" x:Name="arrow"/>
+                                </Grid>
+                            </Border>
+                            <ToggleButton Focusable="False" IsTabStop="False"
+                                          Background="Transparent" BorderThickness="0"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade"
+                                   Placement="Bottom"
+                                   VerticalOffset="4">
+                                <Border Background="White"
+                                        BorderBrush="#CBD5E1" BorderThickness="1"
+                                        CornerRadius="8"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        Margin="0">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" Opacity="0.10"
+                                                          BlurRadius="12" ShadowDepth="3" Direction="270"/>
+                                    </Border.Effect>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
+                                        <ItemsPresenter Margin="0,4,0,4"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="arrow" Property="Stroke" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="12,7"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="Foreground" Value="#1E293B"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="bd" Background="Transparent"
+                                            Margin="0" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="True"/>
+                                                <Condition Property="IsHighlighted" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="bd" Property="Background" Value="#BFDBFE"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="430"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== 왼쪽: 문서 목록 ========== -->
+        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
+            <Grid Margin="14,16,14,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 문서 목록 헤더 -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="등록 문서 목록" FontSize="13" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtDocCount" Grid.Column="1" Text="0개" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- 업로드 버튼 -->
+                <Button Grid.Row="1" Content="+ 문서 업로드 (xlsx / pdf / txt)" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" Height="36" Margin="0,0,0,10" Click="BtnUploadDoc_Click"/>
+
+                <!-- 문서 목록 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="DocListControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Expander IsExpanded="True" Margin="0,0,0,8">
+                                    <Expander.Header>
+                                        <Border Background="#EFF6FF" CornerRadius="6" Padding="8,6" Margin="0,0,0,2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8"/>
+                                                <TextBlock Text="{Binding CountLabel}" FontSize="11" Foreground="#60A5FA" Margin="6,1,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Expander.Header>
+                                    <ItemsControl ItemsSource="{Binding Items}" Margin="6,6,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8" Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="DocItem_Click">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Text="{Binding FileName}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="{Binding SummaryInfo}" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Content="삭제" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11" VerticalAlignment="Top" Click="BtnDeleteDoc_Click" Tag="{Binding}"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- ========== 오른쪽: 검색 영역 ========== -->
+        <Grid Grid.Column="1" Margin="20,16,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 상단 바 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="문서 검색" FontSize="20" FontWeight="ExtraBold" Foreground="#0F172A"/>
+                <TextBlock Text="등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다. 여러 단어를 공백으로 구분해 입력하면 모두 포함된 문서만 찾습니다." FontSize="12" Foreground="#94A3B8" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- 검색 입력 -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <ComboBox x:Name="CmbCategoryFilter" Grid.Column="0" Style="{StaticResource FilterComboStyle}" Margin="0,0,8,0"
+                          SelectionChanged="CmbCategoryFilter_SelectionChanged">
+                    <ComboBoxItem Content="전체 문서" IsSelected="True"/>
+                    <ComboBoxItem Content="검사 기준서"/>
+                    <ComboBoxItem Content="관리 기준서"/>
+                    <ComboBoxItem Content="작업 표준서"/>
+                    <ComboBoxItem Content="기타 문서"/>
+                </ComboBox>
+                <Border Grid.Column="1" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
+                    <TextBox x:Name="TxtSearch" Background="Transparent" BorderThickness="0" Padding="12,10" FontSize="13"
+                             TextOptions.TextFormattingMode="Ideal"
+                             SpellCheck.IsEnabled="False" TextChanged="TxtSearch_TextChanged"/>
+                </Border>
+            </Grid>
+
+            <!-- 검색 결과 -->
+            <Border Grid.Row="2" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="TxtResultSummary" Grid.Row="0" Text="검색어를 입력해주세요." FontSize="12" Foreground="#94A3B8" Margin="16,12,16,0"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                        <ItemsControl x:Name="ResultListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10" Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="ResultItem_Click">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="13" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding MatchCountLabel}" FontSize="11" Foreground="#2563EB"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Snippet}" FontSize="12" Foreground="#475569" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                            <TextBlock Text="클릭하여 문서 열기" FontSize="10" Foreground="#94A3B8" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

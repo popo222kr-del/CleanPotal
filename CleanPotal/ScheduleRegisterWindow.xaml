@@ -1,7 +1,7 @@
 ﻿<Window x:Class="CleanPotal.ScheduleRegisterWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="일정 및 교육 등록" Width="560"
+        Title="일정 등록" Width="560"
         WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow" ResizeMode="NoResize"
         Background="#FFFFFF" SnapsToDevicePixels="True" UseLayoutRounding="True" SizeToContent="Height"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
@@ -50,12 +50,26 @@
                                     </ControlTemplate>
                                 </ToggleButton.Template>
                             </ToggleButton>
+                            <!-- 비편집 모드: 선택된 항목 표시 -->
                             <ContentPresenter Name="ContentSite"
                                               IsHitTestVisible="False"
                                               Content="{TemplateBinding SelectionBoxItem}"
                                               Margin="{TemplateBinding Padding}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               HorizontalAlignment="Left"/>
+                            <!-- 편집 모드: 타이핑 가능한 TextBox (IsEditable=True 일 때만 표시) -->
+                            <TextBox x:Name="PART_EditableTextBox"
+                                     Background="Transparent"
+                                     Padding="{TemplateBinding Padding}"
+                                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                     HorizontalAlignment="Stretch"
+                                     Foreground="{TemplateBinding Foreground}"
+                                     FontSize="{TemplateBinding FontSize}"
+                                     BorderThickness="0"
+                                     Margin="0,0,28,0"
+                                     Visibility="Hidden"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     FocusVisualStyle="{x:Null}"/>
                             <Popup Name="Popup"
                                    Placement="Bottom"
                                    IsOpen="{TemplateBinding IsDropDownOpen}"
@@ -79,6 +93,10 @@
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsEditable" Value="True">
+                                <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
+                                <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="#CBD5E1"/>
                             </Trigger>
@@ -180,6 +198,33 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#0F172A"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -254,7 +299,43 @@
             <TabItem x:Name="TabAttendance" Header="근태/휴가 등록" FontSize="15">
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="직원 이름" Style="{StaticResource FieldLabelStyle}"/>
-                    <ComboBox x:Name="CmbShiftName" Style="{StaticResource InputComboStyle}" Margin="0,0,0,20"/>
+                    <!-- 단일 입력 필드: 일반=읽기전용, 관리자=검색 가능 -->
+                    <Border x:Name="BdrShiftInput" Height="42" BorderBrush="#E2E8F0" BorderThickness="1"
+                            CornerRadius="6" Background="#F8FAFC" Margin="0,0,0,20" ClipToBounds="True">
+                        <Grid>
+                            <TextBox x:Name="TxtShiftName" BorderThickness="0" Background="Transparent"
+                                     FontSize="14" Foreground="#0F172A" Padding="12,0,32,0"
+                                     VerticalContentAlignment="Center" IsReadOnly="True"
+                                     TextChanged="TxtShiftName_TextChanged"
+                                     PreviewKeyDown="TxtShiftName_PreviewKeyDown"/>
+                            <Button x:Name="BtnShiftArrow" Width="32" HorizontalAlignment="Right"
+                                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                    Visibility="Collapsed" Focusable="False"
+                                    Click="BtnShiftArrow_Click">
+                                <Path Data="M0,0 L4,4 L8,0 Z" Fill="#64748B"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <Popup x:Name="PopShiftSuggest"
+                           PlacementTarget="{Binding ElementName=BdrShiftInput}"
+                           Placement="Bottom" StaysOpen="False"
+                           AllowsTransparency="True" PopupAnimation="Slide">
+                        <Border x:Name="BdrShiftPopup" Background="White" BorderBrush="#E2E8F0"
+                                BorderThickness="1" CornerRadius="6" Margin="0,4,0,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#64748B" Opacity="0.12" BlurRadius="8" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <ScrollViewer x:Name="SvShiftSuggest" MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                                <ListBox x:Name="LstShiftSuggest" BorderThickness="0" Background="Transparent"
+                                         Padding="0,4"
+                                         PreviewMouseLeftButtonDown="LstShiftSuggest_ItemClick"
+                                         PreviewMouseWheel="LstShiftSuggest_MouseWheel"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                    <!-- 저장 로직용 숨김 ComboBox -->
+                    <ComboBox x:Name="CmbShiftName" Visibility="Collapsed"/>
 
                     <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
@@ -356,7 +437,8 @@
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="대상자 이름" Style="{StaticResource FieldLabelStyle}"/>
-                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"/>
+                            <ComboBox x:Name="CmbEduName" Style="{StaticResource InputComboStyle}"
+                                      IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"/>
                         </StackPanel>
                     </Grid>
 

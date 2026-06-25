@@ -70,6 +70,9 @@ namespace CleanPotal
 
             // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
             FieldInspection.Repositories.FieldInspectionRepository.InitializeTables();
+
+            // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
+            FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
         }
 
         public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);

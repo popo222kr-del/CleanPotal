@@ -123,6 +123,9 @@ namespace CleanPotal
         private decimal _unitPrice;
         private string _vendorName = "";
 
+        private string _updatedBy = "";
+        private string _updatedAt = "";
+
         public string ProductName { get => _productName; set { _productName = value; OnPropertyChanged(nameof(ProductName)); OnPropertyChanged(nameof(DisplayName)); } }
         public string PartCode    { get => _partCode;    set { _partCode = value;    OnPropertyChanged(nameof(PartCode)); } }
         public string Spec        { get => _spec;        set { _spec = value;        OnPropertyChanged(nameof(Spec)); } }
@@ -131,8 +134,23 @@ namespace CleanPotal
         // 단위는 항상 EA (1EA 기준)
         public string Unit { get; set; } = "EA";
 
+        // 항목을 마지막으로 등록/수정한 사람과 시각
+        public string UpdatedBy { get => _updatedBy; set { _updatedBy = value; OnPropertyChanged(nameof(UpdatedBy)); OnPropertyChanged(nameof(UpdateInfo)); } }
+        public string UpdatedAt { get => _updatedAt; set { _updatedAt = value; OnPropertyChanged(nameof(UpdatedAt)); OnPropertyChanged(nameof(UpdateInfo)); } }
+
         [JsonIgnore]
         public string DisplayName => !string.IsNullOrWhiteSpace(VendorName) ? $"[{VendorName}] {ProductName}" : ProductName;
+
+        [JsonIgnore]
+        public string UpdateInfo
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(UpdatedBy)) return "";
+                string dateStr = DateTime.TryParse(UpdatedAt, out var dt) ? dt.ToString("yy.MM.dd HH:mm") : UpdatedAt;
+                return string.IsNullOrEmpty(dateStr) ? $"수정: {UpdatedBy}" : $"수정: {UpdatedBy} ({dateStr})";
+            }
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) =>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>현장 점검 - 데일리 체크</title>
+<style>
+  :root {
+    --blue: #2563EB;
+    --blue-light: #EFF6FF;
+    --gray-bg: #F8FAFC;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --muted: #64748B;
+    --green: #10B981;
+    --red: #EF4444;
+    --amber: #F59E0B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+    background: var(--gray-bg); color: var(--text); -webkit-tap-highlight-color: transparent;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  header h1 { font-size: 17px; margin: 0 0 8px; font-weight: 800; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  select, input[type=text], input[type=number], textarea {
+    font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text); width: 100%;
+  }
+  textarea { resize: vertical; min-height: 50px; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    background: var(--blue-light); color: var(--blue); margin-right: 6px;
+  }
+  .badge.ok { background: #ECFDF5; color: #047857; }
+  .badge.ng { background: #FEF2F2; color: #B91C1C; }
+  main { padding: 12px 16px 90px; max-width: 640px; margin: 0 auto; }
+  .section-title {
+    font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 8px; padding-left: 2px;
+  }
+  .item-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  }
+  .item-title { font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 10px; }
+  .item-title .req { color: var(--red); margin-left: 2px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: -6px; margin-bottom: 10px; }
+  .seg {
+    display: flex; gap: 8px;
+  }
+  .seg button {
+    flex: 1; padding: 11px 0; font-size: 14px; font-weight: 700; border-radius: 10px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--muted); cursor: pointer;
+  }
+  .seg button.active.ok { background: #ECFDF5; border-color: var(--green); color: #047857; }
+  .seg button.active.ng { background: #FEF2F2; border-color: var(--red); color: #B91C1C; }
+  .comment-box { margin-top: 10px; display: none; }
+  .comment-box.show { display: block; }
+  footer {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border);
+    padding: 12px 16px; display: flex; gap: 10px;
+  }
+  footer input { flex: 1; }
+  button.submit {
+    background: var(--blue); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 800;
+    padding: 0 22px; cursor: pointer;
+  }
+  button.submit:disabled { background: #94A3B8; cursor: default; }
+  .empty, .loading { text-align: center; color: var(--muted); font-size: 13px; padding: 60px 20px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 86px; transform: translateX(-50%); background: var(--text); color: #fff;
+    font-size: 13px; padding: 10px 18px; border-radius: 999px; opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .status-banner {
+    margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  }
+  .status-banner.normal { background: #ECFDF5; color: #047857; }
+  .status-banner.abnormal { background: #FEF2F2; color: #B91C1C; }
+  .status-banner.progress { background: #FFFBEB; color: #B45309; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>현장 점검 - 데일리 체크</h1>
+    <div class="row">
+      <select id="checklistSelect"><option>체크시트 불러오는 중...</option></select>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <select id="shiftSelect" style="max-width:120px;">
+        <option value="">교대 없음</option>
+        <option value="주간">주간</option>
+        <option value="야간">야간</option>
+      </select>
+      <input type="text" id="dateInput" />
+    </div>
+    <div class="meta" id="metaLine"></div>
+    <div id="statusBanner"></div>
+  </header>
+
+  <main id="main">
+    <div class="loading">불러오는 중...</div>
+  </main>
+
+  <footer>
+    <input type="text" id="inspectorInput" placeholder="점검자 이름" />
+    <button class="submit" id="submitBtn">제출</button>
+  </footer>
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var state = { checklists: [], current: null, data: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function todayStr() {
+    var d = new Date();
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  $('dateInput').setAttribute('type', 'date');
+  $('dateInput').value = todayStr();
+
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  function loadChecklists() {
+    fetch('/api/checklists').then(function (r) { return r.json(); }).then(function (list) {
+      state.checklists = list;
+      var sel = $('checklistSelect');
+      sel.innerHTML = '';
+      if (!list.length) {
+        sel.innerHTML = '<option>등록된 체크시트가 없습니다</option>';
+        $('main').innerHTML = '<div class="empty">관리자가 체크시트를 먼저 등록해야 합니다.</div>';
+        return;
+      }
+      list.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c.checklistId;
+        opt.textContent = (c.category ? '[' + c.category + '] ' : '') + c.name + (c.locationName ? ' · ' + c.locationName : '');
+        sel.appendChild(opt);
+      });
+
+      // URL의 ?checklistId= 가 있으면 우선 선택 (QR/NFC 스캔 진입용)
+      var params = new URLSearchParams(location.search);
+      var preselect = params.get('checklistId');
+      if (preselect && list.some(function (c) { return String(c.checklistId) === preselect; })) {
+        sel.value = preselect;
+      }
+      loadToday();
+    }).catch(function () {
+      $('main').innerHTML = '<div class="empty">체크시트 목록을 불러오지 못했습니다.<br/>네트워크 연결을 확인해주세요.</div>';
+    });
+  }
+
+  function loadToday() {
+    var checklistId = $('checklistSelect').value;
+    if (!checklistId) return;
+    var shift = $('shiftSelect').value;
+    var date = $('dateInput').value || todayStr();
+
+    $('main').innerHTML = '<div class="loading">불러오는 중...</div>';
+    $('statusBanner').innerHTML = '';
+
+    fetch('/api/checklist/' + checklistId + '/today?date=' + date + '&shift=' + encodeURIComponent(shift))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        state.data = data;
+        renderMeta(data);
+        renderSections(data);
+        if (data.record) {
+          $('inspectorInput').value = data.record.inspectorName || '';
+          renderStatusBanner(data.record.overallStatus);
+        }
+      })
+      .catch(function () {
+        $('main').innerHTML = '<div class="empty">체크리스트를 불러오지 못했습니다.</div>';
+      });
+  }
+
+  function renderMeta(data) {
+    var c = data.checklist;
+    $('metaLine').textContent = (c.code ? c.code + ' · ' : '') + data.checkDate + (data.shiftLabel ? ' · ' + data.shiftLabel : '');
+  }
+
+  function renderStatusBanner(status) {
+    var el = $('statusBanner');
+    if (status === 'ABNORMAL') {
+      el.innerHTML = '<div class="status-banner abnormal">⚠ 이상 항목이 포함된 점검 기록이 이미 제출되어 있습니다. 다시 제출하면 내용이 갱신됩니다.</div>';
+    } else if (status === 'NORMAL') {
+      el.innerHTML = '<div class="status-banner normal">✓ 오늘 점검이 이미 완료(정상)로 제출되어 있습니다. 다시 제출하면 내용이 갱신됩니다.</div>';
+    } else {
+      el.innerHTML = '<div class="status-banner progress">진행 중인 점검 기록이 있습니다. 이어서 작성해주세요.</div>';
+    }
+  }
+
+  function renderSections(data) {
+    var main = $('main');
+    main.innerHTML = '';
+    if (!data.sections || !data.sections.length) {
+      main.innerHTML = '<div class="empty">이 체크시트/교대에는 등록된 점검 항목이 없습니다.</div>';
+      return;
+    }
+
+    data.sections.forEach(function (sec) {
+      if (sec.sectionName) {
+        var h = document.createElement('div');
+        h.className = 'section-title';
+        h.textContent = sec.sectionName;
+        main.appendChild(h);
+      }
+      sec.items.forEach(function (item) {
+        main.appendChild(renderItemCard(item));
+      });
+    });
+  }
+
+  function renderItemCard(item) {
+    var card = document.createElement('div');
+    card.className = 'item-card';
+    card.dataset.itemId = item.itemId;
+
+    var title = document.createElement('div');
+    title.className = 'item-title';
+    title.innerHTML = escapeHtml(item.title) + (item.isRequired ? '<span class="req">*</span>' : '');
+    card.appendChild(title);
+
+    if (item.unitOrHint) {
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = item.unitOrHint;
+      card.appendChild(hint);
+    }
+
+    var existing = item.result || {};
+    var inputEl;
+
+    if (item.inputType === 'OK_NG' || item.inputType === 'YES_NO') {
+      var okLabel = item.inputType === 'YES_NO' ? '예' : 'O (양호)';
+      var ngLabel = item.inputType === 'YES_NO' ? '아니오' : 'X (이상)';
+      var seg = document.createElement('div');
+      seg.className = 'seg';
+      var okBtn = makeSegButton(okLabel, 'ok');
+      var ngBtn = makeSegButton(ngLabel, 'ng');
+      seg.appendChild(okBtn);
+      seg.appendChild(ngBtn);
+      card.appendChild(seg);
+
+      var commentBox = document.createElement('div');
+      commentBox.className = 'comment-box';
+      var commentInput = document.createElement('textarea');
+      commentInput.placeholder = '이상 내용을 입력해주세요';
+      commentInput.value = existing.comment || '';
+      commentBox.appendChild(commentInput);
+      card.appendChild(commentBox);
+
+      var select = function (which) {
+        okBtn.classList.toggle('active', which === 'ok');
+        ngBtn.classList.toggle('active', which === 'ng');
+        commentBox.classList.toggle('show', which === 'ng');
+        card.dataset.result = which === 'ok' ? 'O' : 'X';
+        card.dataset.abnormal = which === 'ng' ? '1' : '0';
+      };
+      okBtn.onclick = function () { select('ok'); };
+      ngBtn.onclick = function () { select('ng'); };
+      card._getComment = function () { return commentInput.value; };
+
+      if (existing.resultText === 'O') select('ok');
+      else if (existing.resultText === 'X') select('ng');
+      else { card.dataset.result = ''; card.dataset.abnormal = '0'; }
+
+    } else if (item.inputType === 'NUMBER') {
+      inputEl = document.createElement('input');
+      inputEl.type = 'number';
+      inputEl.inputMode = 'decimal';
+      inputEl.placeholder = '측정값 입력';
+      inputEl.value = existing.resultText || '';
+      card.appendChild(inputEl);
+      card._getResult = function () { return inputEl.value; };
+      card._getAbnormal = function () { return false; };
+      card._getComment = function () { return ''; };
+    } else {
+      inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.placeholder = '내용 입력';
+      inputEl.value = existing.resultText || '';
+      card.appendChild(inputEl);
+      card._getResult = function () { return inputEl.value; };
+      card._getAbnormal = function () { return false; };
+      card._getComment = function () { return ''; };
+    }
+
+    return card;
+  }
+
+  function makeSegButton(label, kind) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.dataset.kind = kind;
+    b.classList.add(kind === 'ok' ? 'ok' : 'ng');
+    return b;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function collectItems() {
+    var cards = $('main').querySelectorAll('.item-card');
+    var items = [];
+    var missingRequired = false;
+    cards.forEach(function (card) {
+      var itemId = parseInt(card.dataset.itemId, 10);
+      var resultText, isAbnormal, comment;
+
+      if ('result' in card.dataset) {
+        resultText = card.dataset.result || '';
+        isAbnormal = card.dataset.abnormal === '1';
+        comment = card._getComment ? card._getComment() : '';
+      } else {
+        resultText = card._getResult ? card._getResult() : '';
+        isAbnormal = card._getAbnormal ? card._getAbnormal() : false;
+        comment = card._getComment ? card._getComment() : '';
+      }
+
+      var titleEl = card.querySelector('.item-title');
+      var isRequired = titleEl && titleEl.querySelector('.req');
+      if (isRequired && !resultText) missingRequired = true;
+
+      items.push({ itemId: itemId, resultText: resultText, isAbnormal: isAbnormal, comment: comment });
+    });
+    return { items: items, missingRequired: missingRequired };
+  }
+
+  function submit() {
+    if (!state.data) return;
+    var inspector = $('inspectorInput').value.trim();
+    if (!inspector) { toast('점검자 이름을 입력해주세요'); $('inspectorInput').focus(); return; }
+
+    var collected = collectItems();
+    if (collected.missingRequired) {
+      if (!confirm('필수 항목 중 입력하지 않은 항목이 있습니다. 그대로 제출할까요?')) return;
+    }
+
+    var btn = $('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '제출 중...';
+
+    fetch('/api/checklist/' + $('checklistSelect').value + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        checkDate: $('dateInput').value,
+        shiftLabel: $('shiftSelect').value,
+        inspectorName: inspector,
+        items: collected.items
+      })
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      btn.disabled = false;
+      btn.textContent = '제출';
+      if (res.ok) {
+        toast('제출되었습니다');
+        renderStatusBanner(res.overallStatus);
+      } else {
+        toast(res.error || '제출에 실패했습니다');
+      }
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = '제출';
+      toast('제출 중 오류가 발생했습니다');
+    });
+  }
+
+  $('checklistSelect').addEventListener('change', loadToday);
+  $('shiftSelect').addEventListener('change', loadToday);
+  $('dateInput').addEventListener('change', loadToday);
+  $('submitBtn').addEventListener('click', submit);
+
+  loadChecklists();
+})();
+</script>
+</body>
+</html>

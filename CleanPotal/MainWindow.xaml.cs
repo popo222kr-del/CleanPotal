@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using CleanPotal.StatusBoard.Views;
 using System.Windows.Threading;
 
 namespace CleanPotal
@@ -21,10 +22,15 @@ namespace CleanPotal
         private ProdReqView? _prodReqView;
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
+        private FieldInventoryView? _fieldInventoryView;
         private EduDashboardView? _eduDashboardView;
         private WorkAssignmentView? _workAssignmentView;
         private QuotationView? _quotationView;
         private BrokenManagementView? _brokenMgmtView;
+        private DocSearchView? _docSearchView;
+        private MaterialLogisticsView? _materialLogisticsView;
+        private ProductionBoardView? _productionBoardView;
+        private DongtanLogisticsView? _dongtanLogisticsView;
 
         private bool _isUpdatingNav = false;
         private bool _isSidebarOpen = true;
@@ -68,6 +74,7 @@ namespace CleanPotal
             BtnCommandVendor.Click += BtnCommandVendor_Click;
 
             DatabaseHelper.InitializeDatabase();
+            CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables();
 
             // 버전 표시
             VersionText.Text = GetAppVersion();
@@ -219,11 +226,30 @@ namespace CleanPotal
             if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = masterVis;
             if (ExpanderAdmin != null) ExpanderAdmin.Visibility = masterVis;
 
+            // OFFICE 업무 메뉴 전체는 OFFICE 팀(또는 마스터)만 열람 가능
+            if (ExpanderOffice != null)
+                ExpanderOffice.Visibility = IsOfficeTeam() ? Visibility.Visible : Visibility.Collapsed;
+
             // OFFICE 업무 내 교육 메뉴 가시성
             bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
             bool canViewEdu = canEditEdu || SessionManager.CurrentTeamName == "Office";
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // OFFICE 팀(또는 시스템 마스터)인지 여부
+        private static bool IsOfficeTeam()
+            => SessionManager.CurrentTeamName == "Office" || SessionManager.CurrentUsername == "1004";
+
+        // OFFICE 업무 기능 접근 가드 — OFFICE 팀이 아니면 차단
+        private bool CanOpenOfficeFeature()
+        {
+            if (!IsOfficeTeam())
+            {
+                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return false;
+            }
+            return true;
         }
 
         // 🎨 섹션 헤더(MAIN/WORKSPACE/TOOLS) Visibility 일괄 제어
@@ -246,22 +272,24 @@ namespace CleanPotal
         private void RestoreActiveExpander()
         {
             _isUpdatingNav = true;
-            if (_currentViewName == "Report" || _currentViewName == "DispatchCert") ExpanderEtc.IsExpanded = true;
+            if (_currentViewName == "Report" || _currentViewName == "DispatchCert" || _currentViewName == "DocSearch") ExpanderEtc.IsExpanded = true;
             else if (_currentViewName == "Handover" || _currentViewName == "WeeklyHandover" || _currentViewName == "ProdReq" || _currentViewName == "Schedule") ExpanderProduction.IsExpanded = true;
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "Quotation" || _currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
-            else if (_currentViewName == "FieldChecklist") ExpanderFieldInspection.IsExpanded = true;
+            else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory") ExpanderFieldInspection.IsExpanded = true;
             else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "BrokenMgmt") ExpanderOffice.IsExpanded = true;
+            else if (_currentViewName == "MaterialLogistics" || _currentViewName == "ProductionBoard" || _currentViewName == "DongtanLogistics") ExpanderStatusBoard.IsExpanded = true;
             _isUpdatingNav = false;
         }
 
+        private void ExpanderStatusBoard_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "MaterialLogistics" && _currentViewName != "ProductionBoard" && _currentViewName != "DongtanLogistics") OpenMaterialLogistics_Click(sender, e); }
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
-        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert") OpenReport_Click(sender, e); }
-        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist") OpenFieldChecklist_Click(sender, e); }
+        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert" && _currentViewName != "DocSearch") OpenReport_Click(sender, e); }
+        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory") OpenFieldInventory_Click(sender, e); }
         private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
@@ -271,11 +299,17 @@ namespace CleanPotal
         private void OpenTeamSchedule(object sender, RoutedEventArgs e) { OpenSidebar(); ShowTeamSchedule(); }
         private void OpenProdReq_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProdReq(); }
 
-        private void OpenQuotation_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowQuotation(); }
+        private void OpenQuotation_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
+            ShowQuotation();
+        }
 
         private void OpenWeeklyReport_Click(object sender, RoutedEventArgs e)
         {
             OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
             if (!AuthManager.CheckAuth(PermissionType.WeeklyReport)) return;
             ShowWeeklyReport();
         }
@@ -350,6 +384,8 @@ namespace CleanPotal
         private void OpenBrokenMgmt_Click(object sender, RoutedEventArgs e)
         {
             OpenSidebar();
+            if (!CanOpenOfficeFeature()) return;
+            if (!AuthManager.CheckAuth(PermissionType.BrokenMgmt)) return;
             ShowBrokenMgmt();
         }
 
@@ -371,10 +407,32 @@ namespace CleanPotal
             new UserManagementWindow { Owner = this }.ShowDialog();
         }
 
+        private void OpenDocSearch_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            ShowDocSearch();
+        }
+
+        private void ShowDocSearch()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "DocSearch";
+            ApplySectionMeta("문서 검색", "등록한 문서들 중 입력한 단어가 포함된 내용을 빠르게 찾아줍니다.");
+            UpdateNavSelection("DocSearch");
+            if (_docSearchView == null) _docSearchView = new DocSearchView();
+            else _docSearchView.TryRefresh();
+            MainContent.Content = _docSearchView;
+            HideAllHeaderButtons();
+        }
+
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
         private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
         private void OpenFieldChecklist_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldChecklist(); }
+        private void OpenFieldInventory_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldInventory(); }
+        private void OpenMaterialLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowMaterialLogistics(); }
+        private void OpenProductionBoard_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProductionBoard(); }
+        private void OpenDongtanLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowDongtanLogistics(); }
         private void BtnCommandVendor_Click(object sender, RoutedEventArgs e) { if (!AuthManager.CheckAuth(PermissionType.Vendors)) return; new VendorManagerWindow { Owner = this }.ShowDialog(); }
 
         private void ManagePortalLinks_Click(object sender, RoutedEventArgs e)
@@ -553,15 +611,59 @@ namespace CleanPotal
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
+        private void ShowFieldInventory()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "FieldInventory";
+            ApplySectionMeta("재고관리", "현장 소모품·자재 재고 현황을 관리합니다. 현재재고 ≤ 적정재고이면 빨간색으로 표시됩니다.");
+            UpdateNavSelection("FieldInventory");
+            if (_fieldInventoryView == null) _fieldInventoryView = new FieldInventoryView();
+            MainContent.Content = _fieldInventoryView;
+            HideAllHeaderButtons();
+        }
+
         private void ShowFieldChecklist()
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "FieldChecklist";
-            ApplySectionMeta("현장 점검 - 체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
+            ApplySectionMeta("체크시트", "NFC/QR 기반 현장 체크시트를 등록·조회·출력합니다.");
             UpdateNavSelection("FieldChecklist");
             if (_fieldChecklistView == null) _fieldChecklistView = new FieldChecklistView();
             else _fieldChecklistView.RefreshDashboardCounters();
             MainContent.Content = _fieldChecklistView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowMaterialLogistics()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "MaterialLogistics";
+            ApplySectionMeta("자재물류 일정 현황", "천안사업장 자재 & 물류 배차 일정을 관리합니다.");
+            UpdateNavSelection("MaterialLogistics");
+            if (_materialLogisticsView == null) _materialLogisticsView = new MaterialLogisticsView();
+            MainContent.Content = _materialLogisticsView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowProductionBoard()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "ProductionBoard";
+            ApplySectionMeta("생산 현황판", "주간/야간 포장 수량 및 팀 구성을 관리합니다.");
+            UpdateNavSelection("ProductionBoard");
+            if (_productionBoardView == null) _productionBoardView = new ProductionBoardView();
+            MainContent.Content = _productionBoardView;
+            HideAllHeaderButtons();
+        }
+
+        private void ShowDongtanLogistics()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "DongtanLogistics";
+            ApplySectionMeta("동탄 물류 현황판", "동탄 물류 배차 및 반입/반출 물량을 관리합니다.");
+            UpdateNavSelection("DongtanLogistics");
+            if (_dongtanLogisticsView == null) _dongtanLogisticsView = new DongtanLogisticsView();
+            MainContent.Content = _dongtanLogisticsView;
             HideAllHeaderButtons();
         }
 
@@ -600,10 +702,11 @@ namespace CleanPotal
 
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavWeeklyHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
-            BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavQuotation.Style = subNormal;
+            BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavFieldInventory.Style = subNormal; BtnNavQuotation.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
+            if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
@@ -611,24 +714,43 @@ namespace CleanPotal
             switch (viewName)
             {
                 case "Portal": BtnNavPortal.Style = mainSelected; break;
-                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
-                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
-                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ExpanderProduction.IsExpanded = true; break;
-                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ExpanderEtc.IsExpanded = true; break;
-                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ExpanderAttendance.IsExpanded = true; break;
-                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ExpanderFieldInspection.IsExpanded = true; break;
-                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
-                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ExpanderOffice.IsExpanded = true; break;
+                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
+                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
+                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
+                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
+                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
+                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
+                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
             }
 
             _isUpdatingNav = false;
+        }
+
+        // Style 재할당으로 ControlTemplate이 새로 적용되면 슬라이드/Chevron 애니메이션 트리거가
+        // 재실행되지 않아 IsExpanded=true 여도 하위 메뉴가 보이지 않는 문제가 있어,
+        // false→true로 강제 토글해 진입 애니메이션을 다시 재생시킨다.
+        // 새 Style의 ControlTemplate은 비동기로 적용되므로, true로 되돌리는 작업은
+        // 레이아웃이 갱신된 뒤(Loaded 우선순위)로 미뤄야 새 템플릿에서 애니메이션이 재생된다.
+        private void ForceExpand(Expander expander)
+        {
+            expander.IsExpanded = false;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                bool prev = _isUpdatingNav;
+                _isUpdatingNav = true;
+                expander.IsExpanded = true;
+                _isUpdatingNav = prev;
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private static string GetAppVersion()

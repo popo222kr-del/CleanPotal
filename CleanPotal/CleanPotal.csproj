@@ -47,6 +47,8 @@
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
     <PackageReference Include="System.Data.SQLite" Version="2.0.3" />
+    <PackageReference Include="PdfPig" Version="0.1.10" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc4.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -59,6 +61,12 @@
     <Resource Include="Images\bono.ico" />
     <Resource Include="Images\bono.png" />
     <Resource Include="Images\logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="FieldInspection\Web\wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

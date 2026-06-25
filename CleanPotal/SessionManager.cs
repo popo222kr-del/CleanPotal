@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace CleanPotal
 {
-    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport, EtcMenu }
+    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport, EtcMenu, BrokenMgmt, InventoryManage }
 
     public static class AuthManager
     {
@@ -25,6 +25,8 @@ namespace CleanPotal
                 PermissionType.Schedule => true,
                 PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
                 PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.CurrentUsername == "1004",
+                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.CurrentUsername == "1004",
+                PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.CurrentUsername == "1004",
                 _ => false
             };
 
@@ -38,6 +40,8 @@ namespace CleanPotal
                     PermissionType.Schedule => "일정/교육 관리",
                     PermissionType.WeeklyReport => "주간보고",
                     PermissionType.EtcMenu => "기타 메뉴",
+                    PermissionType.BrokenMgmt => "BROKEN 관리",
+                    PermissionType.InventoryManage => "재고 관리",
                     _ => "해당"
                 };
                 MessageBox.Show($"{menuName} 메뉴에 접근할 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
@@ -58,7 +62,9 @@ namespace CleanPotal
         public static bool CanManageNotices { get; set; } = false;
         public static bool CanManageVendors { get; set; } = false;
         public static bool CanManageSchedule { get; set; } = false;
+        public static bool CanManageBroken { get; set; } = false;
         public static bool CanAccessEtcMenu { get; set; } = false;
+        public static bool CanManageInventory { get; set; } = false;
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
 
@@ -68,7 +74,7 @@ namespace CleanPotal
         {
             CurrentUsername = ""; CurrentRealName = ""; CurrentTeamName = "";
             CurrentJobTitle = ""; CurrentPhoneNumber = "";
-            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false; CanAccessEtcMenu = false;
+            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false; CanManageBroken = false; CanAccessEtcMenu = false; CanManageInventory = false;
 
             if (File.Exists(TokenPath)) File.Delete(TokenPath);
         }

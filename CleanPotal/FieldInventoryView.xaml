@@ -1,0 +1,870 @@
+<UserControl x:Class="CleanPotal.FieldInventoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CleanPotal"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             Background="#F8FAFC"
+             SnapsToDevicePixels="True" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+    <UserControl.Resources>
+
+        <local:LocationColorConverter x:Key="LocationColorConv"/>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="GhostBtn" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F8FAFC"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#E2E8F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2563EB"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="LinkBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.7"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PageBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="GridStyle" TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="AlternatingRowBackground" Value="#FAFAFA"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="CanUserSortColumns" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="ColumnHeaderHeight" Value="36"/>
+            <Setter Property="RowHeight" Value="40"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                    <Setter Property="Foreground" Value="#334155"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GroupHeaderStyle" TargetType="GroupItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupItem">
+                        <StackPanel>
+                            <Border Padding="12,6" Margin="0,4,0,0"
+                                    Background="{Binding Name, Converter={StaticResource LocationColorConv}}">
+                                <TextBlock FontSize="12" FontWeight="Bold"
+                                           Foreground="{Binding Name, Converter={StaticResource LocationColorConv}, ConverterParameter=Fg}">
+                                    <Run Text="📦 "/>
+                                    <Run Text="{Binding Name, Mode=OneWay}"/>
+                                    <Run Text=" ("/>
+                                    <Run Text="{Binding ItemCount, Mode=OneWay}"/>
+                                    <Run Text="종)"/>
+                                </TextBlock>
+                            </Border>
+                            <ItemsPresenter/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CenterCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 좌측 정렬 + 상하 중앙 (품목명 등) -->
+        <Style x:Key="LeftCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CurrentStockCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLow}" Value="True">
+                    <Setter Property="Foreground" Value="#DC2626"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ItemCodeCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <!-- 이전 대비 증감: 감소(소비) 빨강, 증가(입고) 초록, 변동 없음/미산정 회색 -->
+        <Style x:Key="WeeklyDeltaCell" TargetType="TextBlock" BasedOn="{StaticResource CenterCell}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding WeeklyDeltaIsDecrease}" Value="True">
+                    <Setter Property="Foreground" Value="#DC2626"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding HasWeeklyDelta}" Value="True"/>
+                        <Condition Binding="{Binding WeeklyDeltaIsDecrease}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Foreground" Value="#16A34A"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CategoryBadge" TargetType="Border">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="FieldInput" TargetType="Control">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- 노션풍 평면 DatePicker: 테두리·배경 제거하고 pill 컨테이너에 녹임 -->
+        <Style x:Key="FlatDatePicker" TargetType="DatePicker">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+    </UserControl.Resources>
+
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 화면 모드 탭: 재고 현황(조회) / 재고 리스트 관리(편집) -->
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="6" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Border x:Name="ModeTabView" CornerRadius="8" Padding="18,8" Margin="0,0,6,0" Cursor="Hand"
+                        Background="#2563EB" MouseLeftButtonDown="ModeTab_Click" Tag="view">
+                    <TextBlock x:Name="TxtModeView" Text="재고 현황" FontSize="13" FontWeight="Bold" Foreground="White"/>
+                </Border>
+                <Border x:Name="ModeTabAnalysis" CornerRadius="8" Padding="18,8" Margin="0,0,6,0" Cursor="Hand"
+                        Background="Transparent" MouseLeftButtonDown="ModeTab_Click" Tag="analysis">
+                    <TextBlock x:Name="TxtModeAnalysis" Text="재고 분석" FontSize="13" FontWeight="SemiBold" Foreground="#64748B"/>
+                </Border>
+                <Border x:Name="ModeTabManage" CornerRadius="8" Padding="18,8" Cursor="Hand"
+                        Background="Transparent" MouseLeftButtonDown="ModeTab_Click" Tag="manage">
+                    <TextBlock x:Name="TxtModeManage" Text="재고 리스트 관리" FontSize="13" FontWeight="SemiBold" Foreground="#64748B"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- 상단: 통계 카드 -->
+        <Grid x:Name="PanelStats" Grid.Row="1" Margin="0,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,10">
+                <StackPanel>
+                    <TextBlock Text="전체 품목" FontSize="12" Foreground="#64748B"/>
+                    <TextBlock x:Name="StatTotalText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#0F172A" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="3,0,3,10">
+                <StackPanel>
+                    <TextBlock Text="재고 부족 (즉시 발주 필요)" FontSize="12" Foreground="#64748B"/>
+                    <TextBlock x:Name="StatLowText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#EF4444" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="6,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="최근 업데이트" FontSize="12" Foreground="#64748B"/>
+                    <TextBlock x:Name="StatUpdatedText" Text="-" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 툴바 -->
+        <Border x:Name="PanelToolbar" Grid.Row="2" Style="{StaticResource CardStyle}">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Text="현장 재고관리" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock x:Name="TxtLastSnapshot" Text="" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="TxtLastSaved" Text="" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- 검색 (노션풍 pill + 아이콘 + 플레이스홀더) -->
+                    <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
+                            Padding="10,0" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🔍" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <Grid Width="170">
+                                <TextBlock x:Name="TxtSearchPlaceholder" Text="품목명·코드 검색" FontSize="13" Foreground="#94A3B8"
+                                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                <TextBox x:Name="TxtSearch" FontSize="13" Padding="0,7" BorderThickness="0" Background="Transparent"
+                                         VerticalContentAlignment="Center" TextChanged="TxtSearch_TextChanged"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Button x:Name="BtnWeeklyClose" Content="주간 마감" Style="{StaticResource GhostBtn}" Click="BtnWeeklyClose_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnDeleteRow" Content="선택 삭제" Style="{StaticResource GhostBtn}" Click="BtnDeleteRow_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnExportExcel" Content="엑셀 내보내기" Style="{StaticResource GhostBtn}" Click="BtnExportExcel_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnImportExcel" Content="엑셀 업로드" Style="{StaticResource GhostBtn}" Click="BtnImportExcel_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnRefresh" Content="새로고침" Style="{StaticResource GhostBtn}" Click="BtnRefresh_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnConfirmUpload" Content="업로드 확정" Style="{StaticResource PrimaryBtn}" Click="BtnConfirmUpload_Click" Margin="0,0,8,0" Visibility="Collapsed"/>
+                    <Button x:Name="BtnManageLocation" Content="위치 관리" Style="{StaticResource GhostBtn}" Click="BtnManageLocation_Click" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnAddRow" Content="+ 품목 등록" Style="{StaticResource PrimaryBtn}" Click="BtnAddRow_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 4구역 재고 그리드: 메탈 | 논메탈 (1화면) / 오피스 | 세정랩 (스크롤) -->
+        <Border x:Name="PanelZoneGrid" Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 헤더: 총 개수 + 일괄 수정 -->
+                <DockPanel Grid.Row="0" Margin="12,10,12,8" LastChildFill="False">
+                    <TextBlock Text="재고 리스트" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                               DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtTotalCount" Text="총 0개" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <Button x:Name="BtnBatchEdit" Content="일괄 수정" Style="{StaticResource GhostBtn}"
+                                Padding="10,5" FontSize="12" Click="BtnBatchEdit_Click"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- 세로 스크롤: 1행(메탈·논메탈)이 한 화면을 채우고, 스크롤 시 2행(오피스·세정랩) 노출 -->
+                <ScrollViewer x:Name="ZoneScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="8,0,8,8">
+                    <StackPanel>
+                        <!-- 1행: 메탈 | 논메탈 (한 화면 높이) -->
+                        <Grid Height="{Binding ViewportHeight, ElementName=ZoneScroll}" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 메탈 (반입구) -->
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#DBEAFE" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock x:Name="TxtMetalTitle" Text="METAL 반입구" FontSize="13" FontWeight="Bold" Foreground="#1D4ED8" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtMetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgMetal" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
+                            </Border>
+
+                            <!-- 논메탈 (반입구) -->
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#FCE7F3" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock x:Name="TxtNonmetalTitle" Text="N-METAL 출고실" FontSize="13" FontWeight="Bold" Foreground="#BE185D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtNonmetalCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgNonmetal" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
+                            </Border>
+                        </Grid>
+
+                        <!-- 2행: 오피스 | 세정랩 (스크롤 시 노출) -->
+                        <Grid Height="{Binding ViewportHeight, ElementName=ZoneScroll}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 오피스 (OFFICE 보관) -->
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#DCFCE7" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock x:Name="TxtOfficeTitle" Text="Office 보관" FontSize="13" FontWeight="Bold" Foreground="#15803D" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtOfficeCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgOffice" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
+                            </Border>
+
+                            <!-- 세정랩 -->
+                            <Border Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                                <Border CornerRadius="7">
+                                    <Border.OpacityMask>
+                                        <VisualBrush>
+                                            <VisualBrush.Visual>
+                                                <Border Background="Black" CornerRadius="7" SnapsToDevicePixels="True"
+                                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                                                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#EDE9FE" Padding="12,8"
+                                                BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                                            <DockPanel LastChildFill="False">
+                                                <TextBlock x:Name="TxtCleaningTitle" Text="세정랩" FontSize="13" FontWeight="Bold" Foreground="#6D28D9" DockPanel.Dock="Left"/>
+                                                <TextBlock x:Name="TxtCleaningCount" Text="0개" FontSize="12" Foreground="#64748B" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <DataGrid x:Name="DgCleaning" Grid.Row="1"
+                                                  Style="{StaticResource GridStyle}"
+                                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Sorting="DgInventory_Sorting"
+                                                  PreviewMouseWheel="DgZone_PreviewMouseWheel"
+                                                  CellEditEnding="DgInventory_CellEditEnding"/>
+                                    </Grid>
+                                </Border>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- 재고 분석 대시보드 (analysis 모드에서만 표시) -->
+        <Border x:Name="PanelAnalysis" Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0" Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20,16">
+                    <!-- 헤더 + 점검일자(마감) 기간 조회 -->
+                    <DockPanel LastChildFill="False" Margin="0,0,0,16">
+                        <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <TextBlock Text="재고 분석 대시보드" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
+                            <TextBlock x:Name="TxtAnalysisRange" Text="전체 기간" FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                            <Border Background="#F1F5F9" CornerRadius="10" Padding="12,5" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="점검일자" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <DatePicker x:Name="DpFrom" Width="118" Style="{StaticResource FlatDatePicker}" SelectedDateChanged="DpFrom_SelectedDateChanged"/>
+                                    <TextBlock Text="–" Foreground="#94A3B8" VerticalAlignment="Center" Margin="6,0"/>
+                                    <DatePicker x:Name="DpTo" Width="118" Style="{StaticResource FlatDatePicker}"/>
+                                </StackPanel>
+                            </Border>
+                            <Button x:Name="BtnDateSearch" Content="조회" Style="{StaticResource PrimaryBtn}"
+                                    Padding="14,6" FontSize="12" Click="BtnDateSearch_Click" Margin="0,0,8,0"/>
+                            <Button x:Name="BtnAnalysisReset" Content="전체 기간" Style="{StaticResource GhostBtn}"
+                                    Padding="12,6" FontSize="12" Click="BtnAnalysisReset_Click"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#EFF6FF" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="마감 데이터" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalSnapCount" Text="0회" FontSize="24" FontWeight="ExtraBold" Foreground="#2563EB" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FEF2F2" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="현재 부족 품목" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalLowCount" Text="0개" FontSize="24" FontWeight="ExtraBold" Foreground="#DC2626" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Background="#F0FDF4" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="전체 품목" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalTotalItems" Text="0개" FontSize="24" FontWeight="ExtraBold" Foreground="#15803D" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="6" Background="#F5F3FF" CornerRadius="12" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="구역 수" FontSize="12" Foreground="#64748B"/>
+                                <TextBlock x:Name="AnalZoneCount" Text="4개" FontSize="24" FontWeight="ExtraBold" Foreground="#6D28D9" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 차트 1행: 주간 재고 추이 + 구역별 품목 분포 -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtTrendTitle" Text="주간 재고 추이 (구역별 · 행 클릭 시 품목별)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartStockTrend" Height="280" LegendPosition="Bottom"/>
+                                <TextBlock x:Name="TxtNoTrendData" Text="마감 데이터가 2건 이상 쌓이면 추이 차트가 표시됩니다."
+                                           FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="구역별 품목 분포" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:PieChart x:Name="ChartZoneDist" Height="280" LegendPosition="Bottom"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 차트 2행: 구역별 부족 현황 + 소비 Top 10 -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="구역별 부족 vs 정상 품목" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartZoneLow" Height="260"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="소비량 Top 10 (이전 대비 감소)" FontSize="14" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,12"/>
+                                <lvc:CartesianChart x:Name="ChartTopConsumption" Height="260"/>
+                                <TextBlock x:Name="TxtNoConsumData" Text="마감 데이터가 필요합니다."
+                                           FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 품목 상세 조회 (검색) -->
+                    <Border Background="#FAFAFA" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                <TextBlock Text="품목 상세 조회" FontSize="14" FontWeight="Bold" Foreground="#0F172A"
+                                           DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnAnalysisDetailReset" DockPanel.Dock="Right" Content="초기화"
+                                        Style="{StaticResource GhostBtn}" Padding="12,6" FontSize="12"
+                                        VerticalAlignment="Center" Margin="8,0,0,0" Click="BtnAnalysisDetailReset_Click"/>
+                                <Border DockPanel.Dock="Right" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
+                                        Padding="10,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🔍" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <Grid Width="200">
+                                            <TextBlock x:Name="TxtAnalysisSearchPlaceholder" Text="품목명·코드 검색" FontSize="13" Foreground="#94A3B8"
+                                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                            <TextBox x:Name="TxtAnalysisSearch" FontSize="13" Padding="0,7" BorderThickness="0" Background="Transparent"
+                                                     VerticalContentAlignment="Center" TextChanged="TxtAnalysisSearch_TextChanged"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </DockPanel>
+                            <DataGrid x:Name="DgAnalysisDetail"
+                                      Style="{StaticResource GridStyle}"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      IsReadOnly="True" MaxHeight="400"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      SelectionChanged="DgAnalysisDetail_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="구역" Binding="{Binding StorageLocation}" Width="110">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*" MinWidth="140">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="LeftCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStockDisplay}" Width="80">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CurrentStockCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 재고" Binding="{Binding PreviousStockDisplay}" Width="70">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="이전 대비" Binding="{Binding WeeklyDeltaText}" Width="70">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="WeeklyDeltaCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="안전재고" Binding="{Binding AppropriateStock}" Width="75">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="단위" Binding="{Binding Unit}" Width="50">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="품목코드" Binding="{Binding ItemCode}" Width="90">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="ItemCodeCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="발주 회사" Binding="{Binding Supplier}" Width="110">
+                                        <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 일괄 수정 모달 -->
+        <Grid x:Name="BatchOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="12" Padding="24" Width="480" MaxHeight="560"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="일괄 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="TxtBatchCount" Text="" FontSize="13" Foreground="#64748B" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Content="✕" Style="{StaticResource LinkBtn}" FontSize="16" Foreground="#94A3B8"
+                                HorizontalAlignment="Right" Click="BtnCloseBatch_Click"/>
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                        <TextBlock Text="수정할 항목" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CmbBatchField" FontSize="13" Padding="8,6" Margin="0,0,0,8" SelectedIndex="0">
+                            <ComboBoxItem Content="현재 재고"/>
+                            <ComboBoxItem Content="안전재고"/>
+                            <ComboBoxItem Content="단위"/>
+                            <ComboBoxItem Content="카테고리"/>
+                            <ComboBoxItem Content="발주 완료 처리"/>
+                            <ComboBoxItem Content="발주 해제 처리"/>
+                        </ComboBox>
+                        <TextBlock Text="변경 값" Style="{StaticResource FieldLabel}" x:Name="LblBatchValue"/>
+                        <TextBox x:Name="TxtBatchValue" FontSize="13" Padding="8,6"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                        <DataGrid x:Name="DgBatchPreview" Style="{StaticResource GridStyle}"
+                                  ColumnHeaderStyle="{StaticResource HeaderStyle}" IsReadOnly="True"
+                                  RowHeight="32" MaxHeight="280">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="*"/>
+                                <DataGridTextColumn Header="위치" Binding="{Binding StorageLocation}" Width="90">
+                                    <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="현재 재고" Binding="{Binding CurrentStockDisplay}" Width="80">
+                                    <DataGridTextColumn.ElementStyle><StaticResource ResourceKey="CenterCell"/></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+
+                    <Button x:Name="BtnApplyBatch" Grid.Row="3" Content="일괄 적용" Style="{StaticResource PrimaryBtn}"
+                            HorizontalAlignment="Stretch" Padding="14,10" FontSize="14" Margin="0,12,0,0"
+                            Click="BtnApplyBatch_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- 품목 등록/수정 모달 -->
+        <Grid x:Name="EditOverlay" Grid.RowSpan="4" Background="#80000000" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="12" Padding="24" Width="540" MaxHeight="680"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock x:Name="TxtModalTitle" Text="품목 정보 수정" FontSize="16" FontWeight="Bold" Foreground="#0F172A"/>
+                        <Button Content="✕" Style="{StaticResource LinkBtn}" FontSize="16" Foreground="#94A3B8"
+                                HorizontalAlignment="Right" Click="BtnCloseModal_Click"/>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,0,8,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="품목코드" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditCode" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="카테고리" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditCategory" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="품목명 *" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditName" Style="{StaticResource FieldInput}"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="등록일자" Style="{StaticResource FieldLabel}"/>
+                                    <DatePicker x:Name="DpEditDate" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="품목 위치" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditLocation" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="현재 재고" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditCurrent" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="안전재고" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditSafe" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="단위" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CmbEditUnit" Style="{StaticResource FieldInput}" IsEditable="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="비고" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditMemo" Height="60" Padding="8,6" FontSize="13" Margin="0,0,0,12"
+                                     AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+                            <Grid Margin="0,4,0,8">
+                                <TextBlock Text="발주 정보" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="ChkEditOrdered" Content="발주 완료" FontSize="12" FontWeight="SemiBold"
+                                          Foreground="#2563EB" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="최소 발주" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditMinOrder" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="발주 수량" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditOrderQty" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="발주 날짜" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditOrderDate" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="입고 예정" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox x:Name="TxtEditExpected" Style="{StaticResource FieldInput}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="발주 회사" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtEditSupplier" Style="{StaticResource FieldInput}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Button x:Name="BtnSaveModal" Grid.Row="2" Content="수정 완료" Style="{StaticResource PrimaryBtn}"
+                            HorizontalAlignment="Stretch" Padding="14,10" FontSize="14" Margin="0,12,0,0"
+                            Click="BtnSaveModal_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
