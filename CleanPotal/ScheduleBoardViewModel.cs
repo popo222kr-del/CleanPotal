@@ -174,6 +174,33 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
         public void ReloadFromDatabase() { LoadBlocksFromDb(); }
 
+        public List<PlacedRecipeBlock> LoadBlocksForDate(DateTime date)
+        {
+            var blocks = new List<PlacedRecipeBlock>();
+            if (!File.Exists(DbPath)) return blocks;
+            string dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", dateStr);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                blocks.Add(new PlacedRecipeBlock
+                {
+                    EquipmentIndex = reader.GetInt32(0),
+                    StartMinute = reader.GetInt32(1),
+                    RecipeText = reader.GetString(2),
+                    S2Minutes = reader.GetInt32(3),
+                    HFMinutes = reader.GetInt32(4),
+                    DIMinutes = reader.GetInt32(5),
+                    S2Temperature = reader.IsDBNull(6) ? null : reader.GetInt32(6)
+                });
+            }
+            return blocks;
+        }
+
         private void LoadBlocksFromDb()
         {
             if (!File.Exists(DbPath)) return;

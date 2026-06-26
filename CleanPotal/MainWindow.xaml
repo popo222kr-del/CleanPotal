@@ -555,7 +555,6 @@
                         <Button x:Name="BtnCommandRecipeManage" Content="레시피 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandRecipeManage_Click"/>
                         <Button x:Name="BtnCommandCapture" Content="화면 캡처" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandCapture_Click"/>
                         <Button x:Name="BtnCommandUndo" Content="되돌리기" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandUndo_Click"/>
-                        <Button x:Name="BtnCommandPartialReset" Content="부분 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandPartialReset_Click"/>
                         <Button x:Name="BtnCommandReset" Content="전체 초기화" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Foreground="#DC2626" Click="BtnCommandReset_Click"/>
                         <Button x:Name="BtnCommandNewReq" Content="+ 새 요청 등록" Style="{StaticResource HeaderButtonStyle}" Background="#2563EB" Foreground="White" BorderThickness="0" Visibility="Collapsed" Click="BtnCommandNewReq_Click"/>
                         <Button x:Name="BtnCommandPrimary" Content="파일 관리자" Style="{StaticResource HeaderButtonStyle}" Background="#111827" Foreground="White" BorderThickness="0" Visibility="Visible" Click="ManagePortalLinks_Click"/>

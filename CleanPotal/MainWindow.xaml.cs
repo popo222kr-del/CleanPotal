@@ -458,7 +458,7 @@ namespace CleanPotal
             BtnCommandPrimary.Visibility = Visibility.Collapsed; BtnCommandNotice.Visibility = Visibility.Collapsed;
             BtnCommandSecondary.Visibility = Visibility.Collapsed; BtnCommandVendor.Visibility = Visibility.Collapsed;
             BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed;
-            BtnCommandUndo.Visibility = Visibility.Collapsed; BtnCommandPartialReset.Visibility = Visibility.Collapsed;
+            BtnCommandUndo.Visibility = Visibility.Collapsed;
             BtnCommandReset.Visibility = Visibility.Collapsed; BtnCommandNewReq.Visibility = Visibility.Collapsed;
         }
 
@@ -541,7 +541,7 @@ namespace CleanPotal
             MainContent.Content = _scheduleBoardView;
             HideAllHeaderButtons();
             BtnCommandRecipeManage.Visibility = Visibility.Visible; BtnCommandCapture.Visibility = Visibility.Visible;
-            BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandPartialReset.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
+            BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
         }
 
         private void ShowTeamSchedule()
@@ -683,7 +683,6 @@ namespace CleanPotal
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
         private void BtnCommandUndo_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.UndoAction();
-        private void BtnCommandPartialReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.PartialReset();
         private void BtnCommandReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.ResetAll();
         private void BtnCommandNewReq_Click(object sender, RoutedEventArgs e) => _prodReqView?.OpenRegisterModal();
         private void HeaderPrevMonth_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoPrevMonth();

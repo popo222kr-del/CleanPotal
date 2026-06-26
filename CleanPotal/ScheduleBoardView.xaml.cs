@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Excel;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -477,7 +478,6 @@ namespace CleanPotal
 
         public void UndoAction() { if (_vm.TryUndoLastBoardAction(out string msg)) { HideHoverCell(); _vm.StatusText = msg; DrawBoard(); return; } _vm.StatusText = msg; UpdateStatusText(); }
         public void ResetAll() { _vm.ClearPlacedBlocks(); HideHoverCell(); _vm.StatusText = "전체 초기화 완료 (배치된 레시피 전체 삭제)"; DrawBoard(); }
-        public void PartialReset() { if (!_vm.HasSelectedCell) { MessageBox.Show("부분 초기화를 하려면 먼저 보드에서 셀을 선택하세요.", "부분 초기화", MessageBoxButton.OK, MessageBoxImage.Information); return; } if (_vm.TryPartialResetFromSelectedCell(out string msg)) { HideHoverCell(); _vm.StatusText = msg; DrawBoard(); return; } _vm.StatusText = msg; UpdateStatusText(); }
         public void CaptureBoard() { try { CaptureCurrentRangeToClipboard(); } catch (Exception ex) { _vm.StatusText = $"캡처 실패: {ex.Message}"; UpdateStatusText(); } }
 
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e) { _vm.GoToPrevDay(); HideHoverCell(); DrawBoard(); }
@@ -499,6 +499,34 @@ namespace CleanPotal
         private void NightCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: true); }
         private void NightCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { NightCheckBox.IsChecked = true; return; } if (DayCheckBox?.IsChecked == true) ScrollToRangeStart(night: false); }
 
+        private int ShowDayCountDialog()
+        {
+            var dlg = new Window
+            {
+                Title = "캡처 일수",
+                Width = 320, Height = 160,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252))
+            };
+            var sp = new StackPanel { Margin = new Thickness(20, 16, 20, 16) };
+            sp.Children.Add(new TextBlock { Text = "캡처할 일수를 입력하세요 (1~14)", FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
+            var txt = new TextBox { Text = "1", FontSize = 14, Height = 32, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(8, 0, 8, 0) };
+            txt.SelectAll();
+            sp.Children.Add(txt);
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
+            var btnOk = new Button { Content = "캡처", Width = 70, Height = 30, FontWeight = FontWeights.Bold, IsDefault = true };
+            var btnCancel = new Button { Content = "취소", Width = 70, Height = 30, Margin = new Thickness(8, 0, 0, 0), IsCancel = true };
+            int result = 0;
+            btnOk.Click += (s, e) => { if (int.TryParse(txt.Text.Trim(), out int v) && v >= 1) { result = Math.Min(v, 14); dlg.DialogResult = true; } else { txt.Focus(); txt.SelectAll(); } };
+            btnPanel.Children.Add(btnOk); btnPanel.Children.Add(btnCancel);
+            sp.Children.Add(btnPanel);
+            dlg.Content = sp;
+            txt.Focus();
+            return dlg.ShowDialog() == true ? result : 0;
+        }
+
         private void CaptureCurrentRangeToClipboard()
         {
             if (_vm == null) return;
@@ -511,23 +539,80 @@ namespace CleanPotal
             else if (night) { startAbs = nightStart; endAbs = nightEndBoundary; label = "야간(19:00~06:00)"; }
             else { startAbs = dayStart; endAbs = dayEnd; label = "주간(07:00~19:00)"; }
 
-            var final = BuildCaptureBitmapFromModel(startAbs, endAbs);
-            Clipboard.SetImage(final);
-            _vm.StatusText = $"캡처 완료: {label} / 마지막 설비 행까지 클립보드 복사됨 (Ctrl+V)"; UpdateStatusText();
+            int dayCount = ShowDayCountDialog();
+            if (dayCount < 1) return;
+
+            if (dayCount == 1)
+            {
+                var final = BuildCaptureBitmapForDate(_vm.CurrentDate, startAbs, endAbs);
+                Clipboard.SetImage(final);
+                _vm.StatusText = $"캡처 완료: {label} / {_vm.CurrentDateText}"; UpdateStatusText();
+            }
+            else
+            {
+                var final = BuildMultiDayCaptureBitmap(_vm.CurrentDate, dayCount, startAbs, endAbs);
+                Clipboard.SetImage(final);
+                _vm.StatusText = $"캡처 완료: {label} / {_vm.CurrentDate:yyyy-MM-dd} ~ {_vm.CurrentDate.AddDays(dayCount - 1):yyyy-MM-dd} ({dayCount}일)"; UpdateStatusText();
+            }
         }
 
-        private RenderTargetBitmap BuildCaptureBitmapFromModel(int startAbsMinutes, int endAbsMinutes)
+        private RenderTargetBitmap BuildCaptureBitmapForDate(DateTime date, int startAbsMinutes, int endAbsMinutes)
+        {
+            var blocks = _vm.LoadBlocksForDate(date);
+            return BuildCaptureBitmapFromModel(date, blocks, startAbsMinutes, endAbsMinutes);
+        }
+
+        private RenderTargetBitmap BuildMultiDayCaptureBitmap(DateTime startDate, int dayCount, int startAbsMinutes, int endAbsMinutes)
+        {
+            double cellW = Math.Max(1, Math.Round(GetCellWidth())); double rowH = Math.Max(1, Math.Round(GetRowHeight()));
+            double headerH = 60.0; double equipmentW = Math.Max(1, Math.Round(_vm.EquipmentColumnWidth));
+            double bodyH = Math.Max(1, _vm.Equipments.Count) * rowH;
+            double oneDayH = headerH + bodyH;
+            double separatorH = 12.0;
+            double totalH = dayCount * oneDayH + (dayCount - 1) * separatorH;
+
+            int boardStartAbs = BoardStartHour * 60;
+            int startCell = Math.Max(0, (int)Math.Floor((startAbsMinutes - boardStartAbs) / (double)MinutesPerCell));
+            int endCell = Math.Min(_vm.TotalCells, (int)Math.Ceiling((endAbsMinutes - boardStartAbs) / (double)MinutesPerCell));
+            double boardW = Math.Max(cellW, (endCell - startCell) * cellW);
+            int outW = Math.Max(1, (int)Math.Ceiling(equipmentW + boardW));
+            int outH = Math.Max(1, (int)Math.Ceiling(totalH));
+
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen())
+            {
+                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, outW, outH));
+
+                for (int d = 0; d < dayCount; d++)
+                {
+                    DateTime date = startDate.AddDays(d);
+                    var blocks = _vm.LoadBlocksForDate(date);
+                    double offsetY = d * (oneDayH + separatorH);
+
+                    dc.PushTransform(new TranslateTransform(0, offsetY));
+                    DrawCaptureGrid(dc, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                    DrawCaptureBlocksForList(dc, blocks, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                    DrawCaptureHeadersForDate(dc, date, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                    var framePen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1);
+                    dc.DrawRectangle(null, framePen, new Rect(0, 0, equipmentW + boardW, oneDayH));
+                    dc.Pop();
+                }
+            }
+
+            var final = new RenderTargetBitmap(outW, outH, 96, 96, PixelFormats.Pbgra32); final.Render(dv); final.Freeze(); return final;
+        }
+
+        private RenderTargetBitmap BuildCaptureBitmapFromModel(DateTime date, List<PlacedRecipeBlock> blocks, int startAbsMinutes, int endAbsMinutes)
         {
             double cellW = Math.Max(1, Math.Round(GetCellWidth())); double rowH = Math.Max(1, Math.Round(GetRowHeight()));
             double headerH = 60.0; double equipmentW = Math.Max(1, Math.Round(_vm.EquipmentColumnWidth));
             double bodyH = Math.Max(1, _vm.Equipments.Count) * rowH;
 
-            int totalCells = Math.Max(1, _vm.TotalCells); int boardStartAbs = BoardStartHour * 60;
-
+            int boardStartAbs = BoardStartHour * 60;
             int startCell = (int)Math.Floor((startAbsMinutes - boardStartAbs) / (double)MinutesPerCell);
             int endCell = (int)Math.Ceiling((endAbsMinutes - boardStartAbs) / (double)MinutesPerCell);
 
-            startCell = Math.Max(0, Math.Min(totalCells, startCell)); endCell = Math.Max(startCell, Math.Min(totalCells, endCell));
+            startCell = Math.Max(0, Math.Min(_vm.TotalCells, startCell)); endCell = Math.Max(startCell, Math.Min(_vm.TotalCells, endCell));
             double boardW = Math.Max(cellW, (endCell - startCell) * cellW);
             int outW = Math.Max(1, (int)Math.Ceiling(equipmentW + boardW)); int outH = Math.Max(1, (int)Math.Ceiling(headerH + bodyH));
 
@@ -536,8 +621,8 @@ namespace CleanPotal
             {
                 dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, outW, outH));
                 DrawCaptureGrid(dc, startCell, endCell, cellW, rowH, headerH, equipmentW);
-                DrawCaptureBlocks(dc, startCell, endCell, cellW, rowH, headerH, equipmentW);
-                DrawCaptureHeaders(dc, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                DrawCaptureBlocksForList(dc, blocks, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                DrawCaptureHeadersForDate(dc, date, startCell, endCell, cellW, rowH, headerH, equipmentW);
 
                 var framePen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1);
                 dc.DrawRectangle(null, framePen, new Rect(0, 0, equipmentW + boardW, headerH + bodyH));
@@ -546,11 +631,12 @@ namespace CleanPotal
             var final = new RenderTargetBitmap(outW, outH, 96, 96, PixelFormats.Pbgra32); final.Render(dv); final.Freeze(); return final;
         }
 
-        private void DrawCaptureHeaders(DrawingContext dc, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
+        private void DrawCaptureHeadersForDate(DrawingContext dc, DateTime date, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
         {
+            string[] krDow = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
             var whiteBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255)); var textPrimary = new SolidColorBrush(Color.FromRgb(15, 23, 42)); var textMuted = new SolidColorBrush(Color.FromRgb(148, 163, 184));
             dc.DrawRectangle(whiteBrush, null, new Rect(0, 0, equipmentW, headerH));
-            string captureDateText = _vm.CurrentDateText;
+            string captureDateText = $"{date:yyyy-MM-dd} ({krDow[(int)date.DayOfWeek]})";
 
             double dateFont = Math.Max(16, 18 * _vm.Zoom); double dateY = Math.Max(2, (headerH - dateFont) / 2.0 - 2);
             DrawTextCentered(dc, captureDateText, 0, equipmentW, dateY, dateFont, FontWeights.Bold, textPrimary);
@@ -600,12 +686,12 @@ namespace CleanPotal
             dc.DrawRectangle(fill, null, new Rect(leftBase, y, Math.Max(0, rightBase - leftBase), h));
         }
 
-        private void DrawCaptureBlocks(DrawingContext dc, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
+        private void DrawCaptureBlocksForList(DrawingContext dc, IEnumerable<PlacedRecipeBlock> blocks, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
         {
             int startMin = startCell * 10; int endMin = endCell * 10;
             var s2Brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); var hfBrush = new SolidColorBrush(Color.FromRgb(250, 191, 36)); var diBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
 
-            foreach (var block in _vm.PlacedBlocks)
+            foreach (var block in blocks)
             {
                 if (block.EquipmentIndex < 0 || block.EquipmentIndex >= _vm.Equipments.Count) continue;
                 double y = headerH + RowTop(block.EquipmentIndex, rowH) + 3; double h = Math.Max(2, rowH - 6);
