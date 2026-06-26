@@ -144,6 +144,11 @@ namespace CleanPotal
                 UpdateStatusText();
                 e.Handled = true;
             }
+            if ((Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+            {
+                if (e.SystemKey == Key.Left) { _vm.GoToPrevDay(); HideHoverCell(); DrawBoard(); e.Handled = true; }
+                else if (e.SystemKey == Key.Right) { _vm.GoToNextDay(); HideHoverCell(); DrawBoard(); e.Handled = true; }
+            }
         }
 
         private void ScheduleBoardView_PreviewKeyUp(object sender, KeyEventArgs e)
@@ -482,6 +487,20 @@ namespace CleanPotal
         public void PartialReset() { if (!_vm.HasSelectedCell) { MessageBox.Show("부분 초기화를 하려면 먼저 보드에서 셀을 선택하세요.", "부분 초기화", MessageBoxButton.OK, MessageBoxImage.Information); return; } if (_vm.TryPartialResetFromSelectedCell(out string msg)) { HideHoverCell(); _vm.StatusText = msg; DrawBoard(); return; } _vm.StatusText = msg; UpdateStatusText(); }
         public void CaptureBoard() { try { CaptureCurrentRangeToClipboard(); } catch (Exception ex) { _vm.StatusText = $"캡처 실패: {ex.Message}"; UpdateStatusText(); } }
 
+        private void BtnPrevDay_Click(object sender, RoutedEventArgs e) { _vm.GoToPrevDay(); HideHoverCell(); DrawBoard(); }
+        private void BtnNextDay_Click(object sender, RoutedEventArgs e) { _vm.GoToNextDay(); HideHoverCell(); DrawBoard(); }
+        private void BtnToday_Click(object sender, RoutedEventArgs e) { _vm.GoToToday(); HideHoverCell(); DrawBoard(); }
+        private void BtnCopyPrevDay_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vm.PlacedBlocks.Count > 0)
+            {
+                var result = MessageBox.Show($"현재 날짜({_vm.CurrentDate:yyyy-MM-dd})에 이미 배치된 데이터가 있습니다.\n전일 데이터를 추가로 복사하시겠습니까?", "전일 복사", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result != MessageBoxResult.Yes) return;
+            }
+            if (_vm.CopyFromPrevDay(out string msg)) { HideHoverCell(); DrawBoard(); }
+            _vm.StatusText = msg; UpdateStatusText();
+        }
+
         private void DayCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: false); }
         private void DayCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { DayCheckBox.IsChecked = true; return; } if (NightCheckBox?.IsChecked == true) ScrollToRangeStart(night: true); }
         private void NightCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: true); }
@@ -538,8 +557,7 @@ namespace CleanPotal
         {
             var whiteBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255)); var textPrimary = new SolidColorBrush(Color.FromRgb(15, 23, 42)); var textMuted = new SolidColorBrush(Color.FromRgb(148, 163, 184));
             dc.DrawRectangle(whiteBrush, null, new Rect(0, 0, equipmentW, headerH));
-            var now = DateTime.Now; string[] krDow = { "일", "월", "화", "수", "목", "금", "토" };
-            string captureDateText = $"{now:yyyy-MM-dd} ({krDow[(int)now.DayOfWeek]})";
+            string captureDateText = _vm.CurrentDateText;
 
             double dateFont = Math.Max(16, 18 * _vm.Zoom); double dateY = Math.Max(2, (headerH - dateFont) / 2.0 - 2);
             DrawTextCentered(dc, captureDateText, 0, equipmentW, dateY, dateFont, FontWeights.Bold, textPrimary);

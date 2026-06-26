@@ -75,9 +75,93 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
     CreatedTime TEXT NOT NULL
 );";
             cmd.ExecuteNonQuery();
+
+            MigrateAddBoardDateColumn(conn);
         }
 
-        public string TodayText => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (" + GetKoreanDayName(DateTime.Now.DayOfWeek) + ")";
+        private void MigrateAddBoardDateColumn(SqliteConnection conn)
+        {
+            using var pragmaCmd = conn.CreateCommand();
+            pragmaCmd.CommandText = "PRAGMA table_info(ScheduleBlocks);";
+            using var reader = pragmaCmd.ExecuteReader();
+            bool hasBoardDate = false;
+            while (reader.Read())
+            {
+                if (reader.GetString(1) == "BoardDate") { hasBoardDate = true; break; }
+            }
+            reader.Close();
+
+            if (!hasBoardDate)
+            {
+                string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                using var alterCmd = conn.CreateCommand();
+                alterCmd.CommandText = $"ALTER TABLE ScheduleBlocks ADD COLUMN BoardDate TEXT NOT NULL DEFAULT '{today}';";
+                alterCmd.ExecuteNonQuery();
+            }
+        }
+
+        private DateTime _currentDate = DateTime.Today;
+        public DateTime CurrentDate
+        {
+            get => _currentDate;
+            set
+            {
+                if (_currentDate != value)
+                {
+                    _currentDate = value;
+                    OnPropertyChanged(nameof(CurrentDate));
+                    OnPropertyChanged(nameof(CurrentDateText));
+                    _undoStack.Clear();
+                    OnPropertyChanged(nameof(CanUndoLastBoardAction));
+                    LoadBlocksFromDb();
+                }
+            }
+        }
+
+        public string CurrentDateText => _currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (" + GetKoreanDayName(_currentDate.DayOfWeek) + ")";
+
+        public void GoToPrevDay() => CurrentDate = CurrentDate.AddDays(-1);
+        public void GoToNextDay() => CurrentDate = CurrentDate.AddDays(1);
+        public void GoToToday() => CurrentDate = DateTime.Today;
+
+        public bool CopyFromPrevDay(out string message)
+        {
+            string prevDateStr = CurrentDate.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            string curDateStr = CurrentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (!File.Exists(DbPath)) { message = "DB 파일이 없습니다."; return false; }
+
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
+
+            using var countCmd = conn.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(*) FROM ScheduleBlocks WHERE BoardDate = @date;";
+            countCmd.Parameters.AddWithValue("@date", prevDateStr);
+            long prevCount = (long)countCmd.ExecuteScalar()!;
+
+            if (prevCount == 0) { message = $"전일({prevDateStr})에 배치된 데이터가 없습니다."; return false; }
+
+            if (PlacedBlocks.Count > 0)
+            {
+                PushUndoSnapshot("전일 복사 취소");
+            }
+
+            using var copyCmd = conn.CreateCommand();
+            copyCmd.CommandText = @"
+INSERT INTO ScheduleBlocks (EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+SELECT EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, @time, @curDate
+FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
+            copyCmd.Parameters.AddWithValue("@prevDate", prevDateStr);
+            copyCmd.Parameters.AddWithValue("@curDate", curDateStr);
+            copyCmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            int copied = copyCmd.ExecuteNonQuery();
+
+            LoadBlocksFromDb();
+            message = $"전일({prevDateStr}) 데이터 {copied}건 복사 완료";
+            return true;
+        }
+
+        private string CurrentDateString => _currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         private string _statusText = "";
         public string StatusText { get => _statusText; set { if (_statusText != value) { _statusText = value; OnPropertyChanged(nameof(StatusText)); } } }
@@ -96,7 +180,8 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
             using var conn = new SqliteConnection($"Data Source={DbPath}");
             conn.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks;";
+            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", CurrentDateString);
             using var reader = cmd.ExecuteReader();
 
             PlacedBlocks.Clear();
@@ -343,7 +428,10 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
         private void ClearScheduleTable()
         {
-            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open(); using var cmd = conn.CreateCommand(); cmd.CommandText = "DELETE FROM ScheduleBlocks;"; cmd.ExecuteNonQuery();
+            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open(); using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", CurrentDateString);
+            cmd.ExecuteNonQuery();
         }
 
         private void SaveAllBlocksToDb()
@@ -356,8 +444,8 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
 INSERT INTO ScheduleBlocks
-(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime)
-VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time);";
+(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
                 cmd.Parameters.AddWithValue("@eq", block.EquipmentIndex);
                 cmd.Parameters.AddWithValue("@start", block.StartMinute);
                 cmd.Parameters.AddWithValue("@total", block.TotalMinutes);
@@ -367,6 +455,7 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time);";
                 cmd.Parameters.AddWithValue("@recipe", block.RecipeText);
                 cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 cmd.Parameters.AddWithValue("@temp", (object?)block.S2Temperature ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@date", CurrentDateString);
                 cmd.ExecuteNonQuery();
             }
         }

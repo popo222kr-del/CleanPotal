@@ -139,8 +139,61 @@
                     </Grid.ColumnDefinitions>
 
                     <WrapPanel Grid.Column="0" VerticalAlignment="Center">
-                        <CheckBox x:Name="DayCheckBox" Content="주간 (07:00~19:00)" VerticalAlignment="Center" Margin="0,0,16,0" Checked="DayCheckBox_Checked" Unchecked="DayCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
-                        <CheckBox x:Name="NightCheckBox" Content="야간 (19:00~06:00)" VerticalAlignment="Center" Margin="0,0,16,0" Checked="NightCheckBox_Checked" Unchecked="NightCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
+                        <Button x:Name="BtnPrevDay" Content="◀" FontSize="13" Width="30" Height="30" Click="BtnPrevDay_Click" Cursor="Hand" Background="Transparent" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0" Margin="0,0,4,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <TextBlock x:Name="TxtCurrentDate" Text="{Binding CurrentDateText}" FontSize="15" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" Margin="4,0"/>
+                        <Button x:Name="BtnNextDay" Content="▶" FontSize="13" Width="30" Height="30" Click="BtnNextDay_Click" Cursor="Hand" Background="Transparent" BorderBrush="#E2E8F0" BorderThickness="1" Padding="0" Margin="4,0,8,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button x:Name="BtnToday" Content="오늘" FontSize="12" Height="28" Click="BtnToday_Click" Cursor="Hand" Background="#2563EB" Foreground="White" BorderThickness="0" Padding="12,0" Margin="0,0,16,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#1D4ED8"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button x:Name="BtnCopyPrevDay" Content="전일 복사" FontSize="12" Height="28" Click="BtnCopyPrevDay_Click" Cursor="Hand" Background="#F8FAFC" Foreground="#475569" BorderThickness="1" BorderBrush="#E2E8F0" Padding="10,0" Margin="0,0,20,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Background="#F1F5F9" CornerRadius="4" Padding="1" Margin="0,0,16,0">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox x:Name="DayCheckBox" Content="주간 (07:00~19:00)" VerticalAlignment="Center" Margin="4,0,12,0" Checked="DayCheckBox_Checked" Unchecked="DayCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
+                                <CheckBox x:Name="NightCheckBox" Content="야간 (19:00~06:00)" VerticalAlignment="Center" Margin="0,0,4,0" Checked="NightCheckBox_Checked" Unchecked="NightCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
                         <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="#4B5563" FontSize="13" MaxWidth="400" TextTrimming="CharacterEllipsis"/>
                     </WrapPanel>
 
