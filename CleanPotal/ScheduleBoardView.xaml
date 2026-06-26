@@ -194,7 +194,6 @@
                                 <CheckBox x:Name="NightCheckBox" Content="야간 (19:00~06:00)" VerticalAlignment="Center" Margin="0,0,4,0" Checked="NightCheckBox_Checked" Unchecked="NightCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
-                        <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="#4B5563" FontSize="13" MaxWidth="400" TextTrimming="CharacterEllipsis"/>
                     </WrapPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -204,6 +203,8 @@
                     </StackPanel>
                 </Grid>
             </Border>
+
+            <TextBlock Grid.Row="1" x:Name="StatusTextBlock" Foreground="#4B5563" FontSize="12" Height="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="4,0,0,0"/>
 
             <Grid Grid.Row="2" x:Name="ContentGrid" Margin="0,0,0,16">
                 <Border x:Name="RootCaptureTarget" Background="#FFFFFF" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="16"
