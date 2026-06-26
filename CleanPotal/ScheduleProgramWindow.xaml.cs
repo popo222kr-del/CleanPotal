@@ -160,7 +160,6 @@ namespace CleanPotal
                 {
                     CmbPaintType.IsEnabled = false;
                     TxtPaintDays.IsEnabled = false;
-                    TglPredictPattern.IsEnabled = false;
                     this.Title = "세정팀 통합 근무 스케줄러 (읽기 전용)";
                 }
 
