@@ -485,16 +485,6 @@ namespace CleanPotal
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e) { _vm.GoToPrevDay(); HideHoverCell(); DrawBoard(); }
         private void BtnNextDay_Click(object sender, RoutedEventArgs e) { _vm.GoToNextDay(); HideHoverCell(); DrawBoard(); }
         private void BtnToday_Click(object sender, RoutedEventArgs e) { _vm.GoToToday(); HideHoverCell(); DrawBoard(); }
-        private void BtnCopyPrevDay_Click(object sender, RoutedEventArgs e)
-        {
-            if (_vm.PlacedBlocks.Count > 0)
-            {
-                var result = MessageBox.Show($"현재 날짜({_vm.CurrentDate:yyyy-MM-dd})에 이미 배치된 데이터가 있습니다.\n전일 데이터를 추가로 복사하시겠습니까?", "전일 복사", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result != MessageBoxResult.Yes) return;
-            }
-            if (_vm.CopyFromPrevDay(out string msg)) { HideHoverCell(); DrawBoard(); }
-            _vm.StatusText = msg; UpdateStatusText();
-        }
 
         private void DayCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: false); }
         private void DayCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { DayCheckBox.IsChecked = true; return; } if (NightCheckBox?.IsChecked == true) ScrollToRangeStart(night: true); }
