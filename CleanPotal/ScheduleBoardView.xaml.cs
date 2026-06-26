@@ -381,7 +381,6 @@ namespace CleanPotal
 
         private void DrawPlacedBlocks(double cellW, double rowH)
         {
-            double boardWidth = _vm.TotalCells * cellW;
             foreach (var block in _vm.PlacedBlocks)
             {
                 if (block.EquipmentIndex < 0 || block.EquipmentIndex >= _vm.Equipments.Count) continue;
@@ -394,12 +393,6 @@ namespace CleanPotal
 
                 var ui1 = CreateBlockUI(block, cellW, h);
                 Canvas.SetLeft(ui1, x); Canvas.SetTop(ui1, y); BoardBlocksCanvas.Children.Add(ui1);
-
-                if (block.StartMinute + block.TotalMinutes > _vm.TotalMinutes)
-                {
-                    var ui2 = CreateBlockUI(block, cellW, h);
-                    Canvas.SetLeft(ui2, x - boardWidth); Canvas.SetTop(ui2, y); BoardBlocksCanvas.Children.Add(ui2);
-                }
             }
         }
 
@@ -598,31 +591,17 @@ namespace CleanPotal
             for (int rel = 0; rel <= endCell - startCell; rel++) { int cell = startCell + rel; double x = equipmentW + rel * cellW; if (((BoardStartHour * 60 + cell * MinutesPerCell) % 60) == 0) { dc.DrawLine(dashPen, new Point(x, headerH), new Point(x, headerH + bodyH)); } }
         }
 
-        private static System.Collections.Generic.IEnumerable<(int start, int length)> EnumerateWrappedSegments(int startMin, int length, int ringMinutes)
-        {
-            if (length <= 0 || ringMinutes <= 0) yield break;
-            if (length >= ringMinutes) { yield return (0, ringMinutes); yield break; }
-            int start = ((startMin % ringMinutes) + ringMinutes) % ringMinutes;
-            int firstLen = Math.Min(length, ringMinutes - start);
-            if (firstLen > 0) yield return (start, firstLen);
-            int remain = length - firstLen;
-            if (remain > 0) yield return (0, remain);
-        }
-
-        private void DrawCapturePhaseWrapped(DrawingContext dc, int phaseStart, int phaseLen, Brush fill, int visibleStartMin, int visibleEndMin, int captureStartMin, double cellW, double equipmentW, double y, double h, int ringMinutes)
+        private void DrawCapturePhaseLinear(DrawingContext dc, int phaseStart, int phaseLen, Brush fill, int visibleStartMin, int visibleEndMin, int captureStartMin, double cellW, double equipmentW, double y, double h)
         {
             if (phaseLen <= 0 || visibleEndMin <= visibleStartMin) return;
-            foreach (var seg in EnumerateWrappedSegments(phaseStart, phaseLen, ringMinutes))
-            {
-                int s = Math.Max(seg.start, visibleStartMin); int e = Math.Min(seg.start + seg.length, visibleEndMin); if (e <= s) continue;
-                double leftBase = equipmentW + ((s - captureStartMin) / 10.0) * cellW; double rightBase = equipmentW + ((e - captureStartMin) / 10.0) * cellW;
-                dc.DrawRectangle(fill, null, new Rect(leftBase, y, Math.Max(0, rightBase - leftBase), h));
-            }
+            int phaseEnd = phaseStart + phaseLen;
+            int s = Math.Max(phaseStart, visibleStartMin); int e = Math.Min(phaseEnd, visibleEndMin); if (e <= s) return;
+            double leftBase = equipmentW + ((s - captureStartMin) / 10.0) * cellW; double rightBase = equipmentW + ((e - captureStartMin) / 10.0) * cellW;
+            dc.DrawRectangle(fill, null, new Rect(leftBase, y, Math.Max(0, rightBase - leftBase), h));
         }
 
         private void DrawCaptureBlocks(DrawingContext dc, int startCell, int endCell, double cellW, double rowH, double headerH, double equipmentW)
         {
-            int ringMinutes = Math.Max(1, _vm.TotalMinutes);
             int startMin = startCell * 10; int endMin = endCell * 10;
             var s2Brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); var hfBrush = new SolidColorBrush(Color.FromRgb(250, 191, 36)); var diBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
 
@@ -631,24 +610,22 @@ namespace CleanPotal
                 if (block.EquipmentIndex < 0 || block.EquipmentIndex >= _vm.Equipments.Count) continue;
                 double y = headerH + RowTop(block.EquipmentIndex, rowH) + 3; double h = Math.Max(2, rowH - 6);
 
-                foreach (var blockSeg in EnumerateWrappedSegments(block.StartMinute, block.TotalMinutes, ringMinutes))
+                int blockEnd = block.StartMinute + block.TotalMinutes;
+                int visibleStart = Math.Max(block.StartMinute, startMin); int visibleEnd = Math.Min(blockEnd, endMin); if (visibleEnd <= visibleStart) continue;
+                double left = equipmentW + ((visibleStart - startMin) / 10.0) * cellW; double right = equipmentW + ((visibleEnd - startMin) / 10.0) * cellW;
+                var rect = new Rect(left, y, Math.Max(2, right - left), h);
+
+                dc.PushClip(new RectangleGeometry(rect, 6, 6));
+                DrawCapturePhaseLinear(dc, block.StartMinute, block.S2Minutes, s2Brush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h);
+                DrawCapturePhaseLinear(dc, block.StartMinute + block.S2Minutes, block.HFMinutes, hfBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h);
+                DrawCapturePhaseLinear(dc, block.StartMinute + block.S2Minutes + block.HFMinutes, block.DIMinutes, diBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h);
+                dc.Pop();
+
+                if (rect.Width > 14)
                 {
-                    int visibleStart = Math.Max(blockSeg.start, startMin); int visibleEnd = Math.Min(blockSeg.start + blockSeg.length, endMin); if (visibleEnd <= visibleStart) continue;
-                    double left = equipmentW + ((visibleStart - startMin) / 10.0) * cellW; double right = equipmentW + ((visibleEnd - startMin) / 10.0) * cellW;
-                    var rect = new Rect(left, y, Math.Max(2, right - left), h);
-
-                    dc.PushClip(new RectangleGeometry(rect, 6, 6));
-                    DrawCapturePhaseWrapped(dc, block.StartMinute, block.S2Minutes, s2Brush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
-                    DrawCapturePhaseWrapped(dc, block.StartMinute + block.S2Minutes, block.HFMinutes, hfBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
-                    DrawCapturePhaseWrapped(dc, block.StartMinute + block.S2Minutes + block.HFMinutes, block.DIMinutes, diBrush, visibleStart, visibleEnd, startMin, cellW, equipmentW, y, h, ringMinutes);
-                    dc.Pop();
-
-                    if (rect.Width > 14)
-                    {
-                        double ty = rect.Top + (rect.Height - Math.Max(10, 11 * _vm.Zoom)) / 2.0 - 2;
-                        DrawTextCentered(dc, block.DisplayText, rect.Left + 1, rect.Right + 1, ty + 1, Math.Max(10, 11 * _vm.Zoom), FontWeights.Bold, new SolidColorBrush(Color.FromArgb(100, 0, 0, 0)));
-                        DrawTextCentered(dc, block.DisplayText, rect.Left, rect.Right, ty, Math.Max(10, 11 * _vm.Zoom), FontWeights.Bold, Brushes.White);
-                    }
+                    double ty = rect.Top + (rect.Height - Math.Max(10, 11 * _vm.Zoom)) / 2.0 - 2;
+                    DrawTextCentered(dc, block.DisplayText, rect.Left + 1, rect.Right + 1, ty + 1, Math.Max(10, 11 * _vm.Zoom), FontWeights.Bold, new SolidColorBrush(Color.FromArgb(100, 0, 0, 0)));
+                    DrawTextCentered(dc, block.DisplayText, rect.Left, rect.Right, ty, Math.Max(10, 11 * _vm.Zoom), FontWeights.Bold, Brushes.White);
                 }
             }
         }

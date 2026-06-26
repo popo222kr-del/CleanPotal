@@ -190,7 +190,7 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
                 var block = new PlacedRecipeBlock
                 {
                     EquipmentIndex = reader.GetInt32(0),
-                    StartMinute = reader.GetInt32(1) % TotalMinutes,
+                    StartMinute = reader.GetInt32(1),
                     RecipeText = reader.GetString(2),
                     S2Minutes = reader.GetInt32(3),
                     HFMinutes = reader.GetInt32(4),
@@ -271,19 +271,9 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             message = $"레시피 삭제 완료: {target}"; return true;
         }
 
-        private bool IntersectsCircularMin(int s1, int l1, int s2, int l2, int ringSize)
+        private static bool IntersectsLinear(int s1, int l1, int s2, int l2)
         {
-            s1 %= ringSize; s2 %= ringSize;
-            for (int i = 0; i < l1; i++)
-            {
-                int c1 = (s1 + i) % ringSize;
-                for (int j = 0; j < l2; j++)
-                {
-                    int c2 = (s2 + j) % ringSize;
-                    if (c1 == c2) return true;
-                }
-            }
-            return false;
+            return s1 < s2 + l2 && s2 < s1 + l1;
         }
 
         public bool TryPlaceRecipe(int equipmentIndex, int startMinute, out string message)
@@ -294,51 +284,117 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
             if (SelectedRecipe.TotalMinutes > TotalMinutes) { message = "배치 불가: 레시피 길이가 24시간을 초과합니다."; return false; }
 
-            bool overlap = PlacedBlocks.Any(b => b.EquipmentIndex == equipmentIndex && IntersectsCircularMin(startMinute, SelectedRecipe.TotalMinutes, b.StartMinute, b.TotalMinutes, TotalMinutes));
+            int endMinute = startMinute + SelectedRecipe.TotalMinutes;
+            int todayLength = Math.Min(SelectedRecipe.TotalMinutes, TotalMinutes - startMinute);
+            int overflow = endMinute - TotalMinutes;
+
+            bool overlap = PlacedBlocks.Any(b => b.EquipmentIndex == equipmentIndex && IntersectsLinear(startMinute, todayLength, b.StartMinute, b.TotalMinutes));
             if (overlap) { message = $"배치 불가: {Equipments[equipmentIndex].DisplayName} 행에 겹치는 레시피가 있습니다."; return false; }
 
-            if (ExceedsConcurrentDILimit(startMinute, SelectedRecipe, out string diLimitMsg)) { message = $"배치 불가: {diLimitMsg}"; return false; }
+            if (ExceedsConcurrentDILimit(startMinute, todayLength, SelectedRecipe, out string diLimitMsg)) { message = $"배치 불가: {diLimitMsg}"; return false; }
 
             PushUndoSnapshot($"배치 취소 ({Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text})");
 
-            var block = new PlacedRecipeBlock
-            {
-                EquipmentIndex = equipmentIndex,
-                StartMinute = startMinute,
-                RecipeText = SelectedRecipe.Text,
-                S2Minutes = SelectedRecipe.S2Minutes,
-                HFMinutes = SelectedRecipe.HFMinutes,
-                DIMinutes = SelectedRecipe.DIMinutes,
-                S2Temperature = SelectedRecipe.S2Temperature
-            };
+            SplitAndPlaceBlock(equipmentIndex, startMinute, SelectedRecipe);
 
-            PlacedBlocks.Add(block);
             SaveAllBlocksToDb();
-            message = $"적용 완료: {Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text}";
+            string overflowMsg = overflow > 0 ? $" (다음날로 {overflow}분 이어짐)" : "";
+            message = $"적용 완료: {Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text}{overflowMsg}";
             return true;
         }
 
-        private bool ExceedsConcurrentDILimit(int newStartMinute, RecipeDefinition recipe, out string detail)
+        private void SplitAndPlaceBlock(int equipmentIndex, int startMinute, RecipeDefinition recipe)
+        {
+            int endMinute = startMinute + recipe.TotalMinutes;
+            int overflow = endMinute - TotalMinutes;
+
+            if (overflow <= 0)
+            {
+                PlacedBlocks.Add(new PlacedRecipeBlock
+                {
+                    EquipmentIndex = equipmentIndex, StartMinute = startMinute,
+                    RecipeText = recipe.Text, S2Minutes = recipe.S2Minutes,
+                    HFMinutes = recipe.HFMinutes, DIMinutes = recipe.DIMinutes,
+                    S2Temperature = recipe.S2Temperature
+                });
+                return;
+            }
+
+            int todayMinutes = TotalMinutes - startMinute;
+            SplitPhases(recipe.S2Minutes, recipe.HFMinutes, recipe.DIMinutes, todayMinutes,
+                out int todayS2, out int todayHF, out int todayDI,
+                out int nextS2, out int nextHF, out int nextDI);
+
+            PlacedBlocks.Add(new PlacedRecipeBlock
+            {
+                EquipmentIndex = equipmentIndex, StartMinute = startMinute,
+                RecipeText = recipe.Text, S2Minutes = todayS2,
+                HFMinutes = todayHF, DIMinutes = todayDI,
+                S2Temperature = recipe.S2Temperature
+            });
+
+            SaveBlockToNextDay(equipmentIndex, 0, recipe.Text, nextS2, nextHF, nextDI, recipe.S2Temperature);
+        }
+
+        private static void SplitPhases(int s2, int hf, int di, int keepMinutes,
+            out int keepS2, out int keepHF, out int keepDI,
+            out int nextS2, out int nextHF, out int nextDI)
+        {
+            keepS2 = Math.Min(keepMinutes, s2);
+            int remain = keepMinutes - keepS2;
+            keepHF = Math.Min(remain, hf);
+            remain -= keepHF;
+            keepDI = Math.Min(remain, di);
+
+            nextS2 = s2 - keepS2;
+            nextHF = hf - keepHF;
+            nextDI = di - keepDI;
+        }
+
+        private void SaveBlockToNextDay(int equipmentIndex, int startMinute, string recipeText, int s2, int hf, int di, int? s2Temp)
+        {
+            if (s2 + hf + di <= 0) return;
+            string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO ScheduleBlocks
+(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
+            cmd.Parameters.AddWithValue("@eq", equipmentIndex);
+            cmd.Parameters.AddWithValue("@start", startMinute);
+            cmd.Parameters.AddWithValue("@total", s2 + hf + di);
+            cmd.Parameters.AddWithValue("@s2", s2);
+            cmd.Parameters.AddWithValue("@hf", hf);
+            cmd.Parameters.AddWithValue("@di", di);
+            cmd.Parameters.AddWithValue("@recipe", recipeText);
+            cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("@temp", (object?)s2Temp ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@date", nextDateStr);
+            cmd.ExecuteNonQuery();
+        }
+
+        private bool ExceedsConcurrentDILimit(int newStartMinute, int todayLength, RecipeDefinition recipe, out string detail)
         {
             detail = string.Empty;
             if (recipe.DIMinutes <= 0) return false;
 
-            int ringSize = TotalMinutes;
-            for (int i = 0; i < recipe.DIMinutes; i++)
+            int diStart = newStartMinute + recipe.S2Minutes + recipe.HFMinutes;
+            int diEnd = diStart + recipe.DIMinutes;
+            int todayDiEnd = Math.Min(diEnd, TotalMinutes);
+
+            for (int minOffset = diStart; minOffset < todayDiEnd; minOffset++)
             {
-                int minOffset = (newStartMinute + recipe.S2Minutes + recipe.HFMinutes + i) % ringSize;
                 int concurrent = 1;
 
                 foreach (var b in PlacedBlocks)
                 {
                     if (b.DIMinutes <= 0) continue;
                     int bDiStart = b.StartMinute + b.S2Minutes + b.HFMinutes;
-                    bool inside = false;
-                    for (int j = 0; j < b.DIMinutes; j++)
-                    {
-                        if ((bDiStart + j) % ringSize == minOffset) { inside = true; break; }
-                    }
-                    if (inside) concurrent++;
+                    int bDiEnd = bDiStart + b.DIMinutes;
+                    if (minOffset >= bDiStart && minOffset < bDiEnd) concurrent++;
                 }
 
                 if (concurrent > MaxConcurrentDIBatches)
@@ -353,15 +409,10 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
         public bool TryRemoveBlockAt(int equipmentIndex, int clickMinute, out string message)
         {
-            int ringSize = TotalMinutes;
             var block = PlacedBlocks.FirstOrDefault(b =>
             {
                 if (b.EquipmentIndex != equipmentIndex) return false;
-                for (int i = 0; i < b.TotalMinutes; i++)
-                {
-                    if ((b.StartMinute + i) % ringSize == clickMinute) return true;
-                }
-                return false;
+                return clickMinute >= b.StartMinute && clickMinute < b.StartMinute + b.TotalMinutes;
             });
 
             if (block == null) { message = "해당 시간에 삭제할 레시피가 없습니다."; return false; }
@@ -387,36 +438,28 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             string timeText = GetCellTimeText(minuteIdx);
             PushUndoSnapshot($"부분 초기화 취소 (시간 {timeText} 이후 트림)");
 
-            int removedCount = 0; int trimmedCount = 0; int ringSize = TotalMinutes;
+            int removedCount = 0; int trimmedCount = 0;
             var blocks = PlacedBlocks.ToList();
 
             foreach (var b in blocks)
             {
-                bool covers = false;
-                for (int i = 0; i < b.TotalMinutes; i++)
-                {
-                    if ((b.StartMinute + i) % ringSize == minuteIdx) { covers = true; break; }
-                }
+                int blockEnd = b.StartMinute + b.TotalMinutes;
 
-                if (covers)
+                if (b.StartMinute >= minuteIdx)
                 {
-                    int keepMinutes = (minuteIdx - b.StartMinute + ringSize) % ringSize;
-                    if (keepMinutes <= 0) { PlacedBlocks.Remove(b); removedCount++; }
-                    else
-                    {
-                        int keepS2 = Math.Min(keepMinutes, b.S2Minutes);
-                        int remain = keepMinutes - keepS2;
-                        int keepHF = Math.Min(Math.Max(0, remain), b.HFMinutes);
-                        remain -= keepHF;
-                        int keepDI = Math.Min(Math.Max(0, remain), b.DIMinutes);
-
-                        b.S2Minutes = keepS2; b.HFMinutes = keepHF; b.DIMinutes = keepDI;
-                        trimmedCount++;
-                    }
+                    PlacedBlocks.Remove(b); removedCount++;
                 }
-                else
+                else if (blockEnd > minuteIdx)
                 {
-                    if (b.StartMinute % ringSize >= minuteIdx) { PlacedBlocks.Remove(b); removedCount++; }
+                    int keepMinutes = minuteIdx - b.StartMinute;
+                    int keepS2 = Math.Min(keepMinutes, b.S2Minutes);
+                    int remain = keepMinutes - keepS2;
+                    int keepHF = Math.Min(remain, b.HFMinutes);
+                    remain -= keepHF;
+                    int keepDI = Math.Min(remain, b.DIMinutes);
+
+                    b.S2Minutes = keepS2; b.HFMinutes = keepHF; b.DIMinutes = keepDI;
+                    trimmedCount++;
                 }
             }
 
