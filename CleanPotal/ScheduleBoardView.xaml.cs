@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -547,105 +549,222 @@ namespace CleanPotal
 
         private List<DateTime>? ShowMultiDatePickerDialog()
         {
+            var selectedDates = new HashSet<DateTime> { _vm.CurrentDate.Date };
+            DateTime displayMonth = new DateTime(_vm.CurrentDate.Year, _vm.CurrentDate.Month, 1);
+
+            var accentBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            var accentLightBrush = new SolidColorBrush(Color.FromRgb(219, 234, 254));
+            var textDarkBrush = new SolidColorBrush(Color.FromRgb(15, 23, 42));
+            var textMutedBrush = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+            var bgBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+            var hoverBrush = new SolidColorBrush(Color.FromRgb(241, 245, 249));
+            var todayBorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            string[] dayHeaders = { "일", "월", "화", "수", "목", "금", "토" };
+            string[] krDow = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+
             var dlg = new Window
             {
-                Title = "멀티 캡처 - 날짜 선택",
-                Width = 340, Height = 440,
+                Title = "멀티 캡처",
+                Width = 380, Height = 500,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = Window.GetWindow(this),
                 ResizeMode = ResizeMode.NoResize,
-                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252))
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent
             };
 
-            var rootPanel = new StackPanel { Margin = new Thickness(16, 12, 16, 12) };
-
-            var desc = new TextBlock
+            var outerBorder = new Border
             {
-                Text = "캡처할 날짜를 클릭하세요 (다중 선택 가능)",
-                FontSize = 13, FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
-                Margin = new Thickness(0, 0, 0, 8)
+                Background = bgBrush, CornerRadius = new CornerRadius(16),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)), BorderThickness = new Thickness(1),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, Opacity = 0.15, BlurRadius = 24, ShadowDepth = 8 },
+                Margin = new Thickness(12)
             };
-            rootPanel.Children.Add(desc);
 
-            var calendar = new System.Windows.Controls.Calendar
+            var rootPanel = new StackPanel { Margin = new Thickness(24, 20, 24, 20) };
+
+            var titleBar = new Grid { Margin = new Thickness(0, 0, 0, 16) };
+            titleBar.ColumnDefinitions.Add(new ColumnDefinition());
+            titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var titleText = new TextBlock { Text = "날짜 선택", FontSize = 18, FontWeight = FontWeights.ExtraBold, Foreground = textDarkBrush, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(titleText, 0);
+            titleBar.Children.Add(titleText);
+            var closeBtn = new Button { Content = "✕", FontSize = 14, Width = 32, Height = 32, Cursor = Cursors.Hand, Background = Brushes.Transparent, Foreground = textMutedBrush, BorderThickness = new Thickness(0) };
+            closeBtn.Click += (s, e) => { dlg.DialogResult = false; };
+            Grid.SetColumn(closeBtn, 1);
+            titleBar.Children.Add(closeBtn);
+            rootPanel.Children.Add(titleBar);
+            titleBar.MouseLeftButtonDown += (s, e) => { if (e.ChangedButton == MouseButton.Left) dlg.DragMove(); };
+
+            var monthNav = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+            monthNav.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            monthNav.ColumnDefinitions.Add(new ColumnDefinition());
+            monthNav.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var monthText = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, Foreground = textDarkBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(monthText, 1);
+            monthNav.Children.Add(monthText);
+
+            var dayGrid = new UniformGrid { Rows = 1, Columns = 7, Margin = new Thickness(0, 0, 0, 4) };
+            foreach (string dh in dayHeaders)
             {
-                SelectionMode = CalendarSelectionMode.MultipleRange,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                DisplayDate = _vm.CurrentDate,
-                IsTodayHighlighted = true
-            };
-            calendar.SelectedDates.Add(_vm.CurrentDate);
-            rootPanel.Children.Add(calendar);
+                var brush = dh == "일" ? new SolidColorBrush(Color.FromRgb(239, 68, 68)) : dh == "토" ? accentBrush : textMutedBrush;
+                dayGrid.Children.Add(new TextBlock { Text = dh, FontSize = 12, FontWeight = FontWeights.Bold, Foreground = brush, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4) });
+            }
+            rootPanel.Children.Add(monthNav);
+            rootPanel.Children.Add(dayGrid);
+
+            var calendarGrid = new UniformGrid { Rows = 6, Columns = 7 };
+            rootPanel.Children.Add(calendarGrid);
 
             var selectedCountText = new TextBlock
             {
-                Text = "선택: 1일",
-                FontSize = 12, FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
-                Margin = new Thickness(0, 8, 0, 0),
-                HorizontalAlignment = HorizontalAlignment.Center
+                Text = "1일 선택됨", FontSize = 13, FontWeight = FontWeights.Bold,
+                Foreground = accentBrush, HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 14, 0, 0)
             };
             rootPanel.Children.Add(selectedCountText);
 
-            calendar.SelectedDatesChanged += (s, e) =>
+            var selectedDatesText = new TextBlock
             {
-                int count = calendar.SelectedDates.Count;
-                selectedCountText.Text = count > 0 ? $"선택: {count}일" : "날짜를 선택하세요";
-            };
-
-            var btnPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
+                FontSize = 11, Foreground = textMutedBrush,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 12, 0, 0)
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 320, Margin = new Thickness(0, 4, 0, 0)
+            };
+            rootPanel.Children.Add(selectedDatesText);
+
+            Action refreshCalendar = null!;
+            Action updateSummary = () =>
+            {
+                int count = selectedDates.Count;
+                selectedCountText.Text = count > 0 ? $"{count}일 선택됨" : "날짜를 선택하세요";
+                if (count > 0)
+                {
+                    var sorted = selectedDates.OrderBy(d => d).ToList();
+                    selectedDatesText.Text = string.Join(", ", sorted.Select(d => $"{d:M/d}({krDow[(int)d.DayOfWeek][0]})"));
+                }
+                else selectedDatesText.Text = "";
             };
 
-            var btnOk = new Button
+            refreshCalendar = () =>
             {
-                Content = "캡처", Width = 90, Height = 34, FontWeight = FontWeights.Bold,
-                FontSize = 13, Cursor = Cursors.Hand, IsDefault = true,
-                Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
-                Foreground = Brushes.White, BorderThickness = new Thickness(0)
-            };
-            btnOk.Template = CreateRoundButtonTemplate();
+                calendarGrid.Children.Clear();
+                monthText.Text = $"{displayMonth:yyyy년 M월}";
+                int firstDow = (int)displayMonth.DayOfWeek;
+                int daysInMonth = DateTime.DaysInMonth(displayMonth.Year, displayMonth.Month);
+                DateTime today = DateTime.Today;
 
-            var btnCancel = new Button
-            {
-                Content = "취소", Width = 90, Height = 34, FontWeight = FontWeights.Bold,
-                FontSize = 13, Cursor = Cursors.Hand, IsCancel = true,
-                Margin = new Thickness(8, 0, 0, 0)
+                for (int i = 0; i < 42; i++)
+                {
+                    int dayNum = i - firstDow + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth)
+                    {
+                        calendarGrid.Children.Add(new Border { Width = 42, Height = 42 });
+                        continue;
+                    }
+
+                    DateTime cellDate = new DateTime(displayMonth.Year, displayMonth.Month, dayNum);
+                    bool isSelected = selectedDates.Contains(cellDate);
+                    bool isToday = cellDate == today;
+                    int col = i % 7;
+
+                    var cellBorder = new Border
+                    {
+                        Width = 42, Height = 42, CornerRadius = new CornerRadius(10), Cursor = Cursors.Hand,
+                        Background = isSelected ? accentBrush : Brushes.Transparent,
+                        BorderBrush = isToday && !isSelected ? todayBorderBrush : Brushes.Transparent,
+                        BorderThickness = new Thickness(isToday && !isSelected ? 2 : 0),
+                        Margin = new Thickness(1)
+                    };
+
+                    var dayText = new TextBlock
+                    {
+                        Text = dayNum.ToString(), FontSize = 14,
+                        FontWeight = isSelected || isToday ? FontWeights.Bold : FontWeights.SemiBold,
+                        Foreground = isSelected ? Brushes.White : col == 0 ? new SolidColorBrush(Color.FromRgb(239, 68, 68)) : col == 6 ? accentBrush : textDarkBrush,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    cellBorder.Child = dayText;
+
+                    cellBorder.MouseEnter += (s, e) => { if (!isSelected) ((Border)s!).Background = hoverBrush; };
+                    cellBorder.MouseLeave += (s, e) => { if (!selectedDates.Contains(cellDate)) ((Border)s!).Background = Brushes.Transparent; };
+
+                    DateTime capturedDate = cellDate;
+                    cellBorder.MouseLeftButtonDown += (s, e) =>
+                    {
+                        if (selectedDates.Contains(capturedDate)) selectedDates.Remove(capturedDate);
+                        else selectedDates.Add(capturedDate);
+                        updateSummary();
+                        refreshCalendar();
+                    };
+
+                    calendarGrid.Children.Add(cellBorder);
+                }
+                updateSummary();
             };
+
+            var prevBtn = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
+            prevBtn.Child = new TextBlock { Text = "◀", FontSize = 12, Foreground = textDarkBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            prevBtn.MouseEnter += (s, e) => ((Border)s!).Background = hoverBrush;
+            prevBtn.MouseLeave += (s, e) => ((Border)s!).Background = Brushes.Transparent;
+            prevBtn.MouseLeftButtonDown += (s, e) => { displayMonth = displayMonth.AddMonths(-1); refreshCalendar(); };
+            Grid.SetColumn(prevBtn, 0);
+            monthNav.Children.Add(prevBtn);
+
+            var nextBtn = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
+            nextBtn.Child = new TextBlock { Text = "▶", FontSize = 12, Foreground = textDarkBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            nextBtn.MouseEnter += (s, e) => ((Border)s!).Background = hoverBrush;
+            nextBtn.MouseLeave += (s, e) => ((Border)s!).Background = Brushes.Transparent;
+            nextBtn.MouseLeftButtonDown += (s, e) => { displayMonth = displayMonth.AddMonths(1); refreshCalendar(); };
+            Grid.SetColumn(nextBtn, 2);
+            monthNav.Children.Add(nextBtn);
+
+            refreshCalendar();
+
+            var btnPanel = new Grid { Margin = new Thickness(0, 16, 0, 0) };
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition());
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var btnClear = new Border { CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Cursor = Cursors.Hand, Padding = new Thickness(12, 8, 12, 8) };
+            btnClear.Child = new TextBlock { Text = "선택 초기화", FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = textMutedBrush };
+            btnClear.MouseEnter += (s, e) => ((Border)s!).Background = hoverBrush;
+            btnClear.MouseLeave += (s, e) => ((Border)s!).Background = Brushes.Transparent;
+            btnClear.MouseLeftButtonDown += (s, e) => { selectedDates.Clear(); updateSummary(); refreshCalendar(); };
+            Grid.SetColumn(btnClear, 0);
+            btnPanel.Children.Add(btnClear);
+
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            Grid.SetColumn(btnRow, 2);
+
+            var btnCancel = new Border { CornerRadius = new CornerRadius(8), Background = hoverBrush, Cursor = Cursors.Hand, Padding = new Thickness(20, 8, 20, 8), Margin = new Thickness(0, 0, 8, 0) };
+            btnCancel.Child = new TextBlock { Text = "취소", FontSize = 13, FontWeight = FontWeights.Bold, Foreground = textDarkBrush, HorizontalAlignment = HorizontalAlignment.Center };
+            btnCancel.MouseLeftButtonDown += (s, e) => { dlg.DialogResult = false; };
+
+            var btnOk = new Border { CornerRadius = new CornerRadius(8), Background = accentBrush, Cursor = Cursors.Hand, Padding = new Thickness(20, 8, 20, 8) };
+            btnOk.Child = new TextBlock { Text = "캡처", FontSize = 13, FontWeight = FontWeights.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center };
+            btnOk.MouseEnter += (s, e) => ((Border)s!).Background = new SolidColorBrush(Color.FromRgb(29, 78, 216));
+            btnOk.MouseLeave += (s, e) => ((Border)s!).Background = accentBrush;
 
             List<DateTime>? result = null;
-            btnOk.Click += (s, e) =>
+            btnOk.MouseLeftButtonDown += (s, e) =>
             {
-                if (calendar.SelectedDates.Count == 0) return;
-                result = new List<DateTime>(calendar.SelectedDates);
+                if (selectedDates.Count == 0) return;
+                result = selectedDates.OrderBy(d => d).ToList();
                 dlg.DialogResult = true;
             };
 
-            btnPanel.Children.Add(btnOk);
-            btnPanel.Children.Add(btnCancel);
+            btnRow.Children.Add(btnCancel);
+            btnRow.Children.Add(btnOk);
+            btnPanel.Children.Add(btnRow);
             rootPanel.Children.Add(btnPanel);
-            dlg.Content = rootPanel;
+
+            outerBorder.Child = rootPanel;
+            dlg.Content = outerBorder;
 
             return dlg.ShowDialog() == true ? result : null;
-        }
-
-        private static ControlTemplate CreateRoundButtonTemplate()
-        {
-            var template = new ControlTemplate(typeof(Button));
-            var border = new FrameworkElementFactory(typeof(Border));
-            border.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
-            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-            border.SetValue(Border.PaddingProperty, new Thickness(0));
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            border.AppendChild(cp);
-            template.VisualTree = border;
-            return template;
         }
 
         private RenderTargetBitmap BuildMultiDayCaptureBitmap(List<DateTime> dates, int startAbsMinutes, int endAbsMinutes)
