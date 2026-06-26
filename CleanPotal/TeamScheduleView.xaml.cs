@@ -510,8 +510,7 @@ namespace CleanPotal
         public void CreatePattern()
         {
             bool canEdit = SessionManager.CurrentUsername == "1004"
-                        || SessionManager.CanManageSchedule
-                        || SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
+                        || SessionManager.CanManageShiftBoard;
 
             var boardWin = new ScheduleProgramWindow(canEdit) { Owner = Window.GetWindow(this) };
             boardWin.ShowDialog();
