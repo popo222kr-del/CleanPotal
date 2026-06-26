@@ -509,15 +509,11 @@ namespace CleanPotal
 
         public void CreatePattern()
         {
-            // 실제 배포 시에는 마스터 권한 로직 활성화
-            bool isMaster = true;
-            if (!isMaster)
-            {
-                MessageBox.Show("부서 전체의 근무표를 생성/관리할 수 있는 마스터 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
-                return;
-            }
+            bool canEdit = SessionManager.CurrentUsername == "1004"
+                        || SessionManager.CanManageSchedule
+                        || SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
 
-            var boardWin = new ScheduleProgramWindow { Owner = Window.GetWindow(this) };
+            var boardWin = new ScheduleProgramWindow(canEdit) { Owner = Window.GetWindow(this) };
             boardWin.ShowDialog();
 
             _ = BuildCalendarAsync(_currentDate);
@@ -525,6 +521,16 @@ namespace CleanPotal
 
         public void RegisterSchedule()
         {
+            bool canEdit = SessionManager.CurrentUsername == "1004"
+                        || SessionManager.CanManageSchedule
+                        || SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
+
+            if (!canEdit)
+            {
+                MessageBox.Show("일정을 등록할 권한이 없습니다.\n관리자에게 문의하세요.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             var win = new ScheduleRegisterWindow();
             win.Owner = Window.GetWindow(this);
 

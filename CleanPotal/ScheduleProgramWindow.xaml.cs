@@ -138,11 +138,13 @@ namespace CleanPotal
         public ObservableCollection<TeamBoardGroup> Teams { get; set; } = new();
         private List<string> _holidays = new();
 
-        private bool _isWindowLoaded = false; // 🔥 추가: 윈도우 로딩 상태 체크용 플래그
+        private bool _isWindowLoaded = false;
+        private readonly bool _canEdit;
 
-        public ScheduleProgramWindow()
+        public ScheduleProgramWindow(bool canEdit = true)
         {
             InitializeComponent();
+            _canEdit = canEdit;
             this.DataContext = this;
             _currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             LeftTeamsList.ItemsSource = Teams;
@@ -152,7 +154,16 @@ namespace CleanPotal
                 var fetchedHolidays = await HolidayManager.GetHolidaysAsync(_currentMonth.Year);
                 if (fetchedHolidays != null) _holidays = fetchedHolidays;
 
-                _isWindowLoaded = true; // 🔥 창이 완전히 준비됨을 알림
+                _isWindowLoaded = true;
+
+                if (!_canEdit)
+                {
+                    CmbPaintType.IsEnabled = false;
+                    TxtPaintDays.IsEnabled = false;
+                    TglPredictPattern.IsEnabled = false;
+                    this.Title = "세정팀 통합 근무 스케줄러 (읽기 전용)";
+                }
+
                 LoadData();
             };
         }
@@ -298,6 +309,7 @@ namespace CleanPotal
         {
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
+                if (!_canEdit) { MessageBox.Show("근무표 수정 권한이 없습니다.\n관리자에게 문의하세요.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Information); return; }
                 if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 수정할 수 없습니다.", "알림"); return; }
                 var targetRow = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).FirstOrDefault(r => r.MemberName == clickedCell.MemberName);
                 if (targetRow == null || !targetRow.IsChecked) return;
@@ -327,6 +339,7 @@ namespace CleanPotal
         {
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
+                if (!_canEdit) return;
                 if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 삭제할 수 없습니다.", "알림"); return; }
                 var checkedRows = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).Where(r => r.IsChecked).ToList();
                 foreach (var row in checkedRows)
