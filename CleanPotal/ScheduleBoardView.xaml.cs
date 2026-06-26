@@ -499,34 +499,6 @@ namespace CleanPotal
         private void NightCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: true); }
         private void NightCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { NightCheckBox.IsChecked = true; return; } if (DayCheckBox?.IsChecked == true) ScrollToRangeStart(night: false); }
 
-        private int ShowDayCountDialog()
-        {
-            var dlg = new Window
-            {
-                Title = "캡처 일수",
-                Width = 320, Height = 160,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = Window.GetWindow(this),
-                ResizeMode = ResizeMode.NoResize,
-                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252))
-            };
-            var sp = new StackPanel { Margin = new Thickness(20, 16, 20, 16) };
-            sp.Children.Add(new TextBlock { Text = "캡처할 일수를 입력하세요 (1~14)", FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) });
-            var txt = new TextBox { Text = "1", FontSize = 14, Height = 32, VerticalContentAlignment = VerticalAlignment.Center, Padding = new Thickness(8, 0, 8, 0) };
-            txt.SelectAll();
-            sp.Children.Add(txt);
-            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
-            var btnOk = new Button { Content = "캡처", Width = 70, Height = 30, FontWeight = FontWeights.Bold, IsDefault = true };
-            var btnCancel = new Button { Content = "취소", Width = 70, Height = 30, Margin = new Thickness(8, 0, 0, 0), IsCancel = true };
-            int result = 0;
-            btnOk.Click += (s, e) => { if (int.TryParse(txt.Text.Trim(), out int v) && v >= 1) { result = Math.Min(v, 14); dlg.DialogResult = true; } else { txt.Focus(); txt.SelectAll(); } };
-            btnPanel.Children.Add(btnOk); btnPanel.Children.Add(btnCancel);
-            sp.Children.Add(btnPanel);
-            dlg.Content = sp;
-            txt.Focus();
-            return dlg.ShowDialog() == true ? result : 0;
-        }
-
         private void CaptureCurrentRangeToClipboard()
         {
             if (_vm == null) return;
@@ -539,37 +511,151 @@ namespace CleanPotal
             else if (night) { startAbs = nightStart; endAbs = nightEndBoundary; label = "야간(19:00~06:00)"; }
             else { startAbs = dayStart; endAbs = dayEnd; label = "주간(07:00~19:00)"; }
 
-            int dayCount = ShowDayCountDialog();
-            if (dayCount < 1) return;
-
-            if (dayCount == 1)
-            {
-                var final = BuildCaptureBitmapForDate(_vm.CurrentDate, startAbs, endAbs);
-                Clipboard.SetImage(final);
-                _vm.StatusText = $"캡처 완료: {label} / {_vm.CurrentDateText}"; UpdateStatusText();
-            }
-            else
-            {
-                var final = BuildMultiDayCaptureBitmap(_vm.CurrentDate, dayCount, startAbs, endAbs);
-                Clipboard.SetImage(final);
-                _vm.StatusText = $"캡처 완료: {label} / {_vm.CurrentDate:yyyy-MM-dd} ~ {_vm.CurrentDate.AddDays(dayCount - 1):yyyy-MM-dd} ({dayCount}일)"; UpdateStatusText();
-            }
+            var blocks = _vm.LoadBlocksForDate(_vm.CurrentDate);
+            var final = BuildCaptureBitmapFromModel(_vm.CurrentDate, blocks, startAbs, endAbs);
+            Clipboard.SetImage(final);
+            _vm.StatusText = $"캡처 완료: {label} / {_vm.CurrentDateText}"; UpdateStatusText();
         }
 
-        private RenderTargetBitmap BuildCaptureBitmapForDate(DateTime date, int startAbsMinutes, int endAbsMinutes)
+        public void MultiCaptureBoard()
         {
-            var blocks = _vm.LoadBlocksForDate(date);
-            return BuildCaptureBitmapFromModel(date, blocks, startAbsMinutes, endAbsMinutes);
+            try
+            {
+                var selectedDates = ShowMultiDatePickerDialog();
+                if (selectedDates == null || selectedDates.Count == 0) return;
+
+                bool day = DayCheckBox?.IsChecked == true; bool night = NightCheckBox?.IsChecked == true;
+                int dayStart = 7 * 60; int dayEnd = 19 * 60; int nightStart = 19 * 60; int nightEndBoundary = BoardEndHourExclusive * 60;
+                int startAbs; int endAbs; string label;
+
+                if (day && night) { startAbs = dayStart; endAbs = nightEndBoundary; label = "전체(07:00~06:00)"; }
+                else if (day) { startAbs = dayStart; endAbs = dayEnd; label = "주간(07:00~19:00)"; }
+                else if (night) { startAbs = nightStart; endAbs = nightEndBoundary; label = "야간(19:00~06:00)"; }
+                else { startAbs = dayStart; endAbs = dayEnd; label = "주간(07:00~19:00)"; }
+
+                selectedDates.Sort();
+                var final = BuildMultiDayCaptureBitmap(selectedDates, startAbs, endAbs);
+                Clipboard.SetImage(final);
+
+                string dateRange = selectedDates.Count == 1
+                    ? $"{selectedDates[0]:yyyy-MM-dd}"
+                    : $"{selectedDates[0]:yyyy-MM-dd} ~ {selectedDates[^1]:yyyy-MM-dd} ({selectedDates.Count}일)";
+                _vm.StatusText = $"멀티 캡처 완료: {label} / {dateRange}"; UpdateStatusText();
+            }
+            catch (Exception ex) { _vm.StatusText = $"멀티 캡처 실패: {ex.Message}"; UpdateStatusText(); }
         }
 
-        private RenderTargetBitmap BuildMultiDayCaptureBitmap(DateTime startDate, int dayCount, int startAbsMinutes, int endAbsMinutes)
+        private List<DateTime>? ShowMultiDatePickerDialog()
+        {
+            var dlg = new Window
+            {
+                Title = "멀티 캡처 - 날짜 선택",
+                Width = 340, Height = 440,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252))
+            };
+
+            var rootPanel = new StackPanel { Margin = new Thickness(16, 12, 16, 12) };
+
+            var desc = new TextBlock
+            {
+                Text = "캡처할 날짜를 클릭하세요 (다중 선택 가능)",
+                FontSize = 13, FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            rootPanel.Children.Add(desc);
+
+            var calendar = new System.Windows.Controls.Calendar
+            {
+                SelectionMode = CalendarSelectionMode.MultipleRange,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                DisplayDate = _vm.CurrentDate,
+                IsTodayHighlighted = true
+            };
+            calendar.SelectedDates.Add(_vm.CurrentDate);
+            rootPanel.Children.Add(calendar);
+
+            var selectedCountText = new TextBlock
+            {
+                Text = "선택: 1일",
+                FontSize = 12, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                Margin = new Thickness(0, 8, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            rootPanel.Children.Add(selectedCountText);
+
+            calendar.SelectedDatesChanged += (s, e) =>
+            {
+                int count = calendar.SelectedDates.Count;
+                selectedCountText.Text = count > 0 ? $"선택: {count}일" : "날짜를 선택하세요";
+            };
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 12, 0, 0)
+            };
+
+            var btnOk = new Button
+            {
+                Content = "캡처", Width = 90, Height = 34, FontWeight = FontWeights.Bold,
+                FontSize = 13, Cursor = Cursors.Hand, IsDefault = true,
+                Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                Foreground = Brushes.White, BorderThickness = new Thickness(0)
+            };
+            btnOk.Template = CreateRoundButtonTemplate();
+
+            var btnCancel = new Button
+            {
+                Content = "취소", Width = 90, Height = 34, FontWeight = FontWeights.Bold,
+                FontSize = 13, Cursor = Cursors.Hand, IsCancel = true,
+                Margin = new Thickness(8, 0, 0, 0)
+            };
+
+            List<DateTime>? result = null;
+            btnOk.Click += (s, e) =>
+            {
+                if (calendar.SelectedDates.Count == 0) return;
+                result = new List<DateTime>(calendar.SelectedDates);
+                dlg.DialogResult = true;
+            };
+
+            btnPanel.Children.Add(btnOk);
+            btnPanel.Children.Add(btnCancel);
+            rootPanel.Children.Add(btnPanel);
+            dlg.Content = rootPanel;
+
+            return dlg.ShowDialog() == true ? result : null;
+        }
+
+        private static ControlTemplate CreateRoundButtonTemplate()
+        {
+            var template = new ControlTemplate(typeof(Button));
+            var border = new FrameworkElementFactory(typeof(Border));
+            border.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
+            border.SetValue(Border.PaddingProperty, new Thickness(0));
+            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            border.AppendChild(cp);
+            template.VisualTree = border;
+            return template;
+        }
+
+        private RenderTargetBitmap BuildMultiDayCaptureBitmap(List<DateTime> dates, int startAbsMinutes, int endAbsMinutes)
         {
             double cellW = Math.Max(1, Math.Round(GetCellWidth())); double rowH = Math.Max(1, Math.Round(GetRowHeight()));
             double headerH = 60.0; double equipmentW = Math.Max(1, Math.Round(_vm.EquipmentColumnWidth));
             double bodyH = Math.Max(1, _vm.Equipments.Count) * rowH;
             double oneDayH = headerH + bodyH;
             double separatorH = 12.0;
-            double totalH = dayCount * oneDayH + (dayCount - 1) * separatorH;
+            double totalH = dates.Count * oneDayH + (dates.Count - 1) * separatorH;
 
             int boardStartAbs = BoardStartHour * 60;
             int startCell = Math.Max(0, (int)Math.Floor((startAbsMinutes - boardStartAbs) / (double)MinutesPerCell));
@@ -583,16 +669,15 @@ namespace CleanPotal
             {
                 dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, outW, outH));
 
-                for (int d = 0; d < dayCount; d++)
+                for (int d = 0; d < dates.Count; d++)
                 {
-                    DateTime date = startDate.AddDays(d);
-                    var blocks = _vm.LoadBlocksForDate(date);
+                    var blocks = _vm.LoadBlocksForDate(dates[d]);
                     double offsetY = d * (oneDayH + separatorH);
 
                     dc.PushTransform(new TranslateTransform(0, offsetY));
                     DrawCaptureGrid(dc, startCell, endCell, cellW, rowH, headerH, equipmentW);
                     DrawCaptureBlocksForList(dc, blocks, startCell, endCell, cellW, rowH, headerH, equipmentW);
-                    DrawCaptureHeadersForDate(dc, date, startCell, endCell, cellW, rowH, headerH, equipmentW);
+                    DrawCaptureHeadersForDate(dc, dates[d], startCell, endCell, cellW, rowH, headerH, equipmentW);
                     var framePen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1);
                     dc.DrawRectangle(null, framePen, new Rect(0, 0, equipmentW + boardW, oneDayH));
                     dc.Pop();

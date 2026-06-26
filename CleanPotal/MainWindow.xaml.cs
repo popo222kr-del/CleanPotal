@@ -457,7 +457,7 @@ namespace CleanPotal
 
             BtnCommandPrimary.Visibility = Visibility.Collapsed; BtnCommandNotice.Visibility = Visibility.Collapsed;
             BtnCommandSecondary.Visibility = Visibility.Collapsed; BtnCommandVendor.Visibility = Visibility.Collapsed;
-            BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed;
+            BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed; BtnCommandMultiCapture.Visibility = Visibility.Collapsed;
             BtnCommandUndo.Visibility = Visibility.Collapsed;
             BtnCommandReset.Visibility = Visibility.Collapsed; BtnCommandNewReq.Visibility = Visibility.Collapsed;
         }
@@ -541,7 +541,7 @@ namespace CleanPotal
             MainContent.Content = _scheduleBoardView;
             HideAllHeaderButtons();
             BtnCommandRecipeManage.Visibility = Visibility.Visible; BtnCommandCapture.Visibility = Visibility.Visible;
-            BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
+            BtnCommandMultiCapture.Visibility = Visibility.Visible; BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
         }
 
         private void ShowTeamSchedule()
@@ -682,6 +682,7 @@ namespace CleanPotal
         private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); else if (MainContent.Content is ProductionMeetingView pm) pm.SaveReportChanges(); }
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
+        private void BtnCommandMultiCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.MultiCaptureBoard();
         private void BtnCommandUndo_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.UndoAction();
         private void BtnCommandReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.ResetAll();
         private void BtnCommandNewReq_Click(object sender, RoutedEventArgs e) => _prodReqView?.OpenRegisterModal();
