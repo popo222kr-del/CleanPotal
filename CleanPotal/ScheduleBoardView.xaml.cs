@@ -565,7 +565,7 @@ namespace CleanPotal
             var dlg = new Window
             {
                 Title = "멀티 캡처",
-                Width = 380, Height = 500,
+                Width = 400, Height = 580,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = Window.GetWindow(this),
                 ResizeMode = ResizeMode.NoResize,
@@ -634,6 +634,8 @@ namespace CleanPotal
             };
             rootPanel.Children.Add(selectedDatesText);
 
+            string[] krDowShort = { "일", "월", "화", "수", "목", "금", "토" };
+
             Action refreshCalendar = null!;
             Action updateSummary = () =>
             {
@@ -642,7 +644,7 @@ namespace CleanPotal
                 if (count > 0)
                 {
                     var sorted = selectedDates.OrderBy(d => d).ToList();
-                    selectedDatesText.Text = string.Join(", ", sorted.Select(d => $"{d:M/d}({krDow[(int)d.DayOfWeek][0]})"));
+                    selectedDatesText.Text = FormatDateRanges(sorted, krDowShort);
                 }
                 else selectedDatesText.Text = "";
             };
@@ -1016,6 +1018,31 @@ namespace CleanPotal
 
             if (_vm.TryRemoveBlockAt(row, clickMinute, out string msg)) { HideHoverCell(); DrawBoard(); }
             _vm.StatusText = msg; UpdateStatusText(); e.Handled = true;
+        }
+
+        private string FormatDateRanges(List<DateTime> sorted, string[] krDowShort)
+        {
+            if (sorted.Count == 0) return "";
+
+            var parts = new List<string>();
+            int i = 0;
+            while (i < sorted.Count)
+            {
+                int start = i;
+                while (i + 1 < sorted.Count && (sorted[i + 1] - sorted[i]).Days == 1)
+                    i++;
+
+                var first = sorted[start];
+                var last = sorted[i];
+
+                if (start == i)
+                    parts.Add($"{first.Month}-{first.Day} ({krDowShort[(int)first.DayOfWeek]})");
+                else
+                    parts.Add($"{first.Month}-{first.Day}~{last.Day} ({krDowShort[(int)first.DayOfWeek]}~{krDowShort[(int)last.DayOfWeek]})");
+
+                i++;
+            }
+            return string.Join(", ", parts);
         }
     }
 }
