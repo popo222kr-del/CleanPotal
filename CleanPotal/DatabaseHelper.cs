@@ -17,7 +17,7 @@ namespace CleanPotal
     public static class DatabaseHelper
     {
         private static readonly string DbPath = Path.Combine(AppPaths.DataRoot, "dispatch.db");
-        private static readonly string ConnectionString = $"Data Source={DbPath}";
+        private static readonly string ConnectionString = $"Data Source={DbPath};Pooling=False";
         private static bool _isMapperInitialized = false;
 
         public static void InitializeDatabase()
@@ -33,7 +33,7 @@ namespace CleanPotal
             using (var connection = new SqliteConnection(ConnectionString))
             {
                 connection.Open();
-                try { connection.Execute("PRAGMA journal_mode=DELETE;"); } catch { }
+                try { connection.Execute("PRAGMA journal_mode=WAL;"); } catch { }
                 connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
@@ -75,7 +75,13 @@ namespace CleanPotal
             FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
         }
 
-        public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);
+        public static IDbConnection GetConnection()
+        {
+            var conn = new SqliteConnection(ConnectionString);
+            conn.Open();
+            using (var cmd = conn.CreateCommand()) { cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;"; cmd.ExecuteNonQuery(); }
+            return conn;
+        }
 
         public static int InsertDispatch(DispatchItemModel item, DateTime targetDate)
         {
