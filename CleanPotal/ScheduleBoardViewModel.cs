@@ -266,7 +266,25 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
         public bool TryUndoLastBoardAction(out string message)
         {
             if (_undoStack.Count == 0) { message = "되돌릴 작업이 없습니다."; return false; }
-            var snapshot = _undoStack.Pop(); RestorePlacedBlocks(snapshot.Blocks); SaveAllBlocksToDb(); OnPropertyChanged(nameof(CanUndoLastBoardAction));
+            var snapshot = _undoStack.Pop();
+            RestorePlacedBlocks(snapshot.Blocks);
+            SaveAllBlocksToDb();
+
+            if (snapshot.NextDayOverflows.Count > 0)
+            {
+                using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open();
+                foreach (var (dateStr, eqIdx, startMin) in snapshot.NextDayOverflows)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
+                    cmd.Parameters.AddWithValue("@date", dateStr);
+                    cmd.Parameters.AddWithValue("@eq", eqIdx);
+                    cmd.Parameters.AddWithValue("@start", startMin);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            OnPropertyChanged(nameof(CanUndoLastBoardAction));
             message = $"되돌리기 완료: {snapshot.ActionDescription}"; return true;
         }
 
@@ -361,6 +379,12 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             });
 
             SaveBlockToNextDay(equipmentIndex, 0, recipe.Text, nextS2, nextHF, nextDI, recipe.S2Temperature);
+
+            if (_undoStack.Count > 0)
+            {
+                string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                _undoStack.Peek().NextDayOverflows.Add((nextDateStr, equipmentIndex, 0));
+            }
         }
 
         private static void SplitPhases(int s2, int hf, int di, int keepMinutes,
@@ -385,6 +409,14 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
             using var conn = new SqliteConnection($"Data Source={DbPath}");
             conn.Open();
+
+            using var delCmd = conn.CreateCommand();
+            delCmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
+            delCmd.Parameters.AddWithValue("@date", nextDateStr);
+            delCmd.Parameters.AddWithValue("@eq", equipmentIndex);
+            delCmd.Parameters.AddWithValue("@start", startMinute);
+            delCmd.ExecuteNonQuery();
+
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
 INSERT INTO ScheduleBlocks
@@ -531,7 +563,12 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
         }
     }
 
-    public class BoardUndoSnapshot { public string ActionDescription { get; set; } = ""; public List<PlacedRecipeBlock> Blocks { get; set; } = new(); }
+    public class BoardUndoSnapshot
+    {
+        public string ActionDescription { get; set; } = "";
+        public List<PlacedRecipeBlock> Blocks { get; set; } = new();
+        public List<(string DateStr, int EquipmentIndex, int StartMinute)> NextDayOverflows { get; set; } = new();
+    }
     public class EquipmentLine { public int Index { get; set; } public string DisplayName { get; set; } = ""; }
 
     public class RecipeDefinition
