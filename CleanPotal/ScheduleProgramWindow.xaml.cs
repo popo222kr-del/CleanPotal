@@ -141,6 +141,10 @@ namespace CleanPotal
         private bool _isWindowLoaded = false;
         private readonly bool _canEdit;
 
+        // 실제 교육 일정이 있는 (대상자, 날짜) 집합. 이 집합에 없는 '교육' 셀은 고아(삭제된 교육)로 보고 수정 허용.
+        private HashSet<(string Member, DateTime Date)> _eduCells = new();
+        private bool IsRealEdu(string member, DateTime date) => _eduCells.Contains((member, date.Date));
+
         public ScheduleProgramWindow(bool canEdit = true)
         {
             InitializeComponent();
@@ -231,6 +235,14 @@ namespace CleanPotal
 
             var allShifts = DatabaseHelper.GetShiftSchedulesInRange(startMonth, endMonth);
 
+            // 실제 교육 일정이 있는 셀 집합을 미리 구성 (교육 일정이 삭제된 고아 '교육' 셀과 구분하기 위함)
+            _eduCells = new HashSet<(string, DateTime)>();
+            foreach (var ep in DatabaseHelper.GetEducationPlansInRange(startMonth, endMonth))
+            {
+                for (var d = ep.StartDate.Date; d <= ep.EndDate.Date; d = d.AddDays(1))
+                    _eduCells.Add((ep.MemberName, d));
+            }
+
             foreach (var teamGrp in allUsers.GroupBy(u => u.TeamName))
             {
                 var tGroup = new TeamBoardGroup { TeamName = teamGrp.Key, IsTeamChecked = false };
@@ -312,7 +324,7 @@ namespace CleanPotal
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
                 if (!_canEdit) { MessageBox.Show("근무표 수정 권한이 없습니다.\n관리자에게 문의하세요.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Information); return; }
-                if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 수정할 수 없습니다.", "알림"); return; }
+                if (clickedCell.ShiftType.Contains("교육") && IsRealEdu(clickedCell.MemberName, clickedCell.Date)) { MessageBox.Show("교육 일정은 직접 수정할 수 없습니다.", "알림"); return; }
                 var targetRow = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).FirstOrDefault(r => r.MemberName == clickedCell.MemberName);
                 if (targetRow == null || !targetRow.IsChecked) return;
 
@@ -326,7 +338,7 @@ namespace CleanPotal
                     {
                         DateTime targetDate = clickedCell.Date.AddDays(i);
                         var targetCell = row.Cells.FirstOrDefault(c => c.Date.Date == targetDate.Date);
-                        if (targetCell != null && !targetCell.ShiftType.Contains("교육"))
+                        if (targetCell != null && !(targetCell.ShiftType.Contains("교육") && IsRealEdu(row.MemberName, targetCell.Date)))
                         {
                             targetCell.ShiftType = paintType;
                             DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel { TargetDate = targetCell.Date, MemberName = row.MemberName, TeamGroup = targetCell.TeamGroup, ShiftType = paintType });
@@ -342,12 +354,12 @@ namespace CleanPotal
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
                 if (!_canEdit) return;
-                if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 삭제할 수 없습니다.", "알림"); return; }
+                if (clickedCell.ShiftType.Contains("교육") && IsRealEdu(clickedCell.MemberName, clickedCell.Date)) { MessageBox.Show("교육 일정은 직접 삭제할 수 없습니다.", "알림"); return; }
                 var checkedRows = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).Where(r => r.IsChecked).ToList();
                 foreach (var row in checkedRows)
                 {
                     var targetCell = row.Cells.FirstOrDefault(c => c.Date.Date == clickedCell.Date.Date);
-                    if (targetCell != null && !targetCell.ShiftType.Contains("교육"))
+                    if (targetCell != null && !(targetCell.ShiftType.Contains("교육") && IsRealEdu(row.MemberName, targetCell.Date)))
                     {
                         targetCell.ShiftType = "";
                         DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel { TargetDate = targetCell.Date, MemberName = row.MemberName, TeamGroup = targetCell.TeamGroup, ShiftType = "비우기" });
