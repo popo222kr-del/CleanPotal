@@ -416,7 +416,7 @@ namespace CleanPotal
             {
                 int total = g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno)) ?? 0;
                 int matched = g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno) && !string.IsNullOrEmpty(s.Src)) ?? 0;
-                int missing = total - matched;
+                int missingCnt = total - matched;
 
                 var headerTb = new TextBlock { TextTrimming = TextTrimming.None };
                 headerTb.Inlines.Add(new System.Windows.Documents.Run($"{g.Mno}  {g.Mname}  ")
@@ -429,7 +429,7 @@ namespace CleanPotal
                     headerTb.Inlines.Add(new System.Windows.Documents.Run($"({matched}/{total})")
                     {
                         FontWeight = FontWeights.Bold,
-                        Foreground = new SolidColorBrush(missing > 0
+                        Foreground = new SolidColorBrush(missingCnt > 0
                             ? Color.FromRgb(0xDC, 0x26, 0x26)   // 빨강: 미발견 있음
                             : Color.FromRgb(0x16, 0xA3, 0x4A))  // 초록: 전부 매칭
                     });
