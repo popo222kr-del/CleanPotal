@@ -69,4 +69,14 @@
     </None>
   </ItemGroup>
 
+  <!-- WF 표준 변환 도구: Python 스크립트 + 템플릿을 출력 폴더로 복사 -->
+  <ItemGroup>
+    <None Include="WfStandardConverter\scripts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="WfStandardConverter\templates\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
