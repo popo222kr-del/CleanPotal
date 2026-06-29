@@ -24,6 +24,7 @@ namespace CleanPotal
         private List<WfGroup> _groups = new();
         private readonly List<(CheckBox Check, WfGroup Group)> _groupChecks = new();
         private bool _busy;
+        private bool _suppressFilterEvent;
 
         private bool _envChecked;
 
@@ -227,6 +228,7 @@ namespace CleanPotal
 
                 _groups = result.Groups ?? new List<WfGroup>();
                 _usedSheet = result.Sheet;
+                PopulateDeptFilter();
                 BuildTree();
 
                 int subCount = _groups.Sum(g => g.Subs?.Count ?? 0);
@@ -242,12 +244,58 @@ namespace CleanPotal
             }
         }
 
+        // 모표준명 앞부분에서 부서 추출 (예: "세정사업부 검사..." → "세정사업부")
+        private static string DeptOf(WfGroup g)
+        {
+            var name = (g.Mname ?? "").Trim();
+            if (name.Length == 0) return "(미분류)";
+            int sp = name.IndexOf(' ');
+            return sp > 0 ? name.Substring(0, sp) : name;
+        }
+
+        private void PopulateDeptFilter()
+        {
+            _suppressFilterEvent = true;
+            DeptFilter.Items.Clear();
+            DeptFilter.Items.Add("(전체)");
+            foreach (var d in _groups.Select(DeptOf).Distinct().OrderBy(x => x))
+                DeptFilter.Items.Add(d);
+            DeptFilter.SelectedIndex = 0;
+            _suppressFilterEvent = false;
+        }
+
+        private void DeptFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_suppressFilterEvent) return;
+            BuildTree();
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_suppressFilterEvent) return;
+            BuildTree();
+        }
+
+        private IEnumerable<WfGroup> FilteredGroups()
+        {
+            IEnumerable<WfGroup> q = _groups;
+            string dept = DeptFilter.SelectedItem as string ?? "(전체)";
+            if (dept != "(전체)") q = q.Where(g => DeptOf(g) == dept);
+
+            string kw = (SearchBox?.Text ?? "").Trim();
+            if (kw.Length > 0)
+                q = q.Where(g => (g.Mno ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase)
+                              || (g.Mname ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase));
+            return q;
+        }
+
         private void BuildTree()
         {
             MasterTreeView.Items.Clear();
             _groupChecks.Clear();
 
-            foreach (var g in _groups)
+            var shown = FilteredGroups().ToList();
+            foreach (var g in shown)
             {
                 var chk = new CheckBox
                 {
@@ -280,6 +328,9 @@ namespace CleanPotal
                 _groupChecks.Add((chk, g));
             }
 
+            CountText.Text = shown.Count == _groups.Count
+                ? $"{_groups.Count}개"
+                : $"{shown.Count} / {_groups.Count}개";
             UpdateConvertEnabled();
         }
 

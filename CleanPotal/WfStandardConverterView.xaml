@@ -70,16 +70,35 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="모표준 목록" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
-                    <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+
+                    <!-- 부서 필터 -->
+                    <Grid Grid.Row="1" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="부서" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="DeptFilter" Grid.Column="1" FontSize="12" Height="28" VerticalContentAlignment="Center" SelectionChanged="DeptFilter_SelectionChanged"/>
+                    </Grid>
+
+                    <!-- 검색 -->
+                    <TextBox x:Name="SearchBox" Grid.Row="2" Height="28" Margin="0,0,0,8" FontSize="12" VerticalContentAlignment="Center" Padding="6,0"
+                             BorderBrush="#E2E8F0" BorderThickness="1" TextChanged="SearchBox_TextChanged"
+                             ToolTip="모표준No 또는 모표준명으로 검색"/>
+
+                    <WrapPanel Grid.Row="3" Margin="0,0,0,8">
                         <Button x:Name="BtnSelectAll" Content="전체 선택" FontSize="11" Padding="8,4" Margin="0,0,6,0" Cursor="Hand" Click="BtnSelectAll_Click"
                                 Background="Transparent" BorderThickness="0" Foreground="#2563EB" FontWeight="SemiBold"/>
                         <Button x:Name="BtnDeselectAll" Content="전체 해제" FontSize="11" Padding="8,4" Cursor="Hand" Click="BtnDeselectAll_Click"
                                 Background="Transparent" BorderThickness="0" Foreground="#64748B" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="CountText" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </WrapPanel>
-                    <TreeView x:Name="MasterTreeView" Grid.Row="2" BorderThickness="0" Background="Transparent"/>
+                    <TreeView x:Name="MasterTreeView" Grid.Row="4" BorderThickness="0" Background="Transparent"/>
                 </Grid>
             </Border>
 
