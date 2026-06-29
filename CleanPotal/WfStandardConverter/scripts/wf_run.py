@@ -74,10 +74,13 @@ def cmd_list(args):
             continue
 
         if H:  # H 채워진 행 = 새 모표준 시작
-            cur = {'mno': H, 'mname': I, 'dept': L, 'subs': [], 'issues': []}
+            cur = {'mno': H, 'mname': I, 'dept': L, 'depts': [], 'subs': [], 'issues': []}
             groups.append(cur)
         if cur is None:
             continue
+        # 이 모표준에 속한 모든 행의 부서(L)를 수집 (부서가 섞여 있을 수 있음)
+        if L and L not in cur['depts']:
+            cur['depts'].append(L)
         if J or G:  # 부속서(또는 기존No만 있는 행)
             cur['subs'].append({'subno': J or '(미부여)', 'oldno': G, 'title': K})
 

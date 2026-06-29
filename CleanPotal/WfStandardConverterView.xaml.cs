@@ -317,11 +317,21 @@ namespace CleanPotal
             }
         }
 
-        // 부서 = 마스터 L열(부서) 값. 비어있으면 (미분류).
-        private static string DeptOf(WfGroup g)
+        // 모표준에 속한 모든 행의 부서(L) 집합. 부속서마다 부서가 다를 수 있으므로 복수.
+        private static List<string> DeptsOf(WfGroup g)
         {
-            var d = (g.Dept ?? "").Trim();
-            return d.Length > 0 ? d : "(미분류)";
+            var list = (g.Depts ?? new List<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct()
+                .ToList();
+            if (list.Count == 0)
+            {
+                var d = (g.Dept ?? "").Trim();
+                if (d.Length > 0) list.Add(d);
+            }
+            if (list.Count == 0) list.Add("(미분류)");
+            return list;
         }
 
         private void PopulateDeptFilter()
@@ -330,9 +340,9 @@ namespace CleanPotal
             DeptFilterPanel.Children.Clear();
             _deptChecks.Clear();
 
-            foreach (var d in _groups.Select(DeptOf).Distinct().OrderBy(x => x))
+            foreach (var d in _groups.SelectMany(DeptsOf).Distinct().OrderBy(x => x))
             {
-                int cnt = _groups.Count(g => DeptOf(g) == d);
+                int cnt = _groups.Count(g => DeptsOf(g).Contains(d));
                 var chk = new CheckBox
                 {
                     Content = $"{d} ({cnt})",
@@ -362,7 +372,8 @@ namespace CleanPotal
             // 체크된 부서가 하나도 없으면 전체, 있으면 해당 부서들만
             var checkedDepts = _deptChecks.Where(c => c.IsChecked == true)
                                           .Select(c => (string)c.Tag).ToHashSet();
-            if (checkedDepts.Count > 0) q = q.Where(g => checkedDepts.Contains(DeptOf(g)));
+            // 모표준의 부서 중 하나라도 선택된 부서에 포함되면 표시 (부속서별 부서가 섞인 경우 대응)
+            if (checkedDepts.Count > 0) q = q.Where(g => DeptsOf(g).Any(d => checkedDepts.Contains(d)));
 
             string kw = (SearchBox?.Text ?? "").Trim();
             if (kw.Length > 0)
@@ -629,6 +640,7 @@ namespace CleanPotal
             [JsonPropertyName("mno")] public string Mno { get; set; } = "";
             [JsonPropertyName("mname")] public string Mname { get; set; } = "";
             [JsonPropertyName("dept")] public string? Dept { get; set; }
+            [JsonPropertyName("depts")] public List<string>? Depts { get; set; }
             [JsonPropertyName("subs")] public List<WfSub>? Subs { get; set; }
             [JsonPropertyName("issues")] public List<string>? Issues { get; set; }
         }
