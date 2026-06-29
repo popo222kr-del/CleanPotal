@@ -23,6 +23,7 @@ namespace CleanPotal
 
         private List<WfGroup> _groups = new();
         private readonly List<(CheckBox Check, WfGroup Group)> _groupChecks = new();
+        private readonly List<CheckBox> _deptChecks = new();
         private bool _busy;
         private bool _suppressFilterEvent;
 
@@ -31,16 +32,78 @@ namespace CleanPotal
         public WfStandardConverterView()
         {
             InitializeComponent();
-            Loaded += async (s, e) => { if (!_envChecked) { _envChecked = true; await CheckEnvironmentAsync(); } };
+            Loaded += async (s, e) =>
+            {
+                if (!_envChecked)
+                {
+                    _envChecked = true;
+                    await CheckEnvironmentAsync();
+                    await LoadConfigAndGroupsAsync();
+                }
+            };
         }
 
-        // 다른 페이지 갔다가 돌아오면 호출됨 → Python 환경 재점검 (앱 재시작 불필요)
+        // 다른 페이지 갔다가 돌아오면 호출됨 → Python 환경 재점검 + 공유 설정 반영 (앱 재시작 불필요)
         public async void TryRefresh()
         {
             if (_busy) return;
             _envChecked = true; // Loaded 중복 실행 방지
             Log("── 환경 재확인 ──");
             await CheckEnvironmentAsync();
+            if (_groups.Count == 0) await LoadConfigAndGroupsAsync();
+        }
+
+        // ───────────────────────── 공유 설정 (NAS) ─────────────────────────
+
+        // 모든 사용자가 공유하도록 NAS(DataRoot)에 경로 설정을 저장한다.
+        private static string ConfigPath => Path.Combine(AppPaths.DataRoot, "wf_converter_config.json");
+
+        private static WfConfig? LoadConfig()
+        {
+            try
+            {
+                if (File.Exists(ConfigPath))
+                    return JsonSerializer.Deserialize<WfConfig>(File.ReadAllText(ConfigPath));
+            }
+            catch { }
+            return null;
+        }
+
+        private void SaveConfig()
+        {
+            try
+            {
+                if (!Directory.Exists(AppPaths.DataRoot)) Directory.CreateDirectory(AppPaths.DataRoot);
+                var cfg = new WfConfig { MasterPath = _masterPath, SourceFolder = _sourceFolder, OutputFolder = _outputFolder };
+                var json = JsonSerializer.Serialize(cfg, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
+                File.WriteAllText(ConfigPath, json, new UTF8Encoding(false));
+            }
+            catch (Exception ex) { Log("⚠ 공유 설정 저장 실패: " + ex.Message); }
+        }
+
+        private async Task LoadConfigAndGroupsAsync()
+        {
+            var cfg = LoadConfig();
+            if (cfg == null) return;
+
+            _masterPath = !string.IsNullOrEmpty(cfg.MasterPath) && File.Exists(cfg.MasterPath) ? cfg.MasterPath : null;
+            _sourceFolder = !string.IsNullOrEmpty(cfg.SourceFolder) && Directory.Exists(cfg.SourceFolder) ? cfg.SourceFolder : null;
+            _outputFolder = !string.IsNullOrEmpty(cfg.OutputFolder) && Directory.Exists(cfg.OutputFolder) ? cfg.OutputFolder : null;
+
+            if (_masterPath != null) { Log($"[공유 설정] 마스터: {Path.GetFileName(_masterPath)}"); BtnSetSourceFolder.IsEnabled = true; }
+            else if (!string.IsNullOrEmpty(cfg.MasterPath)) Log($"⚠ 공유 마스터 파일을 찾을 수 없습니다: {cfg.MasterPath}");
+
+            if (_sourceFolder != null) { Log($"[공유 설정] 원본 폴더: {_sourceFolder}"); BtnSetOutputFolder.IsEnabled = true; }
+            if (_outputFolder != null) Log($"[공유 설정] 변경 폴더: {_outputFolder}");
+
+            if (_masterPath != null && _sourceFolder != null)
+                await LoadGroupsAsync();
+
+            UpdateConvertEnabled();
         }
 
         // ───────────────────────── Python 환경 점검 ─────────────────────────
@@ -149,34 +212,39 @@ namespace CleanPotal
             if (dlg.ShowDialog() != true) return;
 
             _masterPath = dlg.FileName;
-            Log($"[마스터] {Path.GetFileName(_masterPath)} 선택됨");
+            SaveConfig();
+            Log($"[마스터] {Path.GetFileName(_masterPath)} 선택됨 (공유 설정 저장)");
             BtnSetSourceFolder.IsEnabled = true;
-            DetailText.Text = "소스 폴더를 지정하면 모표준 목록을 불러옵니다.";
+            DetailText.Text = "원본 파일 폴더를 지정하면 모표준 목록을 불러옵니다.";
         }
 
-        // ───────────────────────── 2) 소스 폴더 ─────────────────────────
+        // ───────────────────────── 2) 원본 파일 폴더 ─────────────────────────
 
         private async void BtnSetSourceFolder_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new OpenFolderDialog { Title = "원본 표준 문서가 있는 소스 폴더 선택" };
+            var dlg = new OpenFolderDialog { Title = "원본 파일이 있는 폴더 선택" };
+            if (!string.IsNullOrEmpty(_sourceFolder) && Directory.Exists(_sourceFolder)) dlg.InitialDirectory = _sourceFolder;
             if (dlg.ShowDialog() != true) return;
 
             _sourceFolder = dlg.FolderName;
-            Log($"[소스 폴더] {_sourceFolder}");
+            SaveConfig();
+            Log($"[원본 파일 폴더] {_sourceFolder}");
             BtnSetOutputFolder.IsEnabled = true;
 
             await LoadGroupsAsync();
         }
 
-        // ───────────────────────── 3) 출력 폴더 ─────────────────────────
+        // ───────────────────────── 3) 변경 파일 폴더 ─────────────────────────
 
         private void BtnSetOutputFolder_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new OpenFolderDialog { Title = "변환 결과를 저장할 출력 폴더 선택" };
+            var dlg = new OpenFolderDialog { Title = "변경된 파일을 저장할 폴더 선택" };
+            if (!string.IsNullOrEmpty(_outputFolder) && Directory.Exists(_outputFolder)) dlg.InitialDirectory = _outputFolder;
             if (dlg.ShowDialog() != true) return;
 
             _outputFolder = dlg.FolderName;
-            Log($"[출력 폴더] {_outputFolder}");
+            SaveConfig();
+            Log($"[변경 파일 폴더] {_outputFolder}");
             UpdateConvertEnabled();
         }
 
@@ -256,18 +324,26 @@ namespace CleanPotal
         private void PopulateDeptFilter()
         {
             _suppressFilterEvent = true;
-            DeptFilter.Items.Clear();
-            DeptFilter.Items.Add("(전체)");
-            foreach (var d in _groups.Select(DeptOf).Distinct().OrderBy(x => x))
-                DeptFilter.Items.Add(d);
-            DeptFilter.SelectedIndex = 0;
-            _suppressFilterEvent = false;
-        }
+            DeptFilterPanel.Children.Clear();
+            _deptChecks.Clear();
 
-        private void DeptFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_suppressFilterEvent) return;
-            BuildTree();
+            foreach (var d in _groups.Select(DeptOf).Distinct().OrderBy(x => x))
+            {
+                int cnt = _groups.Count(g => DeptOf(g) == d);
+                var chk = new CheckBox
+                {
+                    Content = $"{d} ({cnt})",
+                    Tag = d,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 0, 10, 4),
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55))
+                };
+                chk.Checked += (s, e) => { if (!_suppressFilterEvent) BuildTree(); };
+                chk.Unchecked += (s, e) => { if (!_suppressFilterEvent) BuildTree(); };
+                DeptFilterPanel.Children.Add(chk);
+                _deptChecks.Add(chk);
+            }
+            _suppressFilterEvent = false;
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -279,8 +355,11 @@ namespace CleanPotal
         private IEnumerable<WfGroup> FilteredGroups()
         {
             IEnumerable<WfGroup> q = _groups;
-            string dept = DeptFilter.SelectedItem as string ?? "(전체)";
-            if (dept != "(전체)") q = q.Where(g => DeptOf(g) == dept);
+
+            // 체크된 부서가 하나도 없으면 전체, 있으면 해당 부서들만
+            var checkedDepts = _deptChecks.Where(c => c.IsChecked == true)
+                                          .Select(c => (string)c.Tag).ToHashSet();
+            if (checkedDepts.Count > 0) q = q.Where(g => checkedDepts.Contains(DeptOf(g)));
 
             string kw = (SearchBox?.Text ?? "").Trim();
             if (kw.Length > 0)
@@ -497,6 +576,13 @@ namespace CleanPotal
         }
 
         // ───────────────────────── JSON 모델 ─────────────────────────
+
+        private class WfConfig
+        {
+            [JsonPropertyName("master")] public string? MasterPath { get; set; }
+            [JsonPropertyName("source")] public string? SourceFolder { get; set; }
+            [JsonPropertyName("output")] public string? OutputFolder { get; set; }
+        }
 
         private class WfEnvResult
         {
