@@ -114,6 +114,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static long InsertMaterialLogistics(MaterialLogisticsRow row)
         {
+            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             return db.ExecuteScalar<long>(@"
                 INSERT INTO MaterialLogisticsBoard
@@ -125,6 +126,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void UpdateMaterialLogistics(MaterialLogisticsRow row)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             row.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -136,6 +138,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void DeleteMaterialLogistics(long id)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM MaterialLogisticsBoard WHERE Id = @Id", new { Id = id });
         }
@@ -168,6 +171,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static long InsertProductionPackaging(ProductionPackaging row)
         {
+            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             return db.ExecuteScalar<long>(@"
                 INSERT INTO ProductionPackaging
@@ -179,6 +183,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void UpdateProductionPackaging(ProductionPackaging row)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             row.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -190,6 +195,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void DeleteProductionPackaging(long id)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM ProductionPackaging WHERE Id = @Id", new { Id = id });
         }
@@ -214,6 +220,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static long InsertProductionTeamMember(ProductionTeamMember row)
         {
+            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             return db.ExecuteScalar<long>(@"
                 INSERT INTO ProductionTeamMember
@@ -225,6 +232,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void UpdateProductionTeamMember(ProductionTeamMember row)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             row.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -236,6 +244,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void DeleteProductionTeamMember(long id)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM ProductionTeamMember WHERE Id = @Id", new { Id = id });
         }
@@ -267,6 +276,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static long InsertDongtanDispatch(DongtanDispatch row)
         {
+            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             return db.ExecuteScalar<long>(@"
                 INSERT INTO DongtanDispatch
@@ -278,6 +288,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void UpdateDongtanDispatch(DongtanDispatch row)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             row.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -289,6 +300,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void DeleteDongtanDispatch(long id)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM DongtanDispatch WHERE Id = @Id", new { Id = id });
         }
@@ -321,6 +333,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static long InsertDongtanQuantity(DongtanQuantity row)
         {
+            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             return db.ExecuteScalar<long>(@"
                 INSERT INTO DongtanQuantity
@@ -332,6 +345,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void UpdateDongtanQuantity(DongtanQuantity row)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             row.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -344,6 +358,7 @@ namespace CleanPotal.StatusBoard.Repositories
 
         public static void DeleteDongtanQuantity(long id)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM DongtanQuantity WHERE Id = @Id", new { Id = id });
         }

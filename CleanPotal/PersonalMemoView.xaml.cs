@@ -208,6 +208,7 @@ namespace CleanPotal
 
         private void SaveAllToDisk()
         {
+            if (SessionManager.GuestWriteBlocked) return;
             if (string.IsNullOrWhiteSpace(_userId)) return;
             try
             {

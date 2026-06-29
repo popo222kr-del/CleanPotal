@@ -570,6 +570,7 @@ namespace CleanPotal
 
         private void SaveAppData()
         {
+            if (SessionManager.GuestWriteBlocked) return;
             Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
 
             // 저장 시점에 직위/경력을 입력 기준으로 고정 (이후 변하지 않도록)

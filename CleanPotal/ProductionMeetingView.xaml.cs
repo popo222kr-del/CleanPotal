@@ -2758,6 +2758,7 @@ namespace CleanPotal
 
         private void SaveToStorage()
         {
+            if (SessionManager.GuestWriteBlocked) return;
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);

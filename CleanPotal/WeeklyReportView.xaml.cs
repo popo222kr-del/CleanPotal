@@ -1168,6 +1168,7 @@ namespace CleanPotal
 
         private void SaveToStorage()
         {
+            if (SessionManager.GuestWriteBlocked) return;
             try
             {
                 NormalizeGroups();

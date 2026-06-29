@@ -44,6 +44,7 @@ namespace CleanPotal
 
         public static void Save(IEnumerable<VendorModel> vendors)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             Directory.CreateDirectory(AppPaths.DataRoot);
             var normalized = vendors.Select(CloneVendor).OrderBy(v => v.VendorName, StringComparer.OrdinalIgnoreCase).ToList();
             string json = JsonSerializer.Serialize(normalized, JsonOptions);
@@ -98,6 +99,7 @@ namespace CleanPotal
 
         public static void SaveGlobalTemplates(IEnumerable<GlobalTemplateModel> templates)
         {
+            if (SessionManager.GuestWriteBlocked) return;
             Directory.CreateDirectory(AppPaths.DataRoot);
             string json = JsonSerializer.Serialize(templates, JsonOptions);
             File.WriteAllText(GlobalTemplatesFilePath, json);

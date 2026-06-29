@@ -85,6 +85,9 @@ namespace CleanPotal
         // 기타 메뉴 영역 안에 있을 때만 true (MainWindow가 네비게이션 시 설정). 기타 메뉴는 gest도 편집 허용.
         public static bool InEtcSection { get; set; } = false;
 
+        // gest가 기타 메뉴 밖에서 데이터를 쓰려 할 때 true (데이터 계층 차단용, 메시지 없음)
+        public static bool GuestWriteBlocked => IsGuest && !InEtcSection;
+
         // 편집/등록/삭제 시도 시 호출. gest가 기타 메뉴 밖에서 시도하면 막고 true 반환.
         public static bool BlockGuestEdit()
         {

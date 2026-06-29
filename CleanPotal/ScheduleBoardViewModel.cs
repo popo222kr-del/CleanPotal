@@ -59,6 +59,7 @@ namespace CleanPotal
 
         public void SaveRecipes()
         {
+            if (SessionManager.GuestWriteBlocked) return;
             var dir = Path.GetDirectoryName(RecipeFile);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
             var json = JsonSerializer.Serialize(Recipes.ToList(), new JsonSerializerOptions { WriteIndented = true });
