@@ -91,8 +91,25 @@ namespace CleanPotal
             {
                 if (LogText.Text == "대기 중...") LogText.Text = "";
                 LogText.Text += (LogText.Text.Length > 0 ? "\n" : "") + msg;
-                LogScroller.ScrollToEnd();
+                LogText.ScrollToEnd();
             });
+        }
+
+        private void BtnCopyLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(LogText.Text))
+                {
+                    Clipboard.SetText(LogText.Text);
+                    BtnCopyLog.Content = "복사됨";
+                    var timer = new System.Windows.Threading.DispatcherTimer
+                    { Interval = TimeSpan.FromSeconds(1.2) };
+                    timer.Tick += (s, ev) => { BtnCopyLog.Content = "복사"; timer.Stop(); };
+                    timer.Start();
+                }
+            }
+            catch { }
         }
 
         private void SetBusy(bool busy)

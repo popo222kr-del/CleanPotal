@@ -136,10 +136,27 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="로그" FontSize="13" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6"/>
-                        <ScrollViewer x:Name="LogScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <TextBlock x:Name="LogText" Text="대기 중..." FontSize="12" Foreground="#CBD5E1" FontFamily="Consolas" TextWrapping="Wrap"/>
-                        </ScrollViewer>
+                        <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <TextBlock Text="로그" FontSize="13" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                            <Button x:Name="BtnCopyLog" Content="복사" FontSize="11" FontWeight="SemiBold" Padding="10,3" Cursor="Hand"
+                                    HorizontalAlignment="Right" Click="BtnCopyLog_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="#334155" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#475569"/></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <Button.Foreground><SolidColorBrush Color="#E2E8F0"/></Button.Foreground>
+                            </Button>
+                        </Grid>
+                        <TextBox x:Name="LogText" Grid.Row="1" Text="대기 중..." FontSize="12" Foreground="#CBD5E1" FontFamily="Consolas"
+                                 Background="Transparent" BorderThickness="0" IsReadOnly="True" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" VerticalAlignment="Stretch"
+                                 IsInactiveSelectionHighlightEnabled="True"/>
                     </Grid>
                 </Border>
             </Grid>
