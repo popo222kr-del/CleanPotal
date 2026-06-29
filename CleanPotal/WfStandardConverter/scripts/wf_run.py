@@ -13,7 +13,7 @@
   여기서 시트 자동 탐색(--sheet → 'WF사업부채번반영' → '채번' 포함 → 첫 시트)을 먼저 처리한다.
 - 원본 스킬 스크립트는 건드리지 않는다.
 """
-import sys, os, json
+import sys, os, json, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -55,7 +55,6 @@ def cmd_list(args):
         return
 
     import openpyxl
-    import build_mapping as BM
 
     # 컬럼: G(7)=기존No, H(8)=변경No(모표준), I(9)=표준명, J(10)=부속서No, K(11)=세부문서명, L(12)=부서
     ws = openpyxl.load_workbook(master, data_only=True)[used_sheet]
@@ -82,14 +81,64 @@ def cmd_list(args):
         if J or G:  # 부속서(또는 기존No만 있는 행)
             cur['subs'].append({'subno': J or '(미부여)', 'oldno': G, 'title': K})
 
-    # 소스 파일 매칭 (oldno → 최신 Rev 원본 파일)
+    # 소스 파일 목록을 미리 수집 (영숫자만 남긴 키 + 파일명 + 경로)
+    src_files = _collect_src_files(src_dirs)
+
+    # 소스 파일 매칭 (oldno 가 파일명에 포함된 최신 Rev 파일)
     for grp in groups:
         for s in grp['subs']:
-            s['src'] = BM.locate_source(s['oldno'], src_dirs)
+            s['src'] = _match_source(s['oldno'], src_files)
             if s['oldno'] and not s['src']:
                 grp['issues'].append('⛔ 소스 미발견: ' + s['oldno'])
 
     print(json.dumps({"sheet": used_sheet, "groups": groups}, ensure_ascii=False))
+
+
+def _alnum(s):
+    return re.sub(r'[^A-Z0-9]', '', str(s).upper()) if s else ''
+
+
+def _rev_num(fn):
+    m = re.search(r'[Rr]ev[.\s_]*0*(\d+)', fn or '')
+    return int(m.group(1)) if m else -1
+
+
+def _collect_src_files(src_dirs):
+    """소스 폴더(하위 포함)의 엑셀 파일을 (영숫자키, 파일명, 전체경로)로 수집."""
+    files = []
+    for d in src_dirs:
+        if not d or not os.path.isdir(d):
+            continue
+        for root, _dirs, names in os.walk(d):
+            for fn in names:
+                if not fn.lower().endswith(('.xlsx', '.xls')):
+                    continue
+                if fn.startswith('~$'):
+                    continue
+                files.append((_alnum(fn), fn, os.path.join(root, fn)))
+    return files
+
+
+def _match_source(oldno, src_files):
+    """기존No(oldno)가 파일명에 포함된 파일 중 최신 Rev 를 반환. 구분자 무시(영숫자 비교)."""
+    key = _alnum(oldno)
+    if not key:
+        return None
+    best = None
+    best_rev = -2
+    for akey, fn, path in src_files:
+        idx = akey.find(key)
+        if idx < 0:
+            continue
+        # 숫자 경계 보호: key 바로 뒤가 숫자면 다른 번호(07 vs 070)이므로 제외
+        nxt = akey[idx + len(key): idx + len(key) + 1]
+        if nxt.isdigit():
+            continue
+        rv = _rev_num(fn)
+        if rv > best_rev:
+            best_rev = rv
+            best = path
+    return best
 
 
 def cmd_check(args):
