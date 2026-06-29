@@ -312,13 +312,11 @@ namespace CleanPotal
             }
         }
 
-        // 모표준명 앞부분에서 부서 추출 (예: "세정사업부 검사..." → "세정사업부")
+        // 부서 = 마스터 L열(부서) 값. 비어있으면 (미분류).
         private static string DeptOf(WfGroup g)
         {
-            var name = (g.Mname ?? "").Trim();
-            if (name.Length == 0) return "(미분류)";
-            int sp = name.IndexOf(' ');
-            return sp > 0 ? name.Substring(0, sp) : name;
+            var d = (g.Dept ?? "").Trim();
+            return d.Length > 0 ? d : "(미분류)";
         }
 
         private void PopulateDeptFilter()
@@ -601,6 +599,7 @@ namespace CleanPotal
         {
             [JsonPropertyName("mno")] public string Mno { get; set; } = "";
             [JsonPropertyName("mname")] public string Mname { get; set; } = "";
+            [JsonPropertyName("dept")] public string? Dept { get; set; }
             [JsonPropertyName("subs")] public List<WfSub>? Subs { get; set; }
             [JsonPropertyName("issues")] public List<string>? Issues { get; set; }
         }

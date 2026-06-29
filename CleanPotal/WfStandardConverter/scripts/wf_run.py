@@ -54,8 +54,41 @@ def cmd_list(args):
         print(json.dumps({"error": "시트를 찾을 수 없습니다.", "groups": []}, ensure_ascii=False))
         return
 
+    import openpyxl
     import build_mapping as BM
-    groups = BM.build_mapping(master, src_dirs, sheet=used_sheet)
+
+    # 컬럼: G(7)=기존No, H(8)=변경No(모표준), I(9)=표준명, J(10)=부속서No, K(11)=세부문서명, L(12)=부서
+    ws = openpyxl.load_workbook(master, data_only=True)[used_sheet]
+
+    def cell(r, c):
+        v = ws.cell(r, c).value
+        return str(v).strip() if v is not None else ''
+
+    groups = []
+    cur = None
+    for r in range(1, ws.max_row + 1):
+        G, H, I, J, K, L = (cell(r, 7), cell(r, 8), cell(r, 9),
+                            cell(r, 10), cell(r, 11), cell(r, 12))
+
+        # 헤더/안내 행 스킵 (예: H='실행표준 (변경)', L='부서')
+        if H.replace(' ', '') == '실행표준(변경)' or L == '부서':
+            continue
+
+        if H:  # H 채워진 행 = 새 모표준 시작
+            cur = {'mno': H, 'mname': I, 'dept': L, 'subs': [], 'issues': []}
+            groups.append(cur)
+        if cur is None:
+            continue
+        if J or G:  # 부속서(또는 기존No만 있는 행)
+            cur['subs'].append({'subno': J or '(미부여)', 'oldno': G, 'title': K})
+
+    # 소스 파일 매칭 (oldno → 최신 Rev 원본 파일)
+    for grp in groups:
+        for s in grp['subs']:
+            s['src'] = BM.locate_source(s['oldno'], src_dirs)
+            if s['oldno'] and not s['src']:
+                grp['issues'].append('⛔ 소스 미발견: ' + s['oldno'])
+
     print(json.dumps({"sheet": used_sheet, "groups": groups}, ensure_ascii=False))
 
 
