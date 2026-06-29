@@ -71,14 +71,14 @@
 
         <!-- 메인 영역 -->
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="440"/>
-                <ColumnDefinition Width="16"/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="220"/>
+            </Grid.RowDefinitions>
 
-            <!-- 좌측: 모표준 목록 TreeView -->
-            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12">
+            <!-- 모표준 목록 (전체 폭) -->
+            <Border Grid.Row="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -107,7 +107,7 @@
                                 Background="Transparent" BorderThickness="0" Foreground="#2563EB" FontWeight="SemiBold"/>
                         <Button x:Name="BtnDeselectAll" Content="전체 해제" FontSize="11" Padding="8,4" Margin="0,0,6,0" Cursor="Hand" Click="BtnDeselectAll_Click"
                                 Background="Transparent" BorderThickness="0" Foreground="#64748B" FontWeight="SemiBold"/>
-                        <CheckBox x:Name="ChkMissingOnly" Content="소스 미발견만" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"
+                        <CheckBox x:Name="ChkMissingOnly" Content="문서 미발견만" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"
                                   Foreground="#DC2626" Click="ChkMissingOnly_Click"/>
                         <TextBlock x:Name="CountText" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
                     </WrapPanel>
@@ -116,28 +116,8 @@
                 </Grid>
             </Border>
 
-            <!-- 우측 -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="200"/>
-                </Grid.RowDefinitions>
-
-                <!-- 선택 항목 상세 -->
-                <Border Grid.Row="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="선택 항목 상세" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="DetailText" Grid.Row="1" Text="좌측에서 모표준을 선택하세요." FontSize="13" Foreground="#94A3B8" VerticalAlignment="Top" TextWrapping="Wrap"/>
-                    </Grid>
-                </Border>
-
-                <!-- 변환 실행 바 -->
-                <Border Grid.Row="1" Margin="0,12,0,0" Padding="12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+            <!-- 변환 실행 바 -->
+            <Border Grid.Row="1" Margin="0,12,0,0" Padding="12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -192,7 +172,6 @@
                                  IsInactiveSelectionHighlightEnabled="True"/>
                     </Grid>
                 </Border>
-            </Grid>
         </Grid>
     </Grid>
 </UserControl>

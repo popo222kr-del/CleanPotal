@@ -215,7 +215,7 @@ namespace CleanPotal
             SaveConfig();
             Log($"[마스터] {Path.GetFileName(_masterPath)} 선택됨 (공유 설정 저장)");
             BtnSetSourceFolder.IsEnabled = true;
-            DetailText.Text = "원본 파일 폴더를 지정하면 모표준 목록을 불러옵니다.";
+            Log("→ 원본 파일 폴더를 지정하면 모표준 목록을 불러옵니다.");
         }
 
         // ───────────────────────── 2) 원본 파일 폴더 ─────────────────────────
@@ -305,7 +305,7 @@ namespace CleanPotal
                 int totalSub = _groups.Sum(g => g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno)) ?? 0);
                 int matchedSub = _groups.Sum(g => g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno) && !string.IsNullOrEmpty(s.Src)) ?? 0);
                 int missingSub = totalSub - matchedSub;
-                Log($"[매칭] 원본 파일 매칭 {matchedSub}/{totalSub}건" + (missingSub > 0 ? $" · ⛔ 미발견 {missingSub}건 ('소스 미발견만' 체크로 확인)" : " · 전부 매칭됨 ✓"));
+                Log($"[매칭] 원본 문서 매칭 {matchedSub}/{totalSub}건" + (missingSub > 0 ? $" · ⛔ 미발견 {missingSub}건 ('문서 미발견만' 체크로 확인)" : " · 전부 매칭됨 ✓"));
             }
             catch (Exception ex)
             {
@@ -369,7 +369,7 @@ namespace CleanPotal
                 q = q.Where(g => (g.Mno ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase)
                               || (g.Mname ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase));
 
-            // 소스 미발견만 보기
+            // 문서 미발견만 보기
             if (ChkMissingOnly?.IsChecked == true)
                 q = q.Where(g => (g.Subs ?? new List<WfSub>())
                                  .Any(s => !string.IsNullOrEmpty(s.Oldno) && string.IsNullOrEmpty(s.Src)));
@@ -397,8 +397,6 @@ namespace CleanPotal
             _suppressFilterEvent = false;
 
             CountText.Text = "";
-            DetailText.Text = "좌측에서 모표준을 선택하세요.";
-            DetailText.Foreground = new SolidColorBrush(Color.FromRgb(0x94, 0xA3, 0xB8));
             BtnSetSourceFolder.IsEnabled = false;
             BtnSetOutputFolder.IsEnabled = false;
             ConvertProgress.Value = 0;
@@ -446,7 +444,7 @@ namespace CleanPotal
                     bool missing = !string.IsNullOrEmpty(sub.Oldno) && string.IsNullOrEmpty(sub.Src);
                     var tb = new TextBlock
                     {
-                        Text = $"{sub.Subno}  ·  {sub.Title}" + (missing ? "   ⛔ 소스 미발견" : ""),
+                        Text = $"{sub.Subno}  ·  {sub.Title}" + (missing ? "   ⛔ 문서 미발견" : ""),
                         FontSize = 12,
                         Foreground = new SolidColorBrush(missing
                             ? Color.FromRgb(0xDC, 0x26, 0x26)
@@ -455,7 +453,6 @@ namespace CleanPotal
                     item.Items.Add(new TreeViewItem { Header = tb });
                 }
 
-                item.Selected += (s, e) => ShowDetail(g);
                 MasterTreeView.Items.Add(item);
                 _groupChecks.Add((chk, g));
             }
@@ -464,29 +461,6 @@ namespace CleanPotal
                 ? $"{_groups.Count}개"
                 : $"{shown.Count} / {_groups.Count}개";
             UpdateConvertEnabled();
-        }
-
-        private void ShowDetail(WfGroup g)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"모표준 No : {g.Mno}");
-            sb.AppendLine($"모표준명 : {g.Mname}");
-            sb.AppendLine($"부속서 : {g.Subs?.Count ?? 0}건");
-            sb.AppendLine();
-            foreach (var sub in g.Subs ?? new List<WfSub>())
-            {
-                sb.AppendLine($"  • {sub.Subno}  ({sub.Oldno})");
-                sb.AppendLine($"      {sub.Title}");
-                sb.AppendLine($"      소스: {(string.IsNullOrEmpty(sub.Src) ? "⛔ 미발견" : sub.Src)}");
-            }
-            if (g.Issues != null && g.Issues.Count > 0)
-            {
-                sb.AppendLine();
-                sb.AppendLine("이슈:");
-                foreach (var i in g.Issues) sb.AppendLine("  - " + i);
-            }
-            DetailText.Text = sb.ToString();
-            DetailText.Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55));
         }
 
         // ───────────────────────── 전체 선택/해제 ─────────────────────────
