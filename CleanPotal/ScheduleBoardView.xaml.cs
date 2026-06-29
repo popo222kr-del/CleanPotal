@@ -485,16 +485,6 @@ namespace CleanPotal
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e) { _vm.GoToPrevDay(); HideHoverCell(); DrawBoard(); }
         private void BtnNextDay_Click(object sender, RoutedEventArgs e) { _vm.GoToNextDay(); HideHoverCell(); DrawBoard(); }
         private void BtnToday_Click(object sender, RoutedEventArgs e) { _vm.GoToToday(); HideHoverCell(); DrawBoard(); }
-        private void BtnCopyPrevDay_Click(object sender, RoutedEventArgs e)
-        {
-            if (_vm.PlacedBlocks.Count > 0)
-            {
-                var result = MessageBox.Show($"현재 날짜({_vm.CurrentDate:yyyy-MM-dd})에 이미 배치된 데이터가 있습니다.\n전일 데이터를 추가로 복사하시겠습니까?", "전일 복사", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result != MessageBoxResult.Yes) return;
-            }
-            if (_vm.CopyFromPrevDay(out string msg)) { HideHoverCell(); DrawBoard(); }
-            _vm.StatusText = msg; UpdateStatusText();
-        }
 
         private void DayCheckBox_Checked(object sender, RoutedEventArgs e) { if (_isInitializing) return; ScrollToRangeStart(night: false); }
         private void DayCheckBox_Unchecked(object sender, RoutedEventArgs e) { if (_isInitializing) return; if (DayCheckBox != null && NightCheckBox != null && DayCheckBox.IsChecked != true && NightCheckBox.IsChecked != true) { DayCheckBox.IsChecked = true; return; } if (NightCheckBox?.IsChecked == true) ScrollToRangeStart(night: true); }
@@ -649,6 +639,24 @@ namespace CleanPotal
                 else selectedDatesText.Text = "";
             };
 
+            bool isDragging = false;
+            bool dragAdding = true;
+            DateTime? lastDragDate = null;
+
+            DateTime? hitTestDate(Point pos)
+            {
+                int firstDow = (int)displayMonth.DayOfWeek;
+                int daysInMonth = DateTime.DaysInMonth(displayMonth.Year, displayMonth.Month);
+                double cellW = calendarGrid.ActualWidth / 7.0;
+                double cellH = calendarGrid.ActualHeight / 6.0;
+                int colIdx = (int)(pos.X / cellW);
+                int rowIdx = (int)(pos.Y / cellH);
+                if (colIdx < 0 || colIdx > 6 || rowIdx < 0 || rowIdx > 5) return null;
+                int dayNum = rowIdx * 7 + colIdx - firstDow + 1;
+                if (dayNum < 1 || dayNum > daysInMonth) return null;
+                return new DateTime(displayMonth.Year, displayMonth.Month, dayNum);
+            }
+
             refreshCalendar = () =>
             {
                 calendarGrid.Children.Clear();
@@ -690,21 +698,40 @@ namespace CleanPotal
                     };
                     cellBorder.Child = dayText;
 
-                    cellBorder.MouseEnter += (s, e) => { if (!isSelected) ((Border)s!).Background = hoverBrush; };
-                    cellBorder.MouseLeave += (s, e) => { if (!selectedDates.Contains(cellDate)) ((Border)s!).Background = Brushes.Transparent; };
-
-                    DateTime capturedDate = cellDate;
-                    cellBorder.MouseLeftButtonDown += (s, e) =>
-                    {
-                        if (selectedDates.Contains(capturedDate)) selectedDates.Remove(capturedDate);
-                        else selectedDates.Add(capturedDate);
-                        updateSummary();
-                        refreshCalendar();
-                    };
+                    cellBorder.MouseEnter += (s, e) => { if (!isDragging && !isSelected) ((Border)s!).Background = hoverBrush; };
+                    cellBorder.MouseLeave += (s, e) => { if (!isDragging && !selectedDates.Contains(cellDate)) ((Border)s!).Background = Brushes.Transparent; };
 
                     calendarGrid.Children.Add(cellBorder);
                 }
                 updateSummary();
+            };
+
+            calendarGrid.MouseLeftButtonDown += (s, e) =>
+            {
+                var date = hitTestDate(e.GetPosition(calendarGrid));
+                if (date == null) return;
+                isDragging = true;
+                dragAdding = !selectedDates.Contains(date.Value);
+                if (dragAdding) selectedDates.Add(date.Value);
+                else selectedDates.Remove(date.Value);
+                lastDragDate = date.Value;
+                calendarGrid.CaptureMouse();
+                refreshCalendar();
+                e.Handled = true;
+            };
+            calendarGrid.MouseMove += (s, e) =>
+            {
+                if (!isDragging) return;
+                var date = hitTestDate(e.GetPosition(calendarGrid));
+                if (date == null || date == lastDragDate) return;
+                lastDragDate = date.Value;
+                if (dragAdding) { if (!selectedDates.Contains(date.Value)) selectedDates.Add(date.Value); }
+                else selectedDates.Remove(date.Value);
+                refreshCalendar();
+            };
+            calendarGrid.MouseLeftButtonUp += (s, e) =>
+            {
+                if (isDragging) { isDragging = false; lastDragDate = null; calendarGrid.ReleaseMouseCapture(); }
             };
 
             var prevBtn = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
