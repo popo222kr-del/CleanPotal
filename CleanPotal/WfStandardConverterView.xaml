@@ -1,0 +1,148 @@
+<UserControl x:Class="CleanPotal.WfStandardConverterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F8FAFC"
+             SnapsToDevicePixels="True" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <!-- 상단 툴바 -->
+        <WrapPanel Grid.Row="0" Margin="0,0,0,16">
+            <Button x:Name="BtnLoadMaster" Content="마스터 파일 열기" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" Click="BtnLoadMaster_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#2563EB" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#1D4ED8"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.Foreground><SolidColorBrush Color="White"/></Button.Foreground>
+            </Button>
+            <Button x:Name="BtnSetSourceFolder" Content="소스 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetSourceFolder_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#F1F5F9" CornerRadius="8" Padding="{TemplateBinding Padding}" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.Foreground><SolidColorBrush Color="#0F172A"/></Button.Foreground>
+            </Button>
+            <Button x:Name="BtnSetOutputFolder" Content="출력 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetOutputFolder_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#F1F5F9" CornerRadius="8" Padding="{TemplateBinding Padding}" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#E2E8F0"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.5"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.Foreground><SolidColorBrush Color="#0F172A"/></Button.Foreground>
+            </Button>
+        </WrapPanel>
+
+        <!-- 메인 영역 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 좌측: 모표준 목록 TreeView -->
+            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="모표준 목록" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                    <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+                        <Button x:Name="BtnSelectAll" Content="전체 선택" FontSize="11" Padding="8,4" Margin="0,0,6,0" Cursor="Hand" Click="BtnSelectAll_Click"
+                                Background="Transparent" BorderThickness="0" Foreground="#2563EB" FontWeight="SemiBold"/>
+                        <Button x:Name="BtnDeselectAll" Content="전체 해제" FontSize="11" Padding="8,4" Cursor="Hand" Click="BtnDeselectAll_Click"
+                                Background="Transparent" BorderThickness="0" Foreground="#64748B" FontWeight="SemiBold"/>
+                    </WrapPanel>
+                    <TreeView x:Name="MasterTreeView" Grid.Row="2" BorderThickness="0" Background="Transparent"/>
+                </Grid>
+            </Border>
+
+            <!-- 우측 -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="200"/>
+                </Grid.RowDefinitions>
+
+                <!-- 선택 항목 상세 -->
+                <Border Grid.Row="0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="선택 항목 상세" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="DetailText" Grid.Row="1" Text="좌측에서 모표준을 선택하세요." FontSize="13" Foreground="#94A3B8" VerticalAlignment="Top" TextWrapping="Wrap"/>
+                    </Grid>
+                </Border>
+
+                <!-- 변환 실행 바 -->
+                <Border Grid.Row="1" Margin="0,12,0,0" Padding="12" Background="White" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar x:Name="ConvertProgress" Grid.Column="0" Height="20" Minimum="0" Maximum="100" Value="0" Margin="0,0,16,0"
+                                     Foreground="#2563EB" Background="#E2E8F0"/>
+                        <Button x:Name="BtnConvert" Grid.Column="1" Content="변환 실행" FontSize="13" FontWeight="Bold" Padding="24,8" Cursor="Hand" IsEnabled="False" Click="BtnConvert_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="#16A34A" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#15803D"/></Trigger>
+                                        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.5"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Button.Foreground><SolidColorBrush Color="White"/></Button.Foreground>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- 로그 -->
+                <Border Grid.Row="2" Margin="0,12,0,0" Background="#1E293B" CornerRadius="12" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="로그" FontSize="13" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+                        <ScrollViewer x:Name="LogScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="LogText" Text="대기 중..." FontSize="12" Foreground="#CBD5E1" FontFamily="Consolas" TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
