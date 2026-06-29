@@ -61,6 +61,7 @@ namespace CleanPotal
                 else SessionManager.ClearSavedLogin();
 
                 MainWindow mainWin = new MainWindow();
+                Application.Current.MainWindow = mainWin;
                 mainWin.Show();
                 this.Close();
             }
