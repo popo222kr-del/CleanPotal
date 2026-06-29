@@ -33,7 +33,7 @@ namespace CleanPotal
             using (var connection = new SqliteConnection(ConnectionString))
             {
                 connection.Open();
-                try { connection.Execute("PRAGMA journal_mode=WAL;"); } catch { }
+                try { connection.Execute("PRAGMA journal_mode=DELETE;"); } catch { }
                 connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
@@ -79,7 +79,7 @@ namespace CleanPotal
         {
             var conn = new SqliteConnection(ConnectionString);
             conn.Open();
-            using (var cmd = conn.CreateCommand()) { cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;"; cmd.ExecuteNonQuery(); }
+            using (var cmd = conn.CreateCommand()) { cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;"; cmd.ExecuteNonQuery(); }
             return conn;
         }
 

@@ -40,7 +40,7 @@ namespace CleanPotal
             var conn = new SqliteConnection(DbConnectionString);
             conn.Open();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;";
+            cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;";
             cmd.ExecuteNonQuery();
             return conn;
         }
