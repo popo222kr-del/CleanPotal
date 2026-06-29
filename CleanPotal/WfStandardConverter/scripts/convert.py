@@ -79,7 +79,8 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today="2026.06.25"):
         shutil.copy(locout, os.path.join(out_dir, fname))
         report.append({"mno":mno,"mname":mname,"subs":len(subs),"out_sheets":nsh,"out_img":media,"file":fname,"issues":issues})
     shutil.rmtree(tmp, ignore_errors=True)
-    json.dump(report, open(os.path.join(out_dir,"_convert_report.json"),"w"), ensure_ascii=False, indent=1)
+    # _convert_report.json 파일은 생성하지 않음 (결과 폴더에 불필요한 파일 방지).
+    # 진행 결과는 return 값으로 WPF(wf_run.py)에 전달됨.
     return report
 
 if __name__=="__main__":
