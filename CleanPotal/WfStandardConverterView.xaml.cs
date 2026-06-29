@@ -443,6 +443,16 @@ namespace CleanPotal
                             : Color.FromRgb(0x16, 0xA3, 0x4A))  // 초록: 전부 매칭
                     });
                 }
+                var owners = (g.Owners ?? new List<string>()).Where(o => !string.IsNullOrWhiteSpace(o)).ToList();
+                if (owners.Count > 0)
+                {
+                    string ownerText = owners.Count == 1 ? owners[0] : $"{owners[0]} 외 {owners.Count - 1}";
+                    headerTb.Inlines.Add(new System.Windows.Documents.Run($"   담당 {ownerText}")
+                    {
+                        FontWeight = FontWeights.Normal,
+                        Foreground = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB))
+                    });
+                }
 
                 var chk = new CheckBox { Content = headerTb, IsChecked = true };
                 chk.Checked += (s, e) => UpdateConvertEnabled();
@@ -453,9 +463,10 @@ namespace CleanPotal
                 foreach (var sub in g.Subs ?? new List<WfSub>())
                 {
                     bool missing = !string.IsNullOrEmpty(sub.Oldno) && string.IsNullOrEmpty(sub.Src);
+                    string ownerTag = string.IsNullOrWhiteSpace(sub.Owner) ? "" : $"  ·  담당 {sub.Owner}";
                     var tb = new TextBlock
                     {
-                        Text = $"{sub.Subno}  ·  {sub.Title}" + (missing ? "   ⛔ 문서 미발견" : ""),
+                        Text = $"{sub.Subno}  ·  {sub.Title}{ownerTag}" + (missing ? "   ⛔ 문서 미발견" : ""),
                         FontSize = 12,
                         Foreground = new SolidColorBrush(missing
                             ? Color.FromRgb(0xDC, 0x26, 0x26)
@@ -641,6 +652,7 @@ namespace CleanPotal
             [JsonPropertyName("mname")] public string Mname { get; set; } = "";
             [JsonPropertyName("dept")] public string? Dept { get; set; }
             [JsonPropertyName("depts")] public List<string>? Depts { get; set; }
+            [JsonPropertyName("owners")] public List<string>? Owners { get; set; }
             [JsonPropertyName("subs")] public List<WfSub>? Subs { get; set; }
             [JsonPropertyName("issues")] public List<string>? Issues { get; set; }
         }
@@ -650,6 +662,7 @@ namespace CleanPotal
             [JsonPropertyName("subno")] public string Subno { get; set; } = "";
             [JsonPropertyName("oldno")] public string Oldno { get; set; } = "";
             [JsonPropertyName("title")] public string Title { get; set; } = "";
+            [JsonPropertyName("owner")] public string? Owner { get; set; }
             [JsonPropertyName("src")] public string? Src { get; set; }
         }
     }

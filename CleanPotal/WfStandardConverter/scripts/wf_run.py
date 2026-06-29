@@ -56,7 +56,7 @@ def cmd_list(args):
 
     import openpyxl
 
-    # 컬럼: G(7)=기존No, H(8)=변경No(모표준), I(9)=표준명, J(10)=부속서No, K(11)=세부문서명, L(12)=부서
+    # 컬럼: G(7)=기존No, H(8)=변경No(모표준), I(9)=표준명, J(10)=부속서No, K(11)=세부문서명, L(12)=부서, M(13)=담당자
     ws = openpyxl.load_workbook(master, data_only=True)[used_sheet]
 
     def cell(r, c):
@@ -66,23 +66,25 @@ def cmd_list(args):
     groups = []
     cur = None
     for r in range(1, ws.max_row + 1):
-        G, H, I, J, K, L = (cell(r, 7), cell(r, 8), cell(r, 9),
-                            cell(r, 10), cell(r, 11), cell(r, 12))
+        G, H, I, J, K, L, Mo = (cell(r, 7), cell(r, 8), cell(r, 9),
+                                cell(r, 10), cell(r, 11), cell(r, 12), cell(r, 13))
 
         # 헤더/안내 행 스킵 (예: H='실행표준 (변경)', L='부서')
         if H.replace(' ', '') == '실행표준(변경)' or L == '부서':
             continue
 
         if H:  # H 채워진 행 = 새 모표준 시작
-            cur = {'mno': H, 'mname': I, 'dept': L, 'depts': [], 'subs': [], 'issues': []}
+            cur = {'mno': H, 'mname': I, 'dept': L, 'depts': [], 'owners': [], 'subs': [], 'issues': []}
             groups.append(cur)
         if cur is None:
             continue
-        # 이 모표준에 속한 모든 행의 부서(L)를 수집 (부서가 섞여 있을 수 있음)
+        # 이 모표준에 속한 모든 행의 부서(L)/담당자(M)를 수집 (섞여 있을 수 있음)
         if L and L not in cur['depts']:
             cur['depts'].append(L)
+        if Mo and Mo not in cur['owners']:
+            cur['owners'].append(Mo)
         if J or G:  # 부속서(또는 기존No만 있는 행)
-            cur['subs'].append({'subno': J or '(미부여)', 'oldno': G, 'title': K})
+            cur['subs'].append({'subno': J or '(미부여)', 'oldno': G, 'title': K, 'owner': Mo})
 
     # 소스 파일 목록을 미리 수집 (영숫자만 남긴 키 + 파일명 + 경로)
     src_files = _collect_src_files(src_dirs)
