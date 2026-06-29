@@ -160,11 +160,9 @@ namespace CleanPotal
                 {
                     CmbPaintType.IsEnabled = false;
                     TxtPaintDays.IsEnabled = false;
+                    TglPredictPattern.IsEnabled = false;
                     this.Title = "세정팀 통합 근무 스케줄러 (읽기 전용)";
                 }
-
-                bool isAdmin = SessionManager.CurrentUsername == "1004";
-                BtnShowLog.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
 
                 LoadData();
             };
@@ -368,65 +366,5 @@ namespace CleanPotal
         }
 
         private void TglPredictPattern_Click(object sender, RoutedEventArgs e) => LoadData();
-
-        private void BtnShowLog_Click(object sender, RoutedEventArgs e)
-        {
-            var from = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
-            var to = from.AddMonths(1).AddDays(-1);
-            var logs = DatabaseHelper.GetShiftScheduleLogs(from, to);
-
-            var dlg = new Window
-            {
-                Title = $"근무표 수정 이력 — {_currentMonth:yyyy년 M월}",
-                Width = 820, Height = 520,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this, Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
-                ResizeMode = ResizeMode.CanResizeWithGrip
-            };
-
-            var root = new Grid { Margin = new Thickness(16) };
-            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            root.RowDefinitions.Add(new RowDefinition());
-
-            var header = new TextBlock
-            {
-                Text = logs.Count > 0 ? $"총 {logs.Count}건의 수정 이력" : "수정 이력이 없습니다.",
-                FontSize = 14, FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
-                Margin = new Thickness(0, 0, 0, 12)
-            };
-            Grid.SetRow(header, 0);
-            root.Children.Add(header);
-
-            var dg = new DataGrid
-            {
-                AutoGenerateColumns = false, IsReadOnly = true,
-                CanUserSortColumns = true, CanUserReorderColumns = false,
-                HeadersVisibility = DataGridHeadersVisibility.Column,
-                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
-                Background = Brushes.White,
-                RowBackground = Brushes.White,
-                AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
-                FontSize = 13
-            };
-
-            dg.Columns.Add(new DataGridTextColumn { Header = "수정 일시", Binding = new System.Windows.Data.Binding("ModifiedAt"), Width = 140 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "수정자", Binding = new System.Windows.Data.Binding("ModifiedBy"), Width = 80 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "대상 날짜", Binding = new System.Windows.Data.Binding("TargetDate"), Width = 100 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "대상자", Binding = new System.Windows.Data.Binding("MemberName"), Width = 80 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "구분", Binding = new System.Windows.Data.Binding("Action"), Width = 60 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "변경 전", Binding = new System.Windows.Data.Binding("OldShiftType"), Width = 100 });
-            dg.Columns.Add(new DataGridTextColumn { Header = "변경 후", Binding = new System.Windows.Data.Binding("NewShiftType"), Width = 100 });
-
-            dg.ItemsSource = logs;
-            Grid.SetRow(dg, 1);
-            root.Children.Add(dg);
-
-            dlg.Content = root;
-            dlg.ShowDialog();
-        }
     }
 }

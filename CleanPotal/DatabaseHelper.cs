@@ -17,7 +17,7 @@ namespace CleanPotal
     public static class DatabaseHelper
     {
         private static readonly string DbPath = Path.Combine(AppPaths.DataRoot, "dispatch.db");
-        private static readonly string ConnectionString = $"Data Source={DbPath};Pooling=False";
+        private static readonly string ConnectionString = $"Data Source={DbPath}";
         private static bool _isMapperInitialized = false;
 
         public static void InitializeDatabase()
@@ -75,13 +75,7 @@ namespace CleanPotal
             FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
         }
 
-        public static IDbConnection GetConnection()
-        {
-            var conn = new SqliteConnection(ConnectionString);
-            conn.Open();
-            using (var cmd = conn.CreateCommand()) { cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;"; cmd.ExecuteNonQuery(); }
-            return conn;
-        }
+        public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);
 
         public static int InsertDispatch(DispatchItemModel item, DateTime targetDate)
         {
@@ -241,19 +235,6 @@ namespace CleanPotal
                 connection.Execute(createEduTable);
                 try { connection.Execute("ALTER TABLE EducationPlan ADD COLUMN AttachmentPath TEXT;"); } catch { }
 
-                string createLogTable = @"
-                    CREATE TABLE IF NOT EXISTS ShiftScheduleLog (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        TargetDate TEXT NOT NULL,
-                        MemberName TEXT NOT NULL,
-                        OldShiftType TEXT,
-                        NewShiftType TEXT,
-                        Action TEXT NOT NULL,
-                        ModifiedBy TEXT NOT NULL,
-                        ModifiedAt TEXT NOT NULL
-                    )";
-                connection.Execute(createLogTable);
-
                 string createTeamEventsTable = @"
                     CREATE TABLE IF NOT EXISTS TeamEvents (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -274,44 +255,25 @@ namespace CleanPotal
                     new { Path = path ?? "", Id = id });
         }
 
-        private static void InsertShiftLog(IDbConnection db, string targetDate, string memberName, string? oldType, string? newType, string action)
-        {
-            string modifier = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알 수 없음";
-            if (string.IsNullOrEmpty(modifier)) modifier = SessionManager.CurrentUsername;
-            db.Execute(@"INSERT INTO ShiftScheduleLog (TargetDate, MemberName, OldShiftType, NewShiftType, Action, ModifiedBy, ModifiedAt)
-                         VALUES (@TargetDate, @MemberName, @Old, @New, @Action, @By, @At)",
-                new { TargetDate = targetDate, MemberName = memberName, Old = oldType ?? "", New = newType ?? "", Action = action, By = modifier, At = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
-        }
-
         public static void UpsertShiftSchedule(ShiftScheduleModel item)
         {
             using (var db = GetConnection())
             {
-                string dateStr = item.TargetDate.ToString("yyyy-MM-dd");
-                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE TargetDate = @Date AND MemberName = @Name",
-                    new { Date = dateStr, Name = item.MemberName });
-
                 string delSql = "DELETE FROM ShiftSchedule WHERE TargetDate = @Date AND MemberName = @Name";
-                db.Execute(delSql, new { Date = dateStr, Name = item.MemberName });
+                db.Execute(delSql, new { Date = item.TargetDate.ToString("yyyy-MM-dd"), Name = item.MemberName });
 
                 if (!string.IsNullOrWhiteSpace(item.ShiftType) && item.ShiftType != "비우기")
                 {
-                    string insertSql = @"INSERT INTO ShiftSchedule (TargetDate, TeamGroup, Role, MemberName, ShiftType)
+                    string insertSql = @"INSERT INTO ShiftSchedule (TargetDate, TeamGroup, Role, MemberName, ShiftType) 
                                          VALUES (@TargetDate, @TeamGroup, @Role, @MemberName, @ShiftType)";
                     db.Execute(insertSql, new
                     {
-                        TargetDate = dateStr,
+                        TargetDate = item.TargetDate.ToString("yyyy-MM-dd"),
                         TeamGroup = item.TeamGroup ?? "세정",
                         Role = item.Role ?? "사원",
                         MemberName = item.MemberName,
                         ShiftType = item.ShiftType
                     });
-                    string action = old != null ? "수정" : "등록";
-                    InsertShiftLog(db, dateStr, item.MemberName, old?.ShiftType, item.ShiftType, action);
-                }
-                else if (old != null)
-                {
-                    InsertShiftLog(db, dateStr, item.MemberName, old.ShiftType, null, "삭제");
                 }
             }
         }
@@ -386,23 +348,14 @@ namespace CleanPotal
 
         public static void DeleteShiftSchedule(int id)
         {
-            using (var db = GetConnection())
-            {
-                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
-                db.Execute("DELETE FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
-                if (old != null) InsertShiftLog(db, old.TargetDate.ToString("yyyy-MM-dd"), old.MemberName, old.ShiftType, null, "삭제");
-            }
+            using (var db = GetConnection()) db.Execute("DELETE FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
         }
 
         public static void UpdateShiftScheduleType(int id, string newShiftType)
         {
             using (var db = GetConnection())
-            {
-                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
                 db.Execute("UPDATE ShiftSchedule SET ShiftType = @ShiftType WHERE Id = @Id",
                     new { ShiftType = newShiftType, Id = id });
-                if (old != null) InsertShiftLog(db, old.TargetDate.ToString("yyyy-MM-dd"), old.MemberName, old.ShiftType, newShiftType, "수정");
-            }
         }
 
         public static void DeleteEducationPlan(int id)
@@ -436,20 +389,6 @@ namespace CleanPotal
             using (var db = GetConnection())
                 db.Execute("UPDATE TeamEvents SET StartDate=@StartDate, EndDate=@EndDate, Content=@Content, Detail=@Detail WHERE Id=@Id",
                     new { item.StartDate, item.EndDate, item.Content, item.Detail, item.Id });
-        }
-
-        public static List<ShiftScheduleLogModel> GetShiftScheduleLogs(DateTime? from = null, DateTime? to = null, string? memberName = null)
-        {
-            using (var db = GetConnection())
-            {
-                string sql = "SELECT * FROM ShiftScheduleLog WHERE 1=1";
-                var p = new DynamicParameters();
-                if (from.HasValue) { sql += " AND TargetDate >= @From"; p.Add("From", from.Value.ToString("yyyy-MM-dd")); }
-                if (to.HasValue) { sql += " AND TargetDate <= @To"; p.Add("To", to.Value.ToString("yyyy-MM-dd")); }
-                if (!string.IsNullOrEmpty(memberName)) { sql += " AND MemberName = @Name"; p.Add("Name", memberName); }
-                sql += " ORDER BY ModifiedAt DESC";
-                return db.Query<ShiftScheduleLogModel>(sql, p).ToList();
-            }
         }
 
         public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)

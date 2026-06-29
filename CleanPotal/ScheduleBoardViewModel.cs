@@ -32,18 +32,7 @@ namespace CleanPotal
         private const int MaxConcurrentDIBatches = 5;
 
         private static string DbPath => Path.Combine(AppPaths.DataRoot, "CleanPotal.db");
-        private static string DbConnectionString => $"Data Source={DbPath};Pooling=False";
         private static string RecipeFile => Path.Combine(AppPaths.DataRoot, "recipes.json");
-
-        private static SqliteConnection OpenDb()
-        {
-            var conn = new SqliteConnection(DbConnectionString);
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;";
-            cmd.ExecuteNonQuery();
-            return conn;
-        }
 
         private void LoadRecipes()
         {
@@ -68,7 +57,8 @@ namespace CleanPotal
             var dir = Path.GetDirectoryName(DbPath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-            using var conn = OpenDb();
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
             using var cmd = conn.CreateCommand();
 
             cmd.CommandText = @"
@@ -141,7 +131,8 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
             if (!File.Exists(DbPath)) { message = "DB 파일이 없습니다."; return false; }
 
-            using var conn = OpenDb();
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
 
             using var countCmd = conn.CreateCommand();
             countCmd.CommandText = "SELECT COUNT(*) FROM ScheduleBlocks WHERE BoardDate = @date;";
@@ -188,7 +179,8 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             var blocks = new List<PlacedRecipeBlock>();
             if (!File.Exists(DbPath)) return blocks;
             string dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            using var conn = OpenDb();
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
             cmd.Parameters.AddWithValue("@date", dateStr);
@@ -212,7 +204,8 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
         private void LoadBlocksFromDb()
         {
             if (!File.Exists(DbPath)) return;
-            using var conn = OpenDb();
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
             cmd.Parameters.AddWithValue("@date", CurrentDateString);
@@ -273,25 +266,7 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
         public bool TryUndoLastBoardAction(out string message)
         {
             if (_undoStack.Count == 0) { message = "되돌릴 작업이 없습니다."; return false; }
-            var snapshot = _undoStack.Pop();
-            RestorePlacedBlocks(snapshot.Blocks);
-            SaveAllBlocksToDb();
-
-            if (snapshot.NextDayOverflows.Count > 0)
-            {
-                using var conn = OpenDb();
-                foreach (var (dateStr, eqIdx, startMin) in snapshot.NextDayOverflows)
-                {
-                    using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
-                    cmd.Parameters.AddWithValue("@date", dateStr);
-                    cmd.Parameters.AddWithValue("@eq", eqIdx);
-                    cmd.Parameters.AddWithValue("@start", startMin);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-
-            OnPropertyChanged(nameof(CanUndoLastBoardAction));
+            var snapshot = _undoStack.Pop(); RestorePlacedBlocks(snapshot.Blocks); SaveAllBlocksToDb(); OnPropertyChanged(nameof(CanUndoLastBoardAction));
             message = $"되돌리기 완료: {snapshot.ActionDescription}"; return true;
         }
 
@@ -386,12 +361,6 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             });
 
             SaveBlockToNextDay(equipmentIndex, 0, recipe.Text, nextS2, nextHF, nextDI, recipe.S2Temperature);
-
-            if (_undoStack.Count > 0)
-            {
-                string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                _undoStack.Peek().NextDayOverflows.Add((nextDateStr, equipmentIndex, 0));
-            }
         }
 
         private static void SplitPhases(int s2, int hf, int di, int keepMinutes,
@@ -414,15 +383,8 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             if (s2 + hf + di <= 0) return;
             string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            using var conn = OpenDb();
-
-            using var delCmd = conn.CreateCommand();
-            delCmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
-            delCmd.Parameters.AddWithValue("@date", nextDateStr);
-            delCmd.Parameters.AddWithValue("@eq", equipmentIndex);
-            delCmd.Parameters.AddWithValue("@start", startMinute);
-            delCmd.ExecuteNonQuery();
-
+            using var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
 INSERT INTO ScheduleBlocks
@@ -536,7 +498,7 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
 
         private void ClearScheduleTable()
         {
-            using var conn = OpenDb(); using var cmd = conn.CreateCommand();
+            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open(); using var cmd = conn.CreateCommand();
             cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date;";
             cmd.Parameters.AddWithValue("@date", CurrentDateString);
             cmd.ExecuteNonQuery();
@@ -545,7 +507,7 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
         private void SaveAllBlocksToDb()
         {
             ClearScheduleTable();
-            using var conn = OpenDb();
+            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open();
 
             foreach (var block in PlacedBlocks)
             {
@@ -569,12 +531,7 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
         }
     }
 
-    public class BoardUndoSnapshot
-    {
-        public string ActionDescription { get; set; } = "";
-        public List<PlacedRecipeBlock> Blocks { get; set; } = new();
-        public List<(string DateStr, int EquipmentIndex, int StartMinute)> NextDayOverflows { get; set; } = new();
-    }
+    public class BoardUndoSnapshot { public string ActionDescription { get; set; } = ""; public List<PlacedRecipeBlock> Blocks { get; set; } = new(); }
     public class EquipmentLine { public int Index { get; set; } public string DisplayName { get; set; } = ""; }
 
     public class RecipeDefinition

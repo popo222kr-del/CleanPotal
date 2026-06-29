@@ -79,18 +79,6 @@ namespace CleanPotal
         public string ShiftType { get; set; } = "";
     }
 
-    public class ShiftScheduleLogModel
-    {
-        public int Id { get; set; }
-        public string TargetDate { get; set; } = "";
-        public string MemberName { get; set; } = "";
-        public string OldShiftType { get; set; } = "";
-        public string NewShiftType { get; set; } = "";
-        public string Action { get; set; } = "";
-        public string ModifiedBy { get; set; } = "";
-        public string ModifiedAt { get; set; } = "";
-    }
-
     public class EducationPlanModel
     {
         public int Id { get; set; }

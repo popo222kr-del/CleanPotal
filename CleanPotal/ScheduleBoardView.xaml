@@ -176,60 +176,22 @@
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
-                        <Border Background="#E2E8F0" CornerRadius="8" Padding="3" Margin="0,0,16,0">
+                        <Button x:Name="BtnCopyPrevDay" Content="전일 복사" FontSize="12" Height="28" Click="BtnCopyPrevDay_Click" Cursor="Hand" Background="#F8FAFC" Foreground="#475569" BorderThickness="1" BorderBrush="#E2E8F0" Padding="10,0" Margin="0,0,20,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Background="#F1F5F9" CornerRadius="4" Padding="1" Margin="0,0,16,0">
                             <StackPanel Orientation="Horizontal">
-                                <CheckBox x:Name="DayCheckBox" Checked="DayCheckBox_Checked" Unchecked="DayCheckBox_Unchecked" Cursor="Hand" Margin="0">
-                                    <CheckBox.Template>
-                                        <ControlTemplate TargetType="CheckBox">
-                                            <Border x:Name="pill" Background="Transparent" CornerRadius="6" Padding="12,6" Cursor="Hand">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock x:Name="label" Text="주간" FontSize="12" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="timeText" Text=" 07:00~19:00" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="pill" Property="Background" Value="#2563EB"/>
-                                                    <Setter TargetName="label" Property="Foreground" Value="White"/>
-                                                    <Setter TargetName="timeText" Property="Foreground" Value="#BFDBFE"/>
-                                                </Trigger>
-                                                <MultiTrigger>
-                                                    <MultiTrigger.Conditions>
-                                                        <Condition Property="IsChecked" Value="False"/>
-                                                        <Condition Property="IsMouseOver" Value="True"/>
-                                                    </MultiTrigger.Conditions>
-                                                    <Setter TargetName="pill" Property="Background" Value="#CBD5E1"/>
-                                                </MultiTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </CheckBox.Template>
-                                </CheckBox>
-                                <CheckBox x:Name="NightCheckBox" Checked="NightCheckBox_Checked" Unchecked="NightCheckBox_Unchecked" Cursor="Hand" Margin="0">
-                                    <CheckBox.Template>
-                                        <ControlTemplate TargetType="CheckBox">
-                                            <Border x:Name="pill" Background="Transparent" CornerRadius="6" Padding="12,6" Cursor="Hand">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock x:Name="label" Text="야간" FontSize="12" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="timeText" Text=" 19:00~06:00" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="pill" Property="Background" Value="#1E40AF"/>
-                                                    <Setter TargetName="label" Property="Foreground" Value="White"/>
-                                                    <Setter TargetName="timeText" Property="Foreground" Value="#BFDBFE"/>
-                                                </Trigger>
-                                                <MultiTrigger>
-                                                    <MultiTrigger.Conditions>
-                                                        <Condition Property="IsChecked" Value="False"/>
-                                                        <Condition Property="IsMouseOver" Value="True"/>
-                                                    </MultiTrigger.Conditions>
-                                                    <Setter TargetName="pill" Property="Background" Value="#CBD5E1"/>
-                                                </MultiTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </CheckBox.Template>
-                                </CheckBox>
+                                <CheckBox x:Name="DayCheckBox" Content="주간 (07:00~19:00)" VerticalAlignment="Center" Margin="4,0,12,0" Checked="DayCheckBox_Checked" Unchecked="DayCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
+                                <CheckBox x:Name="NightCheckBox" Content="야간 (19:00~06:00)" VerticalAlignment="Center" Margin="0,0,4,0" Checked="NightCheckBox_Checked" Unchecked="NightCheckBox_Unchecked" Foreground="#111827" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
                     </WrapPanel>
