@@ -85,6 +85,8 @@ namespace CleanPotal
                 InitializePollingTimer();
                 ApplyAdminMenuVisibility();
             };
+
+            this.Closed += (s, e) => Application.Current.Shutdown();
         }
 
         private void InitializePollingTimer()
