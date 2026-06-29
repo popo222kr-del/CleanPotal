@@ -436,7 +436,7 @@ namespace CleanPotal
         {
             if (!TryNavigateAway()) return;
             _currentViewName = "WfConverter";
-            ApplySectionMeta("WF 표준 변환", "마스터 파일 기반으로 WF 모표준 문서를 일괄 변환합니다.");
+            ApplySectionMeta("문서 개정작업", "마스터 파일 기반으로 표준 문서를 모표준+부속서 체계로 일괄 개정합니다.");
             UpdateNavSelection("WfConverter");
             if (_wfConverterView == null) _wfConverterView = new WfStandardConverterView();
             else _wfConverterView.TryRefresh();

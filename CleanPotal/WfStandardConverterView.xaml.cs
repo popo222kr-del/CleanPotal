@@ -25,12 +25,58 @@ namespace CleanPotal
         private readonly List<(CheckBox Check, WfGroup Group)> _groupChecks = new();
         private bool _busy;
 
+        private bool _envChecked;
+
         public WfStandardConverterView()
         {
             InitializeComponent();
+            Loaded += async (s, e) => { if (!_envChecked) { _envChecked = true; await CheckEnvironmentAsync(); } };
         }
 
         public void TryRefresh() { }
+
+        // ───────────────────────── Python 환경 점검 ─────────────────────────
+
+        private async Task CheckEnvironmentAsync()
+        {
+            if (!File.Exists(RunnerScript))
+            {
+                Log($"⛔ 변환 스크립트를 찾을 수 없습니다.\n   ({RunnerScript})\n   빌드/배포 시 WfStandardConverter 폴더가 함께 복사되었는지 확인하세요.");
+                return;
+            }
+            try
+            {
+                var (code, stdout, stderr) = await RunPythonCaptureAsync(new[] { RunnerScript, "check" });
+                if (code != 0 && string.IsNullOrWhiteSpace(stdout))
+                {
+                    Log("⛔ Python 실행 실패. Python 설치 및 PATH 등록을 확인하세요.");
+                    if (!string.IsNullOrWhiteSpace(stderr)) Log(stderr.Trim());
+                    return;
+                }
+
+                string jsonText = stdout;
+                int s0 = stdout.IndexOf('{'); int s1 = stdout.LastIndexOf('}');
+                if (s0 >= 0 && s1 > s0) jsonText = stdout.Substring(s0, s1 - s0 + 1);
+
+                var env = JsonSerializer.Deserialize<WfEnvResult>(jsonText);
+                if (env == null) { Log("⛔ 환경 점검 결과를 해석하지 못했습니다."); return; }
+
+                if (env.Missing != null && env.Missing.Count > 0)
+                {
+                    Log($"⚠ Python {env.Python} 확인됨. 그러나 필수 패키지 누락: {string.Join(", ", env.Missing)}");
+                    Log($"   설치 명령:  python -m pip install {string.Join(" ", env.Missing)}");
+                }
+                else
+                {
+                    Log($"✓ Python {env.Python} · 필수 패키지(openpyxl, lxml) 정상. 준비 완료.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("⛔ Python 환경 점검 실패: " + ex.Message);
+                Log("   Python 이 설치되어 있고 PATH 에 등록되어 있는지 확인하세요.");
+            }
+        }
 
         // ───────────────────────── 경로/실행 헬퍼 ─────────────────────────
 
@@ -298,7 +344,7 @@ namespace CleanPotal
                     Dispatcher.Invoke(() => ConvertProgress.Value = 100);
                     Log($"═══ 변환 완료 → {_outputFolder} ═══");
                     MessageBox.Show($"변환이 완료되었습니다.\n\n출력 폴더:\n{_outputFolder}",
-                        "WF 표준 변환", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "문서 개정작업", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -376,6 +422,12 @@ namespace CleanPotal
         }
 
         // ───────────────────────── JSON 모델 ─────────────────────────
+
+        private class WfEnvResult
+        {
+            [JsonPropertyName("python")] public string? Python { get; set; }
+            [JsonPropertyName("missing")] public List<string>? Missing { get; set; }
+        }
 
         private class WfListResult
         {

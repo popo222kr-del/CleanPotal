@@ -59,6 +59,18 @@ def cmd_list(args):
     print(json.dumps({"sheet": used_sheet, "groups": groups}, ensure_ascii=False))
 
 
+def cmd_check(args):
+    # Python 버전 + 필수 패키지(openpyxl, lxml) 임포트 가능 여부를 JSON 으로 출력
+    import platform
+    result = {"python": platform.python_version(), "missing": []}
+    for pkg in ("openpyxl", "lxml"):
+        try:
+            __import__(pkg)
+        except Exception:
+            result["missing"].append(pkg)
+    print(json.dumps(result, ensure_ascii=False))
+
+
 def cmd_convert(args):
     mapping_path, out_dir = args[0], args[1]
     import tempfile
@@ -77,7 +89,9 @@ def main():
         sys.exit(1)
     cmd = sys.argv[1]
     try:
-        if cmd == "list":
+        if cmd == "check":
+            cmd_check(sys.argv[2:])
+        elif cmd == "list":
             cmd_list(sys.argv[2:])
         elif cmd == "convert":
             cmd_convert(sys.argv[2:])
