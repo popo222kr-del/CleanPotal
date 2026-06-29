@@ -301,6 +301,11 @@ namespace CleanPotal
 
                 int subCount = _groups.Sum(g => g.Subs?.Count ?? 0);
                 Log($"[목록] 시트 '{_usedSheet}' → 모표준 {_groups.Count}개 · 부속서 {subCount}건");
+
+                int totalSub = _groups.Sum(g => g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno)) ?? 0);
+                int matchedSub = _groups.Sum(g => g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno) && !string.IsNullOrEmpty(s.Src)) ?? 0);
+                int missingSub = totalSub - matchedSub;
+                Log($"[매칭] 원본 파일 매칭 {matchedSub}/{totalSub}건" + (missingSub > 0 ? $" · ⛔ 미발견 {missingSub}건 ('소스 미발견만' 체크로 확인)" : " · 전부 매칭됨 ✓"));
             }
             catch (Exception ex)
             {
@@ -363,7 +368,42 @@ namespace CleanPotal
             if (kw.Length > 0)
                 q = q.Where(g => (g.Mno ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase)
                               || (g.Mname ?? "").Contains(kw, StringComparison.OrdinalIgnoreCase));
+
+            // 소스 미발견만 보기
+            if (ChkMissingOnly?.IsChecked == true)
+                q = q.Where(g => (g.Subs ?? new List<WfSub>())
+                                 .Any(s => !string.IsNullOrEmpty(s.Oldno) && string.IsNullOrEmpty(s.Src)));
             return q;
+        }
+
+        private void ChkMissingOnly_Click(object sender, RoutedEventArgs e)
+        {
+            if (_suppressFilterEvent) return;
+            BuildTree();
+        }
+
+        private void BtnReset_Click(object sender, RoutedEventArgs e)
+        {
+            if (_busy) return;
+
+            _masterPath = null; _sourceFolder = null; _outputFolder = null; _usedSheet = null;
+            _groups.Clear(); _groupChecks.Clear(); _deptChecks.Clear();
+
+            _suppressFilterEvent = true;
+            MasterTreeView.Items.Clear();
+            DeptFilterPanel.Children.Clear();
+            if (SearchBox != null) SearchBox.Text = "";
+            if (ChkMissingOnly != null) ChkMissingOnly.IsChecked = false;
+            _suppressFilterEvent = false;
+
+            CountText.Text = "";
+            DetailText.Text = "좌측에서 모표준을 선택하세요.";
+            DetailText.Foreground = new SolidColorBrush(Color.FromRgb(0x94, 0xA3, 0xB8));
+            BtnSetSourceFolder.IsEnabled = false;
+            BtnSetOutputFolder.IsEnabled = false;
+            ConvertProgress.Value = 0;
+            LogText.Text = "초기화되었습니다. '마스터 파일 열기'부터 다시 시작하세요.";
+            UpdateConvertEnabled();
         }
 
         private void BuildTree()
@@ -374,13 +414,28 @@ namespace CleanPotal
             var shown = FilteredGroups().ToList();
             foreach (var g in shown)
             {
-                var chk = new CheckBox
+                int total = g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno)) ?? 0;
+                int matched = g.Subs?.Count(s => !string.IsNullOrEmpty(s.Oldno) && !string.IsNullOrEmpty(s.Src)) ?? 0;
+                int missing = total - matched;
+
+                var headerTb = new TextBlock { TextTrimming = TextTrimming.None };
+                headerTb.Inlines.Add(new System.Windows.Documents.Run($"{g.Mno}  {g.Mname}  ")
                 {
-                    Content = $"{g.Mno}  {g.Mname}",
-                    IsChecked = true,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A))
-                };
+                });
+                if (total > 0)
+                {
+                    headerTb.Inlines.Add(new System.Windows.Documents.Run($"({matched}/{total})")
+                    {
+                        FontWeight = FontWeights.Bold,
+                        Foreground = new SolidColorBrush(missing > 0
+                            ? Color.FromRgb(0xDC, 0x26, 0x26)   // 빨강: 미발견 있음
+                            : Color.FromRgb(0x16, 0xA3, 0x4A))  // 초록: 전부 매칭
+                    });
+                }
+
+                var chk = new CheckBox { Content = headerTb, IsChecked = true };
                 chk.Checked += (s, e) => UpdateConvertEnabled();
                 chk.Unchecked += (s, e) => UpdateConvertEnabled();
 

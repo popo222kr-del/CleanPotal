@@ -54,12 +54,25 @@
                 </Button.Template>
                 <Button.Foreground><SolidColorBrush Color="#0F172A"/></Button.Foreground>
             </Button>
+            <Button x:Name="BtnReset" Content="초기화" FontSize="13" FontWeight="SemiBold" Padding="16,8" Cursor="Hand" Click="BtnReset_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="#FEE2E2" CornerRadius="8" Padding="{TemplateBinding Padding}" BorderBrush="#FECACA" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#FECACA"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.Foreground><SolidColorBrush Color="#DC2626"/></Button.Foreground>
+            </Button>
         </WrapPanel>
 
         <!-- 메인 영역 -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="440"/>
                 <ColumnDefinition Width="16"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
@@ -92,11 +105,14 @@
                     <WrapPanel Grid.Row="3" Margin="0,0,0,8">
                         <Button x:Name="BtnSelectAll" Content="전체 선택" FontSize="11" Padding="8,4" Margin="0,0,6,0" Cursor="Hand" Click="BtnSelectAll_Click"
                                 Background="Transparent" BorderThickness="0" Foreground="#2563EB" FontWeight="SemiBold"/>
-                        <Button x:Name="BtnDeselectAll" Content="전체 해제" FontSize="11" Padding="8,4" Cursor="Hand" Click="BtnDeselectAll_Click"
+                        <Button x:Name="BtnDeselectAll" Content="전체 해제" FontSize="11" Padding="8,4" Margin="0,0,6,0" Cursor="Hand" Click="BtnDeselectAll_Click"
                                 Background="Transparent" BorderThickness="0" Foreground="#64748B" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="CountText" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <CheckBox x:Name="ChkMissingOnly" Content="소스 미발견만" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"
+                                  Foreground="#DC2626" Click="ChkMissingOnly_Click"/>
+                        <TextBlock x:Name="CountText" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
                     </WrapPanel>
-                    <TreeView x:Name="MasterTreeView" Grid.Row="4" BorderThickness="0" Background="Transparent"/>
+                    <TreeView x:Name="MasterTreeView" Grid.Row="4" BorderThickness="0" Background="Transparent"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                 </Grid>
             </Border>
 
