@@ -13,7 +13,7 @@
 
         <!-- 상단 툴바 -->
         <WrapPanel Grid.Row="0" Margin="0,0,0,16">
-            <Button x:Name="BtnLoadMaster" Content="📂 마스터 파일 열기" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" Click="BtnLoadMaster_Click">
+            <Button x:Name="BtnLoadMaster" Content="마스터 파일 열기" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" Click="BtnLoadMaster_Click">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="#2563EB" CornerRadius="8" Padding="{TemplateBinding Padding}">
@@ -26,7 +26,7 @@
                 </Button.Template>
                 <Button.Foreground><SolidColorBrush Color="White"/></Button.Foreground>
             </Button>
-            <Button x:Name="BtnSetSourceFolder" Content="📁 소스 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetSourceFolder_Click">
+            <Button x:Name="BtnSetSourceFolder" Content="소스 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetSourceFolder_Click">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="#F1F5F9" CornerRadius="8" Padding="{TemplateBinding Padding}" BorderBrush="#E2E8F0" BorderThickness="1">
@@ -40,7 +40,7 @@
                 </Button.Template>
                 <Button.Foreground><SolidColorBrush Color="#0F172A"/></Button.Foreground>
             </Button>
-            <Button x:Name="BtnSetOutputFolder" Content="📁 출력 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetOutputFolder_Click">
+            <Button x:Name="BtnSetOutputFolder" Content="출력 폴더 지정" FontSize="13" FontWeight="SemiBold" Padding="16,8" Margin="0,0,8,0" Cursor="Hand" IsEnabled="False" Click="BtnSetOutputFolder_Click">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="#F1F5F9" CornerRadius="8" Padding="{TemplateBinding Padding}" BorderBrush="#E2E8F0" BorderThickness="1">
