@@ -380,6 +380,7 @@ namespace CleanPotal.StatusBoard.Views
 
         private void BtnRemoveRow_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_rows.Count == 0) return;
 
             var result = MessageBox.Show(
@@ -403,6 +404,7 @@ namespace CleanPotal.StatusBoard.Views
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             try
             {
                 string dateKey = _selectedDate.ToString("yyyy-MM-dd");

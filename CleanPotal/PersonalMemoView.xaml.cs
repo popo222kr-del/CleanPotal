@@ -334,6 +334,7 @@ namespace CleanPotal
 
         private void BtnNewNote_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (string.IsNullOrWhiteSpace(_userId))
             {
                 MessageBox.Show("로그인이 필요합니다.", "개인 메모장", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -412,11 +413,13 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             SaveSelectedNote(showStatus: true);
         }
 
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_selectedNote == null) return;
             var result = MessageBox.Show($"\"{_selectedNote.DisplayTitle}\" 메모를 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result != MessageBoxResult.Yes) return;

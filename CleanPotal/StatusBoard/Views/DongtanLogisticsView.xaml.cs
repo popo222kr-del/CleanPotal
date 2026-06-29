@@ -162,6 +162,7 @@ namespace CleanPotal.StatusBoard.Views
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             try
             {
                 var date = BoardDateStr;

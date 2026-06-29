@@ -180,6 +180,7 @@ namespace CleanPotal
 
         private void BtnDeleteEdu_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (EduDataGrid.SelectedItem is not EduDashboardRow row) return;
 
             var result = MessageBox.Show(

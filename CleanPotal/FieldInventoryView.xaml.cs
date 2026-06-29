@@ -956,6 +956,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnWeeklyClose_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (MessageBox.Show(
                     "현재 재고 현황을 이번 주 마감으로 저장합니다.\n다음 주부터 '이전 대비 증감'의 비교 기준이 됩니다.\n\n진행하시겠습니까?",
                     "주간 마감", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
@@ -1137,6 +1138,7 @@ namespace CleanPotal
 
         private void BtnDeleteItem_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (sender is not FrameworkElement fe || fe.DataContext is not FieldInventoryItem item) return;
             if (MessageBox.Show($"'{item.ItemName}' 항목을 삭제하시겠습니까?",
                     "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
@@ -1156,6 +1158,7 @@ namespace CleanPotal
 
         private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             var selected = _items.Where(i => i.IsSelected).ToList();
             if (!selected.Any())
             {

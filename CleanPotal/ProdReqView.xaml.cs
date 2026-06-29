@@ -399,6 +399,7 @@ namespace CleanPotal
 
         private void ArchiveDelete_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if ((sender as FrameworkElement)?.DataContext is ProdReqItem item)
             {
                 string msg = item.Status == "완료" ? "완료된 항목을 엑셀에 보관하고 삭제하시겠습니까?" : "진행 중인 요청입니다. 정말로 삭제하시겠습니까?";
@@ -442,6 +443,7 @@ namespace CleanPotal
 
         private void BtnSaveRegister_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (string.IsNullOrWhiteSpace(EditRequestDetail)) { MessageBox.Show("상세 요청사항을 입력해 주세요.", "입력 누락", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             var newItem = new ProdReqItem { Id = Guid.NewGuid(), RequestDate = EditRequestDate ?? DateTime.Today, Status = "진행", Category = EditLocation, Location = EditSubLocation, RequestDetail = $"[{EditContentType}] {EditRequestDetail}", Requester = EditRequester, RequestMemo = BuildMemo(RegisterModalAttachmentPaths) };
             DatabaseHelper.InsertProdReq(newItem); RequestList.Insert(0, newItem); IsRegisterModalOpen = false;
@@ -471,6 +473,7 @@ namespace CleanPotal
 
         private void BtnSaveAction_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_currentEditItem == null) return;
             if (CanEditRequestInfo) { _currentEditItem.RequestDetail = EditableRequestDetail; _currentEditItem.RequestMemo = BuildMemo(RequestEditAttachmentPaths); }
 

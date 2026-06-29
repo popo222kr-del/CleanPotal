@@ -1018,6 +1018,7 @@ namespace CleanPotal
 
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
             SyncMemoFromRichEditor();
@@ -1160,6 +1161,7 @@ namespace CleanPotal
 
         private void BtnConfirmCreate_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             var selectedDate = DpMeetingDate.SelectedDate ?? DateTime.Today;
             string title = $"{selectedDate:yyyy년 M월 d일}";
             string dateRange = $"{selectedDate:yyyy.MM.dd}";
@@ -1237,6 +1239,7 @@ namespace CleanPotal
         // 🔥 기본 + 항목 추가 = Task 블록 (기존 동작 유지)
         private void BtnAddBlock_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             AddBlockOfKind(BlockKind.Task);
         }
 
@@ -1297,6 +1300,7 @@ namespace CleanPotal
 
         private void BtnDeleteBlock_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_draftReport == null) return;
             if (sender is Button { Tag: ProductionMeetingBlockModel block })
             {
@@ -1406,6 +1410,7 @@ namespace CleanPotal
 
         private void BtnDeleteReport_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_currentReport == null) return;
 
             var result = MessageBox.Show($"'{_currentReport.Title}' 보고서를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.", "보고서 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning);

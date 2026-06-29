@@ -481,6 +481,7 @@ namespace CleanPotal
 
         private void HandoverSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             try
             {
                 if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent)) { MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return; }
@@ -577,6 +578,7 @@ namespace CleanPotal
 
         private void EditModalSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_currentEditItem == null) return;
             try
             {

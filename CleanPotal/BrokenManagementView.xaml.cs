@@ -521,6 +521,7 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnAddRow_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             var newRecord = new BrokenRecord { OccurDate = DateTime.Today, IsOfficial = "비공식" };
             _allRecords.Add(newRecord);
             newRecord.DisplayNo = _filteredRecords.Count + 1;
@@ -541,6 +542,7 @@ namespace CleanPotal
 
         private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (DgBroken.SelectedItem is not BrokenRecord selected) return;
             if (MessageBox.Show("선택한 행을 삭제하시겠습니까?", "확인",
                     MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
@@ -557,6 +559,7 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             try
             {
                 SaveAppData();

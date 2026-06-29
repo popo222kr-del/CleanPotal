@@ -340,6 +340,7 @@ namespace CleanPotal
 
         private void BtnDeleteDetail_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if ((sender as Button)?.DataContext is ScheduleDetailItem item)
             {
                 bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
@@ -420,6 +421,7 @@ namespace CleanPotal
 
         private void BtnSaveShiftEdit_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_editingShiftItem == null) return;
             string newType = (CmbShiftEditType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
             if (string.IsNullOrEmpty(newType)) return;
@@ -450,6 +452,7 @@ namespace CleanPotal
 
         private void BtnSaveTeamEventEdit_Click(object sender, RoutedEventArgs e)
         {
+            if (SessionManager.BlockGuestEdit()) return;
             if (_editingTeamEventItem == null) return;
             string content = TxtEditTeamEventContent.Text.Trim();
             if (string.IsNullOrEmpty(content) || !DpEditTeamEventStart.SelectedDate.HasValue || !DpEditTeamEventEnd.SelectedDate.HasValue)
