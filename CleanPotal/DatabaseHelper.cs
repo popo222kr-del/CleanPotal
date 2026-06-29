@@ -75,7 +75,21 @@ namespace CleanPotal
             FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
         }
 
-        public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);
+        // ⚠️⚠️ 중요: DB가 네트워크 공유 폴더(\\10.10.40.98)에 있으므로 절대 WAL 모드를 쓰면 안 된다.
+        //   WAL은 -shm 공유 메모리가 필요한데 SMB 네트워크 드라이브가 이를 지원하지 않아
+        //   DB를 여는 순간 프로그램이 멈춘다(모든 사용자 동시 멈춤). 반드시 DELETE(롤백) 모드만 사용.
+        //   장시간 사용 시 락 문제는 WAL이 아니라 busy_timeout 으로만 해결한다.
+        public static IDbConnection GetConnection()
+        {
+            var conn = new SqliteConnection(ConnectionString);
+            conn.Open();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;";
+                cmd.ExecuteNonQuery();
+            }
+            return conn;
+        }
 
         public static int InsertDispatch(DispatchItemModel item, DateTime targetDate)
         {

@@ -403,7 +403,6 @@ namespace CleanPotal.FieldInspection.Repositories
         public static void InsertRecord(FieldInspectionRecord record)
         {
             using var db = DatabaseHelper.GetConnection();
-            db.Open();
             using var tx = db.BeginTransaction();
 
             string sql = @"
