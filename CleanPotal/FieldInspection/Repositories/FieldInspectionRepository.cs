@@ -151,7 +151,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static long InsertLocation(FieldLocation item)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldLocations (Code, Name, Zone, Equipment, IsActive, Memo)
@@ -170,7 +169,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void UpdateLocation(FieldLocation item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldLocations
@@ -191,7 +189,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void DeleteLocation(long locationId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldLocations WHERE LocationId = @Id", new { Id = locationId });
         }
@@ -217,7 +214,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void InsertTag(FieldTag tag)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldTags (TagId, LocationId, TagType, QrPayload, Token, IsActive, Memo)
@@ -236,7 +232,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void UpdateTag(FieldTag tag)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldTags
@@ -257,7 +252,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void DeleteTag(string tagId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldTags WHERE TagId = @Id", new { Id = tagId });
         }
@@ -285,7 +279,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static long InsertChecklist(FieldChecklist item)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldChecklists (Code, Category, Name, LocationId, Cycle, IsActive, Memo)
@@ -305,7 +298,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void UpdateChecklist(FieldChecklist item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldChecklists
@@ -335,7 +327,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void DeleteChecklist(long checklistId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldChecklistItems WHERE ChecklistId = @Id", new { Id = checklistId });
             db.Execute("DELETE FROM FieldChecklists WHERE ChecklistId = @Id", new { Id = checklistId });
@@ -353,7 +344,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static long InsertChecklistItem(FieldChecklistItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldChecklistItems
@@ -379,7 +369,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void UpdateChecklistItem(FieldChecklistItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 UPDATE FieldChecklistItems
@@ -405,7 +394,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void DeleteChecklistItem(long itemId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldChecklistItems WHERE ItemId = @Id", new { Id = itemId });
         }
@@ -414,7 +402,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static void InsertRecord(FieldInspectionRecord record)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             using var tx = db.BeginTransaction();
 
@@ -467,7 +454,6 @@ namespace CleanPotal.FieldInspection.Repositories
         // 데일리 화면에서 같은 날 재제출 시 기존 기록을 지우고 새로 기록하기 위한 헬퍼
         public static void DeleteRecord(string recordId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldInspectionAttachments WHERE RecordId = @Id", new { Id = recordId });
             db.Execute("DELETE FROM FieldInspectionRecordItems WHERE RecordId = @Id", new { Id = recordId });
@@ -526,7 +512,6 @@ namespace CleanPotal.FieldInspection.Repositories
 
         public static long InsertAttachment(FieldInspectionAttachment att)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldInspectionAttachments

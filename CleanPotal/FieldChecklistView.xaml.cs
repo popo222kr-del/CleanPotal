@@ -189,7 +189,6 @@ namespace CleanPotal
 
         private void BtnSaveChecklist_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             string code = TxtChecklistCode.Text.Trim();
             string name = TxtChecklistName.Text.Trim();
             if (string.IsNullOrWhiteSpace(name))
@@ -252,7 +251,6 @@ namespace CleanPotal
 
         private void BtnDeleteChecklist_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_currentChecklist == null)
             {
                 MessageBox.Show("삭제할 체크시트를 목록에서 선택해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -279,7 +277,6 @@ namespace CleanPotal
         // -----------------------------------------------------------------------
         private void BtnAddItem_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_currentChecklist == null)
             {
                 MessageBox.Show("먼저 체크시트를 저장(또는 선택)한 뒤 항목을 추가해주세요.", "확인", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -312,7 +309,6 @@ namespace CleanPotal
 
         private void BtnDeleteItem_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             var selected = DgChecklistItems.SelectedItems.Cast<FieldChecklistItem>().ToList();
             if (selected.Count == 0)
             {

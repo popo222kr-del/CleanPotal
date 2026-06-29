@@ -731,9 +731,6 @@ namespace CleanPotal
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
 
-            // gest(열람 전용) 계정: 기타 메뉴 영역에서만 편집 허용
-            SessionManager.InEtcSection = viewName is "Report" or "DispatchCert" or "DocSearch" or "WfConverter";
-
             switch (viewName)
             {
                 case "Portal": BtnNavPortal.Style = mainSelected; break;

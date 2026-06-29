@@ -186,7 +186,6 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (MessageBox.Show("모든 변경 내용을 저장할까요?\n저장 후 메인 화면에 즉시 반영됩니다.", "확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 try

@@ -548,7 +548,6 @@ namespace CleanPotal
 
         private void BtnSaveContent_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_currentReport == null || _draftReport == null) return;
             CommitActiveEditorChanges();
 
@@ -688,7 +687,6 @@ namespace CleanPotal
 
         private void BtnCreateNewReport_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_isDirty)
             {
                 var result = MessageBox.Show("작성 중인 내용이 있습니다. 저장하지 않고 새 보고서를 만드시겠습니까?", "확인", MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -779,7 +777,6 @@ namespace CleanPotal
 
         private void BtnDeleteBlock_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_draftReport == null) return;
             if (sender is Button { Tag: WeeklyBlockModel block })
             {
@@ -808,7 +805,6 @@ namespace CleanPotal
 
         private void BtnDeleteReport_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_currentReport == null) return;
             var result = MessageBox.Show($"'{_currentReport.Title}' 보고서를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.", "보고서 삭제", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;
@@ -1172,7 +1168,6 @@ namespace CleanPotal
 
         private void SaveToStorage()
         {
-            if (SessionManager.GuestWriteBlocked) return;
             try
             {
                 NormalizeGroups();

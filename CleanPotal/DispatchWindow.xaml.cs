@@ -443,7 +443,6 @@ namespace CleanPotal
 
         private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if ((sender as FrameworkElement)?.DataContext is not DispatchItemModel item) return;
             if (MessageBox.Show($"{item.VendorName} 행을 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             DispatchItems.Remove(item);

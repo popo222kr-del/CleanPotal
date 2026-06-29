@@ -680,7 +680,6 @@ namespace CleanPotal
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (CurrentQuotation == null) return;
             try
             {
@@ -712,7 +711,6 @@ namespace CleanPotal
         // 사업자등록번호를 기본값으로 저장 (새 견적서 생성 시 자동 입력)
         private void BtnSaveBusinessNo_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (CurrentQuotation == null) return;
             _config.BusinessNo = CurrentQuotation.BusinessNo;
             try
@@ -1680,7 +1678,6 @@ namespace CleanPotal
 
         private void BtnRebuildProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (MessageBox.Show(
                     "저장된 모든 견적서에서 단가를 재구성합니다.\n기존 단가 목록에 누락된 항목이 추가됩니다. 계속하시겠습니까?",
                     "단가 재구성", MessageBoxButton.YesNo, MessageBoxImage.Question)
@@ -1707,7 +1704,6 @@ namespace CleanPotal
 
         private void BtnSaveProductMaster_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             // 필터 상태와 무관하게 전체(_allProductMaster) 저장
             try
             {
@@ -1975,7 +1971,6 @@ namespace CleanPotal
         // 단가 목록 전체에서 한 번에 통일
         private void BtnRenameVendor_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             string oldName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter;
 
             var oldBox = new TextBox { Text = oldName, Margin = new Thickness(0, 4, 0, 12), Padding = new Thickness(8), FontSize = 13 };
@@ -2052,7 +2047,6 @@ namespace CleanPotal
 
         private void BtnAddMasterItem_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             var newItem = new ProductMasterItem
             {
                 VendorName = _masterVendorFilter == "전체" ? "" : _masterVendorFilter,
@@ -2070,7 +2064,6 @@ namespace CleanPotal
 
         private void BtnDeleteMasterItem_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (!IsQuotationAdmin) return;
             var selected = ProductMasterGrid.SelectedItems.OfType<ProductMasterItem>().ToList();
             if (selected.Count == 0) return;

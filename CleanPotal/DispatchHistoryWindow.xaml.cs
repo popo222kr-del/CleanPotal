@@ -216,7 +216,6 @@ namespace CleanPotal
 
         private void BtnCarryOver_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if ((sender as FrameworkElement)?.DataContext is not DispatchItemModel item) return;
 
             if (MessageBox.Show($"[{item.VendorName}] 배차 항목을 내일 날짜({_currentDate.AddDays(1):MM-dd})로 이월하시겠습니까?\n(현재 표에서는 삭제됩니다.)", "이월 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
@@ -241,7 +240,6 @@ namespace CleanPotal
 
         private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if ((sender as FrameworkElement)?.DataContext is not DispatchItemModel item) return;
             if (MessageBox.Show("해당 업체를 배차표에서 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 

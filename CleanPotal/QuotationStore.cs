@@ -74,7 +74,6 @@ namespace CleanPotal
 
         public static void SaveConfig(QuotationConfig config)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, _opts));
         }
@@ -92,7 +91,6 @@ namespace CleanPotal
 
         public static void SaveQuotations(ObservableCollection<QuotationModel> list)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(QuotationPath, JsonSerializer.Serialize(list, _opts));
         }
@@ -110,7 +108,6 @@ namespace CleanPotal
 
         public static void SaveProductMaster(IEnumerable<ProductMasterItem> list)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             try { Directory.CreateDirectory(SharedDir); } catch { }
             File.WriteAllText(ProductMasterPath, JsonSerializer.Serialize(list, _opts));
         }

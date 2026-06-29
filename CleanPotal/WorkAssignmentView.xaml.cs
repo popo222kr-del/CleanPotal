@@ -233,7 +233,6 @@ namespace CleanPotal
 
         private void BtnSaveResignInfo_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_selected == null) return;
             bool isHidden = ChkResigned.IsChecked == true;
             string resignDate = DpResignDate.SelectedDate.HasValue
@@ -254,7 +253,6 @@ namespace CleanPotal
 
         private void BtnAddMember_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             var allUsers = AuthDatabaseHelper.GetAllUsers();
             var existing = _members.Select(m => m.Username).ToHashSet();
             var available = allUsers.Where(u => !existing.Contains(u.Username) && !string.IsNullOrEmpty(u.RealName)).ToList();
@@ -278,7 +276,6 @@ namespace CleanPotal
 
         private void BtnRemoveMember_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             var toDelete = MemberList.SelectedItems.Cast<WorkAssignmentMember>().ToList();
             if (toDelete.Count == 0) return;
 
@@ -355,7 +352,6 @@ namespace CleanPotal
 
         private void BtnSaveEdu_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_selected == null) return;
             EduBasicGrid.CommitEdit(DataGridEditingUnit.Row, true);
             var items = EduBasicGrid.ItemsSource as ObservableCollection<EduBasicItem> ?? new();
@@ -378,7 +374,6 @@ namespace CleanPotal
 
         private void BtnSaveAccounts_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_selected == null) return;
             AccountGrid.CommitEdit(DataGridEditingUnit.Row, true);
             var items = (AccountGrid.ItemsSource as ObservableCollection<AccountItem>) ?? new ObservableCollection<AccountItem>();

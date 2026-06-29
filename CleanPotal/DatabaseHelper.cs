@@ -93,7 +93,6 @@ namespace CleanPotal
 
         public static int InsertDispatch(DispatchItemModel item, DateTime targetDate)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using (var db = GetConnection())
             {
                 string sql = @"INSERT INTO DispatchList (VendorName, OutgoingDetails, IncomingDetails, ManagerName, ContactNumber, FullAddress, Note, CreateDate) 
@@ -116,7 +115,6 @@ namespace CleanPotal
 
         public static void UpdateDispatch(DispatchItemModel item, DateTime targetDate)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = @"UPDATE DispatchList SET 
@@ -140,7 +138,6 @@ namespace CleanPotal
 
         public static void DeleteDispatch(int id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 db.Execute("DELETE FROM DispatchList WHERE Id = @Id", new { Id = id });
@@ -186,7 +183,6 @@ namespace CleanPotal
 
         public static void InsertHandover(HandoverItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = @"INSERT INTO HandoverList (Id, Vendor, Owner, Content, InDate, OutDate, Status, Memo, CreatorName, CreateDate, ModifierName, ModifyDate, ReadBy) 
@@ -197,7 +193,6 @@ namespace CleanPotal
 
         public static void UpdateHandover(HandoverItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = @"UPDATE HandoverList 
@@ -209,7 +204,6 @@ namespace CleanPotal
 
         public static void UpdateHandoverReadBy(Guid id, string readBy)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = "UPDATE HandoverList SET ReadBy = @ReadBy WHERE Id = @Id";
@@ -219,7 +213,6 @@ namespace CleanPotal
 
         public static void DeleteHandover(Guid id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = "DELETE FROM HandoverList WHERE Id = @Id";
@@ -284,7 +277,6 @@ namespace CleanPotal
 
         public static void UpdateEducationPlanAttachment(int id, string? path)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
                 db.Execute("UPDATE EducationPlan SET AttachmentPath = @Path WHERE Id = @Id",
                     new { Path = path ?? "", Id = id });
@@ -301,7 +293,6 @@ namespace CleanPotal
 
         public static void UpsertShiftSchedule(ShiftScheduleModel item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string dateStr = item.TargetDate.ToString("yyyy-MM-dd");
@@ -337,7 +328,6 @@ namespace CleanPotal
 
         public static void UpdateEducationPlan(EducationPlanModel item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = GetConnection();
             db.Execute(@"UPDATE EducationPlan SET MemberName=@MemberName, CourseName=@CourseName,
                          StartDate=@StartDate, EndDate=@EndDate, EduMethod=@EduMethod WHERE Id=@Id",
@@ -349,7 +339,6 @@ namespace CleanPotal
 
         public static void InsertEducationPlan(EducationPlanModel item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string sql = @"INSERT INTO EducationPlan (MemberName, CourseName, StartDate, EndDate, Status, Progress, EduMethod) 
@@ -405,7 +394,6 @@ namespace CleanPotal
 
         public static void DeleteShiftSchedule(int id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
@@ -416,7 +404,6 @@ namespace CleanPotal
 
         public static void UpdateShiftScheduleType(int id, string newShiftType)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
@@ -428,13 +415,11 @@ namespace CleanPotal
 
         public static void DeleteEducationPlan(int id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection()) db.Execute("DELETE FROM EducationPlan WHERE Id = @Id", new { Id = id });
         }
 
         public static void InsertTeamEvent(TeamEvent item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
                 db.Execute("INSERT INTO TeamEvents (RegisteredBy, StartDate, EndDate, Content, Detail) VALUES (@RegisteredBy, @StartDate, @EndDate, @Content, @Detail)",
                     new { item.RegisteredBy, item.StartDate, item.EndDate, item.Content, item.Detail });
@@ -451,13 +436,11 @@ namespace CleanPotal
 
         public static void DeleteTeamEvent(int id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection()) db.Execute("DELETE FROM TeamEvents WHERE Id = @Id", new { Id = id });
         }
 
         public static void UpdateTeamEvent(TeamEvent item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
                 db.Execute("UPDATE TeamEvents SET StartDate=@StartDate, EndDate=@EndDate, Content=@Content, Detail=@Detail WHERE Id=@Id",
                     new { item.StartDate, item.EndDate, item.Content, item.Detail, item.Id });
@@ -479,7 +462,6 @@ namespace CleanPotal
 
         public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 if (progress.HasValue)
@@ -548,7 +530,6 @@ namespace CleanPotal
 
         public static void SetWorkAssignmentMemberHidden(string username, bool hidden)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = GetConnection();
             db.Execute("UPDATE WorkAssignmentMembers SET IsHidden=@H WHERE Username=@U",
                        new { H = hidden ? 1 : 0, U = username });
@@ -556,7 +537,6 @@ namespace CleanPotal
 
         public static void SetWorkAssignmentResignInfo(string username, bool isHidden, string resignDate)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = GetConnection();
             db.Execute("UPDATE WorkAssignmentMembers SET IsHidden=@H, ResignDate=@D WHERE Username=@U",
                        new { H = isHidden ? 1 : 0, D = resignDate, U = username });
@@ -564,14 +544,12 @@ namespace CleanPotal
 
         public static void AddWorkAssignmentMember(string username)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
                 db.Execute("INSERT OR IGNORE INTO WorkAssignmentMembers (Username) VALUES (@Username)", new { Username = username });
         }
 
         public static void RemoveWorkAssignmentMember(string username)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 db.Execute("DELETE FROM WorkAssignmentMembers WHERE Username = @Username", new { Username = username });
@@ -588,7 +566,6 @@ namespace CleanPotal
 
         public static void SaveEduBasicItems(string username, IEnumerable<EduBasicItem> items)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 db.Execute("DELETE FROM WorkAssignmentEduBasic WHERE Username = @Username", new { Username = username });
@@ -606,7 +583,6 @@ namespace CleanPotal
 
         public static void SaveAccountItems(string username, IEnumerable<AccountItem> items)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 db.Execute("DELETE FROM WorkAssignmentAccounts WHERE Username = @Username", new { Username = username });
@@ -696,7 +672,6 @@ namespace CleanPotal
 
         public static void InsertProdReq(ProdReqItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string query = @"
@@ -727,7 +702,6 @@ namespace CleanPotal
 
         public static void UpdateProdReq(ProdReqItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string query = @"
@@ -759,7 +733,6 @@ namespace CleanPotal
 
         public static void DeleteProdReq(Guid id)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using (var db = GetConnection())
             {
                 string query = "DELETE FROM ProdReqs WHERE Id = @Id";

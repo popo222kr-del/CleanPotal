@@ -71,7 +71,6 @@ namespace CleanPotal.FieldInventory.Repositories
 
         public static long Insert(FieldInventoryItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return 0;
             using var db = DatabaseHelper.GetConnection();
             string sql = @"
                 INSERT INTO FieldInventoryItems
@@ -86,7 +85,6 @@ namespace CleanPotal.FieldInventory.Repositories
 
         public static void Update(FieldInventoryItem item)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             item.UpdatedAt = DateTime.Now;
             using var db = DatabaseHelper.GetConnection();
             db.Execute(@"
@@ -102,7 +100,6 @@ namespace CleanPotal.FieldInventory.Repositories
 
         public static void Delete(long itemId)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             db.Execute("DELETE FROM FieldInventoryItems WHERE ItemId = @Id", new { Id = itemId });
         }
@@ -123,7 +120,6 @@ namespace CleanPotal.FieldInventory.Repositories
         /// <summary>현재 모든 항목의 현재고를 지정한 날짜의 스냅샷으로 저장 (같은 날짜는 덮어쓰기).</summary>
         public static void CreateSnapshot(DateTime date)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string d = date.ToString("yyyy-MM-dd");
             db.Execute("DELETE FROM FieldInventorySnapshots WHERE SnapshotDate = @D", new { D = d });
@@ -151,7 +147,6 @@ namespace CleanPotal.FieldInventory.Repositories
         /// 스냅샷이 없으면 아무 것도 하지 않음.</summary>
         public static void UpdateLatestSnapshotStock(long itemId, string stock)
         {
-            if (SessionManager.GuestWriteBlocked) return;
             using var db = DatabaseHelper.GetConnection();
             string? latest = db.ExecuteScalar<string?>("SELECT MAX(SnapshotDate) FROM FieldInventorySnapshots");
             if (string.IsNullOrEmpty(latest)) return;

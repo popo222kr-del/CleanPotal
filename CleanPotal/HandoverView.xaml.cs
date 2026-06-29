@@ -370,7 +370,7 @@ namespace CleanPotal
             OnPropertyChanged(nameof(HasUpcomingEdu));
         }
 
-        private void SaveNotices() { if (SessionManager.GuestWriteBlocked) return; try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
+        private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
 
         public void TryRefresh() { if (IsRegisterModalOpen || IsEditModalOpen) return; LoadHandoverAll(); RefreshVendorSuggestions(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
 
@@ -481,7 +481,6 @@ namespace CleanPotal
 
         private void HandoverSave_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             try
             {
                 if (string.IsNullOrWhiteSpace(EditVendor) && string.IsNullOrWhiteSpace(EditContent)) { MessageBox.Show("업체 또는 내용을 입력하세요.", "알림"); return; }
@@ -578,7 +577,6 @@ namespace CleanPotal
 
         private void EditModalSave_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.BlockGuestEdit()) return;
             if (_currentEditItem == null) return;
             try
             {
