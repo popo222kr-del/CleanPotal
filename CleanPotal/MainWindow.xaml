@@ -401,7 +401,6 @@
                                 <Button x:Name="BtnNavReport" Content="성적서 자동 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenReport_Click"/>
                                 <Button x:Name="BtnNavDispatchCert" Content="반출등록 성적서 생성" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDispatchCert_Click"/>
                                 <Button x:Name="BtnNavDocSearch" Content="문서 검색" Style="{StaticResource ErpSubButtonStyle}" Click="OpenDocSearch_Click"/>
-                                <Button x:Name="BtnNavWfConverter" Content="WF 표준 변환" Style="{StaticResource ErpSubButtonStyle}" Click="OpenWfConverter_Click"/>
                             </StackPanel>
                         </Expander>
 
