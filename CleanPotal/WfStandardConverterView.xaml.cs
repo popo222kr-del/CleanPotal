@@ -33,7 +33,14 @@ namespace CleanPotal
             Loaded += async (s, e) => { if (!_envChecked) { _envChecked = true; await CheckEnvironmentAsync(); } };
         }
 
-        public void TryRefresh() { }
+        // 다른 페이지 갔다가 돌아오면 호출됨 → Python 환경 재점검 (앱 재시작 불필요)
+        public async void TryRefresh()
+        {
+            if (_busy) return;
+            _envChecked = true; // Loaded 중복 실행 방지
+            Log("── 환경 재확인 ──");
+            await CheckEnvironmentAsync();
+        }
 
         // ───────────────────────── Python 환경 점검 ─────────────────────────
 
