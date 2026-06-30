@@ -223,12 +223,12 @@ class Pkg:
         self._used.add(cand); return cand
 
     def plan_sheet_names(self, subno, src_sheets):
-        """부속서의 최종 시트명 계획: 첫 시트=부속서No, 나머지=원본 시트명(중복 시 자동 유니크).
-        반환: {원본시트명: 최종시트명}"""
-        m={}
+        """부속서의 최종 시트명 계획: 시트가 1개면 부속서No, 여러 개면 'No (1)','No (2)'...
+        로 통일 정리. 시트간 수식 참조도 이 맵으로 보정. 반환: {원본시트명: 최종시트명}"""
+        m={}; n=len(src_sheets)
         for i,t in enumerate(src_sheets,1):
             nm=t[0]
-            desired = subno if i==1 else nm
+            desired = subno if n==1 else f"{subno} ({i})"
             m[nm]=self._reserve(desired)
         return m
 
