@@ -79,6 +79,19 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             changed=[t for t in src_sheets if XM.sheet_has_guide(sd, t[1], sst)]
             existing=[t for t in src_sheets if t not in changed]
             if not changed: changed=src_sheets; existing=[]
+            # 같은 문서의 여러 개정본이 시트로 들어있으면 최신 Rev 만 남기고 옛 Rev 제외.
+            # 시트명의 'Rev.N'(rev.05 등)을 읽어 최댓값만 유지. Rev 표기 없는 시트는 유지.
+            def _revnum(nm):
+                m=re.search(r'[Rr]ev[.\s_]*0*(\d+)', nm or "")
+                return int(m.group(1)) if m else None
+            revs=[_revnum(t[0]) for t in changed]
+            present=[r for r in revs if r is not None]
+            if present:
+                mx=max(present)
+                kept=[t for t,r in zip(changed,revs) if r is None or r==mx]
+                if len(kept)<len(changed):
+                    issues.append(f"옛 개정본 {len(changed)-len(kept)}개 시트 제외(최신 Rev {mx}만 유지): {os.path.basename(s['src'])}")
+                    changed=kept
             # 변경문서: 부속서No (1),(2)... 로 변환 (시트간 수식 참조도 이 맵으로 보정)
             cmap=pkg.plan_sheet_names(s['subno'], changed)
             for i,(nm,pth,state) in enumerate(changed,1):
