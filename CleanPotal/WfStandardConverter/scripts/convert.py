@@ -77,8 +77,9 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             #   · 기존문서 → 원본 그대로('기존_' 라벨, 치환/안내제거/삭제 없음)
             # 변경문서(안내 있는 시트)가 하나도 없으면 전체를 변경문서로 처리 — 빈 출력 방지.
             changed=[t for t in src_sheets if XM.sheet_has_guide(sd, t[1], sst)]
-            existing=[t for t in src_sheets if t not in changed]
-            if not changed: changed=src_sheets; existing=[]
+            if not changed: changed=src_sheets
+            # 기존(원본) 비교본은 '항상' 원본 전체 시트를 손대지 않고 첨부 → before/after 비교 가능.
+            existing=list(src_sheets)
             # 같은 문서의 여러 개정본이 시트로 들어있으면 최신 Rev 만 남기고 옛 Rev 제외.
             # 시트명의 'Rev.N'(rev.05 등)을 읽어 최댓값만 유지. Rev 표기 없는 시트는 유지.
             def _revnum(nm):
@@ -103,7 +104,7 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             for (nm,pth,state) in existing:
                 pkg.add_sheet(sd, pth, sst, xfm, emap[nm], replace_map=None, title=None,
                               delete_block=False, state=state, sheet_rename=emap, strip_guide=False)
-            if existing: issues.append(f"기존문서 {len(existing)}개 시트 비교용 첨부('기존_' 라벨): {os.path.basename(s['src'])}")
+            if existing: issues.append(f"원본 {len(existing)}개 시트 비교용 첨부('기존_' 라벨): {os.path.basename(s['src'])}")
             tsh+=len(changed)+len(existing); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
         pkg.finalize_views()  # 보기 설정: 눈금선 해제·기본 보기·페이지 구분선 제거(표지/이력 포함 전 시트)
         locout=os.path.join(tmp, mno+".xlsx"); pkg.save(locout)

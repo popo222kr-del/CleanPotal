@@ -161,8 +161,12 @@ def cmd_check(args):
     print(json.dumps(result, ensure_ascii=False))
 
 
+# 실행 중인 스크립트가 최신인지 로그로 바로 확인하기 위한 버전 마커.
+WF_BUILD = "BUILD-2026-06-30d (병합셀수정·문서번호치환·원본항상첨부·최신Rev)"
+
 def cmd_convert(args):
     mapping_path, out_dir = args[0], args[1]
+    print(f"[wf_run] {WF_BUILD}", flush=True)
     import tempfile
     import convert as CV
     # convert() 기본 tmp 는 '/tmp/_conv' (Windows 부적합) → 시스템 임시폴더 사용
