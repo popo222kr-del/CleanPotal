@@ -15,6 +15,9 @@
 """
 import sys, os, json, re
 
+# __pycache__(.pyc) 생성 금지 — 빌드/게시로 .py 만 갱신될 때 옛 캐시가 실행되는 문제 방지.
+sys.dont_write_bytecode = True
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 

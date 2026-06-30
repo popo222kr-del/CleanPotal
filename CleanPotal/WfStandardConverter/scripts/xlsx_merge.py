@@ -71,6 +71,35 @@ def _strip_guide_cols(root):
             if int(col.get('min','1'))>=boundary: cols.remove(col)
         if not len(cols): root.remove(cols)
     return boundary
+
+def sheet_has_guide(sd, spath, sst):
+    """해당 시트에 '작성 방법 안내'(인쇄영역 밖 ※□⇒ 주석 열)가 있는지 판정.
+    있으면 변경문서, 없으면 기존문서. 시트명과 무관 — 안내 유무로만 구분.
+    공유문자열(t='s')도 해석해서 텍스트를 읽는다."""
+    try:
+        root=q(os.path.join(sd,spath)).getroot()
+    except Exception:
+        return False
+    colmark={}; colused=set()
+    for c in root.iter(M+'c'):
+        ref=c.get('r')
+        if not ref: continue
+        txt=''
+        if c.get('t')=='s':
+            v=c.find(M+'v')
+            if v is not None and v.text is not None:
+                try: txt=sst[int(v.text)]
+                except Exception: txt=''
+        else:
+            txt=_ctext(c)
+        if txt and txt.strip():
+            col=_coln(ref); colused.add(col)
+            if any(mk in txt for mk in _GUIDE_MARKS):
+                colmark[col]=colmark.get(col,0)+1
+    for col in sorted(colmark):
+        if colmark[col]>=3 and (col-1) not in colused and (col-2) not in colused:
+            return True
+    return False
 def _set_inline(c, text):
     c.set('t','inlineStr')
     for ch in list(c): c.remove(ch)

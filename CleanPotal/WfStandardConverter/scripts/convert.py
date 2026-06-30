@@ -70,13 +70,13 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             if s.get("oldno") and s.get("subno") and "미부여" not in s["subno"]:
                 rep[s["oldno"]]=s["subno"]
             src_sheets=XM.list_src_sheets(sd)
-            # 변경문서 = 시트명에 문서종류(기준서/표준서/지침서/절차서/계획서) 포함 / 나머지 = 기존문서.
-            # 변경이 잘 됐는지 비교할 수 있도록 둘 다 출력하되,
+            # 변경문서 = '작성 방법 안내'(인쇄영역 밖 ※□⇒ 주석 열)가 있는 시트 / 나머지 = 기존문서.
+            #   시트명은 문서마다 다르므로 '안내 유무'로만 구분한다.
+            # 비교 가능하도록 둘 다 출력:
             #   · 변경문서 → 변환본(부속서No (1)(2)…, 문서번호 치환·안내열 제거·블록삭제)
             #   · 기존문서 → 원본 그대로('기존_' 라벨, 치환/안내제거/삭제 없음)
-            # 변경문서 시트가 하나도 없으면(구분 불가 원본) 전체를 변경문서로 처리 — 빈 출력 방지.
-            DOCTYPE=("기준서","표준서","지침서","절차서","계획서")
-            changed=[t for t in src_sheets if any(d in (t[0] or "").replace(" ","") for d in DOCTYPE)]
+            # 변경문서(안내 있는 시트)가 하나도 없으면 전체를 변경문서로 처리 — 빈 출력 방지.
+            changed=[t for t in src_sheets if XM.sheet_has_guide(sd, t[1], sst)]
             existing=[t for t in src_sheets if t not in changed]
             if not changed: changed=src_sheets; existing=[]
             # 변경문서: 부속서No (1),(2)... 로 변환 (시트간 수식 참조도 이 맵으로 보정)
