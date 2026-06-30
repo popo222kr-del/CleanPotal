@@ -145,12 +145,17 @@ def _delete_rows(root, s, e):
                 if ref: c.set('r', _cp(ref)+str(nn))
     mc=root.find(M+'mergeCells')
     if mc is not None:
+        # 행 삭제 후 병합셀 끝점 재계산. 삭제구간[s,e]에 걸친 끝점을 올바로 클램프
+        # (시작점은 s 로, 끝점은 s-1 로) — 범위 역전(min>max) 방지.
+        def newrow(r, is_start):
+            if r < s: return r
+            if r <= e: return s if is_start else s-1
+            return r-count
         for m in list(mc):
             a,b=m.get('ref').split(':'); ar=_rn(a); br=_rn(b)
-            if ar>=s and br<=e: mc.remove(m); continue
-            def adj(ad):
-                r=_rn(ad); return _cp(ad)+str(r-count if r>e else r)
-            m.set('ref', adj(a)+':'+adj(b))
+            nr1=newrow(ar, True); nr2=newrow(br, False)
+            if nr1>nr2: mc.remove(m); continue   # 삭제로 완전히 사라진 병합
+            m.set('ref', _cp(a)+str(nr1)+':'+_cp(b)+str(nr2))
         if len(mc): mc.set('count',str(len(mc)))
         else: root.remove(mc)
     return count
