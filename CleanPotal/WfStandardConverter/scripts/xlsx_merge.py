@@ -25,6 +25,52 @@ def _rn(ref):
     m=_re.search(r'\d+',ref); return int(m.group(0)) if m else 0
 def _cp(ref):
     m=_re.match(r'[A-Z]+',ref); return m.group(0) if m else 'A'
+def _coln(ref):
+    m=_re.match(r'[A-Z]+',ref)
+    if not m: return 0
+    n=0
+    for ch in m.group(0): n=n*26+(ord(ch)-64)
+    return n
+# 작성 지침(가이드) 표기 기호 — 본문 우측 '작성 방법 안내' 열 식별용
+_GUIDE_MARKS=('※','□','⇒','⇨','◇','▶','☞')
+def _strip_guide_cols(root):
+    """본문 우측의 '작성 방법 안내' 열을 제거.
+    판정: 한 열에 지침기호(※□⇒…)가 3개 이상 + 그 열 바로 왼쪽 2개 열이 비어있음
+          (= 본문과 빈 간격으로 분리된 우측 주석 블록). 그 열부터 오른쪽 전체 삭제.
+    표지/일반 본문(지침 열 없음)은 영향 없음."""
+    sd=root.find(M+'sheetData')
+    if sd is None: return None
+    colmark={}; colused=set()
+    for row in sd:
+        for c in row.findall(M+'c'):
+            ref=c.get('r')
+            if not ref: continue
+            txt=_ctext(c)
+            if txt and txt.strip():
+                col=_coln(ref); colused.add(col)
+                if any(mk in txt for mk in _GUIDE_MARKS):
+                    colmark[col]=colmark.get(col,0)+1
+    boundary=None
+    for col in sorted(colmark):
+        if colmark[col]>=3 and (col-1) not in colused and (col-2) not in colused:
+            boundary=col; break
+    if boundary is None: return None
+    for row in list(sd):
+        for c in row.findall(M+'c'):
+            ref=c.get('r')
+            if ref and _coln(ref)>=boundary: row.remove(c)
+    mc=root.find(M+'mergeCells')
+    if mc is not None:
+        for m in list(mc):
+            if _coln(m.get('ref').split(':')[0])>=boundary: mc.remove(m)
+        if len(mc): mc.set('count',str(len(mc)))
+        else: root.remove(mc)
+    cols=root.find(M+'cols')
+    if cols is not None:
+        for col in list(cols):
+            if int(col.get('min','1'))>=boundary: cols.remove(col)
+        if not len(cols): root.remove(cols)
+    return boundary
 def _set_inline(c, text):
     c.set('t','inlineStr')
     for ch in list(c): c.remove(ch)
@@ -290,7 +336,7 @@ class Pkg:
                 if p is not None: p.remove(el)
 
     def add_sheet(self,sd,spath,sst,xfm,name,replace_map=None,title=None,delete_block=False,
-                  state=None,sheet_rename=None):
+                  state=None,sheet_rename=None,strip_guide=True):
         root=q(os.path.join(sd,spath)).getroot()
         for c in root.iter(M+'c'):
             s=c.get('s')
@@ -333,6 +379,8 @@ class Pkg:
             blk=_detect_block(root)
             if blk:
                 cnt=_delete_rows(root, blk[0], blk[1]); _del=(blk[0], blk[1], cnt)
+        # 본문 우측 '작성 방법 안내' 열 제거 (관리기준서/작업표준서 공통). 지침 열 없으면 무동작.
+        if strip_guide: _strip_guide_cols(root)
         # 시트간 수식 참조: 원본 시트명 → 최종 시트명 치환 (이름이 바뀐 시트만)
         if sheet_rename:
             changes={o:nw for o,nw in sheet_rename.items() if o and nw and o!=nw}
