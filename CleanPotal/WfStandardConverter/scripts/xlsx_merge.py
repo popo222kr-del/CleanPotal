@@ -72,6 +72,30 @@ def _strip_guide_cols(root):
         if not len(cols): root.remove(cols)
     return boundary
 
+_DOCNO_PAT=_re.compile(r'^AQ[IP][-\s]?\d{2,4}[-\s]?[A-Za-z]{1,4}[-\s]?\d{1,4}[A-Za-z]?$')
+def detect_header_docno(sd, spath, sst):
+    """원본 첫 시트 상단(≤10행)에서 실제 문서번호(AQI-804-Q-26 등)를 찾아 반환.
+    마스터 기존No 형식과 달라도 문서에 실제로 박힌 번호를 치환 대상으로 쓰기 위함."""
+    try:
+        root=q(os.path.join(sd,spath)).getroot()
+    except Exception:
+        return None
+    for c in root.iter(M+'c'):
+        ref=c.get('r')
+        if not ref or _rn(ref)>10: continue
+        txt=''
+        if c.get('t')=='s':
+            v=c.find(M+'v')
+            if v is not None and v.text is not None:
+                try: txt=sst[int(v.text)]
+                except Exception: txt=''
+        else:
+            txt=_ctext(c)
+        txt=(txt or '').strip()
+        if _DOCNO_PAT.match(txt):
+            return txt
+    return None
+
 def sheet_has_guide(sd, spath, sst):
     """해당 시트에 '작성 방법 안내'(인쇄영역 밖 ※□⇒ 주석 열)가 있는지 판정.
     있으면 변경문서, 없으면 기존문서. 시트명과 무관 — 안내 유무로만 구분.
