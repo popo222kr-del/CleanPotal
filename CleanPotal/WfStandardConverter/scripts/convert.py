@@ -23,7 +23,10 @@ COVER_SHEET="모표준_AQI-AW-W104a"; HIST_SHEET="재.개정 이력"
 def rev_of(fn):
     m=re.search(r'[Rr]ev[.\s]*0*(\d+)', fn or ""); return m.group(1).zfill(2) if m else ""
 
-def convert(mapping_path, out_dir, tmp="/tmp/_conv", today="2026.06.25"):
+def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
+    # 표지/재.개정 이력에 찍히는 제·개정 일자 (미지정 시 변환 실행일)
+    if not today:
+        import datetime; today=datetime.date.today().strftime("%Y.%m.%d")
     groups=json.load(open(mapping_path, encoding="utf-8"))
     if os.path.exists(tmp): shutil.rmtree(tmp)
     os.makedirs(tmp); os.makedirs(out_dir, exist_ok=True)
@@ -66,9 +69,13 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today="2026.06.25"):
             rep=dict(GLOBAL)  # 전역 매핑(자기 헤더+상호참조 일괄 치환)
             if s.get("oldno") and s.get("subno") and "미부여" not in s["subno"]:
                 rep[s["oldno"]]=s["subno"]
-            for i,(nm,pth) in enumerate(XM.list_src_sheets(sd),1):
-                pkg.add_sheet(sd, pth, sst, xfm, f"{s['subno']}({i})"[:31], replace_map=rep, title=s['_title'], delete_block=(i==1))
-            tsh+=len(XM.list_src_sheets(sd)); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
+            src_sheets=XM.list_src_sheets(sd)
+            # 최종 시트명 계획(첫 시트=부속서No, 나머지=원본명) → 시트간 수식 참조도 이 맵으로 보정
+            name_map=pkg.plan_sheet_names(s['subno'], src_sheets)
+            for i,(nm,pth,state) in enumerate(src_sheets,1):
+                pkg.add_sheet(sd, pth, sst, xfm, name_map[nm], replace_map=rep, title=s['_title'],
+                              delete_block=(i==1), state=state, sheet_rename=name_map)
+            tsh+=len(src_sheets); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
         pkg.finalize_views()  # 보기 설정: 눈금선 해제·기본 보기·페이지 구분선 제거(표지/이력 포함 전 시트)
         locout=os.path.join(tmp, mno+".xlsx"); pkg.save(locout)
         import openpyxl
