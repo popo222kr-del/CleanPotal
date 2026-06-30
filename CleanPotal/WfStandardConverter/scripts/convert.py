@@ -70,12 +70,20 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             if s.get("oldno") and s.get("subno") and "미부여" not in s["subno"]:
                 rep[s["oldno"]]=s["subno"]
             src_sheets=XM.list_src_sheets(sd)
-            # 최종 시트명 계획(첫 시트=부속서No, 나머지=원본명) → 시트간 수식 참조도 이 맵으로 보정
-            name_map=pkg.plan_sheet_names(s['subno'], src_sheets)
-            for i,(nm,pth,state) in enumerate(src_sheets,1):
+            # 변경문서 시트만 선별: 시트명에 문서종류(기준서/표준서/지침서/절차서/계획서) 포함분.
+            # 원본에 기존문서+변경문서가 같이 있을 때 변경문서(신규 양식)만 이식.
+            # 단, 하나도 해당 없으면(구분 불가 원본) 전체 사용 — 빈 출력 방지.
+            DOCTYPE=("기준서","표준서","지침서","절차서","계획서")
+            changed=[t for t in src_sheets if any(d in (t[0] or "").replace(" ","") for d in DOCTYPE)]
+            use_sheets=changed if changed else src_sheets
+            skipped=len(src_sheets)-len(use_sheets)
+            if skipped: issues.append(f"기존문서 {skipped}개 시트 제외(변경문서만 출력): {os.path.basename(s['src'])}")
+            # 최종 시트명 계획(부속서No (1),(2)...) → 시트간 수식 참조도 이 맵으로 보정
+            name_map=pkg.plan_sheet_names(s['subno'], use_sheets)
+            for i,(nm,pth,state) in enumerate(use_sheets,1):
                 pkg.add_sheet(sd, pth, sst, xfm, name_map[nm], replace_map=rep, title=s['_title'],
                               delete_block=(i==1), state=state, sheet_rename=name_map)
-            tsh+=len(src_sheets); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
+            tsh+=len(use_sheets); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
         pkg.finalize_views()  # 보기 설정: 눈금선 해제·기본 보기·페이지 구분선 제거(표지/이력 포함 전 시트)
         locout=os.path.join(tmp, mno+".xlsx"); pkg.save(locout)
         import openpyxl
