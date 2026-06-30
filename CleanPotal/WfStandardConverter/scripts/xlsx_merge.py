@@ -136,6 +136,18 @@ def _find_title_cell(root):
             t=_desp(_ctext(c))
             if t and len(t)<=6 and t.endswith(DOCTYPE_SUF): return c
     return None
+
+def _join_spaced_titles(root):
+    """제목 붙여쓰기: '관 리 기 준 서'처럼 한 글자씩 띄운 제목/라벨을 붙임.
+    토큰이 전부 한 글자이고 개수가 2~12개일 때만 적용(일반 문장은 건드리지 않음)."""
+    for c in root.iter(M+'c'):
+        is_=c.find(M+'is')
+        if is_ is None: continue
+        tn=is_.find(M+'t')
+        if tn is None or not tn.text: continue
+        toks=tn.text.split()
+        if 2<=len(toks)<=12 and all(len(t)==1 for t in toks):
+            tn.text=''.join(toks)
 _START_LABELS={'표준명','기준명','문서명','기준서명','표준서명','검사기준서명','작업표준서명','관리기준서명'}
 def _is_name_label(t):
     if t in _START_LABELS: return True
@@ -244,6 +256,7 @@ class Pkg:
         self.ns=self._nf(); self.nr=self._nr(); self.nsid=self._ns(); self.nd=self._nd(); self.ni=self._ni()
         # 이미 사용 중인 시트명(표지/이력 등) — 부속서 시트명 중복 방지용
         self._used=set(s.get('name') for s in self.wb.find(M+'sheets'))
+        self._malgun_cache={}   # 원본 cellXf 인덱스 → 맑은고딕 변형 cellXf 인덱스
     def p(self,s): return os.path.join(self.dir,s)
     def _ls(self,s): d=self.p(s); return os.listdir(d) if os.path.isdir(d) else []
     def _nf(self):
@@ -319,6 +332,39 @@ class Pkg:
             tx.append(nx); xfm[i]=offx+i
         tx.set('count',str(len(tx)))
         return xfm
+    def _malgun_xf(self, xi):
+        """cellXf 인덱스 xi 의 '맑은 고딕' 변형(폰트명만 교체, 크기·굵기 보존) 인덱스 반환.
+        변환본 시트에만 적용 → 기존_ 원본은 영향 없음."""
+        if xi in self._malgun_cache: return self._malgun_cache[xi]
+        cellxfs=self.styles.find(M+'cellXfs'); fonts=self.styles.find(M+'fonts')
+        xfs=list(cellxfs)
+        if cellxfs is None or fonts is None or xi>=len(xfs) or xi<0:
+            self._malgun_cache[xi]=xi; return xi
+        xf=xfs[xi]; fid=int(xf.get('fontId','0') or 0); flist=list(fonts)
+        if fid>=len(flist): self._malgun_cache[xi]=xi; return xi
+        font=flist[fid]; nm=font.find(M+'name')
+        if nm is not None and nm.get('val')=='맑은 고딕':
+            self._malgun_cache[xi]=xi; return xi
+        nf=copy.deepcopy(font); nfn=nf.find(M+'name')
+        if nfn is None: nfn=etree.SubElement(nf,M+'name')
+        nfn.set('val','맑은 고딕')
+        fonts.append(nf); new_fid=len(list(fonts))-1; fonts.set('count',str(len(list(fonts))))
+        nx=copy.deepcopy(xf); nx.set('fontId',str(new_fid)); nx.set('applyFont','1')
+        cellxfs.append(nx); new_xi=len(list(cellxfs))-1; cellxfs.set('count',str(len(list(cellxfs))))
+        self._malgun_cache[xi]=new_xi; return new_xi
+
+    def _apply_malgun(self, root):
+        """시트의 셀/열/행 스타일을 맑은 고딕 변형으로 교체."""
+        for c in root.iter(M+'c'):
+            s=c.get('s')
+            if s is not None: c.set('s', str(self._malgun_xf(int(s))))
+        for col in root.iter(M+'col'):
+            s=col.get('style')
+            if s is not None: col.set('style', str(self._malgun_xf(int(s))))
+        for row in root.iter(M+'row'):
+            s=row.get('s')
+            if s is not None: row.set('s', str(self._malgun_xf(int(s))))
+
     def _reserve(self, desired):
         base=(desired or 'Sheet').strip()[:31] or 'Sheet'
         cand=base; n=1
@@ -394,7 +440,7 @@ class Pkg:
                 if p is not None: p.remove(el)
 
     def add_sheet(self,sd,spath,sst,xfm,name,replace_map=None,title=None,delete_block=False,
-                  state=None,sheet_rename=None,strip_guide=True):
+                  state=None,sheet_rename=None,strip_guide=True,malgun=False,join_titles=False):
         root=q(os.path.join(sd,spath)).getroot()
         for c in root.iter(M+'c'):
             s=c.get('s')
@@ -439,6 +485,9 @@ class Pkg:
                 cnt=_delete_rows(root, blk[0], blk[1]); _del=(blk[0], blk[1], cnt)
         # 본문 우측 '작성 방법 안내' 열 제거 (관리기준서/작업표준서 공통). 지침 열 없으면 무동작.
         if strip_guide: _strip_guide_cols(root)
+        # 기계적 서식 규칙 (변환본에만): 제목 붙여쓰기 + 글꼴 맑은 고딕
+        if join_titles: _join_spaced_titles(root)
+        if malgun: self._apply_malgun(root)
         # 시트간 수식 참조: 원본 시트명 → 최종 시트명 치환 (이름이 바뀐 시트만)
         if sheet_rename:
             changes={o:nw for o,nw in sheet_rename.items() if o and nw and o!=nw}

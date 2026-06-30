@@ -106,7 +106,8 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             cmap=pkg.plan_sheet_names(s['subno'], changed)
             for i,(nm,pth,state) in enumerate(changed,1):
                 pkg.add_sheet(sd, pth, sst, xfm, cmap[nm], replace_map=rep, title=s['_title'],
-                              delete_block=(i==1), state=state, sheet_rename=cmap)
+                              delete_block=(i==1), state=state, sheet_rename=cmap,
+                              malgun=True, join_titles=True)   # 기계적 서식: 맑은고딕+제목붙여쓰기
             # 기존문서: 비교용 원본 그대로 첨부 (문서번호/안내문구/블록 손대지 않음)
             emap={}
             for (nm,pth,state) in existing: emap[nm]=pkg._reserve("기존_"+nm)
