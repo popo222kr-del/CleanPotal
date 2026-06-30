@@ -162,7 +162,7 @@ def cmd_check(args):
 
 
 # 실행 중인 스크립트가 최신인지 로그로 바로 확인하기 위한 버전 마커.
-WF_BUILD = "BUILD-2026-06-30d (병합셀수정·문서번호치환·원본항상첨부·최신Rev)"
+WF_BUILD = "BUILD-2026-06-30f (기계서식:맑은고딕+제목붙여쓰기·헤더문서번호치환·원본첨부)"
 
 def cmd_convert(args):
     mapping_path, out_dir = args[0], args[1]

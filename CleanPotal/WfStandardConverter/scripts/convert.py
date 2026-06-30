@@ -76,6 +76,15 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             #   · 변경문서 → 변환본(부속서No (1)(2)…, 문서번호 치환·안내열 제거·블록삭제)
             #   · 기존문서 → 원본 그대로('기존_' 라벨, 치환/안내제거/삭제 없음)
             # 변경문서(안내 있는 시트)가 하나도 없으면 전체를 변경문서로 처리 — 빈 출력 방지.
+            # 원본 헤더의 실제 문서번호를 찾아 부속서No 로 매핑 (마스터 기존No 형식과
+            # 달라도 문서에 박힌 번호를 확실히 치환). 마스터 oldno 매핑과 함께 적용.
+            if src_sheets and s.get("subno") and "미부여" not in s["subno"]:
+                hdoc=XM.detect_header_docno(sd, src_sheets[0][1], sst)
+                if hdoc:
+                    rep[hdoc]=s["subno"]
+                    print(f"    · 문서번호 치환: {hdoc} → {s['subno']}", flush=True)
+                else:
+                    print(f"    · ⚠ 헤더 문서번호 미검출: {os.path.basename(s['src'])}", flush=True)
             changed=[t for t in src_sheets if XM.sheet_has_guide(sd, t[1], sst)]
             if not changed: changed=src_sheets
             # 기존(원본) 비교본은 '항상' 원본 전체 시트를 손대지 않고 첨부 → before/after 비교 가능.
@@ -97,7 +106,8 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             cmap=pkg.plan_sheet_names(s['subno'], changed)
             for i,(nm,pth,state) in enumerate(changed,1):
                 pkg.add_sheet(sd, pth, sst, xfm, cmap[nm], replace_map=rep, title=s['_title'],
-                              delete_block=(i==1), state=state, sheet_rename=cmap)
+                              delete_block=(i==1), state=state, sheet_rename=cmap,
+                              malgun=True, join_titles=True)   # 기계적 서식: 맑은고딕+제목붙여쓰기
             # 기존문서: 비교용 원본 그대로 첨부 (문서번호/안내문구/블록 손대지 않음)
             emap={}
             for (nm,pth,state) in existing: emap[nm]=pkg._reserve("기존_"+nm)
