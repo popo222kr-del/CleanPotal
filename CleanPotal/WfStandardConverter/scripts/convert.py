@@ -70,20 +70,28 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
             if s.get("oldno") and s.get("subno") and "미부여" not in s["subno"]:
                 rep[s["oldno"]]=s["subno"]
             src_sheets=XM.list_src_sheets(sd)
-            # 변경문서 시트만 선별: 시트명에 문서종류(기준서/표준서/지침서/절차서/계획서) 포함분.
-            # 원본에 기존문서+변경문서가 같이 있을 때 변경문서(신규 양식)만 이식.
-            # 단, 하나도 해당 없으면(구분 불가 원본) 전체 사용 — 빈 출력 방지.
+            # 변경문서 = 시트명에 문서종류(기준서/표준서/지침서/절차서/계획서) 포함 / 나머지 = 기존문서.
+            # 변경이 잘 됐는지 비교할 수 있도록 둘 다 출력하되,
+            #   · 변경문서 → 변환본(부속서No (1)(2)…, 문서번호 치환·안내열 제거·블록삭제)
+            #   · 기존문서 → 원본 그대로('기존_' 라벨, 치환/안내제거/삭제 없음)
+            # 변경문서 시트가 하나도 없으면(구분 불가 원본) 전체를 변경문서로 처리 — 빈 출력 방지.
             DOCTYPE=("기준서","표준서","지침서","절차서","계획서")
             changed=[t for t in src_sheets if any(d in (t[0] or "").replace(" ","") for d in DOCTYPE)]
-            use_sheets=changed if changed else src_sheets
-            skipped=len(src_sheets)-len(use_sheets)
-            if skipped: issues.append(f"기존문서 {skipped}개 시트 제외(변경문서만 출력): {os.path.basename(s['src'])}")
-            # 최종 시트명 계획(부속서No (1),(2)...) → 시트간 수식 참조도 이 맵으로 보정
-            name_map=pkg.plan_sheet_names(s['subno'], use_sheets)
-            for i,(nm,pth,state) in enumerate(use_sheets,1):
-                pkg.add_sheet(sd, pth, sst, xfm, name_map[nm], replace_map=rep, title=s['_title'],
-                              delete_block=(i==1), state=state, sheet_rename=name_map)
-            tsh+=len(use_sheets); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
+            existing=[t for t in src_sheets if t not in changed]
+            if not changed: changed=src_sheets; existing=[]
+            # 변경문서: 부속서No (1),(2)... 로 변환 (시트간 수식 참조도 이 맵으로 보정)
+            cmap=pkg.plan_sheet_names(s['subno'], changed)
+            for i,(nm,pth,state) in enumerate(changed,1):
+                pkg.add_sheet(sd, pth, sst, xfm, cmap[nm], replace_map=rep, title=s['_title'],
+                              delete_block=(i==1), state=state, sheet_rename=cmap)
+            # 기존문서: 비교용 원본 그대로 첨부 (문서번호/안내문구/블록 손대지 않음)
+            emap={}
+            for (nm,pth,state) in existing: emap[nm]=pkg._reserve("기존_"+nm)
+            for (nm,pth,state) in existing:
+                pkg.add_sheet(sd, pth, sst, xfm, emap[nm], replace_map=None, title=None,
+                              delete_block=False, state=state, sheet_rename=emap, strip_guide=False)
+            if existing: issues.append(f"기존문서 {len(existing)}개 시트 비교용 첨부('기존_' 라벨): {os.path.basename(s['src'])}")
+            tsh+=len(changed)+len(existing); timg+=sum(1 for n in zipfile.ZipFile(s["src"]).namelist() if 'media' in n)
         pkg.finalize_views()  # 보기 설정: 눈금선 해제·기본 보기·페이지 구분선 제거(표지/이력 포함 전 시트)
         locout=os.path.join(tmp, mno+".xlsx"); pkg.save(locout)
         import openpyxl
