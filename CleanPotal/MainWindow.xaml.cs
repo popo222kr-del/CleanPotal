@@ -727,9 +727,13 @@ namespace CleanPotal
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
             if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subNormal;
             if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subNormal;
+            if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subNormal;
+            if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subNormal;
+            if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subNormal;
 
             ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
             ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
+            if (ExpanderStatusBoard != null) ExpanderStatusBoard.Style = expNormal;
 
             switch (viewName)
             {
@@ -752,6 +756,9 @@ namespace CleanPotal
                 case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
                 case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
                 case "WfConverter": if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "MaterialLogistics": if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
+                case "ProductionBoard": if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
+                case "DongtanLogistics": if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
             }
 
             _isUpdatingNav = false;
