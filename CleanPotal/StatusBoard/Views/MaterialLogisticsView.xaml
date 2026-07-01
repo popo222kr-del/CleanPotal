@@ -243,7 +243,7 @@
         <!-- Row 3: Special Notes (오전/오후 분리)                       -->
         <!-- ══════════════════════════════════════════════════════════ -->
         <Border Grid.Row="3" x:Name="NotesCard" Style="{StaticResource CardStyle}">
-            <Grid>
+            <Grid x:Name="NotesInner">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>  <!-- 라벨 한 줄 -->
                     <RowDefinition Height="Auto"/>  <!-- 박스 좌우 -->
