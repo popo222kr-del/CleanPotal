@@ -241,47 +241,44 @@
         <!-- Row 3: Special Notes (오전/오후 분리)                       -->
         <!-- ══════════════════════════════════════════════════════════ -->
         <Border Grid.Row="3" Style="{StaticResource CardStyle}">
-            <StackPanel>
-                <TextBlock Text="특이사항" FontSize="15" FontWeight="Bold" Foreground="#0F172A"
-                           Margin="0,0,0,8"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <!-- 오전=자재/물류(130)+AM영역, 오후=PM영역. 분할선(가운데 gap)이 위 표의 AM/PM 경계와 일치 -->
-                        <ColumnDefinition Width="130"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="12"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>  <!-- 라벨 한 줄 -->
+                    <RowDefinition Height="Auto"/>  <!-- 박스 좌우 -->
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- 오전: 좌측 여백(자재/물류) + AM 영역 전체 -->
-                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2">
-                        <Border Background="#DBEAFE" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
-                                HorizontalAlignment="Left">
-                            <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
-                        </Border>
-                        <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
-                            <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                                     MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
-                                     BorderThickness="0" Background="Transparent" Padding="10,8"
-                                     VerticalScrollBarVisibility="Auto"/>
-                        </Border>
-                    </StackPanel>
+                <!-- 라벨 줄: 특이사항 + 오전(AM) (좌) / 오후(PM) (우) -->
+                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="특이사항" FontSize="15" FontWeight="Bold" Foreground="#0F172A"
+                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Border Background="#DBEAFE" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
+                        <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
+                    </Border>
+                </StackPanel>
+                <Border Grid.Row="0" Grid.Column="2" Background="#FED7AA" CornerRadius="6" Padding="8,3"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,6">
+                    <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
+                </Border>
 
-                    <!-- 오후 -->
-                    <StackPanel Grid.Column="3">
-                        <Border Background="#FED7AA" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
-                                HorizontalAlignment="Left">
-                            <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
-                        </Border>
-                        <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
-                            <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                                     MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
-                                     BorderThickness="0" Background="Transparent" Padding="10,8"
-                                     VerticalScrollBarVisibility="Auto"/>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
+                <!-- 박스 줄: 오전 / 오후 좌우 -->
+                <Border Grid.Row="1" Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                    <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="56" MaxHeight="120" FontSize="15" Foreground="#334155"
+                             BorderThickness="0" Background="Transparent" Padding="10,8"
+                             VerticalScrollBarVisibility="Auto"/>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                    <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="56" MaxHeight="120" FontSize="15" Foreground="#334155"
+                             BorderThickness="0" Background="Transparent" Padding="10,8"
+                             VerticalScrollBarVisibility="Auto"/>
+                </Border>
+            </Grid>
         </Border>
 
     </Grid>
