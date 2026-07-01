@@ -676,9 +676,20 @@ namespace CleanPotal.StatusBoard.Views
                 TableScroll.MaxHeight = double.PositiveInfinity;
                 CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
 
+                double areaW = CaptureArea.ActualWidth;
+                if (areaW < 1) areaW = ScheduleGrid.ActualWidth;
+
                 try
                 {
-                    double w = CaptureArea.ActualWidth, h = CaptureArea.ActualHeight;
+                    // ⚠️ 제목을 넣으면 내용이 아래로 밀려 특이사항 하단이 창 밖으로 나갈 수 있고,
+                    //    RenderTargetBitmap 은 창에 실제로 그려진 부분만 캡처하므로 창 밖은 잘린다.
+                    //    → 화면 크기가 아니라 '내용 전체(desired) 크기'로 강제 측정·배치한 뒤 렌더한다.
+                    CaptureArea.Measure(new Size(areaW, double.PositiveInfinity));
+                    var full = new Size(areaW, CaptureArea.DesiredSize.Height);
+                    CaptureArea.Arrange(new Rect(full));
+                    CaptureArea.UpdateLayout();
+
+                    double w = full.Width, h = full.Height;
                     // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
                     var rtb = new RenderTargetBitmap(
                         (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
@@ -692,11 +703,13 @@ namespace CleanPotal.StatusBoard.Views
                 }
                 finally
                 {
-                    // 화면 원상 복구
+                    // 화면 원상 복구(강제 배치를 무효화하고 정상 레이아웃 재계산)
                     CaptureHeader.Visibility = Visibility.Collapsed;
                     CaptureArea.Background = prevBg;
                     TableScroll.MaxHeight = prevMaxH;
-                    CaptureArea.UpdateLayout();
+                    CaptureArea.InvalidateMeasure();
+                    CaptureArea.InvalidateArrange();
+                    UpdateLayout();
                 }
             }
             catch (Exception ex)
