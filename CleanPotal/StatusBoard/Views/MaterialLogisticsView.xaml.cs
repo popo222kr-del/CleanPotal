@@ -45,7 +45,6 @@ namespace CleanPotal.StatusBoard.Views
             InitializeComponent();
 
             _selectedDate = DateTime.Today;
-            DpBoardDate.SelectedDate = _selectedDate;
 
             Loaded += (_, _) => LoadData();
         }
@@ -54,39 +53,41 @@ namespace CleanPotal.StatusBoard.Views
         //  Date Navigation
         // ══════════════════════════════════════════════════════════════
 
-        private void DpBoardDate_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isLoading || DpBoardDate.SelectedDate == null) return;
-            _selectedDate = DpBoardDate.SelectedDate.Value;
-            LoadData();
-        }
-
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e)
         {
             _selectedDate = _selectedDate.AddDays(-1);
-            SyncDatePicker();
             LoadData();
         }
 
         private void BtnNextDay_Click(object sender, RoutedEventArgs e)
         {
             _selectedDate = _selectedDate.AddDays(1);
-            SyncDatePicker();
             LoadData();
         }
 
         private void BtnToday_Click(object sender, RoutedEventArgs e)
         {
             _selectedDate = DateTime.Today;
-            SyncDatePicker();
             LoadData();
         }
 
-        private void SyncDatePicker()
+        // 날짜 알약 클릭 → 달력 팝업 열기
+        private void BtnDatePill_Click(object sender, RoutedEventArgs e)
         {
             _isLoading = true;
-            DpBoardDate.SelectedDate = _selectedDate;
+            CalPicker.DisplayDate = _selectedDate;
+            CalPicker.SelectedDate = _selectedDate;
             _isLoading = false;
+            CalPopup.IsOpen = true;
+        }
+
+        // 달력에서 날짜 선택 → 반영 후 닫기
+        private void CalPicker_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoading || CalPicker.SelectedDate == null) return;
+            _selectedDate = CalPicker.SelectedDate.Value;
+            CalPopup.IsOpen = false;
+            LoadData();
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -135,10 +136,9 @@ namespace CleanPotal.StatusBoard.Views
 
         private void UpdateHeader()
         {
-            var culture = new CultureInfo("ko-KR");
-            string[] dayNames = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+            string[] dayNames = { "일", "월", "화", "수", "목", "금", "토" };
             string dayName = dayNames[(int)_selectedDate.DayOfWeek];
-            TxtDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayName}";
+            TxtDatePill.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 ({dayName})";
         }
 
         // ══════════════════════════════════════════════════════════════
