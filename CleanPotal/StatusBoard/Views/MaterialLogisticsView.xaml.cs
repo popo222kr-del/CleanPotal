@@ -668,43 +668,28 @@ namespace CleanPotal.StatusBoard.Views
                 string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
                 TxtCaptureDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
 
-                // 캡처 순간에만 바꿀 항목들 저장(끝나면 원복)
+                // 캡처 순간에만: 제목 표시 + 흰 배경 + 표 세로 제한 해제(행 많아도 안 잘림)
                 var prevBg = CaptureArea.Background;
                 double prevMaxH = TableScroll.MaxHeight;
-                double prevWidth = CaptureArea.Width;               // 기본 NaN(Auto)
-                double prevHeight = CaptureArea.Height;             // 기본 NaN(Auto)
-                var prevHA = CaptureArea.HorizontalAlignment;
-                var prevVA = CaptureArea.VerticalAlignment;
-
-                // 📱 모바일 공유용 컴팩트 폭. 목적지 컬럼은 별(*)이라 이 폭 안에서 자동으로 210 정도로 좁아진다.
-                //    핵심: 억지 Arrange 대신 Width/Height 속성으로 크기를 고정해야 정상 레이아웃이 되돌리지 않고,
-                //    창보다 내용이 커도 부모가 레이아웃 클립을 걸지 않아 가로·세로 모두 안 잘린다.
-                double target = 130 + 210 * 2 + Vehicles.Length * 2 * 70;   // 담당자130 + 목적지210×2 + 차량70×10 = 1250
-
                 CaptureHeader.Visibility = Visibility.Visible;
                 CaptureArea.Background = Brushes.White;
                 TableScroll.MaxHeight = double.PositiveInfinity;
-                CaptureArea.HorizontalAlignment = HorizontalAlignment.Left;
-                CaptureArea.VerticalAlignment = VerticalAlignment.Top;
-                CaptureArea.Width = target;
-                CaptureArea.UpdateLayout();
+                CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
+
+                double areaW = CaptureArea.ActualWidth;
+                if (areaW < 1) areaW = ScheduleGrid.ActualWidth;
 
                 try
                 {
-                    // 폭 고정 후 '실제 필요한 전체 높이'를 구해 그 높이도 명시적으로 고정 → 세로 잘림 방지
-                    double neededH = CaptureArea.DesiredSize.Height;
-                    if (neededH < 1) neededH = CaptureArea.ActualHeight;
-                    CaptureArea.Height = neededH;
+                    // ⚠️ 제목을 넣으면 내용이 아래로 밀려 특이사항 하단이 창 밖으로 나갈 수 있고,
+                    //    RenderTargetBitmap 은 창에 실제로 그려진 부분만 캡처하므로 창 밖은 잘린다.
+                    //    → 화면 크기가 아니라 '내용 전체(desired) 크기'로 강제 측정·배치한 뒤 렌더한다.
+                    CaptureArea.Measure(new Size(areaW, double.PositiveInfinity));
+                    var full = new Size(areaW, CaptureArea.DesiredSize.Height);
+                    CaptureArea.Arrange(new Rect(full));
                     CaptureArea.UpdateLayout();
 
-                    // 스크롤뷰어 Clip(둥근 모서리용)이 이전 창 크기로 남아 표를 자르므로 현재 크기로 갱신
-                    if (TableScroll.ActualWidth > 0 && TableScroll.ActualHeight > 0)
-                        TableScroll.Clip = new RectangleGeometry(
-                            new Rect(0, 0, TableScroll.ActualWidth, TableScroll.ActualHeight), 11, 11);
-
-                    double w = CaptureArea.ActualWidth, h = CaptureArea.ActualHeight;
-                    if (w < 1) w = target;
-                    if (h < 1) h = neededH;
+                    double w = full.Width, h = full.Height;
                     // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
                     var rtb = new RenderTargetBitmap(
                         (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
@@ -713,7 +698,7 @@ namespace CleanPotal.StatusBoard.Views
                     rtb.Freeze();
 
                     // ⚠️ rtb 는 384 DPI(96×4)라 붙여넣는 앱이 논리 크기를 1/4로 축소해 흐리게 보일 수 있다.
-                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 원본 픽셀 그대로 표시 → 선명.
+                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 8000px 원본 그대로 표시 → 선명.
                     int stride = rtb.PixelWidth * 4;
                     var pixels = new byte[stride * rtb.PixelHeight];
                     rtb.CopyPixels(pixels, stride, 0);
@@ -727,14 +712,12 @@ namespace CleanPotal.StatusBoard.Views
                 }
                 finally
                 {
-                    // 화면 원상 복구
+                    // 화면 원상 복구(강제 배치를 무효화하고 정상 레이아웃 재계산)
                     CaptureHeader.Visibility = Visibility.Collapsed;
                     CaptureArea.Background = prevBg;
                     TableScroll.MaxHeight = prevMaxH;
-                    CaptureArea.Width = prevWidth;                  // NaN → Auto 로 복구
-                    CaptureArea.Height = prevHeight;                // NaN → Auto 로 복구
-                    CaptureArea.HorizontalAlignment = prevHA;
-                    CaptureArea.VerticalAlignment = prevVA;
+                    CaptureArea.InvalidateMeasure();
+                    CaptureArea.InvalidateArrange();
                     UpdateLayout();
                 }
             }
