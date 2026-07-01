@@ -79,18 +79,21 @@ namespace CleanPotal.StatusBoard.Views
 
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = _selectedDate.AddDays(-1);
             LoadData();
         }
 
         private void BtnNextDay_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = _selectedDate.AddDays(1);
             LoadData();
         }
 
         private void BtnToday_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = DateTime.Today;
             LoadData();
         }
@@ -105,11 +108,21 @@ namespace CleanPotal.StatusBoard.Views
             CalPopup.IsOpen = true;
         }
 
-        // 달력에서 날짜 선택 → 반영 후 닫기
+        // 달력에서 날짜 선택 → 미저장 확인 후 반영
         private void CalPicker_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_isLoading || CalPicker.SelectedDate == null) return;
-            _selectedDate = CalPicker.SelectedDate.Value;
+            var picked = CalPicker.SelectedDate.Value;
+            if (picked.Date == _selectedDate.Date) return;
+            if (!ConfirmDiscardIfDirty())
+            {
+                // 취소 시 달력 선택을 현재 날짜로 되돌림(재발화 방지)
+                _isLoading = true;
+                CalPicker.SelectedDate = _selectedDate;
+                _isLoading = false;
+                return;
+            }
+            _selectedDate = picked;
             CalPopup.IsOpen = false;
             LoadData();
         }
