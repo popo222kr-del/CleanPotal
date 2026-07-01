@@ -40,7 +40,15 @@ namespace CleanPotal
         {
             if (MainContent.Content is ProductionMeetingView pm)
                 return pm.ConfirmDiscardIfDirty();
+            if (MainContent.Content is CleanPotal.StatusBoard.Views.MaterialLogisticsView ml)
+                return ml.ConfirmDiscardIfDirty();
             return true;
+        }
+
+        // 창 종료 시 미저장 변경 확인
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (!TryNavigateAway()) e.Cancel = true;
         }
 
         private DispatcherTimer? _pollingTimer;
@@ -73,6 +81,7 @@ namespace CleanPotal
             BtnCommandNotice.Click += BtnCommandNotice_Click;
             BtnCommandSecondary.Click += BtnCommandSecondary_Click;
             BtnCommandVendor.Click += BtnCommandVendor_Click;
+            this.Closing += MainWindow_Closing;
 
             DatabaseHelper.InitializeDatabase();
             CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables();
