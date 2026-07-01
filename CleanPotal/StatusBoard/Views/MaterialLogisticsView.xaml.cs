@@ -689,15 +689,20 @@ namespace CleanPotal.StatusBoard.Views
 
                 try
                 {
-                    // ⚠️ 제목을 넣으면 내용이 아래로 밀려 특이사항 하단이 창 밖으로 나갈 수 있고,
-                    //    RenderTargetBitmap 은 창에 실제로 그려진 부분만 캡처하므로 창 밖은 잘린다.
-                    //    → 화면 크기가 아니라 표의 '컴팩트 실제 폭·전체 높이'로 강제 측정·배치한 뒤 렌더한다.
-                    double tableW = ScheduleGrid.DesiredSize.Width;
-                    if (tableW < 1) tableW = 130 + 420 + Vehicles.Length * 2 * 70;
-                    CaptureArea.Measure(new Size(tableW, double.PositiveInfinity));
-                    var full = new Size(Math.Max(tableW, CaptureArea.DesiredSize.Width), CaptureArea.DesiredSize.Height);
+                    // ⚠️ 목적지 컬럼을 고정(210)했으니 표의 전체 폭은 결정적으로 계산된다.
+                    //    별(*)+스크롤뷰어의 DesiredSize 는 창 폭을 반영해 부정확하므로 직접 계산한다.
+                    //    제목을 넣으면 내용이 아래로 밀려 하단이 창 밖으로 나가고, RenderTargetBitmap 은
+                    //    창에 그려진 부분만 캡처하므로 → '계산된 폭·전체 높이'로 강제 측정·배치한다.
+                    double target = 130 + 210 * 2 + Vehicles.Length * 2 * 70;   // 담당자130 + 목적지210×2 + 차량70×10
+                    CaptureArea.Measure(new Size(target, double.PositiveInfinity));
+                    var full = new Size(target, CaptureArea.DesiredSize.Height);
                     CaptureArea.Arrange(new Rect(full));
                     CaptureArea.UpdateLayout();
+
+                    // 스크롤뷰어 Clip(둥근 모서리용)이 이전 창 크기로 남아 표를 자르므로 현재 크기로 갱신
+                    if (TableScroll.ActualWidth > 0 && TableScroll.ActualHeight > 0)
+                        TableScroll.Clip = new RectangleGeometry(
+                            new Rect(0, 0, TableScroll.ActualWidth, TableScroll.ActualHeight), 11, 11);
 
                     double w = full.Width, h = full.Height;
                     // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
