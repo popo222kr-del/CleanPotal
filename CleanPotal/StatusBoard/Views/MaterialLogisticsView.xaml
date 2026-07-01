@@ -233,8 +233,8 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
                 VerticalAlignment="Top">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                          MaxHeight="640">
+            <ScrollViewer x:Name="TableScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          MaxHeight="640" SizeChanged="TableScroll_SizeChanged">
                 <Grid x:Name="ScheduleGrid" Margin="0">
                     <!-- Columns defined in code-behind -->
                 </Grid>
