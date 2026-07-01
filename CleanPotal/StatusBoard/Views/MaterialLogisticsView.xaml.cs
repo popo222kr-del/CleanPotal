@@ -5,8 +5,10 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
 using ClosedXML.Excel;
@@ -199,8 +201,8 @@ namespace CleanPotal.StatusBoard.Views
                 AddEditableCell(grid, gridRow, ColPersonName, row.PersonName, altBg, "#334155", true,
                     (val) => row.PersonName = val);
 
-                // AM destination (editable)
-                AddEditableCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155", false,
+                // AM destination (editable + 배차 불러오기)
+                AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155",
                     (val) => row.AmDestination = val);
 
                 // AM vehicle toggles
@@ -212,8 +214,8 @@ namespace CleanPotal.StatusBoard.Views
                         () => ToggleVehicle(row, "AM", Vehicles[vi].Key));
                 }
 
-                // PM destination (editable)
-                AddEditableCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155", false,
+                // PM destination (editable + 배차 불러오기)
+                AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155",
                     (val) => row.PmDestination = val);
 
                 // PM vehicle toggles
@@ -321,6 +323,190 @@ namespace CleanPotal.StatusBoard.Views
             Grid.SetRow(border, row);
             Grid.SetColumn(border, col);
             grid.Children.Add(border);
+        }
+
+        // 목적지 & 근무 셀: 직접 입력 TextBox + '배차 불러오기' 드롭다운(▾)
+        private void AddDestinationCell(Grid grid, int row, int col, string value, string bgHex,
+            string fgHex, Action<string> onChanged)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
+                BorderThickness = new Thickness(0, 0, 1, 0),
+                Padding = new Thickness(8, 4, 4, 4)
+            };
+
+            var inner = new Grid();
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var tb = new TextBox
+            {
+                Text = value ?? "",
+                FontSize = 15,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.NoWrap,
+                Padding = new Thickness(0)
+            };
+            tb.LostFocus += (_, _) => onChanged(tb.Text);
+            Grid.SetColumn(tb, 0);
+            inner.Children.Add(tb);
+
+            var pickBtn = new Button
+            {
+                Content = "▾",
+                FontSize = 12,
+                Width = 22,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")!),
+                Cursor = Cursors.Hand,
+                ToolTip = "배차 이력에서 불러오기",
+                VerticalAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(0)
+            };
+            pickBtn.Click += (_, _) => ShowDispatchPicker(pickBtn, tb, onChanged);
+            Grid.SetColumn(pickBtn, 1);
+            inner.Children.Add(pickBtn);
+
+            border.Child = inner;
+            Grid.SetRow(border, row);
+            Grid.SetColumn(border, col);
+            grid.Children.Add(border);
+        }
+
+        // 선택한 날짜의 배차 이력을 팝업으로 띄우고, 선택 시 목적지&근무 칸에 채운다.
+        private void ShowDispatchPicker(UIElement anchor, TextBox target, Action<string> onChanged)
+        {
+            List<DispatchItemModel> records;
+            try
+            {
+                records = DatabaseHelper.GetDispatchModelsByDate(_selectedDate)
+                                        .Where(r => !string.IsNullOrWhiteSpace(r.VendorName))
+                                        .ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"배차 이력 조회 중 오류:\n{ex.Message}", "오류",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (records.Count == 0)
+            {
+                MessageBox.Show(
+                    $"{_selectedDate:yyyy-MM-dd} 날짜의 배차 이력이 없습니다.\n\n현장 인수인계 > 배차 이력에서 먼저 배차를 작성해 주세요.",
+                    "배차 불러오기", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var sp = new StackPanel { Margin = new Thickness(0) };
+            sp.Children.Add(new TextBlock
+            {
+                Text = $"{_selectedDate:M월 d일} 배차 ({records.Count}건) — 선택하면 입력됩니다",
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")!),
+                Margin = new Thickness(10, 8, 10, 6)
+            });
+
+            var popup = new Popup
+            {
+                PlacementTarget = anchor,
+                Placement = PlacementMode.Bottom,
+                StaysOpen = false,
+                AllowsTransparency = true
+            };
+
+            foreach (var r in records)
+            {
+                string fill = BuildDestinationText(r);
+                var itemBtn = new Button
+                {
+                    Content = BuildDispatchItemContent(r),
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0, 0, 0, 1),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")!),
+                    Padding = new Thickness(10, 7, 10, 7),
+                    Cursor = Cursors.Hand
+                };
+                itemBtn.Click += (_, _) =>
+                {
+                    target.Text = fill;
+                    onChanged(fill);
+                    popup.IsOpen = false;
+                };
+                sp.Children.Add(itemBtn);
+            }
+
+            var scroll = new ScrollViewer
+            {
+                Content = sp,
+                MaxHeight = 320,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            };
+            var listBorder = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")!),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                MinWidth = 360,
+                MaxWidth = 560,
+                Child = scroll,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = (Color)ColorConverter.ConvertFromString("#94A3B8")!,
+                    BlurRadius = 12, ShadowDepth = 2, Opacity = 0.4
+                }
+            };
+            popup.Child = listBorder;
+            popup.IsOpen = true;
+        }
+
+        // 팝업 항목 표시: 업체명(굵게) + 주소 + 납품 미리보기
+        private static UIElement BuildDispatchItemContent(DispatchItemModel r)
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock
+            {
+                Text = (r.VendorName ?? "").Trim(),
+                FontSize = 14, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")!)
+            });
+            string addr = (r.FullAddress ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(addr))
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "📍 " + addr,
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")!),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            string deliv = (r.IncomingDetails ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+            if (!string.IsNullOrWhiteSpace(deliv) && deliv != "-")
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "📦 " + (deliv.Length > 60 ? deliv.Substring(0, 60) + "…" : deliv),
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")!),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            return panel;
+        }
+
+        // 목적지&근무 칸에 채울 텍스트: 업체명 / 주소
+        private static string BuildDestinationText(DispatchItemModel r)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(r.VendorName)) parts.Add(r.VendorName.Trim());
+            if (!string.IsNullOrWhiteSpace(r.FullAddress)) parts.Add(r.FullAddress.Trim());
+            return string.Join(" / ", parts);
         }
 
         private void AddVehicleToggle(Grid grid, int row, int col, bool isAssigned, string bgHex,
