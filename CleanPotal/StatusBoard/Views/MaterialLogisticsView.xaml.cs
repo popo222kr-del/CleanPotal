@@ -662,10 +662,34 @@ namespace CleanPotal.StatusBoard.Views
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                double tW = ScheduleGrid.ActualWidth, tH = ScheduleGrid.ActualHeight;
-                double nW = NotesCard.ActualWidth, nH = NotesCard.ActualHeight;
-                double contentW = Math.Max(tW, nW);
+                const double scale = 2.0;   // 이 배율로 요소를 '직접' 재렌더 → 확대가 아니라 재렌더라 선명
                 const double pad = 16, gap = 10;
+
+                // 화면에 보이는 실제 요소를 고해상도로 직접 래스터화(벡터가 다시 그려져 선명 + 카드 테두리째 캡처 → 안 짤림)
+                RenderTargetBitmap RenderCrisp(FrameworkElement el)
+                {
+                    int pw = Math.Max(1, (int)Math.Ceiling(el.ActualWidth * scale));
+                    int ph = Math.Max(1, (int)Math.Ceiling(el.ActualHeight * scale));
+                    var bmp = new RenderTargetBitmap(pw, ph, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    bmp.Render(el);
+                    bmp.Freeze();
+                    return bmp;
+                }
+
+                double tW = ScheduleGrid.ActualWidth, tH = ScheduleGrid.ActualHeight;
+                double nH = NotesCard.ActualHeight;
+
+                // 표는 스크롤뷰어 안이라 전체 폭인 ScheduleGrid를 렌더해야 우측이 안 잘린다.
+                var tableBmp = RenderCrisp(ScheduleGrid);
+                // 특이사항 카드 그림자는 경계에서 잘려 보이므로 캡처 동안만 잠시 제거
+                var notesEffect = NotesCard.Effect;
+                NotesCard.Effect = null;
+                NotesCard.UpdateLayout();
+                var notesBmp = RenderCrisp(NotesCard);
+                NotesCard.Effect = notesEffect;
+
+                // 표 폭을 기준으로 특이사항 폭을 맞춘다(화면처럼 좌우가 딱 맞게)
+                double contentW = tW;
 
                 SolidColorBrush B(string h) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)!);
                 string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
@@ -684,9 +708,8 @@ namespace CleanPotal.StatusBoard.Views
                 double W = contentW + pad * 2;
                 double H = pad + headerH + tH + gap + nH + pad;
 
-                VisualBrush VB(Visual v) => new VisualBrush(v) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
-
                 var dv = new DrawingVisual();
+                RenderOptions.SetBitmapScalingMode(dv, BitmapScalingMode.HighQuality);
                 using (var ctx = dv.RenderOpen())
                 {
                     ctx.DrawRectangle(Brushes.White, null, new Rect(0, 0, W, H));
@@ -694,21 +717,15 @@ namespace CleanPotal.StatusBoard.Views
                     ctx.DrawText(titleFt, new Point((W - titleFt.Width) / 2, y)); y += titleFt.Height + 6;
                     ctx.DrawText(dateFt, new Point((W - dateFt.Width) / 2, y)); y += dateFt.Height + 14;
 
-                    var tr = new Rect(pad, y, tW, tH);       // 표 (둥근 모서리)
-                    ctx.PushClip(new RectangleGeometry(tr, 12, 12));
-                    ctx.DrawRectangle(VB(ScheduleGrid), null, tr);
-                    ctx.Pop();
-                    // 특이사항 카드(NotesCard)와 동일하게 표에도 둥근 테두리 선을 그려 모서리를 맞춘다
+                    var tr = new Rect(pad, y, contentW, tH);         // 표(1:1 → 선명), 특이사항과 같은 둥근 테두리
+                    ctx.DrawImage(tableBmp, tr);
                     ctx.DrawRoundedRectangle(null, new Pen(B("#E2E8F0"), 1), tr, 12, 12);
                     y += tH + gap;
 
-                    var nr = new Rect(pad, y, nW, nH);       // 특이사항 (둥근 모서리)
-                    ctx.PushClip(new RectangleGeometry(nr, 12, 12));
-                    ctx.DrawRectangle(VB(NotesCard), null, nr);
-                    ctx.Pop();
+                    var nr = new Rect(pad, y, contentW, nH);         // 특이사항(자체 테두리 포함, 클립 없음 → 안 짤림)
+                    ctx.DrawImage(notesBmp, nr);
                 }
 
-                const double scale = 2.5;   // 선명하게 고해상도 렌더
                 var rtb = new RenderTargetBitmap(
                     (int)Math.Ceiling(W * scale), (int)Math.Ceiling(H * scale),
                     96 * scale, 96 * scale, PixelFormats.Pbgra32);
