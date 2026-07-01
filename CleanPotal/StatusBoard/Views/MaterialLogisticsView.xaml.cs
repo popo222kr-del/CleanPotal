@@ -677,12 +677,15 @@ namespace CleanPotal.StatusBoard.Views
                 }
 
                 double tW = ScheduleGrid.ActualWidth, tH = ScheduleGrid.ActualHeight;
-                double nH = NotesCard.ActualHeight;
 
                 // 표는 스크롤뷰어 안이라 전체 폭인 ScheduleGrid를 렌더해야 우측이 안 잘린다.
                 var tableBmp = RenderCrisp(ScheduleGrid);
-                // 특이사항 카드는 이펙트를 건드리면 렌더가 무효화되어 빈 이미지가 나오므로 그대로 렌더한다.
-                var notesBmp = RenderCrisp(NotesCard);
+                // ⚠️ 카드 루트에 그림자(Effect)가 있으면 RenderTargetBitmap.Render가 빈 이미지를 반환한다.
+                //    그래서 그림자 없는 안쪽 내용(NotesInner)만 렌더하고, 흰 배경·둥근 테두리는 합성 시 직접 그린다.
+                var notesBmp = RenderCrisp(NotesInner);
+                double niH = NotesInner.ActualHeight;
+                const double cardPad = 16;                  // CardStyle Padding 과 동일
+                double nH = niH + cardPad * 2;
 
                 // 표 폭을 기준으로 특이사항 폭을 맞춘다(화면처럼 좌우가 딱 맞게)
                 double contentW = tW;
@@ -718,8 +721,9 @@ namespace CleanPotal.StatusBoard.Views
                     ctx.DrawRoundedRectangle(null, new Pen(B("#E2E8F0"), 1), tr, 12, 12);
                     y += tH + gap;
 
-                    var nr = new Rect(pad, y, contentW, nH);         // 특이사항(자체 테두리 포함, 클립 없음 → 안 짤림)
-                    ctx.DrawImage(notesBmp, nr);
+                    var nr = new Rect(pad, y, contentW, nH);         // 특이사항 카드: 흰 배경 + 둥근 테두리 직접 그림
+                    ctx.DrawRoundedRectangle(Brushes.White, new Pen(B("#E2E8F0"), 1), nr, 12, 12);
+                    ctx.DrawImage(notesBmp, new Rect(pad + cardPad, y + cardPad, contentW - cardPad * 2, niH));
                 }
 
                 var rtb = new RenderTargetBitmap(
