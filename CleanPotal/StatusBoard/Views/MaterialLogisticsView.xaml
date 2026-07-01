@@ -230,7 +230,9 @@
         <!-- Row 2: 캡처 영역 (제목/날짜 + 표 + 특이사항 한 덩어리)        -->
         <!--   캡처는 이 컨테이너를 통째로 렌더 → 잘림 없음, 벡터 그대로 선명 -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <Grid Grid.Row="2" x:Name="CaptureArea">
+        <Grid Grid.Row="2" x:Name="CaptureArea"
+              UseLayoutRounding="True" SnapsToDevicePixels="True"
+              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>  <!-- 캡처용 제목/날짜(평소 숨김) -->
                 <RowDefinition Height="Auto"/>  <!-- 표 -->
