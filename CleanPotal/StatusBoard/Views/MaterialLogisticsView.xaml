@@ -229,7 +229,7 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- Row 2: Main Schedule Table                                -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
+        <Border Grid.Row="2" x:Name="TableCard" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
                 VerticalAlignment="Top">
             <ScrollViewer x:Name="TableScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                           MaxHeight="640" SizeChanged="TableScroll_SizeChanged">

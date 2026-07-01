@@ -656,17 +656,17 @@ namespace CleanPotal.StatusBoard.Views
         {
             try
             {
-                var table = ScheduleGrid;
-                if (table.ActualWidth < 1 || table.ActualHeight < 1)
+                if (TableCard.ActualWidth < 1 || TableCard.ActualHeight < 1)
                 {
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                double w = table.ActualWidth;
+                double w = TableCard.ActualWidth;
 
                 var header = BuildCaptureHeader(w);
                 var headerBmp = RenderElement(header, w, header.DesiredSize.Height);
-                var tableBmp = RenderElement(table, table.ActualWidth, table.ActualHeight);
+                // 둥근 카드(Border)를 통째로 렌더 → 라운드 모서리 유지
+                var tableBmp = RenderElement(TableCard, TableCard.ActualWidth, TableCard.ActualHeight);
                 var notesBmp = RenderElement(NotesCard, NotesCard.ActualWidth, NotesCard.ActualHeight);
 
                 const double pad = 14, gap = 10;
@@ -723,12 +723,23 @@ namespace CleanPotal.StatusBoard.Views
             return sp;
         }
 
+        // 요소를 (0,0) 기준으로 비트맵에 렌더. VisualBrush 사용으로 부모 내 위치(오프셋) 무시
+        // → 표 아래에 있는 특이사항 카드도 정상 캡처됨.
         private static RenderTargetBitmap RenderElement(FrameworkElement el, double w, double h)
         {
-            var rtb = new RenderTargetBitmap(
-                Math.Max(1, (int)Math.Ceiling(w)), Math.Max(1, (int)Math.Ceiling(h)),
-                96, 96, PixelFormats.Pbgra32);
-            rtb.Render(el);
+            int iw = Math.Max(1, (int)Math.Ceiling(w));
+            int ih = Math.Max(1, (int)Math.Ceiling(h));
+            var vb = new VisualBrush(el)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top
+            };
+            var dv = new DrawingVisual();
+            using (var ctx = dv.RenderOpen())
+                ctx.DrawRectangle(vb, null, new Rect(0, 0, w, h));
+            var rtb = new RenderTargetBitmap(iw, ih, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(dv);
             return rtb;
         }
 
