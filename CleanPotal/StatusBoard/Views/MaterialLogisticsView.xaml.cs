@@ -224,9 +224,9 @@ namespace CleanPotal.StatusBoard.Views
                 // Person name (고정 표시 — 휴무면 이름 옆 배지)
                 AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg, anyOff);
 
-                // AM destination (editable + 배차 불러오기)
+                // AM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
                 AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155",
-                    (val) => row.AmDestination = val, amOff);
+                    (val) => { bool w = IsOff(row.AmDestination); row.AmDestination = val; if (w != IsOff(val)) BuildGrid(); }, amOff);
 
                 // AM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
@@ -237,9 +237,9 @@ namespace CleanPotal.StatusBoard.Views
                         () => ToggleVehicle(row, "AM", Vehicles[vi].Key));
                 }
 
-                // PM destination (editable + 배차 불러오기)
+                // PM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
                 AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155",
-                    (val) => row.PmDestination = val, pmOff);
+                    (val) => { bool w = IsOff(row.PmDestination); row.PmDestination = val; if (w != IsOff(val)) BuildGrid(); }, pmOff);
 
                 // PM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
