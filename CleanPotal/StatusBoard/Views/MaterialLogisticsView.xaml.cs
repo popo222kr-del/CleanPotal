@@ -668,24 +668,34 @@ namespace CleanPotal.StatusBoard.Views
                 string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
                 TxtCaptureDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
 
-                // 캡처 순간에만: 제목 표시 + 흰 배경 + 표 세로 제한 해제(행 많아도 안 잘림)
+                // 캡처 순간에만 바꿀 항목들 저장(끝나면 원복)
                 var prevBg = CaptureArea.Background;
                 double prevMaxH = TableScroll.MaxHeight;
+                var prevHsb = TableScroll.HorizontalScrollBarVisibility;
+                var amCol = ScheduleGrid.ColumnDefinitions[ColAmDest];
+                var pmCol = ScheduleGrid.ColumnDefinitions[ColPmDest];
+                var prevAmW = amCol.Width;
+                var prevPmW = pmCol.Width;
+
                 CaptureHeader.Visibility = Visibility.Visible;
                 CaptureArea.Background = Brushes.White;
                 TableScroll.MaxHeight = double.PositiveInfinity;
+                TableScroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+                // 📱 모바일 공유용: 목적지 컬럼이 별(*)이라 최대화 창 폭만큼 늘어나 표가 너무 넓어진다.
+                //    캡처 때만 고정폭으로 좁혀 엑셀처럼 컴팩트한 비율 → 세로 폰에서도 잘 보임.
+                amCol.Width = new GridLength(210);
+                pmCol.Width = new GridLength(210);
                 CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
-
-                double areaW = CaptureArea.ActualWidth;
-                if (areaW < 1) areaW = ScheduleGrid.ActualWidth;
 
                 try
                 {
                     // ⚠️ 제목을 넣으면 내용이 아래로 밀려 특이사항 하단이 창 밖으로 나갈 수 있고,
                     //    RenderTargetBitmap 은 창에 실제로 그려진 부분만 캡처하므로 창 밖은 잘린다.
-                    //    → 화면 크기가 아니라 '내용 전체(desired) 크기'로 강제 측정·배치한 뒤 렌더한다.
-                    CaptureArea.Measure(new Size(areaW, double.PositiveInfinity));
-                    var full = new Size(areaW, CaptureArea.DesiredSize.Height);
+                    //    → 화면 크기가 아니라 표의 '컴팩트 실제 폭·전체 높이'로 강제 측정·배치한 뒤 렌더한다.
+                    double tableW = ScheduleGrid.DesiredSize.Width;
+                    if (tableW < 1) tableW = 130 + 420 + Vehicles.Length * 2 * 70;
+                    CaptureArea.Measure(new Size(tableW, double.PositiveInfinity));
+                    var full = new Size(Math.Max(tableW, CaptureArea.DesiredSize.Width), CaptureArea.DesiredSize.Height);
                     CaptureArea.Arrange(new Rect(full));
                     CaptureArea.UpdateLayout();
 
@@ -716,8 +726,12 @@ namespace CleanPotal.StatusBoard.Views
                     CaptureHeader.Visibility = Visibility.Collapsed;
                     CaptureArea.Background = prevBg;
                     TableScroll.MaxHeight = prevMaxH;
+                    TableScroll.HorizontalScrollBarVisibility = prevHsb;
+                    amCol.Width = prevAmW;
+                    pmCol.Width = prevPmW;
                     CaptureArea.InvalidateMeasure();
                     CaptureArea.InvalidateArrange();
+                    ScheduleGrid.InvalidateMeasure();
                     UpdateLayout();
                 }
             }
