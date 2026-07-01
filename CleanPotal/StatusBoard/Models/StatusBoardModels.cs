@@ -66,6 +66,14 @@ namespace CleanPotal.StatusBoard.Models
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 
+    // 자재물류 고정 인원(담당자) 로스터 — 날짜와 무관하게 유지, 순서 지정
+    public class MaterialLogisticsMember
+    {
+        public long Id { get; set; }
+        public string Name { get; set; } = "";
+        public int OrderNo { get; set; }
+    }
+
     // -----------------------------------------------------------------------
     // 2. ProductionBoard (생산 현황판)
     // -----------------------------------------------------------------------

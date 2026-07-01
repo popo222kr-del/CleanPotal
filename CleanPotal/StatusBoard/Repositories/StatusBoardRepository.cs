@@ -31,6 +31,14 @@ namespace CleanPotal.StatusBoard.Repositories
                 );");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_MatLog_Date ON MaterialLogisticsBoard(BoardDate);");
 
+            // 1-b. MaterialLogisticsMembers (고정 인원 로스터)
+            db.Execute(@"
+                CREATE TABLE IF NOT EXISTS MaterialLogisticsMembers (
+                    Id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name     TEXT NOT NULL DEFAULT '',
+                    OrderNo  INTEGER NOT NULL DEFAULT 0
+                );");
+
             // 2-a. ProductionPackaging (포장 수량)
             db.Execute(@"
                 CREATE TABLE IF NOT EXISTS ProductionPackaging (
@@ -146,6 +154,29 @@ namespace CleanPotal.StatusBoard.Repositories
             r.PmDestination, r.PmVehicle, r.Memo, r.OrderNo,
             UpdatedAt = r.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")
         };
+
+        // ---- 고정 인원 로스터 ----
+        public static List<MaterialLogisticsMember> GetMaterialLogisticsMembers()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query<MaterialLogisticsMember>(
+                "SELECT * FROM MaterialLogisticsMembers ORDER BY OrderNo, Id").ToList();
+        }
+
+        // 로스터 전체 교체(다이얼로그 저장): 순서대로 재삽입
+        public static void ReplaceMaterialLogisticsMembers(IEnumerable<string> names)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("DELETE FROM MaterialLogisticsMembers;");
+            int order = 1;
+            foreach (var n in names)
+            {
+                string name = (n ?? "").Trim();
+                if (name.Length == 0) continue;
+                db.Execute("INSERT INTO MaterialLogisticsMembers (Name, OrderNo) VALUES (@Name, @OrderNo);",
+                    new { Name = name, OrderNo = order++ });
+            }
+        }
 
         // ===================================================================
         // 2-a. ProductionPackaging CRUD

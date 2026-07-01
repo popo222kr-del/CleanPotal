@@ -179,14 +179,10 @@
             <DockPanel>
                 <!-- Right-side buttons -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button x:Name="BtnAddRow" Content="+ 인원 추가" Style="{StaticResource GhostBtn}"
-                            Margin="0,0,6,0" Click="BtnAddRow_Click"/>
-                    <Button x:Name="BtnRemoveRow" Content="- 인원 삭제" Style="{StaticResource DangerBtn}"
-                            Margin="0,0,12,0" Click="BtnRemoveRow_Click"/>
+                    <Button x:Name="BtnManageMembers" Content="인원 관리" Style="{StaticResource GhostBtn}"
+                            Margin="0,0,12,0" Click="BtnManageMembers_Click"/>
                     <Button x:Name="BtnSave" Content="저장" Style="{StaticResource PrimaryBtn}"
-                            Margin="0,0,6,0" Click="BtnSave_Click"/>
-                    <Button x:Name="BtnPrint" Content="인쇄 (Excel)" Style="{StaticResource GhostBtn}"
-                            Click="BtnPrint_Click"/>
+                            Click="BtnSave_Click"/>
                 </StackPanel>
 
                 <!-- Left-side date navigation (모던 달력) -->
