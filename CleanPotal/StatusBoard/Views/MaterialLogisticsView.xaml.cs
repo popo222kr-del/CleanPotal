@@ -218,6 +218,9 @@ namespace CleanPotal.StatusBoard.Views
                 bool amOff = IsOff(row.AmDestination);
                 bool pmOff = IsOff(row.PmDestination);
                 bool bothOff = amOff && pmOff;
+                // 휴무면 차량 배정 해제(선택 불가)
+                if (amOff) row.AmVehicle = "";
+                if (pmOff) row.PmVehicle = "";
                 string altBg = (i % 2 == 0) ? "#FFFFFF" : "#FAFAFA";
                 const string offBg = "#CBD5E1";   // 휴무 영역 배경(짙은 회색)
                 string amBg = amOff ? offBg : altBg;
@@ -236,7 +239,7 @@ namespace CleanPotal.StatusBoard.Views
                     int vi = v; // capture
                     bool isAssigned = row.AmVehicle == Vehicles[v].Key;
                     AddVehicleToggle(grid, gridRow, ColAmVehicleStart + v, isAssigned, amBg,
-                        () => ToggleVehicle(row, "AM", Vehicles[vi].Key));
+                        () => ToggleVehicle(row, "AM", Vehicles[vi].Key), !amOff);
                 }
 
                 // PM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
@@ -249,7 +252,7 @@ namespace CleanPotal.StatusBoard.Views
                     int vi = v;
                     bool isAssigned = row.PmVehicle == Vehicles[v].Key;
                     AddVehicleToggle(grid, gridRow, ColPmVehicleStart + v, isAssigned, pmBg,
-                        () => ToggleVehicle(row, "PM", Vehicles[vi].Key));
+                        () => ToggleVehicle(row, "PM", Vehicles[vi].Key), !pmOff);
                 }
 
                 // Bottom border for each row
@@ -567,7 +570,7 @@ namespace CleanPotal.StatusBoard.Views
         }
 
         private void AddVehicleToggle(Grid grid, int row, int col, bool isAssigned, string bgHex,
-            Action onToggle)
+            Action onToggle, bool enabled = true)
         {
             var border = new Border
             {
@@ -583,13 +586,17 @@ namespace CleanPotal.StatusBoard.Views
                 Foreground = isAssigned
                     ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")!)
                     : Brushes.Transparent,
-                Tag = isAssigned
+                Tag = isAssigned,
+                IsEnabled = enabled,                                  // 휴무면 클릭 불가
+                IsHitTestVisible = enabled,
+                Cursor = enabled ? Cursors.Hand : Cursors.Arrow
             };
-            btn.Click += (_, _) =>
-            {
-                onToggle();
-                BuildGrid(); // rebuild to reflect toggle state
-            };
+            if (enabled)
+                btn.Click += (_, _) =>
+                {
+                    onToggle();
+                    BuildGrid(); // rebuild to reflect toggle state
+                };
             border.Child = btn;
 
             Grid.SetRow(border, row);
