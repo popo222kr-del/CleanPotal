@@ -13,6 +13,15 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:PercentToBrushConverter x:Key="PercentToBrushConverter"/>
         <local:StatusToBrushConverter x:Key="StatusToBrushConverter"/>
+        <local:DeliveryIconConverter x:Key="DeliveryIconConverter"/>
+        <local:DeliveryLabelConverter x:Key="DeliveryLabelConverter"/>
+        <!-- 배송 방법 콤보 항목: 컬러 아이콘 + 이모지 뗀 라벨 -->
+        <DataTemplate x:Key="DeliveryOptionTemplate">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{Binding Converter={StaticResource DeliveryIconConverter}}" Width="18" Height="18" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding Converter={StaticResource DeliveryLabelConverter}}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
 
         <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#4B5563"/>
@@ -576,7 +585,7 @@
                         <DataGridTemplateColumn Header="납품" Width="65">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
+                                    <Image Source="{Binding DeliveryMethod, Converter={StaticResource DeliveryIconConverter}}" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -685,7 +694,7 @@
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="배송 방법" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemTemplate="{StaticResource DeliveryOptionTemplate}"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -833,7 +842,7 @@
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="배송 방법" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemTemplate="{StaticResource DeliveryOptionTemplate}"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -1043,7 +1052,7 @@
                             <DataGridTemplateColumn Header="납품" Width="60">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
+                                        <Image Source="{Binding DeliveryMethod, Converter={StaticResource DeliveryIconConverter}}" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

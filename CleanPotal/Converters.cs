@@ -7,6 +7,35 @@ using System.Windows.Media;
 
 namespace CleanPotal
 {
+    // 배송 방법 문자열 -> 컬러 벡터 아이콘(DrawingImage, App.xaml 리소스)
+    public sealed class DeliveryIconConverter : IValueConverter
+    {
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string m = value as string ?? "";
+            string key = m.Contains("배차") ? "IconDeliveryTruck"
+                       : m.Contains("택배") ? "IconDeliveryBox"
+                       : m.Contains("회수") ? "IconDeliveryPickup"
+                       : "IconDeliveryNone";
+            return Application.Current?.TryFindResource(key);
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
+
+    // 배송 방법 문자열의 앞 이모지 제거 ("🚚 배차" -> "배차")
+    public sealed class DeliveryLabelConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string s = value as string ?? "";
+            int sp = s.IndexOf(' ');
+            return sp >= 0 ? s.Substring(sp + 1) : s;
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
+
     // 1. 진행률 % -> 색상
     public sealed class PercentToBrushConverter : IValueConverter
     {
