@@ -246,13 +246,15 @@
                            Margin="0,0,0,8"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <!-- 표의 담당자(130) 열 아래는 비워, 오전/오후가 위 표의 AM/PM 섹션과 정확히 정렬되게 함 -->
+                        <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="12"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- 오전 -->
-                    <StackPanel Grid.Column="0">
+                    <StackPanel Grid.Column="1">
                         <Border Background="#DBEAFE" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
                                 HorizontalAlignment="Left">
                             <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
@@ -266,7 +268,7 @@
                     </StackPanel>
 
                     <!-- 오후 -->
-                    <StackPanel Grid.Column="2">
+                    <StackPanel Grid.Column="3">
                         <Border Background="#FED7AA" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
                                 HorizontalAlignment="Left">
                             <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
