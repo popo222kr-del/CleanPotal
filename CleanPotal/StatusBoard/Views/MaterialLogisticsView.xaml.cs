@@ -8,7 +8,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
@@ -657,54 +656,61 @@ namespace CleanPotal.StatusBoard.Views
         {
             try
             {
-                if (TableCard.ActualWidth < 1 || TableCard.ActualHeight < 1)
+                // 표는 뷰포트가 아니라 '표 전체(ScheduleGrid)'를 캡처해야 우측이 안 잘림
+                if (ScheduleGrid.ActualWidth < 1 || ScheduleGrid.ActualHeight < 1)
                 {
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                double tW = TableCard.ActualWidth, tH = TableCard.ActualHeight;
+                double tW = ScheduleGrid.ActualWidth, tH = ScheduleGrid.ActualHeight;
                 double nW = NotesCard.ActualWidth, nH = NotesCard.ActualHeight;
                 double contentW = Math.Max(tW, nW);
+                const double pad = 16, gap = 10;
 
+                SolidColorBrush B(string h) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)!);
                 string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
                 string dateStr = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
 
-                SolidColorBrush B(string h) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)!);
-                // 화면의 둥근 카드를 그대로 스냅샷(VisualBrush) — 라운드 모서리 유지
-                Rectangle Snap(FrameworkElement el, double w, double h, Thickness m) => new Rectangle
-                {
-                    Width = w, Height = h, Margin = m, HorizontalAlignment = HorizontalAlignment.Left,
-                    Fill = new VisualBrush(el) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }
-                };
+                double ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                var mg = new FontFamily("Malgun Gothic");
+                var titleFt = new FormattedText("천안사업장 자재 & 물류 일정 현황",
+                    System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                    new Typeface(mg, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal), 24, B("#0F172A"), ppd);
+                var dateFt = new FormattedText(dateStr,
+                    System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                    new Typeface(mg, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 15, B("#475569"), ppd);
 
-                var root = new StackPanel { Background = Brushes.White };
-                root.Children.Add(new TextBlock
-                {
-                    Text = "천안사업장 자재 & 물류 일정 현황",
-                    FontSize = 24, FontWeight = FontWeights.Bold, Foreground = B("#0F172A"),
-                    HorizontalAlignment = HorizontalAlignment.Center
-                });
-                root.Children.Add(new TextBlock
-                {
-                    Text = dateStr, FontSize = 15, Foreground = B("#475569"),
-                    HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 5, 0, 14)
-                });
-                root.Children.Add(Snap(TableCard, tW, tH, new Thickness(0)));
-                root.Children.Add(Snap(NotesCard, nW, nH, new Thickness(0, 10, 0, 0)));
+                double headerH = titleFt.Height + 6 + dateFt.Height + 14;
+                double W = contentW + pad * 2;
+                double H = pad + headerH + tH + gap + nH + pad;
 
-                // 오프스크린 조립 후 레이아웃 확정 (전체가 잘리지 않게 DesiredSize 사용)
-                var outer = new Border { Background = Brushes.White, Padding = new Thickness(16), Child = root };
-                double W = contentW + 32;
-                outer.Measure(new Size(W, double.PositiveInfinity));
-                outer.Arrange(new Rect(0, 0, W, outer.DesiredSize.Height));
-                outer.UpdateLayout();
-                double H = outer.DesiredSize.Height;
+                VisualBrush VB(Visual v) => new VisualBrush(v) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
 
-                const double scale = 2.0;   // 선명하게 2배 해상도
+                var dv = new DrawingVisual();
+                using (var ctx = dv.RenderOpen())
+                {
+                    ctx.DrawRectangle(Brushes.White, null, new Rect(0, 0, W, H));
+                    double y = pad;
+                    ctx.DrawText(titleFt, new Point((W - titleFt.Width) / 2, y)); y += titleFt.Height + 6;
+                    ctx.DrawText(dateFt, new Point((W - dateFt.Width) / 2, y)); y += dateFt.Height + 14;
+
+                    var tr = new Rect(pad, y, tW, tH);       // 표 (둥근 모서리)
+                    ctx.PushClip(new RectangleGeometry(tr, 12, 12));
+                    ctx.DrawRectangle(VB(ScheduleGrid), null, tr);
+                    ctx.Pop();
+                    y += tH + gap;
+
+                    var nr = new Rect(pad, y, nW, nH);       // 특이사항 (둥근 모서리)
+                    ctx.PushClip(new RectangleGeometry(nr, 12, 12));
+                    ctx.DrawRectangle(VB(NotesCard), null, nr);
+                    ctx.Pop();
+                }
+
+                const double scale = 2.5;   // 선명하게 고해상도 렌더
                 var rtb = new RenderTargetBitmap(
                     (int)Math.Ceiling(W * scale), (int)Math.Ceiling(H * scale),
                     96 * scale, 96 * scale, PixelFormats.Pbgra32);
-                rtb.Render(outer);
+                rtb.Render(dv);
                 rtb.Freeze();
 
                 Clipboard.SetImage(rtb);
