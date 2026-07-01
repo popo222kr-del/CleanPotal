@@ -698,6 +698,8 @@ namespace CleanPotal.StatusBoard.Views
                     ctx.PushClip(new RectangleGeometry(tr, 12, 12));
                     ctx.DrawRectangle(VB(ScheduleGrid), null, tr);
                     ctx.Pop();
+                    // 특이사항 카드(NotesCard)와 동일하게 표에도 둥근 테두리 선을 그려 모서리를 맞춘다
+                    ctx.DrawRoundedRectangle(null, new Pen(B("#E2E8F0"), 1), tr, 12, 12);
                     y += tH + gap;
 
                     var nr = new Rect(pad, y, nW, nH);       // 특이사항 (둥근 모서리)
