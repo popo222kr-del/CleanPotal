@@ -246,35 +246,36 @@
                     <RowDefinition Height="Auto"/>  <!-- 라벨 한 줄 -->
                     <RowDefinition Height="Auto"/>  <!-- 박스 좌우 -->
                 </Grid.RowDefinitions>
+                <!-- 위 표와 동일: 자재/물류(130) | AM영역(*) | gap | PM영역(*) → 입력칸이 AM/PM 섹션과 정렬 -->
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- 라벨 줄: 특이사항 + 오전(AM) (좌) / 오후(PM) (우) -->
-                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,6">
-                    <TextBlock Text="특이사항" FontSize="15" FontWeight="Bold" Foreground="#0F172A"
-                               VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Border Background="#DBEAFE" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
-                        <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
-                    </Border>
-                </StackPanel>
-                <Border Grid.Row="0" Grid.Column="2" Background="#FED7AA" CornerRadius="6" Padding="8,3"
+                <!-- 라벨 줄 -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="특이사항" FontSize="15" FontWeight="Bold"
+                           Foreground="#0F172A" VerticalAlignment="Center" Margin="0,0,0,6"/>
+                <Border Grid.Row="0" Grid.Column="1" Background="#DBEAFE" CornerRadius="6" Padding="8,3"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,6">
+                    <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="3" Background="#FED7AA" CornerRadius="6" Padding="8,3"
                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,6">
                     <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
                 </Border>
 
-                <!-- 박스 줄: 오전 / 오후 좌우 -->
-                <Border Grid.Row="1" Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                <!-- 박스 줄: AM/PM 섹션에 정렬 -->
+                <Border Grid.Row="1" Grid.Column="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
                     <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                             MinHeight="56" MaxHeight="120" FontSize="15" Foreground="#334155"
+                             MinHeight="96" MaxHeight="180" FontSize="15" Foreground="#334155"
                              BorderThickness="0" Background="Transparent" Padding="10,8"
                              VerticalScrollBarVisibility="Auto"/>
                 </Border>
-                <Border Grid.Row="1" Grid.Column="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                <Border Grid.Row="1" Grid.Column="3" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
                     <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                             MinHeight="56" MaxHeight="120" FontSize="15" Foreground="#334155"
+                             MinHeight="96" MaxHeight="180" FontSize="15" Foreground="#334155"
                              BorderThickness="0" Background="Transparent" Padding="10,8"
                              VerticalScrollBarVisibility="Auto"/>
                 </Border>
