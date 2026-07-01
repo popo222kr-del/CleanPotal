@@ -86,6 +86,52 @@
             <Setter Property="FontWeight" Value="Bold"/>
         </Style>
 
+        <!-- ── Date Chevron (◀▶ 원형 플랫) ── -->
+        <Style x:Key="DateChevron" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter Property="Foreground" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Date Pill (날짜 텍스트 클릭 → 달력) ── -->
+        <Style x:Key="DatePillBtn" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ── Vehicle Toggle Button ── -->
         <Style x:Key="VehicleToggle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -143,33 +189,46 @@
                             Click="BtnPrint_Click"/>
                 </StackPanel>
 
-                <!-- Left-side date navigation -->
+                <!-- Left-side date navigation (모던 달력) -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="BtnPrevDay" Content="◀" Style="{StaticResource NavBtn}"
-                            Margin="0,0,4,0" Click="BtnPrevDay_Click"/>
-                    <DatePicker x:Name="DpBoardDate" Width="140" FontSize="13"
-                                VerticalContentAlignment="Center"
-                                SelectedDateChanged="DpBoardDate_SelectedDateChanged"/>
-                    <Button x:Name="BtnNextDay" Content="▶" Style="{StaticResource NavBtn}"
-                            Margin="4,0,8,0" Click="BtnNextDay_Click"/>
+                    <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10"
+                            Padding="3" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="BtnPrevDay" Style="{StaticResource DateChevron}"
+                                    Content="&#xE76B;" Click="BtnPrevDay_Click" ToolTip="이전 날"/>
+                            <Button x:Name="BtnDatePill" Style="{StaticResource DatePillBtn}" Click="BtnDatePill_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                               Foreground="#2563EB" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock x:Name="TxtDatePill" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="#0F172A" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                               Foreground="#94A3B8" VerticalAlignment="Center" Margin="7,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnNextDay" Style="{StaticResource DateChevron}"
+                                    Content="&#xE76C;" Click="BtnNextDay_Click" ToolTip="다음 날"/>
+                        </StackPanel>
+                    </Border>
                     <Button x:Name="BtnToday" Content="오늘" Style="{StaticResource GhostBtn}"
                             Click="BtnToday_Click"/>
+
+                    <!-- 달력 팝업 -->
+                    <Popup x:Name="CalPopup" PlacementTarget="{Binding ElementName=BtnDatePill}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
+                        <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1"
+                                CornerRadius="12" Padding="6">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="16" Opacity="0.22" ShadowDepth="3" Direction="270"/>
+                            </Border.Effect>
+                            <Calendar x:Name="CalPicker" SelectedDatesChanged="CalPicker_SelectedDatesChanged"/>
+                        </Border>
+                    </Popup>
                 </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- Row 1: Title Header                                       -->
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="20,14">
-            <StackPanel HorizontalAlignment="Center">
-                <TextBlock x:Name="TxtTitle" Text="천안사업장 자재 &amp; 물류 일정 현황"
-                           FontSize="22" FontWeight="Bold" Foreground="#0F172A"
-                           HorizontalAlignment="Center"/>
-                <TextBlock x:Name="TxtDate" FontSize="14" Foreground="#64748B"
-                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
-            </StackPanel>
-        </Border>
+        <!-- Row 1 (중복 대제목 제거됨 — 날짜는 상단 툴바 달력에 표시) -->
 
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- Row 2: Main Schedule Table                                -->
