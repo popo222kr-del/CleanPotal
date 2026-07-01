@@ -373,7 +373,7 @@ namespace CleanPotal.StatusBoard.Views
             {
                 Text = value ?? "",
                 FontSize = 15,
-                FontWeight = off ? FontWeights.Bold : FontWeights.Normal,
+                FontWeight = FontWeights.Normal,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#DC2626" : fgHex)!),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
