@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using CleanPotal.FieldInventory.Models;
 using Dapper;
@@ -8,9 +9,12 @@ namespace CleanPotal.FieldInventory.Repositories
 {
     public static class FieldInventoryRepository
     {
-        public static void InitializeTables()
+        public static void InitializeTables(IDbConnection? shared = null)
         {
-            using var db = DatabaseHelper.GetConnection();
+            // shared 연결이 오면 재사용(닫지 않음) — 시작 시 NAS 연결 왕복 절감
+            var db = shared ?? DatabaseHelper.GetConnection();
+            try
+            {
 
             db.Execute(@"
                 CREATE TABLE IF NOT EXISTS FieldInventoryItems (
@@ -60,6 +64,8 @@ namespace CleanPotal.FieldInventory.Repositories
 
             // 등록일자가 비어있는 행은 오늘 날짜로 채움 (신규 컬럼 마이그레이션 + 시드 데이터 공통)
             db.Execute("UPDATE FieldInventoryItems SET RegisteredDate = date('now','localtime') WHERE RegisteredDate = '';");
+            }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         public static List<FieldInventoryItem> GetAll()

@@ -83,8 +83,14 @@ namespace CleanPotal
             BtnCommandVendor.Click += BtnCommandVendor_Click;
             this.Closing += MainWindow_Closing;
 
-            DatabaseHelper.InitializeDatabase();
-            CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables();
+            // 🚀 시작 성능: 예전엔 초기화 메서드마다 NAS(SMB) SQLite 연결을 새로 열어
+            //   로그인 직후 창이 뜨기 전 연결을 7번 열었다. 이제 연결 하나를 열어
+            //   모든 테이블 초기화에 재사용해 네트워크 왕복을 크게 줄인다.
+            using (var startupConn = DatabaseHelper.GetConnection())
+            {
+                DatabaseHelper.InitializeDatabase(startupConn);
+                CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables(startupConn);
+            }
 
             // 버전 표시
             VersionText.Text = GetAppVersion();

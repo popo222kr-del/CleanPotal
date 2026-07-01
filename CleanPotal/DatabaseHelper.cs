@@ -20,7 +20,10 @@ namespace CleanPotal
         private static readonly string ConnectionString = $"Data Source={DbPath}";
         private static bool _isMapperInitialized = false;
 
-        public static void InitializeDatabase()
+        // 🚀 시작 성능: NAS(SMB) 위 SQLite는 연결을 새로 열 때마다 네트워크 왕복이 크다.
+        //   기존엔 시작 시 초기화 메서드마다 연결을 따로 열어 7번씩 열었는데,
+        //   shared 연결 하나를 넘겨받아 재사용하면 왕복이 1/7로 줄어 로그인 후 창 뜨는 속도가 빨라진다.
+        public static void InitializeDatabase(IDbConnection? shared = null)
         {
             if (!Directory.Exists(AppPaths.DataRoot)) Directory.CreateDirectory(AppPaths.DataRoot);
 
@@ -30,11 +33,10 @@ namespace CleanPotal
                 _isMapperInitialized = true;
             }
 
-            using (var connection = new SqliteConnection(ConnectionString))
+            // shared 가 넘어오면 그 연결을 재사용(닫지 않음), 없으면 직접 연다.
+            var connection = shared ?? GetConnection();
+            try
             {
-                connection.Open();
-                try { connection.Execute("PRAGMA journal_mode=DELETE;"); } catch { }
-                connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,19 +62,21 @@ namespace CleanPotal
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ModifierName TEXT;"); } catch { }
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ModifyDate DATETIME;"); } catch { }
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ReadBy TEXT;"); } catch { }
+
+                // 아래 초기화들도 같은 연결(connection)을 재사용해 NAS 왕복을 줄인다.
+                InitializeScheduleTables(connection);
+                InitializeWorkAssignmentTables(connection);
+
+                // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
+                CreateProdReqTable(connection);
+
+                // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
+                FieldInspection.Repositories.FieldInspectionRepository.InitializeTables(connection);
+
+                // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
+                FieldInventory.Repositories.FieldInventoryRepository.InitializeTables(connection);
             }
-
-            InitializeScheduleTables();
-            InitializeWorkAssignmentTables();
-
-            // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
-            CreateProdReqTable();
-
-            // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
-            FieldInspection.Repositories.FieldInspectionRepository.InitializeTables();
-
-            // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
-            FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
+            finally { if (shared == null) connection.Dispose(); }
         }
 
         // ⚠️⚠️ 중요: DB가 네트워크 공유 폴더(\\10.10.40.98)에 있으므로 절대 WAL 모드를 쓰면 안 된다.
@@ -220,9 +224,10 @@ namespace CleanPotal
             }
         }
 
-        public static void InitializeScheduleTables()
+        public static void InitializeScheduleTables(IDbConnection? shared = null)
         {
-            using (var connection = GetConnection())
+            var connection = shared ?? GetConnection();
+            try
             {
                 string createShiftTable = @"
                     CREATE TABLE IF NOT EXISTS ShiftSchedule (
@@ -273,6 +278,7 @@ namespace CleanPotal
                 connection.Execute(createTeamEventsTable);
                 try { connection.Execute("ALTER TABLE TeamEvents ADD COLUMN Detail TEXT;"); } catch { }
             }
+            finally { if (shared == null) connection.Dispose(); }
         }
 
         public static void UpdateEducationPlanAttachment(int id, string? path)
@@ -484,9 +490,10 @@ namespace CleanPotal
         // 개인별 업무 분장표 (WorkAssignment)
         // ==========================================================
 
-        public static void InitializeWorkAssignmentTables()
+        public static void InitializeWorkAssignmentTables(IDbConnection? shared = null)
         {
-            using (var db = GetConnection())
+            var db = shared ?? GetConnection();
+            try
             {
                 db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentMembers (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -512,6 +519,7 @@ namespace CleanPotal
                     Note TEXT
                 )");
             }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         public static List<string> GetWorkAssignmentUsernames()
@@ -596,9 +604,10 @@ namespace CleanPotal
         // 🔥 생산팀 요청사항 (ProdReq) 전용 DB 연동 메서드 (Dapper 최적화)
         // ==========================================================
 
-        public static void CreateProdReqTable()
+        public static void CreateProdReqTable(IDbConnection? shared = null)
         {
-            using (var db = GetConnection())
+            var db = shared ?? GetConnection();
+            try
             {
                 db.Execute(@"
                     CREATE TABLE IF NOT EXISTS ProdReqs (
@@ -624,6 +633,7 @@ namespace CleanPotal
                         LastReadTime TEXT NOT NULL
                     )");
             }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         public static int GetUnreadProdReqCount(string username)
