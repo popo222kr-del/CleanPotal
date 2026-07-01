@@ -662,7 +662,7 @@ namespace CleanPotal.StatusBoard.Views
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                const double scale = 2.0;   // 이 배율로 요소를 '직접' 재렌더 → 확대가 아니라 재렌더라 선명
+                const double scale = 4.0;   // 이 배율로 요소를 '직접' 재렌더 → 확대가 아니라 재렌더라 선명
                 const double pad = 16, gap = 10;
 
                 // 화면에 보이는 실제 요소를 고해상도로 직접 래스터화(벡터가 다시 그려져 선명 + 카드 테두리째 캡처 → 안 짤림)
@@ -681,12 +681,8 @@ namespace CleanPotal.StatusBoard.Views
 
                 // 표는 스크롤뷰어 안이라 전체 폭인 ScheduleGrid를 렌더해야 우측이 안 잘린다.
                 var tableBmp = RenderCrisp(ScheduleGrid);
-                // 특이사항 카드 그림자는 경계에서 잘려 보이므로 캡처 동안만 잠시 제거
-                var notesEffect = NotesCard.Effect;
-                NotesCard.Effect = null;
-                NotesCard.UpdateLayout();
+                // 특이사항 카드는 이펙트를 건드리면 렌더가 무효화되어 빈 이미지가 나오므로 그대로 렌더한다.
                 var notesBmp = RenderCrisp(NotesCard);
-                NotesCard.Effect = notesEffect;
 
                 // 표 폭을 기준으로 특이사항 폭을 맞춘다(화면처럼 좌우가 딱 맞게)
                 double contentW = tW;
