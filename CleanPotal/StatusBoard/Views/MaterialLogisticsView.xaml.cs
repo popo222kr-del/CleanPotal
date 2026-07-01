@@ -202,11 +202,11 @@ namespace CleanPotal.StatusBoard.Views
             AddSectionHeader(grid, "오후 (PM)", 0, ColPmDest, 1 + Vehicles.Length, 1, "#9A3412", "#FED7AA");
 
             // ── Row 1: Column Sub-headers ──
-            AddColumnHeader(grid, "담당자", 1, ColPersonName, "#64748B", "#F8FAFC");
-            AddColumnHeader(grid, "목적지 & 근무", 1, ColAmDest, "#1E40AF", "#EFF6FF");
+            AddColumnHeader(grid, "담당자", 1, ColPersonName, "#64748B", "#F8FAFC", 16);
+            AddColumnHeader(grid, "목적지 & 근무", 1, ColAmDest, "#1E40AF", "#EFF6FF", 16);
             for (int v = 0; v < Vehicles.Length; v++)
                 AddColumnHeader(grid, Vehicles[v].Label, 1, ColAmVehicleStart + v, "#1E40AF", "#EFF6FF");
-            AddColumnHeader(grid, "목적지 & 근무", 1, ColPmDest, "#9A3412", "#FFF7ED");
+            AddColumnHeader(grid, "목적지 & 근무", 1, ColPmDest, "#9A3412", "#FFF7ED", 16);
             for (int v = 0; v < Vehicles.Length; v++)
                 AddColumnHeader(grid, Vehicles[v].Label, 1, ColPmVehicleStart + v, "#9A3412", "#FFF7ED");
 
@@ -297,7 +297,8 @@ namespace CleanPotal.StatusBoard.Views
             grid.Children.Add(border);
         }
 
-        private void AddColumnHeader(Grid grid, string text, int row, int col, string fgHex, string bgHex)
+        private void AddColumnHeader(Grid grid, string text, int row, int col, string fgHex, string bgHex,
+            double fontSize = 14)
         {
             var border = new Border
             {
@@ -309,7 +310,7 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBlock
             {
                 Text = text,
-                FontSize = 13,
+                FontSize = fontSize,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -372,7 +373,7 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBox
             {
                 Text = value ?? "",
-                FontSize = 15,
+                FontSize = 16,
                 FontWeight = FontWeights.Normal,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#DC2626" : fgHex)!),
                 Background = Brushes.Transparent,
@@ -557,7 +558,7 @@ namespace CleanPotal.StatusBoard.Views
             border.Child = new TextBlock
             {
                 Text = value ?? "",
-                FontSize = 15,
+                FontSize = 16,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dim ? "#B0B8C4" : "#334155")!),
                 HorizontalAlignment = HorizontalAlignment.Center,
