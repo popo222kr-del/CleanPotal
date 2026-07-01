@@ -127,5 +127,57 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- ══ 배송 방법 컬러 벡터 아이콘 (미정/배차/택배/업체회수) ══ -->
+        <DrawingImage x:Key="IconDeliveryNone">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="Transparent"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,24,24"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#CBD5E1"><GeometryDrawing.Geometry><EllipseGeometry Center="12,12" RadiusX="8" RadiusY="8"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="White"><GeometryDrawing.Geometry><RectangleGeometry Rect="8,11,8,2" RadiusX="1" RadiusY="1"/></GeometryDrawing.Geometry></GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <DrawingImage x:Key="IconDeliveryTruck">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="Transparent"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,24,24"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#3B82F6"><GeometryDrawing.Geometry><RectangleGeometry Rect="2,7,12,8" RadiusX="1.5" RadiusY="1.5"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#60A5FA"><GeometryDrawing.Geometry><PathGeometry Figures="M14,9 L18,9 L21,12 L21,15 L14,15 Z"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#1E293B"><GeometryDrawing.Geometry><GeometryGroup>
+                        <EllipseGeometry Center="6,16" RadiusX="2.3" RadiusY="2.3"/>
+                        <EllipseGeometry Center="17,16" RadiusX="2.3" RadiusY="2.3"/>
+                    </GeometryGroup></GeometryDrawing.Geometry></GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <DrawingImage x:Key="IconDeliveryBox">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="Transparent"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,24,24"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#F59E0B"><GeometryDrawing.Geometry><RectangleGeometry Rect="4,7,16,13" RadiusX="1.5" RadiusY="1.5"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#D97706"><GeometryDrawing.Geometry><RectangleGeometry Rect="4,7,16,4" RadiusX="1.5" RadiusY="1.5"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#FDE68A"><GeometryDrawing.Geometry><RectangleGeometry Rect="10.5,7,3,13"/></GeometryDrawing.Geometry></GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <DrawingImage x:Key="IconDeliveryPickup">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="Transparent"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,24,24"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="#14B8A6"><GeometryDrawing.Geometry><RectangleGeometry Rect="5,4,14,16" RadiusX="1.5" RadiusY="1.5"/></GeometryDrawing.Geometry></GeometryDrawing>
+                    <GeometryDrawing Brush="White"><GeometryDrawing.Geometry><GeometryGroup>
+                        <RectangleGeometry Rect="8,7,2.5,2.5" RadiusX="0.5" RadiusY="0.5"/>
+                        <RectangleGeometry Rect="13.5,7,2.5,2.5" RadiusX="0.5" RadiusY="0.5"/>
+                        <RectangleGeometry Rect="8,11.5,2.5,2.5" RadiusX="0.5" RadiusY="0.5"/>
+                        <RectangleGeometry Rect="13.5,11.5,2.5,2.5" RadiusX="0.5" RadiusY="0.5"/>
+                        <RectangleGeometry Rect="10,15.5,4,4.5" RadiusX="0.5" RadiusY="0.5"/>
+                    </GeometryGroup></GeometryDrawing.Geometry></GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
     </Application.Resources>
 </Application>
