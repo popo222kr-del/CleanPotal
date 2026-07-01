@@ -246,15 +246,15 @@
                            Margin="0,0,0,8"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <!-- 표의 담당자(130) 열 아래는 비워, 오전/오후가 위 표의 AM/PM 섹션과 정확히 정렬되게 함 -->
+                        <!-- 오전=자재/물류(130)+AM영역, 오후=PM영역. 분할선(가운데 gap)이 위 표의 AM/PM 경계와 일치 -->
                         <ColumnDefinition Width="130"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="12"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 오전 -->
-                    <StackPanel Grid.Column="1">
+                    <!-- 오전: 좌측 여백(자재/물류) + AM 영역 전체 -->
+                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2">
                         <Border Background="#DBEAFE" CornerRadius="6" Padding="8,4" Margin="0,0,0,6"
                                 HorizontalAlignment="Left">
                             <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
