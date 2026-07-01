@@ -500,13 +500,10 @@ namespace CleanPotal.StatusBoard.Views
             return panel;
         }
 
-        // 목적지&근무 칸에 채울 텍스트: 업체명 / 주소
+        // 목적지&근무 칸에 채울 텍스트: 업체명만
         private static string BuildDestinationText(DispatchItemModel r)
         {
-            var parts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(r.VendorName)) parts.Add(r.VendorName.Trim());
-            if (!string.IsNullOrWhiteSpace(r.FullAddress)) parts.Add(r.FullAddress.Trim());
-            return string.Join(" / ", parts);
+            return (r.VendorName ?? "").Trim();
         }
 
         private void AddVehicleToggle(Grid grid, int row, int col, bool isAssigned, string bgHex,
