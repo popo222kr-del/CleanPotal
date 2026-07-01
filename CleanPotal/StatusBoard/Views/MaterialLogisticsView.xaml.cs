@@ -35,6 +35,18 @@ namespace CleanPotal.StatusBoard.Views
         private readonly ObservableCollection<MaterialLogisticsRow> _rows = new();
         private DateTime _selectedDate;
         private bool _isLoading; // suppress events during programmatic changes
+        private bool _isDirty;   // 저장하지 않은 변경 여부
+
+        // 다른 페이지 이동/종료 전 호출 — 미저장 변경 있으면 확인
+        public bool ConfirmDiscardIfDirty()
+        {
+            if (!_isDirty) return true;
+            var r = MessageBox.Show(
+                "저장하지 않은 변경사항이 있습니다.\n저장하지 않고 이동하시겠습니까?",
+                "미저장 변경사항", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (r == MessageBoxResult.Yes) { _isDirty = false; return true; }
+            return false;
+        }
 
         // Column indices (set during BuildGrid)
         private const int ColPersonName = 0;
@@ -108,6 +120,7 @@ namespace CleanPotal.StatusBoard.Views
 
         private void LoadData()
         {
+            _isLoading = true;
             UpdateHeader();
 
             string dateKey = _selectedDate.ToString("yyyy-MM-dd");
@@ -152,6 +165,8 @@ namespace CleanPotal.StatusBoard.Views
             }
 
             BuildGrid();
+            _isDirty = false;   // 로드 직후는 깨끗
+            _isLoading = false;
         }
 
         private void UpdateHeader()
@@ -231,7 +246,7 @@ namespace CleanPotal.StatusBoard.Views
 
                 // AM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
                 AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, amBg, "#334155",
-                    (val) => { bool w = IsOff(row.AmDestination); row.AmDestination = val; if (w != IsOff(val)) BuildGrid(); }, amOff);
+                    (val) => { if (row.AmDestination != val) _isDirty = true; bool w = IsOff(row.AmDestination); row.AmDestination = val; if (w != IsOff(val)) BuildGrid(); }, amOff);
 
                 // AM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
@@ -244,7 +259,7 @@ namespace CleanPotal.StatusBoard.Views
 
                 // PM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
                 AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, pmBg, "#334155",
-                    (val) => { bool w = IsOff(row.PmDestination); row.PmDestination = val; if (w != IsOff(val)) BuildGrid(); }, pmOff);
+                    (val) => { if (row.PmDestination != val) _isDirty = true; bool w = IsOff(row.PmDestination); row.PmDestination = val; if (w != IsOff(val)) BuildGrid(); }, pmOff);
 
                 // PM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
@@ -607,10 +622,17 @@ namespace CleanPotal.StatusBoard.Views
 
         private void ToggleVehicle(MaterialLogisticsRow row, string period, string vehicleKey)
         {
+            _isDirty = true;
             if (period == "AM")
                 row.AmVehicle = row.AmVehicle == vehicleKey ? "" : vehicleKey;
             else
                 row.PmVehicle = row.PmVehicle == vehicleKey ? "" : vehicleKey;
+        }
+
+        // 특이사항 입력 변경 → dirty (로딩 중 프로그램 설정은 제외)
+        private void Notes_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_isLoading) _isDirty = true;
         }
 
         // ══════════════════════════════════════════════════════════════

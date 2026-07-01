@@ -268,13 +268,13 @@
 
                 <!-- 박스 줄: AM/PM 섹션에 정렬 -->
                 <Border Grid.Row="1" Grid.Column="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
-                    <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                    <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap" TextChanged="Notes_TextChanged"
                              MinHeight="96" MaxHeight="180" FontSize="15" Foreground="#334155"
                              BorderThickness="0" Background="Transparent" Padding="10,8"
                              VerticalScrollBarVisibility="Auto"/>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="3" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
-                    <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                    <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap" TextChanged="Notes_TextChanged"
                              MinHeight="96" MaxHeight="180" FontSize="15" Foreground="#334155"
                              BorderThickness="0" Background="Transparent" Padding="10,8"
                              VerticalScrollBarVisibility="Auto"/>
