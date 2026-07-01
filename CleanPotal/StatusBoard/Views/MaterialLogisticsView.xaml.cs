@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
@@ -646,6 +647,89 @@ namespace CleanPotal.StatusBoard.Views
         private void Notes_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!_isLoading) _isDirty = true;
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        //  캡처 — 제목+날짜+표+특이사항을 한 이미지로(클립보드 복사)
+        // ══════════════════════════════════════════════════════════════
+        private void BtnCapture_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var table = ScheduleGrid;
+                if (table.ActualWidth < 1 || table.ActualHeight < 1)
+                {
+                    MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                double w = table.ActualWidth;
+
+                var header = BuildCaptureHeader(w);
+                var headerBmp = RenderElement(header, w, header.DesiredSize.Height);
+                var tableBmp = RenderElement(table, table.ActualWidth, table.ActualHeight);
+                var notesBmp = RenderElement(NotesCard, NotesCard.ActualWidth, NotesCard.ActualHeight);
+
+                const double pad = 14, gap = 10;
+                double contentW = Math.Max(w, Math.Max(tableBmp.Width, notesBmp.Width));
+                double totalW = contentW + pad * 2;
+                double totalH = headerBmp.Height + tableBmp.Height + notesBmp.Height + gap * 2 + pad * 2;
+
+                var dv = new DrawingVisual();
+                using (var ctx = dv.RenderOpen())
+                {
+                    ctx.DrawRectangle(Brushes.White, null, new Rect(0, 0, totalW, totalH));
+                    double y = pad;
+                    ctx.DrawImage(headerBmp, new Rect(pad, y, headerBmp.Width, headerBmp.Height)); y += headerBmp.Height + gap;
+                    ctx.DrawImage(tableBmp, new Rect(pad, y, tableBmp.Width, tableBmp.Height)); y += tableBmp.Height + gap;
+                    ctx.DrawImage(notesBmp, new Rect(pad, y, notesBmp.Width, notesBmp.Height));
+                }
+                var final = new RenderTargetBitmap((int)Math.Ceiling(totalW), (int)Math.Ceiling(totalH), 96, 96, PixelFormats.Pbgra32);
+                final.Render(dv);
+                final.Freeze();
+
+                Clipboard.SetImage(final);
+                MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
+                    "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"캡처 중 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // 캡처용 상단 헤더(제목 + 날짜) 시각 요소 생성
+        private FrameworkElement BuildCaptureHeader(double w)
+        {
+            string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+            string dateStr = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
+
+            var sp = new StackPanel { Background = Brushes.White, Width = w };
+            sp.Children.Add(new TextBlock
+            {
+                Text = "천안사업장 자재 & 물류 일정 현황",
+                FontSize = 22, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")!),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            sp.Children.Add(new TextBlock
+            {
+                Text = dateStr, FontSize = 14,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")!),
+                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 5, 0, 8)
+            });
+            sp.Measure(new Size(w, double.PositiveInfinity));
+            sp.Arrange(new Rect(0, 0, w, sp.DesiredSize.Height));
+            sp.UpdateLayout();
+            return sp;
+        }
+
+        private static RenderTargetBitmap RenderElement(FrameworkElement el, double w, double h)
+        {
+            var rtb = new RenderTargetBitmap(
+                Math.Max(1, (int)Math.Ceiling(w)), Math.Max(1, (int)Math.Ceiling(h)),
+                96, 96, PixelFormats.Pbgra32);
+            rtb.Render(el);
+            return rtb;
         }
 
         // ══════════════════════════════════════════════════════════════

@@ -179,6 +179,8 @@
             <DockPanel>
                 <!-- Right-side buttons -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="BtnCapture" Content="캡처" Style="{StaticResource GhostBtn}"
+                            Margin="0,0,6,0" Click="BtnCapture_Click" ToolTip="제목·날짜 포함 이미지로 캡처(클립보드 복사)"/>
                     <Button x:Name="BtnManageMembers" Content="인원 관리" Style="{StaticResource GhostBtn}"
                             Margin="0,0,12,0" Click="BtnManageMembers_Click"/>
                     <Button x:Name="BtnSave" Content="저장" Style="{StaticResource PrimaryBtn}"
@@ -240,7 +242,7 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- Row 3: Special Notes (오전/오후 분리)                       -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+        <Border Grid.Row="3" x:Name="NotesCard" Style="{StaticResource CardStyle}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>  <!-- 라벨 한 줄 -->
