@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
@@ -661,33 +662,52 @@ namespace CleanPotal.StatusBoard.Views
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                double w = TableCard.ActualWidth;
+                double tW = TableCard.ActualWidth, tH = TableCard.ActualHeight;
+                double nW = NotesCard.ActualWidth, nH = NotesCard.ActualHeight;
+                double contentW = Math.Max(tW, nW);
 
-                var header = BuildCaptureHeader(w);
-                var headerBmp = RenderElement(header, w, header.DesiredSize.Height);
-                // 둥근 카드(Border)를 통째로 렌더 → 라운드 모서리 유지
-                var tableBmp = RenderElement(TableCard, TableCard.ActualWidth, TableCard.ActualHeight);
-                var notesBmp = RenderElement(NotesCard, NotesCard.ActualWidth, NotesCard.ActualHeight);
+                string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+                string dateStr = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
 
-                const double pad = 14, gap = 10;
-                double contentW = Math.Max(w, Math.Max(tableBmp.Width, notesBmp.Width));
-                double totalW = contentW + pad * 2;
-                double totalH = headerBmp.Height + tableBmp.Height + notesBmp.Height + gap * 2 + pad * 2;
-
-                var dv = new DrawingVisual();
-                using (var ctx = dv.RenderOpen())
+                SolidColorBrush B(string h) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)!);
+                // 화면의 둥근 카드를 그대로 스냅샷(VisualBrush) — 라운드 모서리 유지
+                Rectangle Snap(FrameworkElement el, double w, double h, Thickness m) => new Rectangle
                 {
-                    ctx.DrawRectangle(Brushes.White, null, new Rect(0, 0, totalW, totalH));
-                    double y = pad;
-                    ctx.DrawImage(headerBmp, new Rect(pad, y, headerBmp.Width, headerBmp.Height)); y += headerBmp.Height + gap;
-                    ctx.DrawImage(tableBmp, new Rect(pad, y, tableBmp.Width, tableBmp.Height)); y += tableBmp.Height + gap;
-                    ctx.DrawImage(notesBmp, new Rect(pad, y, notesBmp.Width, notesBmp.Height));
-                }
-                var final = new RenderTargetBitmap((int)Math.Ceiling(totalW), (int)Math.Ceiling(totalH), 96, 96, PixelFormats.Pbgra32);
-                final.Render(dv);
-                final.Freeze();
+                    Width = w, Height = h, Margin = m, HorizontalAlignment = HorizontalAlignment.Left,
+                    Fill = new VisualBrush(el) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }
+                };
 
-                Clipboard.SetImage(final);
+                var root = new StackPanel { Background = Brushes.White };
+                root.Children.Add(new TextBlock
+                {
+                    Text = "천안사업장 자재 & 물류 일정 현황",
+                    FontSize = 24, FontWeight = FontWeights.Bold, Foreground = B("#0F172A"),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+                root.Children.Add(new TextBlock
+                {
+                    Text = dateStr, FontSize = 15, Foreground = B("#475569"),
+                    HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 5, 0, 14)
+                });
+                root.Children.Add(Snap(TableCard, tW, tH, new Thickness(0)));
+                root.Children.Add(Snap(NotesCard, nW, nH, new Thickness(0, 10, 0, 0)));
+
+                // 오프스크린 조립 후 레이아웃 확정 (전체가 잘리지 않게 DesiredSize 사용)
+                var outer = new Border { Background = Brushes.White, Padding = new Thickness(16), Child = root };
+                double W = contentW + 32;
+                outer.Measure(new Size(W, double.PositiveInfinity));
+                outer.Arrange(new Rect(0, 0, W, outer.DesiredSize.Height));
+                outer.UpdateLayout();
+                double H = outer.DesiredSize.Height;
+
+                const double scale = 2.0;   // 선명하게 2배 해상도
+                var rtb = new RenderTargetBitmap(
+                    (int)Math.Ceiling(W * scale), (int)Math.Ceiling(H * scale),
+                    96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                rtb.Render(outer);
+                rtb.Freeze();
+
+                Clipboard.SetImage(rtb);
                 MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
                     "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -695,52 +715,6 @@ namespace CleanPotal.StatusBoard.Views
             {
                 MessageBox.Show($"캡처 중 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        // 캡처용 상단 헤더(제목 + 날짜) 시각 요소 생성
-        private FrameworkElement BuildCaptureHeader(double w)
-        {
-            string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
-            string dateStr = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
-
-            var sp = new StackPanel { Background = Brushes.White, Width = w };
-            sp.Children.Add(new TextBlock
-            {
-                Text = "천안사업장 자재 & 물류 일정 현황",
-                FontSize = 22, FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")!),
-                HorizontalAlignment = HorizontalAlignment.Center
-            });
-            sp.Children.Add(new TextBlock
-            {
-                Text = dateStr, FontSize = 14,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")!),
-                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 5, 0, 8)
-            });
-            sp.Measure(new Size(w, double.PositiveInfinity));
-            sp.Arrange(new Rect(0, 0, w, sp.DesiredSize.Height));
-            sp.UpdateLayout();
-            return sp;
-        }
-
-        // 요소를 (0,0) 기준으로 비트맵에 렌더. VisualBrush 사용으로 부모 내 위치(오프셋) 무시
-        // → 표 아래에 있는 특이사항 카드도 정상 캡처됨.
-        private static RenderTargetBitmap RenderElement(FrameworkElement el, double w, double h)
-        {
-            int iw = Math.Max(1, (int)Math.Ceiling(w));
-            int ih = Math.Max(1, (int)Math.Ceiling(h));
-            var vb = new VisualBrush(el)
-            {
-                Stretch = Stretch.None,
-                AlignmentX = AlignmentX.Left,
-                AlignmentY = AlignmentY.Top
-            };
-            var dv = new DrawingVisual();
-            using (var ctx = dv.RenderOpen())
-                ctx.DrawRectangle(vb, null, new Rect(0, 0, w, h));
-            var rtb = new RenderTargetBitmap(iw, ih, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(dv);
-            return rtb;
         }
 
         // ══════════════════════════════════════════════════════════════
