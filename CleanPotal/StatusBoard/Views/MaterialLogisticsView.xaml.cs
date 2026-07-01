@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,8 +10,7 @@ using System.Windows.Media;
 using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
-using ClosedXML.Excel;
-using Microsoft.Win32;
+using CleanPotal.StatusBoard.Views;
 
 namespace CleanPotal.StatusBoard.Views
 {
@@ -110,28 +108,36 @@ namespace CleanPotal.StatusBoard.Views
 
             try
             {
+                // 고정 인원 로스터 기준으로 행 구성 (담당자 이름 고정)
+                var members = StatusBoardRepository.GetMaterialLogisticsMembers();
                 var entries = StatusBoardRepository.GetAllMaterialLogistics(dateKey);
                 var memoRow = entries.FirstOrDefault(r => r.PersonName == "__MEMO__");
-                var dataRows = entries.Where(r => r.PersonName != "__MEMO__").OrderBy(r => r.OrderNo).ToList();
+
+                // 해당 날짜의 인원별 데이터(목적지·차량)를 이름으로 매칭
+                var byName = entries.Where(r => r.PersonName != "__MEMO__")
+                                    .GroupBy(r => r.PersonName)
+                                    .ToDictionary(g => g.Key, g => g.First());
 
                 _rows.Clear();
-                foreach (var entry in dataRows)
-                    _rows.Add(entry);
+                int order = 1;
+                foreach (var m in members)
+                {
+                    byName.TryGetValue(m.Name, out var d);
+                    _rows.Add(new MaterialLogisticsRow
+                    {
+                        BoardDate = dateKey,
+                        PersonName = m.Name,
+                        AmDestination = d?.AmDestination ?? "",
+                        AmVehicle = d?.AmVehicle ?? "",
+                        PmDestination = d?.PmDestination ?? "",
+                        PmVehicle = d?.PmVehicle ?? "",
+                        OrderNo = order++
+                    });
+                }
 
                 // 특이사항: 오전 = AmDestination, 오후 = PmDestination (구버전 호환: Memo는 오전으로)
                 TxtAmNotes.Text = memoRow?.AmDestination ?? memoRow?.Memo ?? "";
                 TxtPmNotes.Text = memoRow?.PmDestination ?? "";
-
-                // If no data for this date, add a few blank rows
-                if (_rows.Count == 0)
-                {
-                    for (int i = 0; i < 5; i++)
-                        _rows.Add(new MaterialLogisticsRow
-                        {
-                            BoardDate = dateKey,
-                            OrderNo = i + 1
-                        });
-                }
             }
             catch (Exception ex)
             {
@@ -205,9 +211,8 @@ namespace CleanPotal.StatusBoard.Views
                 var row = _rows[i];
                 string altBg = (i % 2 == 0) ? "#FFFFFF" : "#FAFAFA";
 
-                // Person name (editable)
-                AddEditableCell(grid, gridRow, ColPersonName, row.PersonName, altBg, "#334155", true,
-                    (val) => row.PersonName = val);
+                // Person name (고정 표시 — 인원 관리에서만 변경)
+                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg);
 
                 // AM destination (editable + 배차 불러오기)
                 AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155",
@@ -514,6 +519,31 @@ namespace CleanPotal.StatusBoard.Views
             return (r.VendorName ?? "").Trim();
         }
 
+        // 담당자 이름: 고정 표시(읽기 전용)
+        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
+                BorderThickness = new Thickness(0, 0, 1, 0),
+                Padding = new Thickness(8, 4, 8, 4)
+            };
+            border.Child = new TextBlock
+            {
+                Text = value ?? "",
+                FontSize = 15,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")!),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            Grid.SetRow(border, row);
+            Grid.SetColumn(border, col);
+            grid.Children.Add(border);
+        }
+
         private void AddVehicleToggle(Grid grid, int row, int col, bool isAssigned, string bgHex,
             Action onToggle)
         {
@@ -557,34 +587,17 @@ namespace CleanPotal.StatusBoard.Views
         //  Add / Remove Rows
         // ══════════════════════════════════════════════════════════════
 
-        private void BtnAddRow_Click(object sender, RoutedEventArgs e)
+        // 인원 관리(추가/삭제/순서) 다이얼로그 → 저장 시 로스터 반영 후 새로고침
+        private void BtnManageMembers_Click(object sender, RoutedEventArgs e)
         {
-            string dateKey = _selectedDate.ToString("yyyy-MM-dd");
-            int nextOrder = _rows.Count > 0 ? _rows.Max(r => r.OrderNo) + 1 : 1;
-            _rows.Add(new MaterialLogisticsRow
+            // 현재 편집 중인 목적지/차량 값을 잃지 않도록 먼저 저장 안내는 생략(로스터만 변경)
+            var current = StatusBoardRepository.GetMaterialLogisticsMembers()
+                                               .Select(m => m.Name).ToList();
+            var win = new MemberManagerWindow(current) { Owner = Window.GetWindow(this) };
+            if (win.ShowDialog() == true)
             {
-                BoardDate = dateKey,
-                OrderNo = nextOrder
-            });
-            BuildGrid();
-        }
-
-        private void BtnRemoveRow_Click(object sender, RoutedEventArgs e)
-        {
-            if (_rows.Count == 0) return;
-
-            var result = MessageBox.Show(
-                "마지막 행을 삭제하시겠습니까?",
-                "인원 삭제",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                var lastRow = _rows.Last();
-                if (lastRow.Id > 0) StatusBoardRepository.DeleteMaterialLogistics(lastRow.Id);
-                _rows.Remove(lastRow);
-                BuildGrid();
+                StatusBoardRepository.ReplaceMaterialLogisticsMembers(win.ResultMembers);
+                LoadData();
             }
         }
 
@@ -663,207 +676,5 @@ namespace CleanPotal.StatusBoard.Views
             }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        //  Print / Excel Export (A4 Landscape)
-        // ══════════════════════════════════════════════════════════════
-
-        private void BtnPrint_Click(object sender, RoutedEventArgs e)
-        {
-            SyncGridToModel();
-
-            var dlg = new SaveFileDialog
-            {
-                Title = "자재 & 물류 일정 현황 엑셀 내보내기 (A4 가로)",
-                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = $"자재물류일정_{_selectedDate:yyyyMMdd}"
-            };
-            if (dlg.ShowDialog() != true) return;
-
-            try
-            {
-                using var wb = new XLWorkbook();
-                var ws = wb.AddWorksheet("자재물류일정");
-
-                // ── A4 landscape print setup ──
-                ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
-                ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-                ws.PageSetup.Margins.Top = 0.2;
-                ws.PageSetup.Margins.Bottom = 0.2;
-                ws.PageSetup.Margins.Left = 0.2;
-                ws.PageSetup.Margins.Right = 0.2;
-                ws.PageSetup.Margins.Header = 0;
-                ws.PageSetup.Margins.Footer = 0;
-                ws.PageSetup.CenterHorizontally = true;
-                ws.PageSetup.FitToPages(1, 1);
-
-                int totalCols = TotalColumns;
-
-                // ── Row 1: Title ──
-                var culture = new CultureInfo("ko-KR");
-                string[] dayNames = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
-                string dayName = dayNames[(int)_selectedDate.DayOfWeek];
-                string titleText = $"천안사업장 자재 & 물류 일정 현황  ({_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayName})";
-
-                var titleCell = ws.Cell(1, 1);
-                titleCell.Value = titleText;
-                ws.Range(1, 1, 1, totalCols).Merge();
-                titleCell.Style.Font.Bold = true;
-                titleCell.Style.Font.FontSize = 16;
-                titleCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                titleCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                ws.Row(1).Height = 30;
-
-                // ── Row 2: Section headers ──
-                // Person column
-                var personHeader = ws.Cell(2, 1);
-                personHeader.Value = "담당자";
-                personHeader.Style.Font.Bold = true;
-                personHeader.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");
-                personHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                ws.Range(2, 1, 3, 1).Merge();
-
-                // AM header
-                ws.Cell(2, 2).Value = "오전 (AM)";
-                ws.Range(2, 2, 2, 2 + Vehicles.Length).Merge();
-                ws.Cell(2, 2).Style.Font.Bold = true;
-                ws.Cell(2, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
-                ws.Cell(2, 2).Style.Font.FontColor = XLColor.FromHtml("#1E40AF");
-                ws.Cell(2, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // PM header
-                int pmStart = 2 + Vehicles.Length + 1;
-                ws.Cell(2, pmStart).Value = "오후 (PM)";
-                ws.Range(2, pmStart, 2, pmStart + Vehicles.Length).Merge();
-                ws.Cell(2, pmStart).Style.Font.Bold = true;
-                ws.Cell(2, pmStart).Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
-                ws.Cell(2, pmStart).Style.Font.FontColor = XLColor.FromHtml("#9A3412");
-                ws.Cell(2, pmStart).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // ── Row 3: Sub-headers ──
-                // AM dest
-                ws.Cell(3, 2).Value = "목적지 & 근무";
-                ws.Cell(3, 2).Style.Font.Bold = true;
-                ws.Cell(3, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#EFF6FF");
-                ws.Cell(3, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                for (int v = 0; v < Vehicles.Length; v++)
-                {
-                    var c = ws.Cell(3, 3 + v);
-                    c.Value = $"{Vehicles[v].Label.Replace("\n", " ")}";
-                    c.Style.Font.Bold = true;
-                    c.Style.Font.FontSize = 9;
-                    c.Style.Fill.BackgroundColor = XLColor.FromHtml("#EFF6FF");
-                    c.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    c.Style.Alignment.WrapText = true;
-                }
-
-                // PM dest
-                ws.Cell(3, pmStart).Value = "목적지 & 근무";
-                ws.Cell(3, pmStart).Style.Font.Bold = true;
-                ws.Cell(3, pmStart).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF7ED");
-                ws.Cell(3, pmStart).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                for (int v = 0; v < Vehicles.Length; v++)
-                {
-                    var c = ws.Cell(3, pmStart + 1 + v);
-                    c.Value = $"{Vehicles[v].Label.Replace("\n", " ")}";
-                    c.Style.Font.Bold = true;
-                    c.Style.Font.FontSize = 9;
-                    c.Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF7ED");
-                    c.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    c.Style.Alignment.WrapText = true;
-                }
-
-                ws.Row(2).Height = 22;
-                ws.Row(3).Height = 30;
-
-                // ── Data rows ──
-                int exRow = 4;
-                foreach (var row in _rows)
-                {
-                    ws.Cell(exRow, 1).Value = row.PersonName;
-                    ws.Cell(exRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-
-                    ws.Cell(exRow, 2).Value = row.AmDestination;
-
-                    for (int v = 0; v < Vehicles.Length; v++)
-                    {
-                        ws.Cell(exRow, 3 + v).Value = row.AmVehicle == Vehicles[v].Key ? "●" : "";
-                        ws.Cell(exRow, 3 + v).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        ws.Cell(exRow, 3 + v).Style.Font.FontSize = 14;
-                    }
-
-                    ws.Cell(exRow, pmStart).Value = row.PmDestination;
-
-                    for (int v = 0; v < Vehicles.Length; v++)
-                    {
-                        ws.Cell(exRow, pmStart + 1 + v).Value = row.PmVehicle == Vehicles[v].Key ? "●" : "";
-                        ws.Cell(exRow, pmStart + 1 + v).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        ws.Cell(exRow, pmStart + 1 + v).Style.Font.FontSize = 14;
-                    }
-
-                    ws.Row(exRow).Height = 22;
-                    exRow++;
-                }
-
-                // ── Special notes rows (오전/오후 분리) ──
-                string amNotes = TxtAmNotes.Text?.Trim() ?? "";
-                string pmNotes = TxtPmNotes.Text?.Trim() ?? "";
-                if (!string.IsNullOrEmpty(amNotes) || !string.IsNullOrEmpty(pmNotes))
-                {
-                    exRow++;
-                    // 오전 특이사항
-                    ws.Cell(exRow, 1).Value = "특이사항(오전)";
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
-                    ws.Range(exRow, 2, exRow, totalCols).Merge();
-                    ws.Cell(exRow, 2).Value = amNotes;
-                    ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
-                    ws.Row(exRow).Height = 40;
-
-                    exRow++;
-                    // 오후 특이사항
-                    ws.Cell(exRow, 1).Value = "특이사항(오후)";
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
-                    ws.Range(exRow, 2, exRow, totalCols).Merge();
-                    ws.Cell(exRow, 2).Value = pmNotes;
-                    ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
-                    ws.Row(exRow).Height = 40;
-                }
-
-                int lastRow = exRow;
-
-                // ── Borders ──
-                if (lastRow >= 2)
-                {
-                    var table = ws.Range(2, 1, lastRow, totalCols);
-                    table.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-                    table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                    table.Style.Border.OutsideBorderColor = XLColor.FromHtml("#475569");
-                    table.Style.Border.InsideBorderColor = XLColor.FromHtml("#CBD5E1");
-                }
-
-                // ── Column widths ──
-                ws.Column(1).Width = 16;  // 담당자
-                ws.Column(2).Width = 24;  // AM 목적지
-                for (int v = 0; v < Vehicles.Length; v++)
-                    ws.Column(3 + v).Width = 10; // AM vehicles
-                ws.Column(pmStart).Width = 24;    // PM 목적지
-                for (int v = 0; v < Vehicles.Length; v++)
-                    ws.Column(pmStart + 1 + v).Width = 10; // PM vehicles
-
-                ws.Range(2, 1, lastRow, totalCols).Style.Font.FontSize = 11;
-
-                wb.SaveAs(dlg.FileName);
-                MessageBox.Show("엑셀 파일이 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"엑셀 내보내기 중 오류:\n{ex.Message}", "오류",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
     }
 }
