@@ -711,6 +711,8 @@ namespace CleanPotal
         private void HeaderCreatePattern_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.CreatePattern();
         private void HeaderRegisterSchedule_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.RegisterSchedule();
 
+        private Expander? _activeExpander;   // 현재 활성(펼침 강조) 그룹 — 그룹이 바뀔 때만 애니메이션
+
         private void UpdateNavSelection(string viewName)
         {
             _isUpdatingNav = true;
@@ -731,34 +733,56 @@ namespace CleanPotal
             if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subNormal;
             if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subNormal;
 
-            ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
-            ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
-            if (ExpanderStatusBoard != null) ExpanderStatusBoard.Style = expNormal;
+            // 이 화면이 속한 활성 그룹(Expander) 결정
+            Expander? target = viewName switch
+            {
+                "Report" or "DispatchCert" or "DocSearch" or "WfConverter" => ExpanderEtc,
+                "Handover" or "WeeklyHandover" or "ProdReq" or "Schedule" or "PersonalTask" => ExpanderProduction,
+                "TeamSchedule" or "PersonalMemo" => ExpanderAttendance,
+                "Quotation" or "WeeklyReport" or "EduDashboard" or "WorkAssignment" or "BrokenMgmt" => ExpanderOffice,
+                "FieldChecklist" or "FieldInventory" => ExpanderFieldInspection,
+                "MaterialLogistics" or "ProductionBoard" or "DongtanLogistics" => ExpanderStatusBoard,
+                _ => null
+            };
 
+            // 서브버튼 선택 강조 (버튼은 출렁임 없음 — 매번 갱신)
             switch (viewName)
             {
                 case "Portal": BtnNavPortal.Style = mainSelected; break;
-                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
-                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
-                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
-                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
-                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "WfConverter": if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "MaterialLogistics": if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
-                case "ProductionBoard": if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
-                case "DongtanLogistics": if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subSelected; if (ExpanderStatusBoard != null) { ExpanderStatusBoard.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderStatusBoard); } break;
+                case "Report": BtnNavReport.Style = subSelected; break;
+                case "Handover": BtnNavHandover.Style = subSelected; break;
+                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; break;
+                case "ProdReq": BtnNavProdReq.Style = subSelected; break;
+                case "Schedule": BtnNavSchedule.Style = subSelected; break;
+                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; break;
+                case "Quotation": BtnNavQuotation.Style = subSelected; break;
+                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; break;
+                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; break;
+                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; break;
+                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; break;
+                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; break;
+                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; break;
+                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; break;
+                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; break;
+                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; break;
+                case "WfConverter": if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subSelected; break;
+                case "MaterialLogistics": if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subSelected; break;
+                case "ProductionBoard": if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subSelected; break;
+                case "DongtanLogistics": if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subSelected; break;
+            }
+
+            // Expander 스타일은 '활성 그룹이 바뀔 때만' 변경 → 같은 그룹 내 하위 메뉴 이동 시
+            // 접혔다 펴지는 '출렁임' 제거. (그룹을 새로 열 때만 펼침 애니메이션 재생)
+            if (target != _activeExpander)
+            {
+                if (_activeExpander != null) _activeExpander.Style = expNormal;
+                if (target != null)
+                {
+                    target.Style = expActive;
+                    if (_isSidebarOpen) ForceExpand(target);
+                }
+                _activeExpander = target;
             }
 
             _isUpdatingNav = false;
