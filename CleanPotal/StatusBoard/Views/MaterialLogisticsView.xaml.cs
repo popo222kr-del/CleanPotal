@@ -672,21 +672,31 @@ namespace CleanPotal.StatusBoard.Views
                 var prevBg = CaptureArea.Background;
                 double prevMaxH = TableScroll.MaxHeight;
                 double prevWidth = CaptureArea.Width;               // 기본 NaN(Auto)
+                double prevHeight = CaptureArea.Height;             // 기본 NaN(Auto)
                 var prevHA = CaptureArea.HorizontalAlignment;
+                var prevVA = CaptureArea.VerticalAlignment;
 
                 // 📱 모바일 공유용 컴팩트 폭. 목적지 컬럼은 별(*)이라 이 폭 안에서 자동으로 210 정도로 좁아진다.
-                //    핵심: 억지 Arrange 대신 Width 속성으로 폭을 고정해야 정상 레이아웃이 되돌리지 않는다.
+                //    핵심: 억지 Arrange 대신 Width/Height 속성으로 크기를 고정해야 정상 레이아웃이 되돌리지 않고,
+                //    창보다 내용이 커도 부모가 레이아웃 클립을 걸지 않아 가로·세로 모두 안 잘린다.
                 double target = 130 + 210 * 2 + Vehicles.Length * 2 * 70;   // 담당자130 + 목적지210×2 + 차량70×10 = 1250
 
                 CaptureHeader.Visibility = Visibility.Visible;
                 CaptureArea.Background = Brushes.White;
                 TableScroll.MaxHeight = double.PositiveInfinity;
                 CaptureArea.HorizontalAlignment = HorizontalAlignment.Left;
+                CaptureArea.VerticalAlignment = VerticalAlignment.Top;
                 CaptureArea.Width = target;
-                CaptureArea.UpdateLayout();   // 정상 레이아웃: CaptureArea 가 정확히 target 폭이 됨(안 되돌아감)
+                CaptureArea.UpdateLayout();
 
                 try
                 {
+                    // 폭 고정 후 '실제 필요한 전체 높이'를 구해 그 높이도 명시적으로 고정 → 세로 잘림 방지
+                    double neededH = CaptureArea.DesiredSize.Height;
+                    if (neededH < 1) neededH = CaptureArea.ActualHeight;
+                    CaptureArea.Height = neededH;
+                    CaptureArea.UpdateLayout();
+
                     // 스크롤뷰어 Clip(둥근 모서리용)이 이전 창 크기로 남아 표를 자르므로 현재 크기로 갱신
                     if (TableScroll.ActualWidth > 0 && TableScroll.ActualHeight > 0)
                         TableScroll.Clip = new RectangleGeometry(
@@ -694,6 +704,7 @@ namespace CleanPotal.StatusBoard.Views
 
                     double w = CaptureArea.ActualWidth, h = CaptureArea.ActualHeight;
                     if (w < 1) w = target;
+                    if (h < 1) h = neededH;
                     // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
                     var rtb = new RenderTargetBitmap(
                         (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
@@ -721,7 +732,9 @@ namespace CleanPotal.StatusBoard.Views
                     CaptureArea.Background = prevBg;
                     TableScroll.MaxHeight = prevMaxH;
                     CaptureArea.Width = prevWidth;                  // NaN → Auto 로 복구
+                    CaptureArea.Height = prevHeight;                // NaN → Auto 로 복구
                     CaptureArea.HorizontalAlignment = prevHA;
+                    CaptureArea.VerticalAlignment = prevVA;
                     UpdateLayout();
                 }
             }
