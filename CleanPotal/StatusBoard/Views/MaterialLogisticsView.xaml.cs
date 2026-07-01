@@ -656,85 +656,48 @@ namespace CleanPotal.StatusBoard.Views
         {
             try
             {
-                // 표는 뷰포트가 아니라 '표 전체(ScheduleGrid)'를 캡처해야 우측이 안 잘림
                 if (ScheduleGrid.ActualWidth < 1 || ScheduleGrid.ActualHeight < 1)
                 {
                     MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                const double scale = 4.0;   // 이 배율로 요소를 '직접' 재렌더 → 확대가 아니라 재렌더라 선명
-                const double pad = 16, gap = 10;
 
-                // 화면에 보이는 실제 요소를 고해상도로 직접 래스터화(벡터가 다시 그려져 선명 + 카드 테두리째 캡처 → 안 짤림)
-                RenderTargetBitmap RenderCrisp(FrameworkElement el)
-                {
-                    int pw = Math.Max(1, (int)Math.Ceiling(el.ActualWidth * scale));
-                    int ph = Math.Max(1, (int)Math.Ceiling(el.ActualHeight * scale));
-                    var bmp = new RenderTargetBitmap(pw, ph, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
-                    bmp.Render(el);
-                    bmp.Freeze();
-                    return bmp;
-                }
+                const double scale = 4.0;   // 컨테이너를 이 배율로 통째로 재렌더 → 벡터가 4배로 다시 그려져 선명
 
-                double tW = ScheduleGrid.ActualWidth, tH = ScheduleGrid.ActualHeight;
-
-                // 표는 스크롤뷰어 안이라 전체 폭인 ScheduleGrid를 렌더해야 우측이 안 잘린다.
-                var tableBmp = RenderCrisp(ScheduleGrid);
-                // ⚠️ 카드 루트에 그림자(Effect)가 있으면 RenderTargetBitmap.Render가 빈 이미지를 반환한다.
-                //    그래서 그림자 없는 안쪽 내용(NotesInner)만 렌더하고, 흰 배경·둥근 테두리는 합성 시 직접 그린다.
-                var notesBmp = RenderCrisp(NotesInner);
-                double niH = NotesInner.ActualHeight;
-                const double cardPad = 16;                  // CardStyle Padding 과 동일
-                double nH = niH + cardPad * 2;
-
-                // 표 폭을 기준으로 특이사항 폭을 맞춘다(화면처럼 좌우가 딱 맞게)
-                double contentW = tW;
-
-                SolidColorBrush B(string h) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)!);
+                // 캡처용 제목/날짜 텍스트
                 string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
-                string dateStr = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
+                TxtCaptureDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
 
-                double ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-                var mg = new FontFamily("Malgun Gothic");
-                var titleFt = new FormattedText("천안사업장 자재 & 물류 일정 현황",
-                    System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                    new Typeface(mg, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal), 24, B("#0F172A"), ppd);
-                var dateFt = new FormattedText(dateStr,
-                    System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                    new Typeface(mg, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 15, B("#475569"), ppd);
+                // 캡처 순간에만: 제목 표시 + 흰 배경 + 표 세로 제한 해제(행 많아도 안 잘림)
+                var prevBg = CaptureArea.Background;
+                double prevMaxH = TableScroll.MaxHeight;
+                CaptureHeader.Visibility = Visibility.Visible;
+                CaptureArea.Background = Brushes.White;
+                TableScroll.MaxHeight = double.PositiveInfinity;
+                CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
 
-                double headerH = titleFt.Height + 6 + dateFt.Height + 14;
-                double W = contentW + pad * 2;
-                double H = pad + headerH + tH + gap + nH + pad;
-
-                var dv = new DrawingVisual();
-                RenderOptions.SetBitmapScalingMode(dv, BitmapScalingMode.HighQuality);
-                using (var ctx = dv.RenderOpen())
+                try
                 {
-                    ctx.DrawRectangle(Brushes.White, null, new Rect(0, 0, W, H));
-                    double y = pad;
-                    ctx.DrawText(titleFt, new Point((W - titleFt.Width) / 2, y)); y += titleFt.Height + 6;
-                    ctx.DrawText(dateFt, new Point((W - dateFt.Width) / 2, y)); y += dateFt.Height + 14;
+                    double w = CaptureArea.ActualWidth, h = CaptureArea.ActualHeight;
+                    // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
+                    var rtb = new RenderTargetBitmap(
+                        (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
+                        96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    rtb.Render(CaptureArea);
+                    rtb.Freeze();
 
-                    var tr = new Rect(pad, y, contentW, tH);         // 표(1:1 → 선명), 특이사항과 같은 둥근 테두리
-                    ctx.DrawImage(tableBmp, tr);
-                    ctx.DrawRoundedRectangle(null, new Pen(B("#E2E8F0"), 1), tr, 12, 12);
-                    y += tH + gap;
-
-                    var nr = new Rect(pad, y, contentW, nH);         // 특이사항 카드: 흰 배경 + 둥근 테두리 직접 그림
-                    ctx.DrawRoundedRectangle(Brushes.White, new Pen(B("#E2E8F0"), 1), nr, 12, 12);
-                    ctx.DrawImage(notesBmp, new Rect(pad + cardPad, y + cardPad, contentW - cardPad * 2, niH));
+                    Clipboard.SetImage(rtb);
+                    MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
+                        "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-
-                var rtb = new RenderTargetBitmap(
-                    (int)Math.Ceiling(W * scale), (int)Math.Ceiling(H * scale),
-                    96 * scale, 96 * scale, PixelFormats.Pbgra32);
-                rtb.Render(dv);
-                rtb.Freeze();
-
-                Clipboard.SetImage(rtb);
-                MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
-                    "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                finally
+                {
+                    // 화면 원상 복구
+                    CaptureHeader.Visibility = Visibility.Collapsed;
+                    CaptureArea.Background = prevBg;
+                    TableScroll.MaxHeight = prevMaxH;
+                    CaptureArea.UpdateLayout();
+                }
             }
             catch (Exception ex)
             {

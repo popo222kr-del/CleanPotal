@@ -227,22 +227,39 @@
         <!-- Row 1 (중복 대제목 제거됨 — 날짜는 상단 툴바 달력에 표시) -->
 
         <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- Row 2: Main Schedule Table                                -->
+        <!-- Row 2: 캡처 영역 (제목/날짜 + 표 + 특이사항 한 덩어리)        -->
+        <!--   캡처는 이 컨테이너를 통째로 렌더 → 잘림 없음, 벡터 그대로 선명 -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="2" x:Name="TableCard" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
-                VerticalAlignment="Top">
-            <ScrollViewer x:Name="TableScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                          MaxHeight="640" SizeChanged="TableScroll_SizeChanged">
-                <Grid x:Name="ScheduleGrid" Margin="0">
-                    <!-- Columns defined in code-behind -->
-                </Grid>
-            </ScrollViewer>
-        </Border>
+        <Grid Grid.Row="2" x:Name="CaptureArea">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- 캡처용 제목/날짜(평소 숨김) -->
+                <RowDefinition Height="Auto"/>  <!-- 표 -->
+                <RowDefinition Height="Auto"/>  <!-- 특이사항 -->
+            </Grid.RowDefinitions>
 
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- Row 3: Special Notes (오전/오후 분리)                       -->
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="3" x:Name="NotesCard" Style="{StaticResource CardStyle}">
+            <!-- 캡처 전용 헤더: 평소 Collapsed(레이아웃 영향 없음), 캡처 순간에만 표시 -->
+            <StackPanel x:Name="CaptureHeader" Grid.Row="0" Visibility="Collapsed"
+                        HorizontalAlignment="Center" Margin="0,2,0,12">
+                <TextBlock Text="천안사업장 자재 &amp; 물류 일정 현황" FontFamily="Malgun Gothic"
+                           FontSize="22" FontWeight="Bold" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="TxtCaptureDate" FontFamily="Malgun Gothic"
+                           FontSize="14" FontWeight="SemiBold" Foreground="#475569"
+                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- 표 -->
+            <Border Grid.Row="1" x:Name="TableCard" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10"
+                    VerticalAlignment="Top">
+                <ScrollViewer x:Name="TableScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                              MaxHeight="640" SizeChanged="TableScroll_SizeChanged">
+                    <Grid x:Name="ScheduleGrid" Margin="0">
+                        <!-- Columns defined in code-behind -->
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+
+            <!-- 특이사항 (오전/오후 분리) -->
+            <Border Grid.Row="2" x:Name="NotesCard" Style="{StaticResource CardStyle}">
             <Grid x:Name="NotesInner">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>  <!-- 라벨 한 줄 -->
@@ -282,7 +299,8 @@
                              VerticalScrollBarVisibility="Auto"/>
                 </Border>
             </Grid>
-        </Border>
+            </Border>
+        </Grid>
 
     </Grid>
 </UserControl>
