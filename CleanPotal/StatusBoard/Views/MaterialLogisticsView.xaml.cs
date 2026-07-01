@@ -188,7 +188,7 @@ namespace CleanPotal.StatusBoard.Views
 
             // ── Row 0: Section Headers ──
             // 담당자는 row 0만 차지 (이름 헤더와 겹쳐 잘리던 문제 수정 — 기존 rowSpan=2 제거)
-            AddSectionHeader(grid, "담당자", 0, 0, 1, 1, "#0F172A", "#F1F5F9");
+            AddSectionHeader(grid, "자재/물류", 0, 0, 1, 1, "#0F172A", "#F1F5F9");
 
             // AM section
             AddSectionHeader(grid, "오전 (AM)", 0, ColAmDest, 1 + Vehicles.Length, 1, "#1E40AF", "#DBEAFE");
@@ -196,7 +196,7 @@ namespace CleanPotal.StatusBoard.Views
             AddSectionHeader(grid, "오후 (PM)", 0, ColPmDest, 1 + Vehicles.Length, 1, "#9A3412", "#FED7AA");
 
             // ── Row 1: Column Sub-headers ──
-            AddColumnHeader(grid, "이름", 1, ColPersonName, "#64748B", "#F8FAFC");
+            AddColumnHeader(grid, "담당자", 1, ColPersonName, "#64748B", "#F8FAFC");
             AddColumnHeader(grid, "목적지 & 근무", 1, ColAmDest, "#1E40AF", "#EFF6FF");
             for (int v = 0; v < Vehicles.Length; v++)
                 AddColumnHeader(grid, Vehicles[v].Label, 1, ColAmVehicleStart + v, "#1E40AF", "#EFF6FF");

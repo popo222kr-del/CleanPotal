@@ -77,7 +77,17 @@
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
                 <ListBox x:Name="LstMembers" BorderThickness="0" Background="Transparent" Padding="4"
-                         FontSize="14" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                         FontSize="14" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <!-- 이름 인라인 수정: 셀 클릭 후 바로 편집 -->
+                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                     BorderThickness="0" Background="Transparent" FontSize="14"
+                                     Padding="4,3" GotFocus="MemberBox_GotFocus"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="8,0,0,0">
                 <Button Content="▲ 위로" Style="{StaticResource Btn}" Padding="10,7" Margin="0,0,0,6" Click="BtnUp_Click"/>
