@@ -88,8 +88,8 @@
 
         <!-- ── Date Chevron (◀▶ 원형 플랫) ── -->
         <Style x:Key="DateChevron" TargetType="Button">
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="#475569"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width" Value="30"/>
@@ -195,19 +195,17 @@
                             Padding="3" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="BtnPrevDay" Style="{StaticResource DateChevron}"
-                                    Content="&#xE76B;" Click="BtnPrevDay_Click" ToolTip="이전 날"/>
+                                    Content="◀" Click="BtnPrevDay_Click" ToolTip="이전 날"/>
                             <Button x:Name="BtnDatePill" Style="{StaticResource DatePillBtn}" Click="BtnDatePill_Click">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                               Foreground="#2563EB" VerticalAlignment="Center" Margin="0,0,7,0"/>
                                     <TextBlock x:Name="TxtDatePill" FontSize="14" FontWeight="SemiBold"
                                                Foreground="#0F172A" VerticalAlignment="Center"/>
-                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                    <TextBlock Text="▾" FontSize="11"
                                                Foreground="#94A3B8" VerticalAlignment="Center" Margin="7,0,0,0"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnNextDay" Style="{StaticResource DateChevron}"
-                                    Content="&#xE76C;" Click="BtnNextDay_Click" ToolTip="다음 날"/>
+                                    Content="▶" Click="BtnNextDay_Click" ToolTip="다음 날"/>
                         </StackPanel>
                     </Border>
                     <Button x:Name="BtnToday" Content="오늘" Style="{StaticResource GhostBtn}"
@@ -263,16 +261,12 @@
                                 HorizontalAlignment="Left">
                             <TextBlock Text="오전 (AM)" FontSize="13" FontWeight="Bold" Foreground="#1E40AF"/>
                         </Border>
-                        <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                                 MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
-                                 BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8"
-                                 VerticalScrollBarVisibility="Auto">
-                            <TextBox.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="8"/>
-                                </Style>
-                            </TextBox.Resources>
-                        </TextBox>
+                        <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                            <TextBox x:Name="TxtAmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
+                                     BorderThickness="0" Background="Transparent" Padding="10,8"
+                                     VerticalScrollBarVisibility="Auto"/>
+                        </Border>
                     </StackPanel>
 
                     <!-- 오후 -->
@@ -281,16 +275,12 @@
                                 HorizontalAlignment="Left">
                             <TextBlock Text="오후 (PM)" FontSize="13" FontWeight="Bold" Foreground="#9A3412"/>
                         </Border>
-                        <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
-                                 MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
-                                 BorderBrush="#E2E8F0" BorderThickness="1" Padding="10,8"
-                                 VerticalScrollBarVisibility="Auto">
-                            <TextBox.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="8"/>
-                                </Style>
-                            </TextBox.Resources>
-                        </TextBox>
+                        <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White">
+                            <TextBox x:Name="TxtPmNotes" AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="80" MaxHeight="160" FontSize="15" Foreground="#334155"
+                                     BorderThickness="0" Background="Transparent" Padding="10,8"
+                                     VerticalScrollBarVisibility="Auto"/>
+                        </Border>
                     </StackPanel>
                 </Grid>
             </StackPanel>
