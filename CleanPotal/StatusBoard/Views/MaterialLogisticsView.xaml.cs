@@ -697,7 +697,16 @@ namespace CleanPotal.StatusBoard.Views
                     rtb.Render(CaptureArea);
                     rtb.Freeze();
 
-                    Clipboard.SetImage(rtb);
+                    // ⚠️ rtb 는 384 DPI(96×4)라 붙여넣는 앱이 논리 크기를 1/4로 축소해 흐리게 보일 수 있다.
+                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 8000px 원본 그대로 표시 → 선명.
+                    int stride = rtb.PixelWidth * 4;
+                    var pixels = new byte[stride * rtb.PixelHeight];
+                    rtb.CopyPixels(pixels, stride, 0);
+                    var outBmp = BitmapSource.Create(rtb.PixelWidth, rtb.PixelHeight,
+                        96, 96, PixelFormats.Pbgra32, null, pixels, stride);
+                    outBmp.Freeze();
+
+                    Clipboard.SetImage(outBmp);
                     MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
                         "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
