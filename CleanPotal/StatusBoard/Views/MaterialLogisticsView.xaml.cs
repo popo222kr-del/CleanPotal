@@ -217,15 +217,17 @@ namespace CleanPotal.StatusBoard.Views
                 var row = _rows[i];
                 bool amOff = IsOff(row.AmDestination);
                 bool pmOff = IsOff(row.PmDestination);
-                bool anyOff = amOff || pmOff;
-                // 휴무 행은 배경을 회색빛으로 뚜렷하게
-                string altBg = anyOff ? "#F1F5F9" : ((i % 2 == 0) ? "#FFFFFF" : "#FAFAFA");
+                bool bothOff = amOff && pmOff;
+                string altBg = (i % 2 == 0) ? "#FFFFFF" : "#FAFAFA";
+                const string offBg = "#CBD5E1";   // 휴무 영역 배경(짙은 회색)
+                string amBg = amOff ? offBg : altBg;
+                string pmBg = pmOff ? offBg : altBg;
 
-                // Person name (고정 표시 — 휴무면 이름 옆 배지)
-                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg, anyOff);
+                // Person name — 오전·오후 둘 다 휴무일 때만 연하게(배지 없음)
+                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg, bothOff);
 
                 // AM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
-                AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155",
+                AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, amBg, "#334155",
                     (val) => { bool w = IsOff(row.AmDestination); row.AmDestination = val; if (w != IsOff(val)) BuildGrid(); }, amOff);
 
                 // AM vehicle toggles
@@ -233,12 +235,12 @@ namespace CleanPotal.StatusBoard.Views
                 {
                     int vi = v; // capture
                     bool isAssigned = row.AmVehicle == Vehicles[v].Key;
-                    AddVehicleToggle(grid, gridRow, ColAmVehicleStart + v, isAssigned, altBg,
+                    AddVehicleToggle(grid, gridRow, ColAmVehicleStart + v, isAssigned, amBg,
                         () => ToggleVehicle(row, "AM", Vehicles[vi].Key));
                 }
 
                 // PM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
-                AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155",
+                AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, pmBg, "#334155",
                     (val) => { bool w = IsOff(row.PmDestination); row.PmDestination = val; if (w != IsOff(val)) BuildGrid(); }, pmOff);
 
                 // PM vehicle toggles
@@ -246,7 +248,7 @@ namespace CleanPotal.StatusBoard.Views
                 {
                     int vi = v;
                     bool isAssigned = row.PmVehicle == Vehicles[v].Key;
-                    AddVehicleToggle(grid, gridRow, ColPmVehicleStart + v, isAssigned, altBg,
+                    AddVehicleToggle(grid, gridRow, ColPmVehicleStart + v, isAssigned, pmBg,
                         () => ToggleVehicle(row, "PM", Vehicles[vi].Key));
                 }
 
@@ -354,7 +356,7 @@ namespace CleanPotal.StatusBoard.Views
         {
             var border = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#FEE2E2" : bgHex)!),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
                 BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
                 BorderThickness = new Thickness(0, 0, 1, 0),
                 Padding = new Thickness(8, 4, 4, 4)
@@ -539,8 +541,8 @@ namespace CleanPotal.StatusBoard.Views
             return (r.VendorName ?? "").Trim();
         }
 
-        // 담당자 이름: 고정 표시(읽기 전용). 휴무면 이름 옆에 빨간 '휴무' 배지.
-        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex, bool off = false)
+        // 담당자 이름: 고정 표시(읽기 전용). dim=true(오전·오후 둘 다 휴무)면 이름을 연하게.
+        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex, bool dim = false)
         {
             var border = new Border
             {
@@ -549,34 +551,16 @@ namespace CleanPotal.StatusBoard.Views
                 BorderThickness = new Thickness(0, 0, 1, 0),
                 Padding = new Thickness(6, 4, 6, 4)
             };
-            var sp = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            sp.Children.Add(new TextBlock
+            border.Child = new TextBlock
             {
                 Text = value ?? "",
                 FontSize = 15,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#94A3B8" : "#334155")!),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dim ? "#B0B8C4" : "#334155")!),
+                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
-            });
-            if (off)
-            {
-                sp.Children.Add(new Border
-                {
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626")!),
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(5, 1, 5, 1),
-                    Margin = new Thickness(6, 0, 0, 0),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Child = new TextBlock { Text = "휴무", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.White }
-                });
-            }
-            border.Child = sp;
+            };
             Grid.SetRow(border, row);
             Grid.SetColumn(border, col);
             grid.Children.Add(border);
