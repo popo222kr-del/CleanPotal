@@ -27,7 +27,10 @@ namespace CleanPotal.StatusBoard.Views
         };
 
         // 목적지&근무 고정 빠른선택(배차 유무와 무관하게 항상 표시)
-        private static readonly string[] QuickOptions = { "내근", "차량검사소", "천안 ↔ 동탄" };
+        private static readonly string[] QuickOptions = { "내근", "차량검사소", "천안 ↔ 동탄", "단축근무 (휴무)", "휴무" };
+
+        // 휴무 판정 (목적지에 '휴무' 포함)
+        private static bool IsOff(string? s) => (s ?? "").Contains("휴무");
 
         private readonly ObservableCollection<MaterialLogisticsRow> _rows = new();
         private DateTime _selectedDate;
@@ -212,14 +215,18 @@ namespace CleanPotal.StatusBoard.Views
             {
                 int gridRow = i + 2;
                 var row = _rows[i];
-                string altBg = (i % 2 == 0) ? "#FFFFFF" : "#FAFAFA";
+                bool amOff = IsOff(row.AmDestination);
+                bool pmOff = IsOff(row.PmDestination);
+                bool anyOff = amOff || pmOff;
+                // 휴무 행은 배경을 회색빛으로 뚜렷하게
+                string altBg = anyOff ? "#F1F5F9" : ((i % 2 == 0) ? "#FFFFFF" : "#FAFAFA");
 
-                // Person name (고정 표시 — 인원 관리에서만 변경)
-                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg);
+                // Person name (고정 표시 — 휴무면 이름 옆 배지)
+                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg, anyOff);
 
                 // AM destination (editable + 배차 불러오기)
                 AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155",
-                    (val) => row.AmDestination = val);
+                    (val) => row.AmDestination = val, amOff);
 
                 // AM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
@@ -232,7 +239,7 @@ namespace CleanPotal.StatusBoard.Views
 
                 // PM destination (editable + 배차 불러오기)
                 AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155",
-                    (val) => row.PmDestination = val);
+                    (val) => row.PmDestination = val, pmOff);
 
                 // PM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
@@ -341,13 +348,13 @@ namespace CleanPotal.StatusBoard.Views
             grid.Children.Add(border);
         }
 
-        // 목적지 & 근무 셀: 직접 입력 TextBox + '배차 불러오기' 드롭다운(▾)
+        // 목적지 & 근무 셀: 직접 입력 TextBox + '배차 불러오기' 드롭다운(▾). 휴무면 셀 강조.
         private void AddDestinationCell(Grid grid, int row, int col, string value, string bgHex,
-            string fgHex, Action<string> onChanged)
+            string fgHex, Action<string> onChanged, bool off = false)
         {
             var border = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#FEE2E2" : bgHex)!),
                 BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
                 BorderThickness = new Thickness(0, 0, 1, 0),
                 Padding = new Thickness(8, 4, 4, 4)
@@ -361,7 +368,8 @@ namespace CleanPotal.StatusBoard.Views
             {
                 Text = value ?? "",
                 FontSize = 15,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
+                FontWeight = off ? FontWeights.Bold : FontWeights.Normal,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#DC2626" : fgHex)!),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 VerticalContentAlignment = VerticalAlignment.Center,
@@ -531,26 +539,44 @@ namespace CleanPotal.StatusBoard.Views
             return (r.VendorName ?? "").Trim();
         }
 
-        // 담당자 이름: 고정 표시(읽기 전용)
-        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex)
+        // 담당자 이름: 고정 표시(읽기 전용). 휴무면 이름 옆에 빨간 '휴무' 배지.
+        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex, bool off = false)
         {
             var border = new Border
             {
                 Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
                 BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
                 BorderThickness = new Thickness(0, 0, 1, 0),
-                Padding = new Thickness(8, 4, 8, 4)
+                Padding = new Thickness(6, 4, 6, 4)
             };
-            border.Child = new TextBlock
+            var sp = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            sp.Children.Add(new TextBlock
             {
                 Text = value ?? "",
                 FontSize = 15,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")!),
-                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#94A3B8" : "#334155")!),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
-            };
+            });
+            if (off)
+            {
+                sp.Children.Add(new Border
+                {
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626")!),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(5, 1, 5, 1),
+                    Margin = new Thickness(6, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock { Text = "휴무", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.White }
+                });
+            }
+            border.Child = sp;
             Grid.SetRow(border, row);
             Grid.SetColumn(border, col);
             grid.Children.Add(border);
