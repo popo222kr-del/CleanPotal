@@ -53,6 +53,14 @@ namespace CleanPotal.StatusBoard.Views
         //  Date Navigation
         // ══════════════════════════════════════════════════════════════
 
+        // 표 카드의 둥근 모서리: WPF Border는 자식을 라운드로 클립하지 않으므로
+        // ScrollViewer에 크기에 맞춘 둥근 사각형 Clip을 씌워 헤더/셀 모서리를 둥글게 처리.
+        private void TableScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.ActualWidth > 0 && fe.ActualHeight > 0)
+                fe.Clip = new RectangleGeometry(new Rect(0, 0, fe.ActualWidth, fe.ActualHeight), 11, 11);
+        }
+
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e)
         {
             _selectedDate = _selectedDate.AddDays(-1);
