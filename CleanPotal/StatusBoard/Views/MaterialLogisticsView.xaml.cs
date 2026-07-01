@@ -26,6 +26,9 @@ namespace CleanPotal.StatusBoard.Views
             ("1t\n(4795)", "4795"),
         };
 
+        // 목적지&근무 고정 빠른선택(배차 유무와 무관하게 항상 표시)
+        private static readonly string[] QuickOptions = { "내근", "차량검사소", "천안 ↔ 동탄" };
+
         private readonly ObservableCollection<MaterialLogisticsRow> _rows = new();
         private DateTime _selectedDate;
         private bool _isLoading; // suppress events during programmatic changes
@@ -409,24 +412,6 @@ namespace CleanPotal.StatusBoard.Views
                 return;
             }
 
-            if (records.Count == 0)
-            {
-                MessageBox.Show(
-                    $"{_selectedDate:yyyy-MM-dd} 날짜의 배차 이력이 없습니다.\n\n현장 인수인계 > 배차 이력에서 먼저 배차를 작성해 주세요.",
-                    "배차 불러오기", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var sp = new StackPanel { Margin = new Thickness(0) };
-            sp.Children.Add(new TextBlock
-            {
-                Text = $"{_selectedDate:M월 d일} 배차 ({records.Count}건) — 선택하면 입력됩니다",
-                FontSize = 11,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")!),
-                Margin = new Thickness(10, 8, 10, 6)
-            });
-
             var popup = new Popup
             {
                 PlacementTarget = anchor,
@@ -435,43 +420,70 @@ namespace CleanPotal.StatusBoard.Views
                 AllowsTransparency = true
             };
 
-            foreach (var r in records)
+            SolidColorBrush Br(string hex) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!);
+
+            TextBlock Section(string t) => new TextBlock
             {
-                string fill = BuildDestinationText(r);
-                var itemBtn = new Button
+                Text = t, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = Br("#64748B"), Margin = new Thickness(10, 8, 10, 6)
+            };
+
+            Button ItemBtn(object content, string fill)
+            {
+                var b = new Button
                 {
-                    Content = BuildDispatchItemContent(r),
+                    Content = content,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0, 0, 0, 1),
-                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")!),
+                    BorderBrush = Br("#F1F5F9"),
                     Padding = new Thickness(10, 7, 10, 7),
                     Cursor = Cursors.Hand
                 };
-                itemBtn.Click += (_, _) =>
-                {
-                    target.Text = fill;
-                    onChanged(fill);
-                    popup.IsOpen = false;
-                };
-                sp.Children.Add(itemBtn);
+                b.Click += (_, _) => { target.Text = fill; onChanged(fill); popup.IsOpen = false; };
+                return b;
             }
 
-            var scroll = new ScrollViewer
-            {
-                Content = sp,
-                MaxHeight = 320,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-            };
+            // 왼쪽: 배차 목록 (없으면 안내)
+            var leftSp = new StackPanel();
+            leftSp.Children.Add(Section($"{_selectedDate:M월 d일} 배차 ({records.Count}건)"));
+            if (records.Count == 0)
+                leftSp.Children.Add(new TextBlock
+                {
+                    Text = "배차 목록 없음", FontSize = 13, Foreground = Br("#94A3B8"),
+                    Margin = new Thickness(12, 4, 12, 14)
+                });
+            else
+                foreach (var r in records)
+                    leftSp.Children.Add(ItemBtn(BuildDispatchItemContent(r), BuildDestinationText(r)));
+
+            // 오른쪽: 고정 빠른선택 (항상 표시)
+            var rightSp = new StackPanel();
+            rightSp.Children.Add(Section("빠른 선택"));
+            foreach (var opt in QuickOptions)
+                rightSp.Children.Add(ItemBtn(
+                    new TextBlock { Text = opt, FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = Br("#0F172A") },
+                    opt));
+
+            var layout = new Grid();
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1) });
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+            var leftScroll = new ScrollViewer { Content = leftSp, MaxHeight = 320, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetColumn(leftScroll, 0); layout.Children.Add(leftScroll);
+            var divider = new Border { Background = Br("#E2E8F0") };
+            Grid.SetColumn(divider, 1); layout.Children.Add(divider);
+            Grid.SetColumn(rightSp, 2); layout.Children.Add(rightSp);
+
             var listBorder = new Border
             {
                 Background = Brushes.White,
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")!),
+                BorderBrush = Br("#CBD5E1"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
-                MinWidth = 360,
-                MaxWidth = 560,
-                Child = scroll,
+                MinWidth = 440,
+                MaxWidth = 640,
+                Child = layout,
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = (Color)ColorConverter.ConvertFromString("#94A3B8")!,
