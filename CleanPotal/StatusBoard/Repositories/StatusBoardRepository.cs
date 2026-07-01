@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using CleanPotal.StatusBoard.Models;
 using Dapper;
@@ -11,9 +12,12 @@ namespace CleanPotal.StatusBoard.Repositories
         // ===================================================================
         // 테이블 초기화
         // ===================================================================
-        public static void InitializeTables()
+        public static void InitializeTables(IDbConnection? shared = null)
         {
-            using var db = DatabaseHelper.GetConnection();
+            // shared 연결이 오면 재사용(닫지 않음) — 시작 시 NAS 연결 왕복 절감
+            var db = shared ?? DatabaseHelper.GetConnection();
+            try
+            {
 
             // 1. MaterialLogisticsBoard (자재물류 일정 현황 - 천안사업장)
             db.Execute(@"
@@ -99,6 +103,8 @@ namespace CleanPotal.StatusBoard.Repositories
                     UpdatedAt       TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 );");
             db.Execute("CREATE INDEX IF NOT EXISTS IX_DtQty_Date ON DongtanQuantity(BoardDate);");
+            }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         // ===================================================================
