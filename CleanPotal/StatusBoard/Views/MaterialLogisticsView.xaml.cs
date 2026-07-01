@@ -671,40 +671,29 @@ namespace CleanPotal.StatusBoard.Views
                 // 캡처 순간에만 바꿀 항목들 저장(끝나면 원복)
                 var prevBg = CaptureArea.Background;
                 double prevMaxH = TableScroll.MaxHeight;
-                var prevHsb = TableScroll.HorizontalScrollBarVisibility;
-                var amCol = ScheduleGrid.ColumnDefinitions[ColAmDest];
-                var pmCol = ScheduleGrid.ColumnDefinitions[ColPmDest];
-                var prevAmW = amCol.Width;
-                var prevPmW = pmCol.Width;
+                double prevWidth = CaptureArea.Width;               // 기본 NaN(Auto)
+                var prevHA = CaptureArea.HorizontalAlignment;
+
+                // 📱 모바일 공유용 컴팩트 폭. 목적지 컬럼은 별(*)이라 이 폭 안에서 자동으로 210 정도로 좁아진다.
+                //    핵심: 억지 Arrange 대신 Width 속성으로 폭을 고정해야 정상 레이아웃이 되돌리지 않는다.
+                double target = 130 + 210 * 2 + Vehicles.Length * 2 * 70;   // 담당자130 + 목적지210×2 + 차량70×10 = 1250
 
                 CaptureHeader.Visibility = Visibility.Visible;
                 CaptureArea.Background = Brushes.White;
                 TableScroll.MaxHeight = double.PositiveInfinity;
-                TableScroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
-                // 📱 모바일 공유용: 목적지 컬럼이 별(*)이라 최대화 창 폭만큼 늘어나 표가 너무 넓어진다.
-                //    캡처 때만 고정폭으로 좁혀 엑셀처럼 컴팩트한 비율 → 세로 폰에서도 잘 보임.
-                amCol.Width = new GridLength(210);
-                pmCol.Width = new GridLength(210);
-                CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
+                CaptureArea.HorizontalAlignment = HorizontalAlignment.Left;
+                CaptureArea.Width = target;
+                CaptureArea.UpdateLayout();   // 정상 레이아웃: CaptureArea 가 정확히 target 폭이 됨(안 되돌아감)
 
                 try
                 {
-                    // ⚠️ 목적지 컬럼을 고정(210)했으니 표의 전체 폭은 결정적으로 계산된다.
-                    //    별(*)+스크롤뷰어의 DesiredSize 는 창 폭을 반영해 부정확하므로 직접 계산한다.
-                    //    제목을 넣으면 내용이 아래로 밀려 하단이 창 밖으로 나가고, RenderTargetBitmap 은
-                    //    창에 그려진 부분만 캡처하므로 → '계산된 폭·전체 높이'로 강제 측정·배치한다.
-                    double target = 130 + 210 * 2 + Vehicles.Length * 2 * 70;   // 담당자130 + 목적지210×2 + 차량70×10
-                    CaptureArea.Measure(new Size(target, double.PositiveInfinity));
-                    var full = new Size(target, CaptureArea.DesiredSize.Height);
-                    CaptureArea.Arrange(new Rect(full));
-                    CaptureArea.UpdateLayout();
-
                     // 스크롤뷰어 Clip(둥근 모서리용)이 이전 창 크기로 남아 표를 자르므로 현재 크기로 갱신
                     if (TableScroll.ActualWidth > 0 && TableScroll.ActualHeight > 0)
                         TableScroll.Clip = new RectangleGeometry(
                             new Rect(0, 0, TableScroll.ActualWidth, TableScroll.ActualHeight), 11, 11);
 
-                    double w = full.Width, h = full.Height;
+                    double w = CaptureArea.ActualWidth, h = CaptureArea.ActualHeight;
+                    if (w < 1) w = target;
                     // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
                     var rtb = new RenderTargetBitmap(
                         (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
@@ -713,7 +702,7 @@ namespace CleanPotal.StatusBoard.Views
                     rtb.Freeze();
 
                     // ⚠️ rtb 는 384 DPI(96×4)라 붙여넣는 앱이 논리 크기를 1/4로 축소해 흐리게 보일 수 있다.
-                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 8000px 원본 그대로 표시 → 선명.
+                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 원본 픽셀 그대로 표시 → 선명.
                     int stride = rtb.PixelWidth * 4;
                     var pixels = new byte[stride * rtb.PixelHeight];
                     rtb.CopyPixels(pixels, stride, 0);
@@ -727,16 +716,12 @@ namespace CleanPotal.StatusBoard.Views
                 }
                 finally
                 {
-                    // 화면 원상 복구(강제 배치를 무효화하고 정상 레이아웃 재계산)
+                    // 화면 원상 복구
                     CaptureHeader.Visibility = Visibility.Collapsed;
                     CaptureArea.Background = prevBg;
                     TableScroll.MaxHeight = prevMaxH;
-                    TableScroll.HorizontalScrollBarVisibility = prevHsb;
-                    amCol.Width = prevAmW;
-                    pmCol.Width = prevPmW;
-                    CaptureArea.InvalidateMeasure();
-                    CaptureArea.InvalidateArrange();
-                    ScheduleGrid.InvalidateMeasure();
+                    CaptureArea.Width = prevWidth;                  // NaN → Auto 로 복구
+                    CaptureArea.HorizontalAlignment = prevHA;
                     UpdateLayout();
                 }
             }
