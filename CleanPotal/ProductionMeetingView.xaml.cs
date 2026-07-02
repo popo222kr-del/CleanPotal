@@ -2176,8 +2176,7 @@ namespace CleanPotal
             if (_isDirty) return;
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var lastModified = File.GetLastWriteTime(StoragePath);
+                var lastModified = GetWatchTime();
                 if (lastModified <= _lastFileModified) return;
                 string? currentReportId = _currentReport?.Id;
                 LoadFromStorage();
@@ -2645,42 +2644,31 @@ namespace CleanPotal
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
-
-        private static List<PersistedGroup>? TryReadStorageFile(string path)
+        // 생산회의는 이제 SQLite(dispatch.db) 의 AppData['production_meetings'] 에 저장(원자적 저장 → 손상/백업 불필요).
+        private const string StorageKey = "production_meetings";
+        private static string StorageWatchPath => Path.Combine(AppPaths.DataRoot, "dispatch.db");
+        private static DateTime GetWatchTime()
         {
-            try
-            {
-                if (!File.Exists(path)) return null;
-                var json = File.ReadAllText(path);
-                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-            }
-            catch { return null; }
+            try { if (File.Exists(StorageWatchPath)) return File.GetLastWriteTime(StorageWatchPath); }
+            catch { }
+            return DateTime.MinValue;
         }
 
         private void LoadFromStorage()
         {
-            List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
-
-            // 메인 파일 손상/누락 시 백업 1~10에서 자동 복구 시도
-            if (data == null)
+            List<PersistedGroup>? data = null;
+            try
             {
-                for (int i = 1; i <= 10; i++)
-                {
-                    var backup = TryReadStorageFile($"{StoragePath}.bak{i}");
-                    if (backup != null)
-                    {
-                        data = backup;
-                        try { File.Copy($"{StoragePath}.bak{i}", StoragePath, true); } catch { }
-                        break;
-                    }
-                }
+                string? json = AppDataRepository.Get(StorageKey);
+                if (!string.IsNullOrWhiteSpace(json))
+                    data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
             }
+            catch { }
             if (data == null) return;
 
             try
             {
-                if (File.Exists(StoragePath))
-                    _lastFileModified = File.GetLastWriteTime(StoragePath);
+                _lastFileModified = GetWatchTime();
 
                 string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
@@ -2760,24 +2748,7 @@ namespace CleanPotal
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
-
-                // 🔒 저장 전 회전식 백업: production_meetings.json.bak1 ~ bak10 (최근 10회 보존)
-                if (File.Exists(StoragePath))
-                {
-                    try
-                    {
-                        for (int i = 9; i >= 1; i--)
-                        {
-                            string from = $"{StoragePath}.bak{i}";
-                            string to = $"{StoragePath}.bak{i + 1}";
-                            if (File.Exists(from)) File.Copy(from, to, true);
-                        }
-                        File.Copy(StoragePath, $"{StoragePath}.bak1", true);
-                    }
-                    catch { /* 백업 실패는 무시하고 저장 진행 */ }
-                }
-
+                // SQLite 원자적 저장이라 기존 회전식 파일 백업(.bak1~10)은 불필요.
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {
                     MonthTitle = g.MonthTitle,
@@ -2816,7 +2787,8 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
 
-                File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                AppDataRepository.Set(StorageKey, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = GetWatchTime();
             }
             catch { }
         }
