@@ -28,6 +28,15 @@ namespace CleanPotal
         public static string LegacyHandoverFilePath => Path.Combine(DataRoot, "handover.json");
         public static string LegacyMigratedBakPath => Path.Combine(DataRoot, "handover_migrated.bak");
 
+        // 🚧 JSON→SQLite 이관 스위치. 이 플래그 파일이 DataRoot 에 '있을 때만' 이관을 실행한다.
+        //    배포일에 파일 하나만 만들면 그 시점의 JSON을 DB로 덮어쓰기 이관.
+        //    (없으면 이관 안 함 → 갭 동안 전 PC 구버전으로 JSON 그대로 사용 가능)
+        public static string MigrationFlagPath => Path.Combine(DataRoot, "ENABLE_DB_MIGRATION.flag");
+        public static bool DbMigrationEnabled
+        {
+            get { try { return File.Exists(MigrationFlagPath); } catch { return false; } }
+        }
+
         private static string GetDynamicDataRoot()
         {
             if (IsDesigner) return @"C:\Temp\CleanPotal";
