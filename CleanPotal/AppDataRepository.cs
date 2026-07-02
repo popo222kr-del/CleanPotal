@@ -28,6 +28,7 @@ namespace CleanPotal
                 // 파일 기반 JSON → AppData 1회 이관 (여기 등록하면 시작 시 자동 이관)
                 MigrateFile(db, "weekly_reports", Path.Combine(AppPaths.DataRoot, "weekly_reports.json"));
                 MigrateFile(db, "production_meetings", Path.Combine(AppPaths.DataRoot, "production_meetings.json"));
+                MigrateFile(db, "vendors", Path.Combine(AppPaths.DataRoot, "vendors.json"));
             }
             finally
             {

@@ -132,7 +132,8 @@ namespace CleanPotal
             // 공지는 이제 SQLite(dispatch.db)에 저장되므로 JSON 대신 DB 파일 변경을 감시해 다른 PC 반영
             _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
             _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
-            _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); RefreshVendorSuggestions(); }); }, AppPaths.VendorsFilePath);
+            // 업체 목록도 SQLite(dispatch.db)로 이전됨 → vendors.json 대신 DB 파일 변경 감시
+            _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); RefreshVendorSuggestions(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
 
             this.Loaded += (s, e) => { _noticeSyncManager.Start(); _dbSyncManager.Start(); _vendorSyncManager.Start(); };
             this.Unloaded += (s, e) => { _noticeSyncManager.Stop(); _dbSyncManager.Stop(); _vendorSyncManager.Stop(); };
