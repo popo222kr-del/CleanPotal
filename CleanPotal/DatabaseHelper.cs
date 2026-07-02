@@ -78,6 +78,9 @@ namespace CleanPotal
 
                 // 🔥 사무실 공지: office_notice.json → SQLite 이관(파일럿)
                 OfficeNoticeRepository.InitializeTables(connection);
+
+                // 🔥 범용 앱 데이터(blob) 테이블 + weekly_reports.json 등 문서형 JSON 이관
+                AppDataRepository.InitializeTables(connection);
             }
             finally { if (shared == null) connection.Dispose(); }
         }
