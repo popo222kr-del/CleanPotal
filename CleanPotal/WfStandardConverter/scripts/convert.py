@@ -23,7 +23,7 @@ COVER_SHEET="모표준_AQI-AW-W104a"; HIST_SHEET="재.개정 이력"
 def rev_of(fn):
     m=re.search(r'[Rr]ev[.\s]*0*(\d+)', fn or ""); return m.group(1).zfill(2) if m else ""
 
-def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
+def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None, with_original=False):
     # 표지/재.개정 이력에 찍히는 제·개정 일자 (미지정 시 변환 실행일)
     if not today:
         import datetime; today=datetime.date.today().strftime("%Y.%m.%d")
@@ -87,8 +87,9 @@ def convert(mapping_path, out_dir, tmp="/tmp/_conv", today=None):
                     print(f"    · ⚠ 헤더 문서번호 미검출: {os.path.basename(s['src'])}", flush=True)
             changed=[t for t in src_sheets if XM.sheet_has_guide(sd, t[1], sst)]
             if not changed: changed=src_sheets
-            # 기존(원본) 비교본은 '항상' 원본 전체 시트를 손대지 않고 첨부 → before/after 비교 가능.
-            existing=list(src_sheets)
+            # 기존(원본) 비교본: with_original 이 True 일 때만 원본 전체 시트를 손대지 않고 첨부.
+            #   (기본값 False → 변경문서만 출력. 사용자가 원할 때만 원본 비교본을 함께 붙임)
+            existing=list(src_sheets) if with_original else []
             # 같은 문서의 여러 개정본이 시트로 들어있으면 최신 Rev 만 남기고 옛 Rev 제외.
             # 시트명의 'Rev.N'(rev.05 등)을 읽어 최댓값만 유지. Rev 표기 없는 시트는 유지.
             def _revnum(nm):

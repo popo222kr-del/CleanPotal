@@ -122,10 +122,14 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <ProgressBar x:Name="ConvertProgress" Grid.Column="0" Height="20" Minimum="0" Maximum="100" Value="0" Margin="0,0,16,0"
                                      Foreground="#2563EB" Background="#E2E8F0"/>
-                        <Button x:Name="BtnConvert" Grid.Column="1" Content="변환 실행" FontSize="13" FontWeight="Bold" Padding="24,8" Cursor="Hand" IsEnabled="False" Click="BtnConvert_Click">
+                        <CheckBox x:Name="ChkWithOriginal" Grid.Column="1" Content="원본 시트 포함" FontSize="12" VerticalAlignment="Center"
+                                  Margin="0,0,14,0" Foreground="#334155"
+                                  ToolTip="체크 시 변경문서와 함께 원본(기존_) 시트를 비교용으로 붙여넣습니다."/>
+                        <Button x:Name="BtnConvert" Grid.Column="2" Content="변환 실행" FontSize="13" FontWeight="Bold" Padding="24,8" Cursor="Hand" IsEnabled="False" Click="BtnConvert_Click">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="bd" Background="#16A34A" CornerRadius="8" Padding="{TemplateBinding Padding}">
