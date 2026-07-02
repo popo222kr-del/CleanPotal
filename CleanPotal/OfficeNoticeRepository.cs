@@ -80,6 +80,24 @@ namespace CleanPotal
 
         public static List<NoticeRow> GetAll()
         {
+            // 🚧 플래그 OFF(갭) → 기존 office_notice.json 직접 읽기(구버전과 동일)
+            if (!AppPaths.DbMigrationEnabled)
+            {
+                try
+                {
+                    if (File.Exists(JsonPath))
+                    {
+                        var list = JsonSerializer.Deserialize<List<JsonNotice>>(File.ReadAllText(JsonPath))
+                                   ?? new List<JsonNotice>();
+                        return list.Where(n => n != null && !string.IsNullOrWhiteSpace(n.Text))
+                                   .Select(n => new NoticeRow(n.Id != Guid.Empty ? n.Id : Guid.NewGuid(), (n.Text ?? "").Trim()))
+                                   .ToList();
+                    }
+                }
+                catch { }
+                return new List<NoticeRow>();
+            }
+
             using var db = DatabaseHelper.GetConnection();
             return db.Query("SELECT Id, Text FROM OfficeNotices ORDER BY OrderNo, rowid")
                      .Select(r => new NoticeRow(
@@ -91,6 +109,21 @@ namespace CleanPotal
         // UI가 전체 목록을 저장하는 방식(기존 SaveNotices와 동일 의미) → 전체 교체.
         public static void ReplaceAll(IEnumerable<NoticeRow> items)
         {
+            // 🚧 플래그 OFF(갭) → 기존 office_notice.json 에 저장(구버전과 동일 포맷)
+            if (!AppPaths.DbMigrationEnabled)
+            {
+                try
+                {
+                    var arr = items.Where(i => !string.IsNullOrWhiteSpace(i.Text))
+                                   .Select(i => new JsonNotice { Id = i.Id != Guid.Empty ? i.Id : Guid.NewGuid(), Text = (i.Text ?? "").Trim() })
+                                   .ToList();
+                    try { Directory.CreateDirectory(AppPaths.DataRoot); } catch { }
+                    File.WriteAllText(JsonPath, JsonSerializer.Serialize(arr, new JsonSerializerOptions { WriteIndented = true }));
+                }
+                catch { }
+                return;
+            }
+
             using var db = DatabaseHelper.GetConnection();   // 이미 Open 상태
             using var tx = db.BeginTransaction();
             db.Execute("DELETE FROM OfficeNotices", transaction: tx);

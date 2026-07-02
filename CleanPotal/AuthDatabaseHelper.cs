@@ -47,11 +47,34 @@ namespace CleanPotal
     {
         private static string UsersFilePath => Path.Combine(AppPaths.DataRoot, "users.json");
 
-        // 앱 시작 시 1회: 테이블 생성 + users.json 이관 + (비어있으면) 기본 관리자 시드.
+        // 기본 관리자(1004)만 담긴 users.json 을 없을 때 생성(구버전/갭 모드용)
+        private static void EnsureUsersJson()
+        {
+            try
+            {
+                if (!Directory.Exists(AppPaths.DataRoot)) Directory.CreateDirectory(AppPaths.DataRoot);
+                if (File.Exists(UsersFilePath)) return;
+                var def = new List<UserModel>
+                {
+                    new UserModel {
+                        Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
+                        CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
+                        CanManageSchedule = true, CanManageShiftBoard = true, CanManageInventory = true
+                    }
+                };
+                File.WriteAllText(UsersFilePath, JsonSerializer.Serialize(def, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+
+        // 앱 시작 시 1회: (플래그 OFF)users.json 보장 / (플래그 ON)Users 테이블 생성 + JSON 이관 + 시드.
         public static void InitializeDatabase(IDbConnection? shared = null)
         {
             if (!Directory.Exists(AppPaths.DataRoot))
                 Directory.CreateDirectory(AppPaths.DataRoot);
+
+            // 🚧 플래그 OFF(갭) → JSON 기반(구버전과 동일). DB 테이블은 건드리지 않음.
+            if (!AppPaths.DbMigrationEnabled) { EnsureUsersJson(); return; }
 
             var db = shared ?? DatabaseHelper.GetConnection();
             try
@@ -186,6 +209,17 @@ namespace CleanPotal
 
         public static UserModel? ValidateUserObject(string username, string password)
         {
+            // 🚧 플래그 OFF(갭) → users.json 직접 검증(구버전과 동일). 모든 계정 정상 로그인.
+            if (!AppPaths.DbMigrationEnabled)
+            {
+                try
+                {
+                    EnsureUsersJson();
+                    var list = JsonSerializer.Deserialize<List<UserModel>>(File.ReadAllText(UsersFilePath));
+                    return list?.FirstOrDefault(u => u.Username == username && u.Password == password);
+                }
+                catch { return null; }
+            }
             try
             {
                 using var db = DatabaseHelper.GetConnection();
@@ -198,6 +232,21 @@ namespace CleanPotal
 
         public static List<UserModel> GetAllUsers()
         {
+            // 🚧 플래그 OFF(갭) → users.json 직접 로드(구버전과 동일)
+            if (!AppPaths.DbMigrationEnabled)
+            {
+                try
+                {
+                    EnsureUsersJson();
+                    var list = JsonSerializer.Deserialize<List<UserModel>>(File.ReadAllText(UsersFilePath)) ?? new List<UserModel>();
+                    bool needsSave = false;
+                    foreach (var u in list)
+                        if (string.IsNullOrEmpty(u.EmployeeNumber)) { u.EmployeeNumber = u.Username; needsSave = true; }
+                    if (needsSave) SaveAllUsers(list);
+                    return list;
+                }
+                catch { return new List<UserModel>(); }
+            }
             try
             {
                 using var db = DatabaseHelper.GetConnection();
@@ -210,6 +259,16 @@ namespace CleanPotal
 
         public static void SaveAllUsers(List<UserModel> users)
         {
+            // 🚧 플래그 OFF(갭) → users.json 에 저장(구버전과 동일)
+            if (!AppPaths.DbMigrationEnabled)
+            {
+                try
+                {
+                    File.WriteAllText(UsersFilePath, JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true }));
+                }
+                catch { }
+                return;
+            }
             using var db = DatabaseHelper.GetConnection();
             using var tx = db.BeginTransaction();
             db.Execute("DELETE FROM Users", transaction: tx);
