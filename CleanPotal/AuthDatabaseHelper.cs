@@ -80,47 +80,42 @@ namespace CleanPotal
                         OrderNo             INTEGER NOT NULL DEFAULT 0
                     );");
 
-                long count = db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
-                if (count == 0)
+                // 🚧 배포 스위치(플래그)가 켜졌고 users.json 이 있으면 그 내용으로 '덮어쓰기' 이관.
+                //    (JSON 존재 여부로 판단 → 배포 시점 최신 계정이 반영됨. 이관 후 .migrated 로 보존)
+                if (AppPaths.DbMigrationEnabled && File.Exists(UsersFilePath))
                 {
-                    // 1) 기존 users.json 이관 (있으면)
                     try
                     {
-                        if (File.Exists(UsersFilePath))
+                        var users = JsonSerializer.Deserialize<List<UserModel>>(File.ReadAllText(UsersFilePath))
+                                    ?? new List<UserModel>();
+                        // ⚠️ 유효 계정이 하나라도 있을 때만 덮어쓰기 — 빈/깨진 JSON 으로 전체 계정이 날아가는 사고 방지
+                        var valid = users.Where(u => u != null && !string.IsNullOrWhiteSpace(u.Username)).ToList();
+                        if (valid.Count > 0)
                         {
-                            var users = JsonSerializer.Deserialize<List<UserModel>>(File.ReadAllText(UsersFilePath))
-                                        ?? new List<UserModel>();
+                            db.Execute("DELETE FROM Users");
                             int order = 0;
-                            foreach (var u in users)
+                            foreach (var u in valid) Upsert(db, u, order++, null);
+                            try
                             {
-                                if (u == null || string.IsNullOrWhiteSpace(u.Username)) continue;
-                                Upsert(db, u, order++, null);
+                                string bak = UsersFilePath + ".migrated";
+                                if (File.Exists(bak)) File.Delete(bak);
+                                File.Move(UsersFilePath, bak);
                             }
-                            // 이관 후 백업 보존(.migrated) — 성공했을 때만 이름 변경
-                            if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users") > 0)
-                            {
-                                try
-                                {
-                                    string bak = UsersFilePath + ".migrated";
-                                    if (File.Exists(bak)) File.Delete(bak);
-                                    File.Move(UsersFilePath, bak);
-                                }
-                                catch { }
-                            }
+                            catch { }
                         }
                     }
                     catch { /* 이관 실패해도 아래 시드로 로그인은 보장 */ }
+                }
 
-                    // 2) 여전히 비어 있으면 기본 관리자(1004) 시드 — 로그인 잠김 방지
-                    if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users") == 0)
+                // 비어 있으면 기본 관리자(1004) 시드 — 게이트와 무관하게 로그인 잠김 방지
+                if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users") == 0)
+                {
+                    Upsert(db, new UserModel
                     {
-                        Upsert(db, new UserModel
-                        {
-                            Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
-                            CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
-                            CanManageSchedule = true, CanManageShiftBoard = true, CanManageInventory = true
-                        }, 0, null);
-                    }
+                        Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
+                        CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
+                        CanManageSchedule = true, CanManageShiftBoard = true, CanManageInventory = true
+                    }, 0, null);
                 }
 
                 // 사번이 비어 있는 사용자는 아이디와 동일하게 보정(기존 로직 계승)

@@ -31,7 +31,7 @@ namespace CleanPotal
                         CreatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                     );");
 
-                MigrateFromJsonIfNeeded(db);
+                if (AppPaths.DbMigrationEnabled) MigrateFromJsonIfNeeded(db);
             }
             finally
             {
@@ -41,15 +41,15 @@ namespace CleanPotal
 
         private static string JsonPath => Path.Combine(AppPaths.DataRoot, "office_notice.json");
 
-        // 테이블이 비어 있고 기존 JSON이 있으면 1회 이관. 이관 후 JSON은 .migrated 로 보존(백업).
+        // 원본 JSON이 있으면 그 내용으로 덮어쓰기 이관 후 .migrated 로 보존(백업). (배포 스위치가 켜졌을 때만 호출됨)
         private static void MigrateFromJsonIfNeeded(IDbConnection db)
         {
             try
             {
-                long count = db.ExecuteScalar<long>("SELECT COUNT(*) FROM OfficeNotices");
-                if (count > 0) return;               // 이미 데이터 있음 → 이관 불필요
                 string path = JsonPath;
-                if (!File.Exists(path)) return;      // 옮길 JSON 없음
+                if (!File.Exists(path)) return;      // 이미 이관됨(또는 원본 없음)
+
+                db.Execute("DELETE FROM OfficeNotices");   // 배포 시점 JSON을 원본으로 삼아 덮어쓰기
 
                 var list = JsonSerializer.Deserialize<List<JsonNotice>>(File.ReadAllText(path))
                            ?? new List<JsonNotice>();
