@@ -20,8 +20,9 @@ namespace CleanPotal
         };
 
         private static string GlobalTemplatesFilePath => AppPaths.GlobalTemplatesPath;
-        // 업체 목록은 이제 SQLite(dispatch.db) 의 AppData['vendors'] 에 저장(파일 경쟁/손상 방지).
+        // 업체 목록·전역 템플릿은 이제 SQLite(dispatch.db) 의 AppData 에 저장(파일 경쟁/손상 방지).
         private const string VendorsKey = "vendors";
+        private const string GlobalTemplatesKey = "global_templates";
 
         public static ObservableCollection<VendorModel> Load()
         {
@@ -61,22 +62,14 @@ namespace CleanPotal
         {
             try
             {
-                // 네트워크 경로에 파일 없으면 구 로컬 경로에서 마이그레이션
-                string oldPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "global_templates.json");
-                if (!File.Exists(GlobalTemplatesFilePath) && File.Exists(oldPath))
-                {
-                    Directory.CreateDirectory(AppPaths.DataRoot);
-                    File.Copy(oldPath, GlobalTemplatesFilePath);
-                }
-
                 ObservableCollection<GlobalTemplateModel> templates;
-                if (!File.Exists(GlobalTemplatesFilePath))
+                string? json = AppDataRepository.Get(GlobalTemplatesKey);
+                if (string.IsNullOrWhiteSpace(json))
                 {
                     templates = CreateDefaultGlobalTemplates();
                 }
                 else
                 {
-                    string json = File.ReadAllText(GlobalTemplatesFilePath);
                     var items = JsonSerializer.Deserialize<List<GlobalTemplateModel>>(json, JsonOptions);
                     templates = items == null || items.Count == 0 ? CreateDefaultGlobalTemplates() : new ObservableCollection<GlobalTemplateModel>(items);
                 }
@@ -99,9 +92,7 @@ namespace CleanPotal
 
         public static void SaveGlobalTemplates(IEnumerable<GlobalTemplateModel> templates)
         {
-            Directory.CreateDirectory(AppPaths.DataRoot);
-            string json = JsonSerializer.Serialize(templates, JsonOptions);
-            File.WriteAllText(GlobalTemplatesFilePath, json);
+            AppDataRepository.Set(GlobalTemplatesKey, JsonSerializer.Serialize(templates, JsonOptions));
         }
 
         private static ObservableCollection<GlobalTemplateModel> CreateDefaultGlobalTemplates()
