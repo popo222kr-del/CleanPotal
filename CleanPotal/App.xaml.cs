@@ -32,6 +32,9 @@ namespace CleanPotal
 
             base.OnStartup(e);
 
+            // 🚧 갭(플래그 OFF): 테스트/이관으로 .migrated 된 원본 JSON을 복구(로그인 이전, 구버전과 공존)
+            AppDataRepository.RestoreMigratedJsonFilesForGap();
+
             // 로컬 bin/Data 에 있던 견적 데이터를 네트워크 경로로 마이그레이션
             QuotationStore.MigrateFromLocalIfNeeded();
 
