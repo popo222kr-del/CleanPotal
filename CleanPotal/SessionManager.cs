@@ -23,9 +23,9 @@ namespace CleanPotal
                 PermissionType.Notices => SessionManager.CanManageNotices,
                 PermissionType.Vendors => SessionManager.CanManageVendors,
                 PermissionType.Schedule => true,
-                PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
+                PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자" || SessionManager.IsExecutive,
                 PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.CurrentUsername == "1004",
-                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.CurrentUsername == "1004",
+                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.CurrentUsername == "1004" || SessionManager.IsExecutive,
                 PermissionType.ShiftBoard => SessionManager.CanManageShiftBoard || SessionManager.CurrentUsername == "1004",
                 PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.CurrentUsername == "1004",
                 _ => false
@@ -70,6 +70,18 @@ namespace CleanPotal
         public static bool CanManageInventory { get; set; } = false;
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
+
+        // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원). OFFICE 업무 열람 허용 기준(단일 소스).
+        private static readonly string[] _execTitles =
+            { "임원", "회장", "부회장", "대표", "사장", "부사장", "전무", "상무", "이사" };
+        public static bool IsExecutive
+        {
+            get
+            {
+                string t = (CurrentJobTitle ?? "").Replace(" ", "");
+                return t.Length > 0 && System.Array.Exists(_execTitles, k => t.Contains(k));
+            }
+        }
 
         private static readonly string TokenPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CleanPotal", "auth_v2.dat");
 
