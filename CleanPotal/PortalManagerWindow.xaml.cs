@@ -57,9 +57,14 @@ namespace CleanPotal
         {
             try
             {
-                string json = File.ReadAllText(AppPaths.ButtonsFilePath, Encoding.UTF8);
+                string? json = AppDataRepository.Get("buttons");
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    string fb = AppPaths.GetFallbackButtonsPath();
+                    if (File.Exists(fb)) json = File.ReadAllText(fb, Encoding.UTF8);
+                }
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var data = JsonSerializer.Deserialize<List<ButtonGroup>>(json, options);
+                var data = string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<List<ButtonGroup>>(json, options);
 
                 if (data != null)
                 {
@@ -197,7 +202,7 @@ namespace CleanPotal
                         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                     };
                     string json = JsonSerializer.Serialize(_editingGroups.ToList(), options);
-                    File.WriteAllText(AppPaths.ButtonsFilePath, json, Encoding.UTF8);
+                    AppDataRepository.Set("buttons", json);   // SQLite(dispatch.db) 저장
 
                     DialogResult = true;
                 }

@@ -34,6 +34,8 @@ namespace CleanPotal
                 MigrateFile(db, "quotation_config", Path.Combine(AppPaths.DataRoot, "quotation_config.json"));
                 MigrateFile(db, "recipes", Path.Combine(AppPaths.DataRoot, "recipes.json"));
                 MigrateFile(db, "global_templates", Path.Combine(AppPaths.DataRoot, "global_templates.json"));
+                MigrateFile(db, "buttons", Path.Combine(AppPaths.DataRoot, "buttons.json"));
+                MigrateFile(db, "broken_data", Path.Combine(AppPaths.DataRoot, "broken_data.json"));
             }
             finally
             {
