@@ -49,8 +49,9 @@ namespace CleanPotal
 
         private void LoadRecipes()
         {
-            if (!File.Exists(RecipeFile)) return;
-            var json = File.ReadAllText(RecipeFile);
+            // 레시피는 SQLite(dispatch.db) 의 AppData['recipes'] 에 저장
+            string? json = AppDataRepository.Get("recipes");
+            if (string.IsNullOrWhiteSpace(json)) return;
             var list = JsonSerializer.Deserialize<List<RecipeDefinition>>(json);
             if (list == null) return;
             Recipes.Clear();
@@ -59,10 +60,8 @@ namespace CleanPotal
 
         public void SaveRecipes()
         {
-            var dir = Path.GetDirectoryName(RecipeFile);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
             var json = JsonSerializer.Serialize(Recipes.ToList(), new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(RecipeFile, json);
+            AppDataRepository.Set("recipes", json);
         }
 
         private void InitializeDatabase()
