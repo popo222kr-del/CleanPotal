@@ -30,6 +30,31 @@ namespace CleanPotal
             ["broken_data"]        = Path.Combine(AppPaths.DataRoot, "broken_data.json"),
         };
 
+        // 🚧 갭(플래그 OFF) 복구: 테스트/이관으로 .migrated 로 바뀐 원본 JSON을 .json 으로 되돌린다.
+        //   (플래그 OFF에서 원본이 없어 seed/빈값으로 동작하던 문제 자가 치유 → 구버전과 공존)
+        //   앱 시작 시(로그인 이전) 1회 호출. 복구되면 .migrated 는 사라지므로 이후엔 무동작(멱등).
+        public static void RestoreMigratedJsonFilesForGap()
+        {
+            if (AppPaths.DbMigrationEnabled) return;   // 배포(플래그 ON)면 복구하지 않음
+
+            var paths = new List<string>(FileMap().Values)
+            {
+                Path.Combine(AppPaths.DataRoot, "users.json"),
+                Path.Combine(AppPaths.DataRoot, "office_notice.json"),
+            };
+            foreach (var p in paths)
+            {
+                try
+                {
+                    string bak = p + ".migrated";
+                    if (!File.Exists(bak)) continue;      // 되돌릴 백업 없음
+                    if (File.Exists(p)) File.Delete(p);   // 테스트로 생긴 seed/빈 파일 제거
+                    File.Move(bak, p);                    // 원본 복구
+                }
+                catch { }
+            }
+        }
+
         public static void InitializeTables(IDbConnection? shared = null)
         {
             var db = shared ?? DatabaseHelper.GetConnection();
