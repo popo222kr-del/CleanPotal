@@ -20,6 +20,11 @@ namespace CleanPotal
         private static string ProductMasterPath => Path.Combine(SharedDir,     "product_master.json");
         private static string ConfigPath        => Path.Combine(SharedDir,     "quotation_config.json");
 
+        // 견적/단가표/설정은 이제 SQLite(dispatch.db) 의 AppData 에 저장(파일 경쟁/손상 방지).
+        private const string QuotationsKey = "quotations";
+        private const string ProductMasterKey = "product_master";
+        private const string ConfigKey = "quotation_config";
+
         /// <summary>
         /// 앱 시작 시 한 번 호출.
         /// - 구 경로(bin/Data)나 로컬 APPDATA에 파일이 있으면 네트워크 공유폴더로 이전.
@@ -66,50 +71,48 @@ namespace CleanPotal
         {
             try
             {
-                if (!File.Exists(ConfigPath)) return new();
-                return JsonSerializer.Deserialize<QuotationConfig>(File.ReadAllText(ConfigPath)) ?? new();
+                string? json = AppDataRepository.Get(ConfigKey);
+                if (string.IsNullOrWhiteSpace(json)) return new();
+                return JsonSerializer.Deserialize<QuotationConfig>(json) ?? new();
             }
             catch { return new(); }
         }
 
         public static void SaveConfig(QuotationConfig config)
         {
-            try { Directory.CreateDirectory(SharedDir); } catch { }
-            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, _opts));
+            AppDataRepository.Set(ConfigKey, JsonSerializer.Serialize(config, _opts));
         }
 
         public static ObservableCollection<QuotationModel> LoadQuotations()
         {
             try
             {
-                if (!File.Exists(QuotationPath)) return new();
-                return JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(
-                    File.ReadAllText(QuotationPath)) ?? new();
+                string? json = AppDataRepository.Get(QuotationsKey);
+                if (string.IsNullOrWhiteSpace(json)) return new();
+                return JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(json) ?? new();
             }
             catch { return new(); }
         }
 
         public static void SaveQuotations(ObservableCollection<QuotationModel> list)
         {
-            try { Directory.CreateDirectory(SharedDir); } catch { }
-            File.WriteAllText(QuotationPath, JsonSerializer.Serialize(list, _opts));
+            AppDataRepository.Set(QuotationsKey, JsonSerializer.Serialize(list, _opts));
         }
 
         public static ObservableCollection<ProductMasterItem> LoadProductMaster()
         {
             try
             {
-                if (!File.Exists(ProductMasterPath)) return new();
-                return JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(
-                    File.ReadAllText(ProductMasterPath)) ?? new();
+                string? json = AppDataRepository.Get(ProductMasterKey);
+                if (string.IsNullOrWhiteSpace(json)) return new();
+                return JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(json) ?? new();
             }
             catch { return new(); }
         }
 
         public static void SaveProductMaster(IEnumerable<ProductMasterItem> list)
         {
-            try { Directory.CreateDirectory(SharedDir); } catch { }
-            File.WriteAllText(ProductMasterPath, JsonSerializer.Serialize(list, _opts));
+            AppDataRepository.Set(ProductMasterKey, JsonSerializer.Serialize(list, _opts));
         }
     }
 }
