@@ -254,14 +254,8 @@ namespace CleanPotal
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = (canEditEdu || IsExecutive()) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원으로 간주)
-        private static readonly string[] ExecutiveTitles =
-            { "임원", "회장", "부회장", "대표", "사장", "부사장", "전무", "상무", "이사" };
-        private static bool IsExecutive()
-        {
-            string t = (SessionManager.CurrentJobTitle ?? "").Replace(" ", "");
-            return t.Length > 0 && System.Array.Exists(ExecutiveTitles, k => t.Contains(k));
-        }
+        // 임원 판별은 SessionManager.IsExecutive 단일 소스 사용
+        private static bool IsExecutive() => SessionManager.IsExecutive;
 
         // OFFICE 팀 · 시스템 마스터 · 임원(직위)인지 여부 → OFFICE 업무 열람 가능
         private static bool IsOfficeTeam()
@@ -359,14 +353,14 @@ namespace CleanPotal
         private bool CanOpenEduDashboard()
         {
             bool isMaster = SessionManager.CurrentUsername == "1004";
-            bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office";
+            bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office" || IsExecutive();
             if (!ok) { MessageBox.Show("접근 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
         }
 
         private bool CanOpenWorkAssignment()
         {
-            bool ok = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004";
+            bool ok = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004" || IsExecutive();
             if (!ok) { MessageBox.Show("교육 관리 권한이 필요합니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
         }
