@@ -570,8 +570,6 @@ namespace CleanPotal
 
         private void SaveAppData()
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
-
             // 저장 시점에 직위/경력을 입력 기준으로 고정 (이후 변하지 않도록)
             foreach (var r in _allRecords)
                 if (!r.PositionFrozen) r.CapturePosition();
@@ -608,7 +606,7 @@ namespace CleanPotal
                 }).ToList(),
                 TrainingGoals = _trainingGoals
             };
-            File.WriteAllText(SaveFilePath, JsonSerializer.Serialize(dto, _jsonOpts), Encoding.UTF8);
+            AppDataRepository.Set("broken_data", JsonSerializer.Serialize(dto, _jsonOpts));   // SQLite(dispatch.db) 저장
         }
 
         // 🔥 과거 버전이 PC 로컬(LocalAppData)에 저장했던 데이터를 공유 폴더로 1회 이전
@@ -631,12 +629,12 @@ namespace CleanPotal
 
         private void LoadAppData()
         {
-            MigrateLegacyLocalData();
-            if (!File.Exists(SaveFilePath)) return;
+            // 파손 데이터는 SQLite(dispatch.db) 의 AppData['broken_data'] 에 저장
+            string? json = AppDataRepository.Get("broken_data");
+            if (string.IsNullOrWhiteSpace(json)) return;
             try
             {
-                var dto = JsonSerializer.Deserialize<AppSaveData>(
-                    File.ReadAllText(SaveFilePath, Encoding.UTF8), _jsonOpts);
+                var dto = JsonSerializer.Deserialize<AppSaveData>(json, _jsonOpts);
                 if (dto == null) return;
 
                 _allRecords = dto.Records.Select(d =>

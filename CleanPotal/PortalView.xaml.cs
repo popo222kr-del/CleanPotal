@@ -50,12 +50,16 @@ namespace CleanPotal
         {
             try
             {
-                string path = AppPaths.ButtonsFilePath;
-                if (!File.Exists(path)) path = AppPaths.GetFallbackButtonsPath();
-
-                if (File.Exists(path))
+                // 포털 버튼은 SQLite(dispatch.db) 의 AppData['buttons'] 에 저장. 없으면(신규) 번들 기본값 폴백.
+                string? json = AppDataRepository.Get("buttons");
+                if (string.IsNullOrWhiteSpace(json))
                 {
-                    string json = File.ReadAllText(path, Encoding.UTF8);
+                    string fb = AppPaths.GetFallbackButtonsPath();
+                    if (File.Exists(fb)) json = File.ReadAllText(fb, Encoding.UTF8);
+                }
+
+                if (!string.IsNullOrWhiteSpace(json))
+                {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     _allGroups = JsonSerializer.Deserialize<List<ButtonGroup>>(json, options) ?? new();
 
