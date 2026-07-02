@@ -250,7 +250,8 @@ namespace CleanPotal
             bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
             bool canViewEdu = canEditEdu || IsOfficeTeam();
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
-            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
+            // 개인별 업무 분장표: 편집 권한자 + 임원(열람)
+            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = (canEditEdu || IsExecutive()) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원으로 간주)
