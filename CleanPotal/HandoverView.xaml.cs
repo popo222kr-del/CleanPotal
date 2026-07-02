@@ -129,7 +129,8 @@ namespace CleanPotal
             UpdateManageColumnVisibility();
             RefreshTopProgressPreview();
 
-            _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "office_notice.json"));
+            // 공지는 이제 SQLite(dispatch.db)에 저장되므로 JSON 대신 DB 파일 변경을 감시해 다른 PC 반영
+            _noticeSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadNotices(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
             _dbSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); LoadTodayStatus(); LoadUpcomingEdu(); LoadUpcomingTeamEvents(); }); }, Path.Combine(AppPaths.DataRoot, "dispatch.db"));
             _vendorSyncManager = new AutoSyncManager(() => { Dispatcher.Invoke(() => { LoadHandoverAll(); RefreshVendorSuggestions(); }); }, AppPaths.VendorsFilePath);
 
@@ -321,7 +322,7 @@ namespace CleanPotal
         private void LoadNotices()
         {
             NoticeItems.Clear();
-            try { string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); if (File.Exists(path)) { string json = File.ReadAllText(path, Encoding.UTF8); var list = JsonSerializer.Deserialize<List<NoticeItem>>(json); if (list != null) foreach (var item in list) NoticeItems.Add(item); } }
+            try { foreach (var r in OfficeNoticeRepository.GetAll()) NoticeItems.Add(new NoticeItem { Id = r.Id, Text = r.Text }); }
             catch { }
         }
 
@@ -370,7 +371,7 @@ namespace CleanPotal
             OnPropertyChanged(nameof(HasUpcomingEdu));
         }
 
-        private void SaveNotices() { try { Directory.CreateDirectory(AppPaths.DataRoot); string path = Path.Combine(AppPaths.DataRoot, "office_notice.json"); string json = JsonSerializer.Serialize(NoticeItems.ToList(), new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(path, json, Encoding.UTF8); } catch { } }
+        private void SaveNotices() { try { OfficeNoticeRepository.ReplaceAll(NoticeItems.Select(n => new OfficeNoticeRepository.NoticeRow(n.Id, n.Text))); } catch { } }
 
         public void TryRefresh() { if (IsRegisterModalOpen || IsEditModalOpen) return; LoadHandoverAll(); RefreshVendorSuggestions(); if (!_weeklyMode) { LoadUpcomingEdu(); LoadUpcomingTeamEvents(); } }
 

@@ -75,6 +75,9 @@ namespace CleanPotal
 
                 // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
                 FieldInventory.Repositories.FieldInventoryRepository.InitializeTables(connection);
+
+                // 🔥 사무실 공지: office_notice.json → SQLite 이관(파일럿)
+                OfficeNoticeRepository.InitializeTables(connection);
             }
             finally { if (shared == null) connection.Dispose(); }
         }
