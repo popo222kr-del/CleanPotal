@@ -152,6 +152,13 @@ _START_LABELS={'표준명','기준명','문서명','기준서명','표준서명'
 def _is_name_label(t):
     if t in _START_LABELS: return True
     return (len(t)<=10) and (t.endswith('준명') or t.endswith('서명'))
+# 본문(관리/검사/작업 '내용' 등) 시작 라벨 — 삭제 블록(제개정현황)이 여기까지 침범하지 않도록 경계로 사용.
+_BODY_START={'관리내용','검사내용','작업내용','관리기준','검사기준','작업기준','세부내용',
+             '세부관리내용','관리항목','점검내용','점검항목','시험방법','검사항목'}
+def _is_body_start(t):
+    if t in _BODY_START: return True
+    # 짧은 라벨이면서 '내용/항목'으로 끝나면 본문 섹션 헤더로 간주(긴 서술형 셀은 제외)
+    return (len(t)<=8) and (t.endswith('내용') or t.endswith('항목'))
 def _detect_block(root):
     sd=root.find(M+'sheetData'); s=None; hh=None
     rowmap={int(r.get('r')):r for r in sd}
@@ -162,9 +169,14 @@ def _detect_block(root):
             if s is None and rn<=20 and _is_name_label(t): s=rn
             if hh is None and rn<=45 and '개정현황' in t: hh=rn
     if s is None or hh is None or s>hh: return None
+    # 제·개정현황 표 아래로 확장하되, 본문(관리/검사/작업 내용 등) 시작 라벨을 만나면 멈춘다.
+    #   (제개정현황 바로 밑에 빈 행 없이 본문이 이어지는 문서에서 본문까지 삭제되어
+    #    1페이지가 통째로 날아가던 버그 방지)
     e=hh; rr=hh+1
     while rr in rowmap:
         row=rowmap[rr]
+        texts=[_desp(_ctext(c)) for c in row.findall(M+'c')]
+        if any(t and _is_body_start(t) for t in texts): break
         ne=any(_ctext(c).strip() or (c.find(M+'v') is not None) for c in row.findall(M+'c'))
         if ne: e=rr; rr+=1
         else: break
