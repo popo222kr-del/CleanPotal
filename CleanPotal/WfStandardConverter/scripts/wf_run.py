@@ -162,16 +162,19 @@ def cmd_check(args):
 
 
 # 실행 중인 스크립트가 최신인지 로그로 바로 확인하기 위한 버전 마커.
-WF_BUILD = "BUILD-2026-06-30f (기계서식:맑은고딕+제목붙여쓰기·헤더문서번호치환·원본첨부)"
+WF_BUILD = "BUILD-2026-07-02a (기계서식:맑은고딕+제목붙여쓰기·헤더문서번호치환·원본첨부선택)"
 
 def cmd_convert(args):
     mapping_path, out_dir = args[0], args[1]
+    # 원본(기존) 시트 비교본 첨부 여부 — WPF 체크박스 → '--with-original' 플래그로 전달
+    with_original = "--with-original" in args[2:]
     print(f"[wf_run] {WF_BUILD}", flush=True)
+    print(f"[wf_run] 원본 시트 포함: {'예' if with_original else '아니오'}", flush=True)
     import tempfile
     import convert as CV
     # convert() 기본 tmp 는 '/tmp/_conv' (Windows 부적합) → 시스템 임시폴더 사용
     tmp = os.path.join(tempfile.gettempdir(), "wf_conv_work")
-    for r in CV.convert(mapping_path, out_dir, tmp=tmp):
+    for r in CV.convert(mapping_path, out_dir, tmp=tmp, with_original=with_original):
         print(f"✓ {r['mno']}: 부속서{r['subs']} → 출력시트{r['out_sheets']} img{r['out_img']}", flush=True)
         for it in r["issues"]:
             print("    - " + it, flush=True)

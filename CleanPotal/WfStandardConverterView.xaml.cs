@@ -528,10 +528,16 @@ namespace CleanPotal
             int done = 0;
             Log($"═══ 변환 시작 (모표준 {total}개) ═══");
 
+            // 원본 시트 포함 체크 시에만 '--with-original' 플래그 전달
+            bool withOriginal = ChkWithOriginal.IsChecked == true;
+            var convertArgs = withOriginal
+                ? new[] { RunnerScript, "convert", mappingPath, _outputFolder, "--with-original" }
+                : new[] { RunnerScript, "convert", mappingPath, _outputFolder };
+
             try
             {
                 int code = await RunPythonStreamAsync(
-                    new[] { RunnerScript, "convert", mappingPath, _outputFolder },
+                    convertArgs,
                     line =>
                     {
                         Log(line);
