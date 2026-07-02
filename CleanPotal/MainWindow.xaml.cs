@@ -248,21 +248,32 @@ namespace CleanPotal
 
             // OFFICE 업무 내 교육 메뉴 가시성
             bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
-            bool canViewEdu = canEditEdu || SessionManager.CurrentTeamName == "Office";
+            bool canViewEdu = canEditEdu || IsOfficeTeam();
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        // OFFICE 팀(또는 시스템 마스터)인지 여부
-        private static bool IsOfficeTeam()
-            => SessionManager.CurrentTeamName == "Office" || SessionManager.CurrentUsername == "1004";
+        // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원으로 간주)
+        private static readonly string[] ExecutiveTitles =
+            { "임원", "회장", "부회장", "대표", "사장", "부사장", "전무", "상무", "이사" };
+        private static bool IsExecutive()
+        {
+            string t = (SessionManager.CurrentJobTitle ?? "").Replace(" ", "");
+            return t.Length > 0 && System.Array.Exists(ExecutiveTitles, k => t.Contains(k));
+        }
 
-        // OFFICE 업무 기능 접근 가드 — OFFICE 팀이 아니면 차단
+        // OFFICE 팀 · 시스템 마스터 · 임원(직위)인지 여부 → OFFICE 업무 열람 가능
+        private static bool IsOfficeTeam()
+            => SessionManager.CurrentTeamName == "Office"
+            || SessionManager.CurrentUsername == "1004"
+            || IsExecutive();
+
+        // OFFICE 업무 기능 접근 가드 — OFFICE 팀/임원이 아니면 차단
         private bool CanOpenOfficeFeature()
         {
             if (!IsOfficeTeam())
             {
-                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀·임원만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
             }
             return true;
