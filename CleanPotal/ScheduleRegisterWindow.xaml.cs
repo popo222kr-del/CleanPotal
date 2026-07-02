@@ -522,13 +522,50 @@ namespace CleanPotal
                     // 수정 모드
                     if (_editingPlan != null)
                     {
+                        // 스케줄 보드에서 제거할 '이전' 대상/기간을 먼저 보관(덮어쓰기 전)
+                        string oldName = _editingPlan.MemberName;
+                        DateTime oldStart = _editingPlan.StartDate;
+                        DateTime oldEnd = _editingPlan.EndDate;
+
                         _editingPlan.MemberName = name;
                         _editingPlan.CourseName = course;
                         _editingPlan.StartDate  = startDate;
                         _editingPlan.EndDate    = endDate;
                         _editingPlan.EduMethod  = method;
                         DatabaseHelper.UpdateEducationPlan(_editingPlan);
-                        MessageBox.Show("교육 일정이 수정되었습니다.", "수정 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // 🔥 스케줄 보드 연동(신규 등록과 동일): 이전 '교육' 마킹 제거 후 새 기간에 다시 반영
+                        // 1) 이전 기간에서 '교육'으로 찍힌 날짜만 비운다(사용자가 수동 변경한 다른 근무는 보존)
+                        for (DateTime dt = oldStart.Date; dt <= oldEnd.Date; dt = dt.AddDays(1))
+                        {
+                            var cur = DatabaseHelper.GetShiftSchedulesByDate(dt)
+                                        .FirstOrDefault(s => s.MemberName == oldName);
+                            if (cur != null && cur.ShiftType == "교육")
+                            {
+                                DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel
+                                {
+                                    TargetDate = dt, MemberName = oldName, ShiftType = "비우기"
+                                });
+                            }
+                        }
+
+                        // 2) 새 기간(주말/공휴일 제외)에 '교육' 다시 반영
+                        string teamGroupEdit = _filteredEduUsers.FirstOrDefault(u => u.RealName == name)?.TeamName
+                                               ?? _allUsers.FirstOrDefault(u => u.RealName == name)?.TeamName ?? "";
+                        for (DateTime dt = startDate; dt <= endDate; dt = dt.AddDays(1))
+                        {
+                            bool isWeekend = dt.DayOfWeek == DayOfWeek.Saturday || dt.DayOfWeek == DayOfWeek.Sunday;
+                            bool isHoliday = _dynamicHolidays.Contains(dt.ToString("yyyy-MM-dd"));
+                            if (!isWeekend && !isHoliday)
+                            {
+                                DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel
+                                {
+                                    TargetDate = dt, MemberName = name, TeamGroup = teamGroupEdit, ShiftType = "교육"
+                                });
+                            }
+                        }
+
+                        MessageBox.Show("교육 일정이 수정되었으며, 스케줄 보드에도 반영되었습니다.", "수정 완료", MessageBoxButton.OK, MessageBoxImage.Information);
                         DialogResult = true;
                         Close();
                         return;
