@@ -222,7 +222,7 @@
                             <RadioButton x:Name="RbTrend" Content="기간별 추이" Style="{StaticResource SegItem}" Checked="Mode_Changed"/>
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="공정" Style="{StaticResource LblSmall}"/>
+                    <TextBlock Text="설비 유형" Style="{StaticResource LblSmall}"/>
                     <local:MultiSelectFilter x:Name="FltProcess" Width="96"/>
                     <TextBlock Text="약액" Style="{StaticResource LblSmall}"/>
                     <local:MultiSelectFilter x:Name="FltBath" Width="96"/>
