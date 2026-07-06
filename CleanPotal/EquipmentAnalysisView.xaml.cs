@@ -31,6 +31,9 @@ namespace CleanPotal
         private DateTime? _selDate;                          // 선택 날짜(null=전체)
         private readonly HashSet<DateTime> _dataDates = new();  // 측정 기록 있는 날짜
 
+        // 전체 삭제는 최고 관리자(1004)만 허용
+        private static bool IsAdmin => SessionManager.CurrentUsername == "1004";
+
         public EquipmentAnalysisView()
         {
             InitializeComponent();
@@ -38,6 +41,8 @@ namespace CleanPotal
             FltProcess.SelectionChanged += Filter_MultiChanged;
             FltBath.SelectionChanged += Filter_MultiChanged;
             FltEquip.SelectionChanged += Filter_MultiChanged;
+            // 관리자 아니면 '전체 삭제' 숨김
+            BtnClear.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
             Loaded += (_, _) => ReloadAll();
         }
 
@@ -495,6 +500,7 @@ namespace CleanPotal
 
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
+            if (!IsAdmin) { MessageBox.Show("전체 삭제는 관리자만 가능합니다.", "권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return; }
             if (_all.Count == 0) return;
             if (MessageBox.Show("설비 분석 데이터를 전체 삭제하시겠습니까?\n복구할 수 없습니다.", "전체 삭제",
                 MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
