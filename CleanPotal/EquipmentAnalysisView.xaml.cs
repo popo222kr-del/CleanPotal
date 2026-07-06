@@ -28,7 +28,7 @@ namespace CleanPotal
 
         // 날짜(달력) 필터
         private DateTime _calMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        private DateTime? _selDate;                          // 선택 날짜(null=전체)
+        private readonly HashSet<DateTime> _selDates = new();   // 선택 날짜들(빈 집합=전체)
         private readonly HashSet<DateTime> _dataDates = new();  // 측정 기록 있는 날짜
 
         // 전체 삭제는 최고 관리자(1004)만 허용
@@ -154,7 +154,7 @@ namespace CleanPotal
             _dataDates.Clear();
             foreach (var d in list.Select(r => r.AnalysisDate))
                 if (DateTime.TryParse(d, out var dt)) _dataDates.Add(dt.Date);
-            if (_selDate.HasValue && !_dataDates.Contains(_selDate.Value)) _selDate = null;
+            _selDates.RemoveWhere(d => !_dataDates.Contains(d));   // 범위 밖 선택 해제
             if (_dataDates.Count > 0) _calMonth = new DateTime(_dataDates.Max().Year, _dataDates.Max().Month, 1);
             UpdateDateButton();
         }
@@ -162,7 +162,9 @@ namespace CleanPotal
         // ── 날짜 달력 ──
         private void UpdateDateButton()
         {
-            DateText.Text = _selDate.HasValue ? _selDate.Value.ToString("yyyy-MM-dd") : "전체";
+            DateText.Text = _selDates.Count == 0 ? "전체"
+                : _selDates.Count == 1 ? _selDates.First().ToString("yyyy-MM-dd")
+                : $"{_selDates.Min():yyyy-MM-dd} 외 {_selDates.Count - 1}";
         }
 
         private void DateButton_Click(object sender, RoutedEventArgs e)
@@ -173,7 +175,7 @@ namespace CleanPotal
 
         private void CalPrev_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(-1); BuildCalendar(); }
         private void CalNext_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(1); BuildCalendar(); }
-        private void CalClear_Click(object sender, RoutedEventArgs e) { _selDate = null; UpdateDateButton(); DatePopup.IsOpen = false; Render(); }
+        private void CalClear_Click(object sender, RoutedEventArgs e) { _selDates.Clear(); UpdateDateButton(); DatePopup.IsOpen = false; Render(); }
 
         private static SolidColorBrush Br(string hex) => new((Color)ColorConverter.ConvertFromString(hex)!);
 
@@ -190,7 +192,7 @@ namespace CleanPotal
             {
                 var date = new DateTime(_calMonth.Year, _calMonth.Month, d);
                 bool hasData = _dataDates.Contains(date);
-                bool selected = _selDate.HasValue && _selDate.Value == date;
+                bool selected = _selDates.Contains(date);
                 bool today = date == DateTime.Today;
 
                 var ell = new Ellipse { Width = 30, Height = 30 };
@@ -216,9 +218,9 @@ namespace CleanPotal
         {
             if (sender is Button b && b.Tag is DateTime date)
             {
-                _selDate = (_selDate == date) ? (DateTime?)null : date;   // 같은 날 다시 누르면 해제
+                if (!_selDates.Remove(date)) _selDates.Add(date);   // 토글(복수 선택). 팝업은 열어둠
                 UpdateDateButton();
-                DatePopup.IsOpen = false;
+                BuildCalendar();   // 선택 표시 갱신
                 Render();
             }
         }
@@ -258,10 +260,10 @@ namespace CleanPotal
             if (proc.Count > 0) q = q.Where(r => proc.Contains(r.ProcessType));
             if (bath.Count > 0) q = q.Where(r => bath.Contains(r.BathGb));
             if (eq.Count > 0) q = q.Where(r => eq.Contains(r.EqId));
-            if (_selDate.HasValue)
+            if (_selDates.Count > 0)
             {
-                string ds = _selDate.Value.ToString("yyyy-MM-dd");
-                q = q.Where(r => r.AnalysisDate == ds);
+                var ds = _selDates.Select(d => d.ToString("yyyy-MM-dd")).ToHashSet();
+                q = q.Where(r => ds.Contains(r.AnalysisDate));
             }
             return q;
         }
