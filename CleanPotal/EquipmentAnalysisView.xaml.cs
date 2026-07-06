@@ -207,7 +207,7 @@ namespace CleanPotal
                         Name = el,
                         Values = periods.Select(p => PeriodAvg(dated, null, el, unit, p)).ToArray()
                     }).ToArray();
-                    Chart.YAxes = new[] { new Axis { Name = $"ppb · {unit} 평균" } };
+                    Chart.YAxes = new[] { new Axis { Name = "ppb" } };
                 }
                 else
                 {
@@ -218,7 +218,7 @@ namespace CleanPotal
                         Name = eq,
                         Values = periods.Select(p => PeriodAvg(dated, eq, el, unit, p)).ToArray()
                     }).ToArray();
-                    Chart.YAxes = new[] { new Axis { Name = $"{el} (ppb · {unit} 평균)" } };
+                    Chart.YAxes = new[] { new Axis { Name = "ppb" } };
                 }
                 Chart.XAxes = new[] { new Axis { Labels = periods.ToArray(), LabelsRotation = 30 } };
             }
@@ -240,7 +240,7 @@ namespace CleanPotal
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
                 Chart.XAxes = new[] { new Axis { Labels = eqData.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
-                Chart.YAxes = new[] { new Axis { Name = "ppb (설비별 최신값)" } };
+                Chart.YAxes = new[] { new Axis { Name = "ppb" } };
             }
         }
 
@@ -274,13 +274,22 @@ namespace CleanPotal
             if (TxtTableCount != null) TxtTableCount.Text = $"{dt.Rows.Count}행";
         }
 
-        // 차트 접기/펼치기 → 접으면 아래 데이터 표가 그만큼 넓어진다
+        // 차트 접기 → 접으면 데이터 표가 그만큼 넓어진다
         private void ToggleChart_Click(object sender, RoutedEventArgs e)
         {
-            bool show = ChartCard.Visibility != Visibility.Visible;
-            ChartCard.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            ChartToggleText.Text = show ? "차트 접기" : "차트 펼치기";
-            ChartToggleArrow.Text = show ? "▲" : "▼";
+            bool show = ChartBody.Visibility != Visibility.Visible;
+            ChartBody.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            ChartArrow.Text = show ? "▾" : "▸";
+            RowChart.Height = show ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
+        }
+
+        // 데이터 표 접기 → 접으면 차트가 그만큼 커진다
+        private void ToggleTable_Click(object sender, RoutedEventArgs e)
+        {
+            bool show = TableBody.Visibility != Visibility.Visible;
+            TableBody.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            TableArrow.Text = show ? "▾" : "▸";
+            RowTable.Height = show ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
         }
 
         // ── 엑셀 업로드 ──
