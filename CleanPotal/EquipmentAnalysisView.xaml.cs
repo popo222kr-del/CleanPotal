@@ -175,7 +175,14 @@ namespace CleanPotal
 
         private void CalPrev_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(-1); BuildCalendar(); }
         private void CalNext_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(1); BuildCalendar(); }
-        private void CalClear_Click(object sender, RoutedEventArgs e) { _selDates.Clear(); UpdateDateButton(); DatePopup.IsOpen = false; Render(); }
+        // 달력 내 초기화: 선택 날짜 전부 해제(팝업은 유지 → 바로 다시 선택 가능)
+        private void CalReset_Click(object sender, RoutedEventArgs e)
+        {
+            _selDates.Clear();
+            UpdateDateButton();
+            BuildCalendar();
+            Render();
+        }
 
         private static SolidColorBrush Br(string hex) => new((Color)ColorConverter.ConvertFromString(hex)!);
 

@@ -292,8 +292,8 @@
                                     <Border Height="1" Background="#F1F5F9" Margin="0,6"/>
                                     <DockPanel>
                                         <TextBlock DockPanel.Dock="Left" Text="● 측정 기록 있는 날" FontSize="11" Foreground="#93C5FD" VerticalAlignment="Center"/>
-                                        <Button Content="전체 보기" HorizontalAlignment="Right" Style="{StaticResource BtnGhost}"
-                                                Padding="10,4" FontSize="12" Click="CalClear_Click"/>
+                                        <Button Content="초기화" HorizontalAlignment="Right" Style="{StaticResource BtnGhost}"
+                                                Padding="12,4" FontSize="12" Foreground="#DC2626" BorderBrush="#FECACA" Click="CalReset_Click"/>
                                     </DockPanel>
                                 </StackPanel>
                             </Border>
