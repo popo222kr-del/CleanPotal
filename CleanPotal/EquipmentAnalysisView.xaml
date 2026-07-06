@@ -348,7 +348,7 @@
 
         <!-- Data table card (헤더 클릭으로 접기/펼치기 → 접으면 차트가 커짐) -->
         <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0">
-            <DockPanel>
+            <DockPanel x:Name="TableInner" SizeChanged="TableInner_SizeChanged">
                 <Button DockPanel.Dock="Top" Click="ToggleTable_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
@@ -369,8 +369,24 @@
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
                           Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
-                          ColumnHeaderStyle="{StaticResource GridHeader}"
-                          CanUserAddRows="False" AlternatingRowBackground="#FCFCFD"/>
+                          ColumnWidth="*" ColumnHeaderStyle="{StaticResource GridHeader}"
+                          AutoGeneratingColumn="Grid_AutoGeneratingColumn"
+                          CanUserAddRows="False" AlternatingRowBackground="#FCFCFD">
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="2,0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#EFF6FF"/>
+                                    <Setter Property="Foreground" Value="#111827"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+                </DataGrid>
                 </Border>
             </DockPanel>
         </Border>
