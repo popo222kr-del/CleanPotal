@@ -199,11 +199,10 @@
 
     <Grid Margin="24,14,24,20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- filter / actions -->
-            <RowDefinition Height="Auto"/>  <!-- element chips -->
-            <RowDefinition Height="Auto"/>  <!-- chart (고정 높이, 접기 가능) -->
-            <RowDefinition Height="Auto"/>  <!-- chart 접기 토글 -->
-            <RowDefinition Height="*"/>     <!-- table (남는 공간 전부) -->
+            <RowDefinition Height="Auto"/>            <!-- filter / actions -->
+            <RowDefinition Height="Auto"/>            <!-- element chips -->
+            <RowDefinition x:Name="RowChart" Height="*"/>  <!-- chart (접기 가능) -->
+            <RowDefinition x:Name="RowTable" Height="*"/>  <!-- table (접기 가능) -->
         </Grid.RowDefinitions>
 
         <!-- Filter + actions -->
@@ -250,53 +249,60 @@
             </DockPanel>
         </Border>
 
-        <!-- Chart (고정 높이, 접기 가능) -->
-        <Border x:Name="ChartCard" Grid.Row="2" Style="{StaticResource Card}" Height="360">
-            <Grid>
-                <lvc:CartesianChart x:Name="Chart"/>
-                <TextBlock x:Name="TxtEmpty" Text="데이터가 없습니다. '엑셀 업로드'로 분석 데이터를 추가하세요."
-                           Foreground="#9CA3AF" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Visibility="Collapsed"/>
-            </Grid>
+        <!-- Chart card (헤더 클릭으로 접기/펼치기 → 접으면 표가 커짐) -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Top" Click="ToggleChart_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="hb" Background="White" CornerRadius="14" Padding="16,11"><ContentPresenter/></Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="hb" Property="Background" Value="#F9FAFB"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <DockPanel>
+                        <TextBlock x:Name="ChartArrow" DockPanel.Dock="Right" Text="▾" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center"/>
+                        <TextBlock Text="차트" FontSize="13" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Button>
+                <Border x:Name="ChartBody" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0" Padding="14,12">
+                    <Grid>
+                        <lvc:CartesianChart x:Name="Chart"/>
+                        <TextBlock x:Name="TxtEmpty" Text="데이터가 없습니다. '엑셀 업로드'로 분석 데이터를 추가하세요."
+                                   Foreground="#9CA3AF" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+            </DockPanel>
         </Border>
 
-        <!-- 차트 접기/펼치기 토글 (가운데 알약 버튼) -->
-        <Grid Grid.Row="3" Margin="0,-2,0,10">
-            <Button x:Name="ChartToggle" Click="ToggleChart_Click" Cursor="Hand" HorizontalAlignment="Center">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="pb" Background="White" BorderBrush="#E5E7EB" BorderThickness="1"
-                                CornerRadius="999" Padding="16,6">
-                            <Border.Effect><DropShadowEffect BlurRadius="8" Opacity="0.06" ShadowDepth="1" Direction="270"/></Border.Effect>
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="pb" Property="Background" Value="#F9FAFB"/></Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="ChartToggleText" Text="차트 접기" FontSize="12.5" FontWeight="SemiBold" Foreground="#6B7280"/>
-                    <TextBlock x:Name="ChartToggleArrow" Text="▲" FontSize="10" Foreground="#9CA3AF" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-        </Grid>
-
-        <!-- Data table (남는 공간 전부 채움) -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0">
+        <!-- Data table card (헤더 클릭으로 접기/펼치기 → 접으면 차트가 커짐) -->
+        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0">
             <DockPanel>
-                <Border DockPanel.Dock="Top" Padding="16,11" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="데이터 표" FontSize="13" FontWeight="Bold" Foreground="#374151"/>
+                <Button DockPanel.Dock="Top" Click="ToggleTable_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="hb" Background="White" CornerRadius="14" Padding="16,11"><ContentPresenter/></Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="hb" Property="Background" Value="#F9FAFB"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <DockPanel>
+                        <TextBlock x:Name="TableArrow" DockPanel.Dock="Right" Text="▾" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center"/>
+                        <TextBlock Text="데이터 표" FontSize="13" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtTableCount" Margin="8,0,0,0" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
+                    </DockPanel>
+                </Button>
+                <Border x:Name="TableBody" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0">
                 <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True"
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
                           Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
                           ColumnHeaderStyle="{StaticResource GridHeader}"
                           CanUserAddRows="False" AlternatingRowBackground="#FCFCFD"/>
+                </Border>
             </DockPanel>
         </Border>
     </Grid>
