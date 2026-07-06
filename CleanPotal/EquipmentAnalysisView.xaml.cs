@@ -70,11 +70,9 @@ namespace CleanPotal
 
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (_loading) return;
-            // 시간 추이일 때만 설비 선택 노출
-            bool trend = IsTrendMode();
-            LblEq.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
-            CmbEquip.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
+            // ⚠️ XAML 파싱(InitializeComponent) 중 ComboBoxItem IsSelected 가 SelectionChanged 를
+            //    먼저 발화시키는데, 그 시점엔 뒤에 선언된 컨트롤(LblEq 등)이 아직 null → NRE 방지
+            if (_loading || LblEq == null || CmbEquip == null || Chart == null) return;
             Render();
         }
 
@@ -90,6 +88,11 @@ namespace CleanPotal
 
         private void Render()
         {
+            // 시간 추이일 때만 설비 선택 노출 (초기 로드에도 반영되도록 Render 에서 처리)
+            bool trend = IsTrendMode();
+            LblEq.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
+            CmbEquip.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
+
             BuildChart();
             BuildTable();
             TxtEmpty.Visibility = _all.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
