@@ -134,6 +134,24 @@ namespace CleanPotal
             Render();
         }
 
+        // 모든 필터 초기화(설비유형·약액·설비·날짜·원소 전부 전체로)
+        private void ResetFilters_Click(object sender, RoutedEventArgs e)
+        {
+            _loading = true;
+            try
+            {
+                FltProcess.Clear();
+                FltBath.Clear();
+                FltEquip.Clear();
+                _selDates.Clear();
+                if (_chipAll != null) _chipAll.IsChecked = true;
+                foreach (var c in _elemChips) c.IsChecked = false;
+            }
+            finally { _loading = false; }
+            RefreshDependentFilters();   // 약액·설비 옵션/달력 전체 기준으로 재구성
+            Render();
+        }
+
         // 설비 유형(FltProcess) 선택에 맞춰 약액·설비·날짜(달력) 옵션을 그 유형 데이터로만 좁힌다.
         private void RefreshDependentFilters()
         {
@@ -509,13 +527,18 @@ namespace CleanPotal
         // ── 엑셀 다운로드 ──
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
-            if (_all.Count == 0) { MessageBox.Show("내보낼 데이터가 없습니다.", "다운로드", MessageBoxButton.OK, MessageBoxImage.Information); return; }
-            var dlg = new SaveFileDialog { Title = "설비 분석 엑셀 저장", Filter = "Excel (*.xlsx)|*.xlsx", FileName = $"설비분석_ICPMS_{DateTime.Now:yyyyMMdd}.xlsx" };
+            // 현재 필터가 적용된 결과만 내보낸다(필터 없으면 전체)
+            var rows = Filtered().ToList();
+            if (rows.Count == 0) { MessageBox.Show("내보낼 데이터가 없습니다. (필터 결과 0건)", "다운로드", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+            bool filtered = FltProcess.SelectedValues.Count > 0 || FltBath.SelectedValues.Count > 0
+                            || FltEquip.SelectedValues.Count > 0 || _selDates.Count > 0;
+            string suffix = filtered ? "_필터" : "";
+            var dlg = new SaveFileDialog { Title = "설비 분석 엑셀 저장", Filter = "Excel (*.xlsx)|*.xlsx", FileName = $"설비분석_ICPMS{suffix}_{DateTime.Now:yyyyMMdd}.xlsx" };
             if (dlg.ShowDialog() != true) return;
             try
             {
                 using var wb = new XLWorkbook();
-                foreach (var grp in _all.GroupBy(r => string.IsNullOrWhiteSpace(r.ProcessType) ? "DATA" : r.ProcessType))
+                foreach (var grp in rows.GroupBy(r => string.IsNullOrWhiteSpace(r.ProcessType) ? "DATA" : r.ProcessType))
                 {
                     var ws = wb.Worksheets.Add(grp.Key.Length > 31 ? grp.Key.Substring(0, 31) : grp.Key);
                     string[] head = new[] { "EQ_ID", "Bath_GB", "구분", "Unit", "EQ_IN_DT" }.Concat(Elements).ToArray();

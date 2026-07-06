@@ -305,6 +305,9 @@
                         <ComboBoxItem Content="월별" IsSelected="True"/>
                         <ComboBoxItem Content="년별"/>
                     </ComboBox>
+                    <Button x:Name="BtnResetFilters" Content="필터 초기화" Style="{StaticResource BtnGhost}"
+                            Margin="14,0,0,0" Padding="12,7" FontSize="12" Foreground="#DC2626" BorderBrush="#FECACA"
+                            Click="ResetFilters_Click"/>
                 </StackPanel>
             </DockPanel>
         </Border>
