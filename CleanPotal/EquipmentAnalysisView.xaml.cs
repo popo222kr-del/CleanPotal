@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using ClosedXML.Excel;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
@@ -23,6 +26,11 @@ namespace CleanPotal
         private ToggleButton? _chipAll;
         private readonly List<ToggleButton> _elemChips = new();
 
+        // 날짜(달력) 필터
+        private DateTime _calMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        private DateTime? _selDate;                          // 선택 날짜(null=전체)
+        private readonly HashSet<DateTime> _dataDates = new();  // 측정 기록 있는 날짜
+
         public EquipmentAnalysisView()
         {
             InitializeComponent();
@@ -30,7 +38,6 @@ namespace CleanPotal
             FltProcess.SelectionChanged += Filter_MultiChanged;
             FltBath.SelectionChanged += Filter_MultiChanged;
             FltEquip.SelectionChanged += Filter_MultiChanged;
-            FltDate.SelectionChanged += Filter_MultiChanged;
             Loaded += (_, _) => ReloadAll();
         }
 
@@ -104,6 +111,15 @@ namespace CleanPotal
             try { _all = EquipmentAnalysisRepository.GetAll(); }
             catch { _all = new(); }
             PopulateFilters();
+
+            // 측정 기록 있는 날짜 집합 + 선택날짜/표시월 정리
+            _dataDates.Clear();
+            foreach (var d in _all.Select(r => r.AnalysisDate))
+                if (DateTime.TryParse(d, out var dt)) _dataDates.Add(dt.Date);
+            if (_selDate.HasValue && !_dataDates.Contains(_selDate.Value)) _selDate = null;
+            if (_dataDates.Count > 0) _calMonth = new DateTime(_dataDates.Max().Year, _dataDates.Max().Month, 1);
+            UpdateDateButton();
+
             Render();
             int eqCnt = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
             TxtCount.Text = $"총 {_all.Count}행 · 설비 {eqCnt}대";
@@ -117,10 +133,72 @@ namespace CleanPotal
                 ApplyOptions(FltProcess, _all.Select(r => r.ProcessType).Distinct().OrderBy(s => s));
                 ApplyOptions(FltBath, _all.Select(r => r.BathGb).Distinct().OrderBy(s => s));
                 ApplyOptions(FltEquip, _all.Select(r => r.EqId).Distinct().OrderBy(s => s));
-                // 날짜는 최근순
-                ApplyOptions(FltDate, _all.Select(r => r.AnalysisDate).Distinct().OrderByDescending(s => s));
             }
             finally { _loading = false; }
+        }
+
+        // ── 날짜 달력 ──
+        private void UpdateDateButton()
+        {
+            DateText.Text = _selDate.HasValue ? _selDate.Value.ToString("yyyy-MM-dd") : "전체";
+        }
+
+        private void DateButton_Click(object sender, RoutedEventArgs e)
+        {
+            BuildCalendar();
+            DatePopup.IsOpen = true;
+        }
+
+        private void CalPrev_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(-1); BuildCalendar(); }
+        private void CalNext_Click(object sender, RoutedEventArgs e) { _calMonth = _calMonth.AddMonths(1); BuildCalendar(); }
+        private void CalClear_Click(object sender, RoutedEventArgs e) { _selDate = null; UpdateDateButton(); DatePopup.IsOpen = false; Render(); }
+
+        private static SolidColorBrush Br(string hex) => new((Color)ColorConverter.ConvertFromString(hex)!);
+
+        private void BuildCalendar()
+        {
+            CalTitle.Text = _calMonth.ToString("yyyy년 M월", CultureInfo.InvariantCulture);
+            CalDays.Children.Clear();
+
+            int lead = (int)new DateTime(_calMonth.Year, _calMonth.Month, 1).DayOfWeek; // 일=0
+            for (int i = 0; i < lead; i++) CalDays.Children.Add(new Border());
+
+            int days = DateTime.DaysInMonth(_calMonth.Year, _calMonth.Month);
+            for (int d = 1; d <= days; d++)
+            {
+                var date = new DateTime(_calMonth.Year, _calMonth.Month, d);
+                bool hasData = _dataDates.Contains(date);
+                bool selected = _selDate.HasValue && _selDate.Value == date;
+                bool today = date == DateTime.Today;
+
+                var ell = new Ellipse { Width = 30, Height = 30 };
+                var tb = new TextBlock { Text = d.ToString(), FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                if (selected) { ell.Fill = Br("#2563EB"); tb.Foreground = Brushes.White; tb.FontWeight = FontWeights.Bold; }
+                else if (hasData) { ell.Fill = Br("#DBEAFE"); tb.Foreground = Br("#1D4ED8"); tb.FontWeight = FontWeights.SemiBold; }
+                else { ell.Fill = Brushes.Transparent; tb.Foreground = Br("#374151"); }
+                if (today && !selected) { ell.Stroke = Br("#93C5FD"); ell.StrokeThickness = 1.5; }
+
+                var g = new Grid { Width = 34, Height = 34 };
+                g.Children.Add(ell);
+                g.Children.Add(tb);
+                var btn = new Button { Content = g, Tag = date, Style = (Style)FindResource("CalDay") };
+                btn.Click += Day_Click;
+                CalDays.Children.Add(btn);
+            }
+            // 6주 채우기(레이아웃 안정)
+            int total = lead + days;
+            for (int i = total; i < 42; i++) CalDays.Children.Add(new Border());
+        }
+
+        private void Day_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is DateTime date)
+            {
+                _selDate = (_selDate == date) ? (DateTime?)null : date;   // 같은 날 다시 누르면 해제
+                UpdateDateButton();
+                DatePopup.IsOpen = false;
+                Render();
+            }
         }
 
         // 옵션을 채우되 기존 선택은 유지(여전히 존재하는 값만)
@@ -154,12 +232,15 @@ namespace CleanPotal
             var proc = FltProcess.SelectedValues;
             var bath = FltBath.SelectedValues;
             var eq = FltEquip.SelectedValues;
-            var date = FltDate.SelectedValues;
             IEnumerable<EquipmentAnalysisRow> q = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId));
             if (proc.Count > 0) q = q.Where(r => proc.Contains(r.ProcessType));
             if (bath.Count > 0) q = q.Where(r => bath.Contains(r.BathGb));
             if (eq.Count > 0) q = q.Where(r => eq.Contains(r.EqId));
-            if (date.Count > 0) q = q.Where(r => date.Contains(r.AnalysisDate));
+            if (_selDate.HasValue)
+            {
+                string ds = _selDate.Value.ToString("yyyy-MM-dd");
+                q = q.Where(r => r.AnalysisDate == ds);
+            }
             return q;
         }
 
