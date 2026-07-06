@@ -259,14 +259,38 @@
             </Grid>
         </Border>
 
-        <!-- Data table -->
+        <!-- Data table (접기/펼치기) -->
         <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0">
-            <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True" MaxHeight="230"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
-                      Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
-                      ColumnHeaderStyle="{StaticResource GridHeader}"
-                      CanUserAddRows="False" AlternatingRowBackground="#FCFCFD"/>
+            <StackPanel>
+                <!-- 토글 헤더 -->
+                <Button x:Name="BtnToggleTable" Click="ToggleTable_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="hb" Background="White" CornerRadius="14" Padding="16,11">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="hb" Property="Background" Value="#F9FAFB"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <DockPanel>
+                        <TextBlock x:Name="Arrow" DockPanel.Dock="Right" Text="▾" FontSize="12"
+                                   Foreground="#9CA3AF" VerticalAlignment="Center"/>
+                        <TextBlock Text="데이터 표" FontSize="13" FontWeight="Bold" Foreground="#374151" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtTableCount" Margin="8,0,0,0" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Button>
+                <!-- 표 본문 -->
+                <Border x:Name="TablePanel" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0">
+                    <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True" MaxHeight="230"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
+                              Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
+                              ColumnHeaderStyle="{StaticResource GridHeader}"
+                              CanUserAddRows="False" AlternatingRowBackground="#FCFCFD"/>
+                </Border>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>
