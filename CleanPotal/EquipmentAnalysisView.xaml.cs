@@ -38,7 +38,7 @@ namespace CleanPotal
         {
             InitializeComponent();
             BuildElementChips();
-            FltProcess.SelectionChanged += Filter_MultiChanged;
+            FltProcess.SelectionChanged += Process_Changed;   // 설비 유형 → 약액·설비·날짜 옵션 갱신
             FltBath.SelectionChanged += Filter_MultiChanged;
             FltEquip.SelectionChanged += Filter_MultiChanged;
             // 관리자 아니면 '전체 삭제' 숨김
@@ -115,31 +115,48 @@ namespace CleanPotal
         {
             try { _all = EquipmentAnalysisRepository.GetAll(); }
             catch { _all = new(); }
-            PopulateFilters();
 
-            // 측정 기록 있는 날짜 집합 + 선택날짜/표시월 정리
-            _dataDates.Clear();
-            foreach (var d in _all.Select(r => r.AnalysisDate))
-                if (DateTime.TryParse(d, out var dt)) _dataDates.Add(dt.Date);
-            if (_selDate.HasValue && !_dataDates.Contains(_selDate.Value)) _selDate = null;
-            if (_dataDates.Count > 0) _calMonth = new DateTime(_dataDates.Max().Year, _dataDates.Max().Month, 1);
-            UpdateDateButton();
+            // 설비 유형 옵션(전체 기준), 이후 유형에 맞춰 약액·설비·날짜 재구성
+            _loading = true;
+            try { ApplyOptions(FltProcess, _all.Select(r => r.ProcessType).Distinct().OrderBy(s => s)); }
+            finally { _loading = false; }
+            RefreshDependentFilters();
 
             Render();
             int eqCnt = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
             TxtCount.Text = $"총 {_all.Count}행 · 설비 {eqCnt}대";
         }
 
-        private void PopulateFilters()
+        private void Process_Changed(object? sender, EventArgs e)
         {
+            if (_loading) return;
+            RefreshDependentFilters();
+            Render();
+        }
+
+        // 설비 유형(FltProcess) 선택에 맞춰 약액·설비·날짜(달력) 옵션을 그 유형 데이터로만 좁힌다.
+        private void RefreshDependentFilters()
+        {
+            var proc = FltProcess.SelectedValues;
+            var rows = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId));
+            if (proc.Count > 0) rows = rows.Where(r => proc.Contains(r.ProcessType));
+            var list = rows.ToList();
+
             _loading = true;
             try
             {
-                ApplyOptions(FltProcess, _all.Select(r => r.ProcessType).Distinct().OrderBy(s => s));
-                ApplyOptions(FltBath, _all.Select(r => r.BathGb).Distinct().OrderBy(s => s));
-                ApplyOptions(FltEquip, _all.Select(r => r.EqId).Distinct().OrderBy(s => s));
+                ApplyOptions(FltBath, list.Select(r => r.BathGb).Distinct().OrderBy(s => s));
+                ApplyOptions(FltEquip, list.Select(r => r.EqId).Distinct().OrderBy(s => s));
             }
             finally { _loading = false; }
+
+            // 달력: 해당 유형 데이터의 날짜만 표시/선택 가능
+            _dataDates.Clear();
+            foreach (var d in list.Select(r => r.AnalysisDate))
+                if (DateTime.TryParse(d, out var dt)) _dataDates.Add(dt.Date);
+            if (_selDate.HasValue && !_dataDates.Contains(_selDate.Value)) _selDate = null;
+            if (_dataDates.Count > 0) _calMonth = new DateTime(_dataDates.Max().Year, _dataDates.Max().Month, 1);
+            UpdateDateButton();
         }
 
         // ── 날짜 달력 ──
