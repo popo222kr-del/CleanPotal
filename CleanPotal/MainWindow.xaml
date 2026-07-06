@@ -510,7 +510,7 @@
 
                         <Expander x:Name="ExpanderFieldInspection" Header="현장 점검" Tag="{StaticResource IconInspectionColor}" Style="{StaticResource SidebarExpanderStyle}" Expanded="ExpanderFieldInspection_Expanded">
                             <StackPanel>
-                                <Button x:Name="BtnNavEquipAnalysis" Content="설비 분석 DATA" Style="{StaticResource ErpSubButtonStyle}" Click="OpenEquipAnalysis_Click"/>
+                                <Button x:Name="BtnNavEquipAnalysis" Content="설비 ICP-MS" Style="{StaticResource ErpSubButtonStyle}" Click="OpenEquipAnalysis_Click"/>
                                 <Button x:Name="BtnNavFieldInventory" Content="재고관리" Style="{StaticResource ErpSubButtonStyle}" Click="OpenFieldInventory_Click"/>
                                 <Button x:Name="BtnNavFieldChecklist" Content="체크시트" Style="{StaticResource ErpSubButtonStyle}" Click="OpenFieldChecklist_Click"/>
                             </StackPanel>
