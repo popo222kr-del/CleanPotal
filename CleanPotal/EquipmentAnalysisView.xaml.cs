@@ -122,9 +122,18 @@ namespace CleanPotal
                 CmbBath.ItemsSource = baths;
                 CmbBath.SelectedItem = baths.Contains(prevBath) ? prevBath : "전체";
 
-                var eqs = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
+                var eqs = new List<string> { "전체" };
+                eqs.AddRange(_all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s));
                 CmbEquip.ItemsSource = eqs;
-                CmbEquip.SelectedItem = eqs.Contains(prevEq) ? prevEq : eqs.FirstOrDefault();
+                CmbEquip.SelectedItem = eqs.Contains(prevEq) ? prevEq : "전체";
+
+                // 설비별 비교용 날짜 선택: 최신 + 분석일 목록(최근순)
+                string prevDate = CmbDate.SelectedItem as string;
+                var dates = new List<string> { "최신" };
+                dates.AddRange(_all.Select(r => r.AnalysisDate).Where(s => !string.IsNullOrWhiteSpace(s))
+                                   .Distinct().OrderByDescending(s => s));
+                CmbDate.ItemsSource = dates;
+                CmbDate.SelectedItem = dates.Contains(prevDate) ? prevDate : "최신";
             }
             finally { _loading = false; }
         }
@@ -134,69 +143,122 @@ namespace CleanPotal
         private void Mode_Changed(object sender, RoutedEventArgs e)
         {
             // XAML 파싱 중(InitializeComponent) RbBar IsChecked=True 가 먼저 발화 → 뒤 컨트롤 null 방지
-            if (_loading || Chart == null || LblEq == null || CmbEquip == null) return;
+            if (_loading || Chart == null || LblEq == null || CmbEquip == null || CmbDate == null || CmbPeriod == null) return;
             Render();
         }
 
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (_loading || Chart == null || LblEq == null || CmbEquip == null) return;
+            if (_loading || Chart == null || LblEq == null || CmbEquip == null || CmbDate == null || CmbPeriod == null) return;
             Render();
         }
 
+        // 공정·약액·설비(전체/특정) 공통 필터
         private IEnumerable<EquipmentAnalysisRow> Filtered()
         {
             string proc = CmbProcess.SelectedItem as string ?? "전체";
             string bath = CmbBath.SelectedItem as string ?? "전체";
+            string eq = CmbEquip.SelectedItem as string ?? "전체";
             IEnumerable<EquipmentAnalysisRow> q = _all;
             if (proc != "전체") q = q.Where(r => r.ProcessType == proc);
             if (bath != "전체") q = q.Where(r => r.BathGb == bath);
+            if (eq != "전체" && !string.IsNullOrEmpty(eq)) q = q.Where(r => r.EqId == eq);
             return q;
         }
 
         private void Render()
         {
-            // 시간 추이일 때만 설비 선택 노출
+            // 설비는 두 모드 모두 표시. 날짜=설비별 비교 전용, 단위(일/월/년)=시간 추이 전용
             bool trend = IsTrendMode();
-            LblEq.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
-            CmbEquip.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
+            LblDate.Visibility = trend ? Visibility.Collapsed : Visibility.Visible;
+            CmbDate.Visibility = trend ? Visibility.Collapsed : Visibility.Visible;
+            LblPeriod.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
+            CmbPeriod.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
 
             BuildChart();
             BuildTable();
             TxtEmpty.Visibility = _all.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
+        private static string PeriodKey(string date, string unit)
+        {
+            if (string.IsNullOrWhiteSpace(date)) return "";
+            return unit switch
+            {
+                "년별" => date.Length >= 4 ? date.Substring(0, 4) : date,
+                "월별" => date.Length >= 7 ? date.Substring(0, 7) : date,
+                _ => date
+            };
+        }
+
         private void BuildChart()
         {
             var elems = SelectedElements();
-            var rows = Filtered().ToList();
+            var rows = Filtered().Where(r => !string.IsNullOrWhiteSpace(r.EqId)).ToList();
 
             if (IsTrendMode())
             {
-                string eq = CmbEquip.SelectedItem as string;
-                var pts = rows.Where(r => r.EqId == eq).OrderBy(r => r.AnalysisDate).ToList();
-                Chart.Series = elems.Select(el => (ISeries)new LineSeries<double>
+                string unit = (CmbPeriod.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "월별";
+                string eqSel = CmbEquip.SelectedItem as string ?? "전체";
+                var dated = rows.Where(r => !string.IsNullOrWhiteSpace(r.AnalysisDate)).ToList();
+                var periods = dated.Select(r => PeriodKey(r.AnalysisDate, unit)).Distinct().OrderBy(p => p).ToList();
+
+                if (eqSel == "전체")
                 {
-                    Name = el,
-                    Values = pts.Select(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0).ToArray()
-                }).ToArray();
-                Chart.XAxes = new[] { new Axis { Labels = pts.Select(r => r.AnalysisDate).ToArray(), LabelsRotation = 30 } };
-                Chart.YAxes = new[] { new Axis { Name = "ppb" } };
+                    // 설비 전체: 첫 번째 선택 원소 기준, 설비별 라인 비교 (기간 평균, 데이터 없는 구간은 공백)
+                    string el = elems.FirstOrDefault() ?? "Fe";
+                    var eqIds = dated.Select(r => r.EqId).Distinct().OrderBy(s => s).ToList();
+                    Chart.Series = eqIds.Select(eq => (ISeries)new LineSeries<double?>
+                    {
+                        Name = eq,
+                        Values = periods.Select(p =>
+                        {
+                            var pr = dated.Where(r => r.EqId == eq && PeriodKey(r.AnalysisDate, unit) == p)
+                                          .Select(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0).ToList();
+                            return pr.Count == 0 ? (double?)null : pr.Average();
+                        }).ToArray()
+                    }).ToArray();
+                    Chart.YAxes = new[] { new Axis { Name = $"{el} (ppb · {unit} 평균)" } };
+                }
+                else
+                {
+                    // 특정 설비: 선택 원소별 라인 (기간 평균)
+                    Chart.Series = elems.Select(el => (ISeries)new LineSeries<double?>
+                    {
+                        Name = el,
+                        Values = periods.Select(p =>
+                        {
+                            var pr = dated.Where(r => PeriodKey(r.AnalysisDate, unit) == p)
+                                          .Select(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0).ToList();
+                            return pr.Count == 0 ? (double?)null : pr.Average();
+                        }).ToArray()
+                    }).ToArray();
+                    Chart.YAxes = new[] { new Axis { Name = $"ppb · {unit} 평균" } };
+                }
+                Chart.XAxes = new[] { new Axis { Labels = periods.ToArray(), LabelsRotation = 30 } };
             }
             else
             {
-                // 설비별: 각 설비의 '최신 분석일' 값, 원소별 시리즈
-                var eqGroups = rows.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
-                    .GroupBy(r => r.EqId).OrderBy(g => g.Key)
-                    .Select(g => new { Eq = g.Key, Latest = g.OrderBy(x => x.AnalysisDate).Last() })
+                // 설비별 비교: 날짜 선택(최신/특정 분석일). 같은 날짜에 여러 행이면 평균.
+                string dateSel = CmbDate.SelectedItem as string ?? "최신";
+                var eqData = rows.GroupBy(r => r.EqId).OrderBy(g => g.Key)
+                    .Select(g =>
+                    {
+                        string d = dateSel == "최신" ? g.Max(x => x.AnalysisDate) : dateSel;
+                        var sub = g.Where(x => x.AnalysisDate == d).ToList();
+                        return new { Eq = g.Key, Sub = sub };
+                    })
+                    .Where(x => x.Sub.Count > 0)
                     .ToList();
+
                 Chart.Series = elems.Select(el => (ISeries)new ColumnSeries<double>
                 {
                     Name = el,
-                    Values = eqGroups.Select(x => x.Latest.Elements.TryGetValue(el, out var v) ? v : 0.0).ToArray()
+                    Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                Chart.XAxes = new[] { new Axis { Labels = eqGroups.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
-                Chart.YAxes = new[] { new Axis { Name = "ppb (설비별 최신값)" } };
+                Chart.XAxes = new[] { new Axis { Labels = eqData.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
+                Chart.YAxes = new[] { new Axis { Name = dateSel == "최신" ? "ppb (설비별 최신값)" : $"ppb ({dateSel})" } };
             }
         }
 
