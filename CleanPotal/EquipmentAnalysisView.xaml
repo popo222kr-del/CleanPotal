@@ -2,23 +2,40 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
-             Background="#F8FAFC"
+             Background="#F9FAFB"
              SnapsToDevicePixels="True" UseLayoutRounding="True"
              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
     <UserControl.Resources>
+
+        <!-- ── Card ── -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#EEF0F4"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="14"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" Opacity="0.05" ShadowDepth="2" Direction="270"/>
+                </Setter.Value>
+            </Setter>
         </Style>
-        <Style x:Key="Btn" TargetType="Button">
+
+        <!-- ── Small label ── -->
+        <Style x:Key="LblSmall" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="14,0,6,0"/>
+        </Style>
+
+        <!-- ── Buttons ── -->
+        <Style x:Key="BtnGhost" TargetType="Button">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CBD5E1"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="Foreground" Value="#111827"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -27,63 +44,200 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                BorderThickness="1" CornerRadius="9" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F1F5F9"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F9FAFB"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="PrimaryBtn" TargetType="Button" BasedOn="{StaticResource Btn}">
-            <Setter Property="Background" Value="#2563EB"/><Setter Property="Foreground" Value="White"/><Setter Property="BorderBrush" Value="#2563EB"/>
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BtnGhost}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="BorderBrush" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
-        <Style x:Key="Lbl" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="#64748B"/>
-            <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="10,0,4,0"/>
+        <Style x:Key="BtnDanger" TargetType="Button" BasedOn="{StaticResource BtnGhost}">
+            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="BorderBrush" Value="#FECACA"/>
         </Style>
+
+        <!-- ── Segmented control ── -->
+        <Style x:Key="SegItem" TargetType="RadioButton">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="8" Padding="14,6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="White"/>
+                                <Setter TargetName="bd" Property="TextElement.Foreground" Value="#111827"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value><DropShadowEffect BlurRadius="6" Opacity="0.10" ShadowDepth="1" Direction="270"/></Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Modern ComboBox ── -->
+        <Style x:Key="ModernComboItem" TargetType="ComboBoxItem">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}" Margin="2,1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="bd" Property="Background" Value="#F3F4F6"/></Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="bd" Property="TextElement.Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ModernCombo" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="MinWidth" Value="96"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource ModernComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="9">
+                                            <TextBlock Text="▾" Foreground="#9CA3AF" FontSize="11"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#C7D2FE"/></Trigger>
+                                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#2563EB"/></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="12,0,26,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" StaysOpen="False">
+                                <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10"
+                                        MinWidth="{TemplateBinding ActualWidth}" Margin="6">
+                                    <Border.Effect><DropShadowEffect BlurRadius="14" Opacity="0.14" ShadowDepth="3" Direction="270"/></Border.Effect>
+                                    <ScrollViewer MaxHeight="280" Margin="4">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Element chip ── -->
+        <Style x:Key="Chip" TargetType="ToggleButton">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="999" Padding="12,5">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#F9FAFB"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#93C5FD"/>
+                                <Setter TargetName="bd" Property="TextElement.Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── DataGrid ── -->
+        <Style x:Key="GridHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F9FAFB"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="BorderBrush" Value="#EEF0F4"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
     </UserControl.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="24,14,24,20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- toolbar -->
-            <RowDefinition Height="Auto"/>  <!-- filter -->
+            <RowDefinition Height="Auto"/>  <!-- filter / actions -->
+            <RowDefinition Height="Auto"/>  <!-- element chips -->
             <RowDefinition Height="*"/>     <!-- chart -->
             <RowDefinition Height="Auto"/>  <!-- table -->
         </Grid.RowDefinitions>
 
-        <!-- Toolbar -->
+        <!-- Filter + actions -->
         <Border Grid.Row="0" Style="{StaticResource Card}" Padding="12,10">
             <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <TextBlock x:Name="TxtCount" Style="{StaticResource Lbl}" Margin="0,0,12,0"/>
-                    <Button x:Name="BtnUpload" Content="엑셀 업로드" Style="{StaticResource PrimaryBtn}" Click="BtnUpload_Click"/>
-                    <Button x:Name="BtnDownload" Content="엑셀 다운로드" Style="{StaticResource Btn}" Margin="6,0,0,0" Click="BtnDownload_Click"/>
-                    <Button x:Name="BtnClear" Content="전체 삭제" Style="{StaticResource Btn}" Margin="6,0,0,0" Click="BtnClear_Click"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtCount" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button x:Name="BtnUpload" Content="엑셀 업로드" Style="{StaticResource BtnPrimary}" Click="BtnUpload_Click"/>
+                    <Button x:Name="BtnDownload" Content="다운로드" Style="{StaticResource BtnGhost}" Margin="6,0,0,0" Click="BtnDownload_Click"/>
+                    <Button x:Name="BtnClear" Content="전체 삭제" Style="{StaticResource BtnDanger}" Margin="6,0,0,0" Click="BtnClear_Click"/>
                 </StackPanel>
-                <TextBlock Text="설비 분석 DATA (ICP-MS)" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#F3F4F6" CornerRadius="10" Padding="3">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbBar" Content="설비별 비교" Style="{StaticResource SegItem}" IsChecked="True" Checked="Mode_Changed"/>
+                            <RadioButton x:Name="RbTrend" Content="시간 추이" Style="{StaticResource SegItem}" Checked="Mode_Changed"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="공정" Style="{StaticResource LblSmall}"/>
+                    <ComboBox x:Name="CmbProcess" Style="{StaticResource ModernCombo}" Width="92" SelectionChanged="Filter_Changed"/>
+                    <TextBlock Text="약액" Style="{StaticResource LblSmall}"/>
+                    <ComboBox x:Name="CmbBath" Style="{StaticResource ModernCombo}" Width="92" SelectionChanged="Filter_Changed"/>
+                    <TextBlock x:Name="LblEq" Text="설비" Style="{StaticResource LblSmall}"/>
+                    <ComboBox x:Name="CmbEquip" Style="{StaticResource ModernCombo}" Width="110" SelectionChanged="Filter_Changed"/>
+                </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- Filter bar -->
-        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12,8">
-            <WrapPanel Orientation="Horizontal">
-                <TextBlock Text="보기" Style="{StaticResource Lbl}" Margin="0,0,4,0"/>
-                <ComboBox x:Name="CmbMode" Width="130" SelectionChanged="Filter_Changed">
-                    <ComboBoxItem Content="설비별 비교" IsSelected="True"/>
-                    <ComboBoxItem Content="시간 추이"/>
-                </ComboBox>
-                <TextBlock Text="공정" Style="{StaticResource Lbl}"/>
-                <ComboBox x:Name="CmbProcess" Width="90" SelectionChanged="Filter_Changed"/>
-                <TextBlock Text="약액" Style="{StaticResource Lbl}"/>
-                <ComboBox x:Name="CmbBath" Width="90" SelectionChanged="Filter_Changed"/>
-                <TextBlock Text="원소" Style="{StaticResource Lbl}"/>
-                <ComboBox x:Name="CmbElement" Width="80" SelectionChanged="Filter_Changed"/>
-                <TextBlock x:Name="LblEq" Text="설비" Style="{StaticResource Lbl}"/>
-                <ComboBox x:Name="CmbEquip" Width="110" SelectionChanged="Filter_Changed"/>
-            </WrapPanel>
+        <!-- Element chips -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,12,14,6">
+            <DockPanel>
+                <TextBlock Text="원소" FontSize="12" FontWeight="Bold" Foreground="#6B7280"
+                           VerticalAlignment="Top" Margin="0,4,12,0" DockPanel.Dock="Left"/>
+                <WrapPanel x:Name="ChipPanel"/>
+            </DockPanel>
         </Border>
 
         <!-- Chart -->
@@ -91,17 +245,19 @@
             <Grid>
                 <lvc:CartesianChart x:Name="Chart"/>
                 <TextBlock x:Name="TxtEmpty" Text="데이터가 없습니다. '엑셀 업로드'로 분석 데이터를 추가하세요."
-                           Foreground="#94A3B8" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="#9CA3AF" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
             </Grid>
         </Border>
 
         <!-- Data table -->
-        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0">
-            <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True" MaxHeight="240"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal" FontSize="12"
-                      Background="White" BorderThickness="0" RowHeaderWidth="0"
-                      CanUserAddRows="False" AlternatingRowBackground="#FAFAFA"/>
+        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0">
+            <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True" MaxHeight="230"
+                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
+                      Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
+                      ColumnHeaderStyle="{StaticResource GridHeader}"
+                      CanUserAddRows="False" AlternatingRowBackground="#FCFCFD"/>
         </Border>
     </Grid>
 </UserControl>

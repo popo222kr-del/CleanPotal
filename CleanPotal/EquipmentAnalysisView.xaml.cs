@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using ClosedXML.Excel;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
@@ -18,22 +19,88 @@ namespace CleanPotal
         private List<EquipmentAnalysisRow> _all = new();
         private bool _loading;
 
+        // 원소 선택 칩 ('전체' + 원소별). 기본은 전체.
+        private ToggleButton? _chipAll;
+        private readonly List<ToggleButton> _elemChips = new();
+
         public EquipmentAnalysisView()
         {
             InitializeComponent();
+            BuildElementChips();
             Loaded += (_, _) => ReloadAll();
         }
 
         // 다른 페이지 갔다가 돌아오면 새로고침
         public void TryRefresh() { if (!_loading) ReloadAll(); }
 
+        // ── 원소 칩 구성 ──
+        private void BuildElementChips()
+        {
+            _loading = true;
+            try
+            {
+                ChipPanel.Children.Clear();
+                _elemChips.Clear();
+
+                _chipAll = MakeChip("전체", true);
+                ChipPanel.Children.Add(_chipAll);
+                foreach (var el in Elements)
+                {
+                    var c = MakeChip(el, false);
+                    _elemChips.Add(c);
+                    ChipPanel.Children.Add(c);
+                }
+            }
+            finally { _loading = false; }
+        }
+
+        private ToggleButton MakeChip(string label, bool check)
+        {
+            var t = new ToggleButton { Content = label, IsChecked = check, Style = (Style)FindResource("Chip") };
+            t.Checked += Chip_Toggled;
+            t.Unchecked += Chip_Toggled;
+            return t;
+        }
+
+        private void Chip_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_loading || _chipAll == null) return;
+            _loading = true;
+            try
+            {
+                if (ReferenceEquals(sender, _chipAll))
+                {
+                    if (_chipAll.IsChecked == true)
+                        foreach (var c in _elemChips) c.IsChecked = false;   // 전체 선택 → 개별 해제
+                    else if (!_elemChips.Any(c => c.IsChecked == true))
+                        _chipAll.IsChecked = true;                            // 아무것도 없으면 전체 유지
+                }
+                else
+                {
+                    _chipAll.IsChecked = !_elemChips.Any(c => c.IsChecked == true);   // 개별 선택 시 전체 해제
+                }
+            }
+            finally { _loading = false; }
+            Render();
+        }
+
+        // 선택된 원소(전체 or 없음 → 전 원소)
+        private string[] SelectedElements()
+        {
+            if (_chipAll?.IsChecked == true) return Elements;
+            var sel = _elemChips.Where(c => c.IsChecked == true).Select(c => (string)c.Content).ToArray();
+            return sel.Length == 0 ? Elements : sel;
+        }
+
+        // ── 데이터 로드/필터 ──
         private void ReloadAll()
         {
             try { _all = EquipmentAnalysisRepository.GetAll(); }
             catch { _all = new(); }
             PopulateFilters();
             Render();
-            TxtCount.Text = $"총 {_all.Count}행";
+            int eqCnt = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
+            TxtCount.Text = $"총 {_all.Count}행 · 설비 {eqCnt}대";
         }
 
         private void PopulateFilters()
@@ -43,7 +110,6 @@ namespace CleanPotal
             {
                 string prevProc = CmbProcess.SelectedItem as string;
                 string prevBath = CmbBath.SelectedItem as string;
-                string prevElem = CmbElement.SelectedItem as string;
                 string prevEq = CmbEquip.SelectedItem as string;
 
                 var procs = new List<string> { "전체" };
@@ -56,9 +122,6 @@ namespace CleanPotal
                 CmbBath.ItemsSource = baths;
                 CmbBath.SelectedItem = baths.Contains(prevBath) ? prevBath : "전체";
 
-                CmbElement.ItemsSource = Elements;
-                CmbElement.SelectedItem = Elements.Contains(prevElem) ? prevElem : (Elements.Contains("Fe") ? "Fe" : Elements.FirstOrDefault());
-
                 var eqs = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList();
                 CmbEquip.ItemsSource = eqs;
                 CmbEquip.SelectedItem = eqs.Contains(prevEq) ? prevEq : eqs.FirstOrDefault();
@@ -66,13 +129,18 @@ namespace CleanPotal
             finally { _loading = false; }
         }
 
-        private bool IsTrendMode() => (CmbMode.SelectedItem as ComboBoxItem)?.Content?.ToString() == "시간 추이";
+        private bool IsTrendMode() => RbTrend?.IsChecked == true;
+
+        private void Mode_Changed(object sender, RoutedEventArgs e)
+        {
+            // XAML 파싱 중(InitializeComponent) RbBar IsChecked=True 가 먼저 발화 → 뒤 컨트롤 null 방지
+            if (_loading || Chart == null || LblEq == null || CmbEquip == null) return;
+            Render();
+        }
 
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            // ⚠️ XAML 파싱(InitializeComponent) 중 ComboBoxItem IsSelected 가 SelectionChanged 를
-            //    먼저 발화시키는데, 그 시점엔 뒤에 선언된 컨트롤(LblEq 등)이 아직 null → NRE 방지
-            if (_loading || LblEq == null || CmbEquip == null || Chart == null) return;
+            if (_loading || Chart == null || LblEq == null || CmbEquip == null) return;
             Render();
         }
 
@@ -88,7 +156,7 @@ namespace CleanPotal
 
         private void Render()
         {
-            // 시간 추이일 때만 설비 선택 노출 (초기 로드에도 반영되도록 Render 에서 처리)
+            // 시간 추이일 때만 설비 선택 노출
             bool trend = IsTrendMode();
             LblEq.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
             CmbEquip.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
@@ -100,46 +168,41 @@ namespace CleanPotal
 
         private void BuildChart()
         {
-            string elem = CmbElement.SelectedItem as string ?? Elements.FirstOrDefault() ?? "Fe";
+            var elems = SelectedElements();
             var rows = Filtered().ToList();
 
             if (IsTrendMode())
             {
                 string eq = CmbEquip.SelectedItem as string;
                 var pts = rows.Where(r => r.EqId == eq).OrderBy(r => r.AnalysisDate).ToList();
-                Chart.Series = new ISeries[]
+                Chart.Series = elems.Select(el => (ISeries)new LineSeries<double>
                 {
-                    new LineSeries<double>
-                    {
-                        Name = $"{eq} · {elem}",
-                        Values = pts.Select(r => r.Elements.TryGetValue(elem, out var v) ? v : 0.0).ToArray()
-                    }
-                };
+                    Name = el,
+                    Values = pts.Select(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0).ToArray()
+                }).ToArray();
                 Chart.XAxes = new[] { new Axis { Labels = pts.Select(r => r.AnalysisDate).ToArray(), LabelsRotation = 30 } };
-                Chart.YAxes = new[] { new Axis { Name = $"{elem} (ppb)" } };
+                Chart.YAxes = new[] { new Axis { Name = "ppb" } };
             }
             else
             {
-                // 설비별: 각 설비의 '최신 분석일' 값 비교
-                var groups = rows.GroupBy(r => r.EqId)
-                    .Select(g =>
-                    {
-                        var latest = g.OrderBy(x => x.AnalysisDate).Last();
-                        return new { Eq = g.Key, Val = latest.Elements.TryGetValue(elem, out var v) ? v : 0.0 };
-                    })
-                    .OrderByDescending(x => x.Val)
+                // 설비별: 각 설비의 '최신 분석일' 값, 원소별 시리즈
+                var eqGroups = rows.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
+                    .GroupBy(r => r.EqId).OrderBy(g => g.Key)
+                    .Select(g => new { Eq = g.Key, Latest = g.OrderBy(x => x.AnalysisDate).Last() })
                     .ToList();
-                Chart.Series = new ISeries[]
+                Chart.Series = elems.Select(el => (ISeries)new ColumnSeries<double>
                 {
-                    new ColumnSeries<double> { Name = elem, Values = groups.Select(x => x.Val).ToArray() }
-                };
-                Chart.XAxes = new[] { new Axis { Labels = groups.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
-                Chart.YAxes = new[] { new Axis { Name = $"{elem} (ppb, 최신값)" } };
+                    Name = el,
+                    Values = eqGroups.Select(x => x.Latest.Elements.TryGetValue(el, out var v) ? v : 0.0).ToArray()
+                }).ToArray();
+                Chart.XAxes = new[] { new Axis { Labels = eqGroups.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
+                Chart.YAxes = new[] { new Axis { Name = "ppb (설비별 최신값)" } };
             }
         }
 
         private void BuildTable()
         {
+            var elems = SelectedElements();   // 표 컬럼도 선택 원소만 표시
             var dt = new DataTable();
             dt.Columns.Add("공정");
             dt.Columns.Add("설비");
@@ -147,12 +210,12 @@ namespace CleanPotal
             dt.Columns.Add("구분");
             dt.Columns.Add("분석일");
             dt.Columns.Add("단위");
-            foreach (var el in Elements) dt.Columns.Add(el, typeof(double));
+            foreach (var el in elems) dt.Columns.Add(el, typeof(double));
 
             foreach (var r in Filtered().OrderByDescending(r => r.AnalysisDate).ThenBy(r => r.EqId))
             {
                 var vals = new List<object> { r.ProcessType, r.EqId, r.BathGb, r.Category, r.AnalysisDate, r.Unit };
-                foreach (var el in Elements) vals.Add(r.Elements.TryGetValue(el, out var v) ? Math.Round(v, 4) : 0.0);
+                foreach (var el in elems) vals.Add(r.Elements.TryGetValue(el, out var v) ? Math.Round(v, 4) : 0.0);
                 dt.Rows.Add(vals.ToArray());
             }
             Grid.ItemsSource = dt.DefaultView;
