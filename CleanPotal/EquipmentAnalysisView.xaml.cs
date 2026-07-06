@@ -404,6 +404,26 @@ namespace CleanPotal
             RowTable.Height = show ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
         }
 
+        // 표 카드 하단 모서리 라운드(그리드가 사각으로 덮어 각져 보이던 것 보정)
+        private void TableInner_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.ActualWidth > 0 && fe.ActualHeight > 0)
+                fe.Clip = new RectangleGeometry(new Rect(0, 0, fe.ActualWidth, fe.ActualHeight), 12, 12);
+        }
+
+        // 자동 생성 컬럼: 셀 텍스트 상하·좌우 중앙 정렬
+        private void Grid_AutoGeneratingColumn(object? sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            if (e.Column is DataGridTextColumn tc)
+            {
+                var st = new Style(typeof(TextBlock));
+                st.Setters.Add(new Setter(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center));
+                st.Setters.Add(new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center));
+                st.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center));
+                tc.ElementStyle = st;
+            }
+        }
+
         // ── 엑셀 업로드 ──
         private void BtnUpload_Click(object sender, RoutedEventArgs e)
         {
