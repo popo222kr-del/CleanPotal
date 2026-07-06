@@ -227,6 +227,14 @@
                     <ComboBox x:Name="CmbBath" Style="{StaticResource ModernCombo}" Width="92" SelectionChanged="Filter_Changed"/>
                     <TextBlock x:Name="LblEq" Text="설비" Style="{StaticResource LblSmall}"/>
                     <ComboBox x:Name="CmbEquip" Style="{StaticResource ModernCombo}" Width="110" SelectionChanged="Filter_Changed"/>
+                    <TextBlock x:Name="LblDate" Text="날짜" Style="{StaticResource LblSmall}"/>
+                    <ComboBox x:Name="CmbDate" Style="{StaticResource ModernCombo}" Width="118" SelectionChanged="Filter_Changed"/>
+                    <TextBlock x:Name="LblPeriod" Text="단위" Style="{StaticResource LblSmall}"/>
+                    <ComboBox x:Name="CmbPeriod" Style="{StaticResource ModernCombo}" Width="84" SelectionChanged="Filter_Changed">
+                        <ComboBoxItem Content="일별"/>
+                        <ComboBoxItem Content="월별" IsSelected="True"/>
+                        <ComboBoxItem Content="년별"/>
+                    </ComboBox>
                 </StackPanel>
             </DockPanel>
         </Border>
