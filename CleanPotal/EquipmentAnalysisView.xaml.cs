@@ -274,12 +274,13 @@ namespace CleanPotal
             if (TxtTableCount != null) TxtTableCount.Text = $"{dt.Rows.Count}행";
         }
 
-        // 하단 데이터 표 접기/펼치기
-        private void ToggleTable_Click(object sender, RoutedEventArgs e)
+        // 차트 접기/펼치기 → 접으면 아래 데이터 표가 그만큼 넓어진다
+        private void ToggleChart_Click(object sender, RoutedEventArgs e)
         {
-            bool show = TablePanel.Visibility != Visibility.Visible;
-            TablePanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            Arrow.Text = show ? "▾" : "▸";
+            bool show = ChartCard.Visibility != Visibility.Visible;
+            ChartCard.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            ChartToggleText.Text = show ? "차트 접기" : "차트 펼치기";
+            ChartToggleArrow.Text = show ? "▲" : "▼";
         }
 
         // ── 엑셀 업로드 ──
