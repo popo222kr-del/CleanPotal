@@ -81,6 +81,9 @@ namespace CleanPotal
 
                 // 🔥 범용 앱 데이터(blob) 테이블 + weekly_reports.json 등 문서형 JSON 이관
                 AppDataRepository.InitializeTables(connection);
+
+                // 🔥 설비 분석(ICP-MS) 데이터 테이블
+                EquipmentAnalysis.EquipmentAnalysisRepository.InitializeTables(connection);
             }
             finally { if (shared == null) connection.Dispose(); }
         }

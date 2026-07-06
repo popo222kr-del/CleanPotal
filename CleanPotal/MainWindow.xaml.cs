@@ -23,6 +23,7 @@ namespace CleanPotal
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
         private FieldInventoryView? _fieldInventoryView;
+        private EquipmentAnalysisView? _equipmentAnalysisView;
         private EduDashboardView? _eduDashboardView;
         private WorkAssignmentView? _workAssignmentView;
         private QuotationView? _quotationView;
@@ -114,39 +115,53 @@ namespace CleanPotal
             _pollingTimer.Start();
         }
 
-        private void PollingTimer_Tick(object? sender, EventArgs e)
+        private bool _pollBusy;   // 틱 중복 실행 방지(NAS 지연 시 누적 방지)
+
+        private async void PollingTimer_Tick(object? sender, EventArgs e)
         {
-            // ProdReq 개인별 미읽음 배지/토스트 (UI 스레드에서 직접 실행 - Task.Run 제거)
+            if (_pollBusy) return;   // 이전 틱이 아직 처리 중이면 이번 틱은 건너뜀
+            _pollBusy = true;
             try
             {
+                // ⚠️ NAS(SMB) SQLite 조회를 UI 스레드에서 하면 네트워크 지연 시 화면이 통째로 멈춘다.
+                //    미읽음 배지 조회는 백그라운드(Task.Run)로 돌리고, UI 갱신만 메인 스레드에서 한다.
                 string username = SessionManager.CurrentUsername ?? "";
                 if (!string.IsNullOrEmpty(username))
                 {
-                    int unread = DatabaseHelper.GetUnreadProdReqCount(username);
-                    int prev = _unreadReqCount;
-                    _unreadReqCount = unread;
-                    UpdateBadge();
+                    int unread = -1;
+                    try { unread = await Task.Run(() => DatabaseHelper.GetUnreadProdReqCount(username)); }
+                    catch { unread = -1; }
 
-                    if (unread > prev && _currentViewName != "ProdReq")
-                        ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
+                    if (unread >= 0)   // 조회 성공 시에만 반영(실패/지연 시 조용히 건너뜀)
+                    {
+                        int prev = _unreadReqCount;
+                        _unreadReqCount = unread;
+                        UpdateBadge();
+                        if (unread > prev && _currentViewName != "ProdReq")
+                            ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
+                    }
                 }
-            }
-            catch { }
 
-            // 현재 화면 자동 갱신
-            switch (MainContent.Content)
-            {
-                case ProdReqView pv:                    pv.TryRefresh(); break;
-                case TeamScheduleView tsv:              tsv.TryRefresh(); break;
-                case ProductionMeetingView pm:          pm.TryRefresh(); break;
-                case PersonalMemoView memo:             memo.TryRefresh(); break;
-                case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
-                case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
-                case EduDashboardView ed:               ed.TryRefresh(); break;
-                case HandoverView hv:                   hv.TryRefresh(); break;
-                case WeeklyReportView wr:               wr.TryRefresh(); break;
-                case BrokenManagementView bm:           bm.TryRefresh(); break;
+                // 현재 화면 자동 갱신(각 View 의 TryRefresh 는 내부에서 미저장/입력 중이면 스스로 건너뜀)
+                try
+                {
+                    switch (MainContent.Content)
+                    {
+                        case ProdReqView pv:                    pv.TryRefresh(); break;
+                        case TeamScheduleView tsv:              tsv.TryRefresh(); break;
+                        case ProductionMeetingView pm:          pm.TryRefresh(); break;
+                        case PersonalMemoView memo:             memo.TryRefresh(); break;
+                        case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
+                        case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
+                        case EduDashboardView ed:               ed.TryRefresh(); break;
+                        case HandoverView hv:                   hv.TryRefresh(); break;
+                        case WeeklyReportView wr:               wr.TryRefresh(); break;
+                        case BrokenManagementView bm:           bm.TryRefresh(); break;
+                    }
+                }
+                catch { }
             }
+            finally { _pollBusy = false; }
         }
 
         private void UpdateBadge()
@@ -299,7 +314,7 @@ namespace CleanPotal
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "Quotation" || _currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
-            else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory") ExpanderFieldInspection.IsExpanded = true;
+            else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory" || _currentViewName == "EquipAnalysis") ExpanderFieldInspection.IsExpanded = true;
             else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "BrokenMgmt") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "MaterialLogistics" || _currentViewName == "ProductionBoard" || _currentViewName == "DongtanLogistics") ExpanderStatusBoard.IsExpanded = true;
@@ -311,7 +326,7 @@ namespace CleanPotal
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
         private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert" && _currentViewName != "DocSearch" && _currentViewName != "WfConverter") OpenReport_Click(sender, e); }
-        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory") OpenFieldInventory_Click(sender, e); }
+        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory" && _currentViewName != "EquipAnalysis") OpenFieldInventory_Click(sender, e); }
         private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
@@ -470,6 +485,7 @@ namespace CleanPotal
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
         private void OpenFieldChecklist_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldChecklist(); }
         private void OpenFieldInventory_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldInventory(); }
+        private void OpenEquipAnalysis_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowEquipAnalysis(); }
         private void OpenMaterialLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowMaterialLogistics(); }
         private void OpenProductionBoard_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProductionBoard(); }
         private void OpenDongtanLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowDongtanLogistics(); }
@@ -651,6 +667,17 @@ namespace CleanPotal
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
         }
 
+        private void ShowEquipAnalysis()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "EquipAnalysis";
+            ApplySectionMeta("설비 분석 DATA", "ICP-MS 설비별 금속 분석 데이터를 엑셀로 업로드·다운로드하고 설비별 비교/추이 차트로 봅니다.");
+            UpdateNavSelection("EquipAnalysis");
+            if (_equipmentAnalysisView == null) _equipmentAnalysisView = new EquipmentAnalysisView();
+            MainContent.Content = _equipmentAnalysisView;
+            HideAllHeaderButtons();
+        }
+
         private void ShowFieldInventory()
         {
             if (!TryNavigateAway()) return;
@@ -745,6 +772,7 @@ namespace CleanPotal
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavWeeklyHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavFieldInventory.Style = subNormal; BtnNavQuotation.Style = subNormal;
+            if (BtnNavEquipAnalysis != null) BtnNavEquipAnalysis.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
@@ -761,7 +789,7 @@ namespace CleanPotal
                 "Handover" or "WeeklyHandover" or "ProdReq" or "Schedule" or "PersonalTask" => ExpanderProduction,
                 "TeamSchedule" or "PersonalMemo" => ExpanderAttendance,
                 "Quotation" or "WeeklyReport" or "EduDashboard" or "WorkAssignment" or "BrokenMgmt" => ExpanderOffice,
-                "FieldChecklist" or "FieldInventory" => ExpanderFieldInspection,
+                "FieldChecklist" or "FieldInventory" or "EquipAnalysis" => ExpanderFieldInspection,
                 "MaterialLogistics" or "ProductionBoard" or "DongtanLogistics" => ExpanderStatusBoard,
                 _ => null
             };
@@ -783,6 +811,7 @@ namespace CleanPotal
                 case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; break;
                 case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; break;
                 case "FieldInventory": BtnNavFieldInventory.Style = subSelected; break;
+                case "EquipAnalysis": if (BtnNavEquipAnalysis != null) BtnNavEquipAnalysis.Style = subSelected; break;
                 case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; break;
                 case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; break;
                 case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; break;
