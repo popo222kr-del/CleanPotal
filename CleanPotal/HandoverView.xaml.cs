@@ -168,17 +168,20 @@ namespace CleanPotal
             public string CountLabel { get; set; } = "";
             public string MembersText { get; set; } = "";
         }
-        public class WeekOffItem
+        public class WeekDayCell
         {
-            public string DateLabel { get; set; } = "";
+            public string DowLabel { get; set; } = "";
+            public string DayNumber { get; set; } = "";
             public bool IsToday { get; set; }
-            public int Count { get; set; }
-            public string MembersText { get; set; } = "";
+            public System.Windows.Media.Brush DowBrush { get; set; } = System.Windows.Media.Brushes.Gray;
+            public List<string> Members { get; set; } = new();
+            public int Count => Members.Count;
+            public bool HasOff => Members.Count > 0;
         }
-        public ObservableCollection<WeekOffItem> WeekOffItems { get; } = new();
+        public ObservableCollection<WeekDayCell> WeekCalendarCells { get; } = new();
         public ObservableCollection<TypeGroupItem> TodayTypeGroups { get; } = new();
         public ObservableCollection<TeamCompItem> TeamCompItems { get; } = new();
-        public bool HasWeekOff => WeekOffItems.Count > 0;
+        public bool HasWeekOff => WeekCalendarCells.Any(c => c.HasOff);
         public string StatusModalDateText { get; private set; } = "";
 
         public ObservableCollection<TeamEventNoticeItem> AllTeamEventItems { get; } = new();
@@ -337,33 +340,28 @@ namespace CleanPotal
         }
         private void CloseStatusDetail_Click(object sender, RoutedEventArgs e) => IsStatusDetailOpen = false;
 
-        private static (DateTime start, DateTime end) CurrentWeekRange()
-        {
-            DateTime today = DateTime.Today;
-            int diff = ((int)today.DayOfWeek + 6) % 7; // 월요일=0
-            DateTime start = today.AddDays(-diff);
-            return (start, start.AddDays(6));
-        }
-
         private static bool IsOffType(string shiftType)
             => shiftType.Contains("휴무") || shiftType.Contains("연차") || shiftType.Contains("반차");
 
         private void BuildStatusDetail()
         {
-            WeekOffItems.Clear();
+            WeekCalendarCells.Clear();
             TodayTypeGroups.Clear();
             TeamCompItems.Clear();
 
             DateTime today = DateTime.Today;
-            var korCul = new System.Globalization.CultureInfo("ko-KR");
-            var (weekStart, weekEnd) = CurrentWeekRange();
+            // 일요일 시작 주 (일~토)
+            DateTime weekStart = today.AddDays(-(int)today.DayOfWeek);
+            DateTime weekEnd = weekStart.AddDays(6);
             StatusModalDateText = $"{today:yyyy-MM-dd (ddd)}  ·  이번주 {weekStart:MM-dd} ~ {weekEnd:MM-dd}";
             OnPropertyChanged(nameof(StatusModalDateText));
 
-            // --- 이번주 쉬는 인원 (휴무·연차·반차), 날짜별 ---
+            // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력 ---
+            string[] dowLabels = { "일", "월", "화", "수", "목", "금", "토" };
             var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
-            for (var d = weekStart; d <= weekEnd; d = d.AddDays(1))
+            for (int i = 0; i < 7; i++)
             {
+                DateTime d = weekStart.AddDays(i);
                 var offs = weekShifts
                     .Where(s => s.TargetDate.Date == d.Date && IsOffType(s.ShiftType))
                     .Select(s => s.ShiftType == "휴무" || s.ShiftType == "연차"
@@ -371,14 +369,15 @@ namespace CleanPotal
                         : $"{s.MemberName} ({s.ShiftType})")
                     .Distinct()
                     .ToList();
-                if (offs.Count == 0) continue;
-                string dow = korCul.DateTimeFormat.GetAbbreviatedDayName(d.DayOfWeek);
-                WeekOffItems.Add(new WeekOffItem
+                System.Windows.Media.Brush dowBrush =
+                    i == 0 ? HexBrush("#DC2626") : i == 6 ? HexBrush("#2563EB") : HexBrush("#64748B");
+                WeekCalendarCells.Add(new WeekDayCell
                 {
-                    DateLabel = $"{d:MM-dd} ({dow})",
+                    DowLabel = dowLabels[i],
+                    DayNumber = d.ToString("dd"),
                     IsToday = d.Date == today.Date,
-                    Count = offs.Count,
-                    MembersText = string.Join(", ", offs)
+                    DowBrush = dowBrush,
+                    Members = offs
                 });
             }
             OnPropertyChanged(nameof(HasWeekOff));
