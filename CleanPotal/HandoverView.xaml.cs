@@ -181,6 +181,8 @@ namespace CleanPotal
             public string DayNumber { get; set; } = "";
             public bool IsToday { get; set; }
             public System.Windows.Media.Brush DowBrush { get; set; } = System.Windows.Media.Brushes.Gray;
+            public System.Windows.Media.Brush DayNumBrush { get; set; } = System.Windows.Media.Brushes.Black;
+            public System.Windows.Media.Brush HeaderBgBrush { get; set; } = System.Windows.Media.Brushes.Transparent;
             public List<DayTeamGroup> TeamGroups { get; set; } = new();
             public bool HasOff => TeamGroups.Count > 0;
         }
@@ -419,14 +421,22 @@ namespace CleanPotal
                     });
                 }
 
+                bool isToday = d.Date == today.Date;
+                // 일요일: 빨강, 토요일: 파랑, 평일: 기본. 요일과 날짜 모두 동일 색으로 강조.
                 System.Windows.Media.Brush dowBrush =
                     i == 0 ? HexBrush("#DC2626") : i == 6 ? HexBrush("#2563EB") : HexBrush("#64748B");
+                System.Windows.Media.Brush dayNumBrush =
+                    i == 0 ? HexBrush("#DC2626") : i == 6 ? HexBrush("#2563EB") : HexBrush("#0F172A");
+                System.Windows.Media.Brush headerBg =
+                    isToday ? HexBrush("#C7D2FE") : i == 0 ? HexBrush("#FEE2E2") : i == 6 ? HexBrush("#DBEAFE") : HexBrush("#F1F5F9");
                 WeekCalendarCells.Add(new WeekDayCell
                 {
                     DowLabel = dowLabels[i],
                     DayNumber = d.ToString("dd"),
-                    IsToday = d.Date == today.Date,
+                    IsToday = isToday,
                     DowBrush = dowBrush,
+                    DayNumBrush = dayNumBrush,
+                    HeaderBgBrush = headerBg,
                     TeamGroups = groups
                 });
             }

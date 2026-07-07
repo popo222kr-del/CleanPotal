@@ -1151,9 +1151,11 @@
 
         <!-- ===== 상세 모달: 오늘의 세정팀 현황 ===== -->
         <Border Background="#80111827" Visibility="{Binding IsStatusDetailOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="30" Grid.RowSpan="3">
-            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="1060" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="1060" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                    UseLayoutRounding="True" SnapsToDevicePixels="True"
+                    TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
                 <Border.Effect>
-                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
+                    <DropShadowEffect Color="Black" Opacity="0.18" BlurRadius="24" Direction="270" ShadowDepth="6"/>
                 </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -1207,20 +1209,10 @@
                                             </Border.Style>
                                             <StackPanel>
                                                 <!-- 요일 헤더 -->
-                                                <Border CornerRadius="7,7,0,0" Padding="0,7">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#F8FAFC"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsToday}" Value="True">
-                                                                    <Setter Property="Background" Value="#E0E7FF"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
+                                                <Border CornerRadius="7,7,0,0" Padding="0,8" Background="{Binding HeaderBgBrush}">
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding DowLabel}" FontSize="14" FontWeight="Bold" Foreground="{Binding DowBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                        <TextBlock Text="{Binding DayNumber}" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding DowLabel}" FontSize="15" FontWeight="Bold" Foreground="{Binding DowBrush}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                        <TextBlock Text="{Binding DayNumber}" FontSize="17" FontWeight="ExtraBold" Foreground="{Binding DayNumBrush}" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Border>
                                                 <!-- 쉬는 인원 명단 (팀별) -->
