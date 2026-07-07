@@ -428,7 +428,7 @@ namespace CleanPotal
             foreach (var r in Filtered().OrderByDescending(r => r.AnalysisDate).ThenBy(r => r.EqId))
             {
                 var vals = new List<object> { r.EqId, r.BathGb, r.Category, r.AnalysisDate, r.Unit };
-                foreach (var el in elems) vals.Add(r.Elements.TryGetValue(el, out var v) ? Math.Round(v, 4) : 0.0);
+                foreach (var el in elems) vals.Add(r.Elements.TryGetValue(el, out var v) ? Math.Round(v, 3) : 0.0);
                 dt.Rows.Add(vals.ToArray());
             }
             Grid.ItemsSource = dt.DefaultView;
@@ -463,14 +463,24 @@ namespace CleanPotal
         // 자동 생성 컬럼: 셀 텍스트 상하·좌우 중앙 정렬
         private void Grid_AutoGeneratingColumn(object? sender, DataGridAutoGeneratingColumnEventArgs e)
         {
-            e.Column.MinWidth = 46;   // 너무 좁아지지 않게
+            // 메타 컬럼은 고정폭, 원소 컬럼은 남는 폭을 균등 분배(*) → 가로 스크롤 없이 화면에 꽉 채움
+            string h = e.Column.Header?.ToString() ?? "";
+            switch (h)
+            {
+                case "설비": e.Column.Width = new DataGridLength(56); break;
+                case "약액": e.Column.Width = new DataGridLength(42); break;
+                case "구분": e.Column.Width = new DataGridLength(42); break;
+                case "분석일": e.Column.Width = new DataGridLength(78); break;
+                case "단위": e.Column.Width = new DataGridLength(38); break;
+                default: e.Column.Width = new DataGridLength(1, DataGridLengthUnitType.Star); e.Column.MinWidth = 40; break;
+            }
             if (e.Column is DataGridTextColumn tc)
             {
                 var st = new Style(typeof(TextBlock));
                 st.Setters.Add(new Setter(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center));
                 st.Setters.Add(new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center));
                 st.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center));
-                st.Setters.Add(new Setter(TextBlock.PaddingProperty, new Thickness(8, 0, 8, 0)));   // 좌우 여백
+                st.Setters.Add(new Setter(TextBlock.PaddingProperty, new Thickness(1, 0, 1, 0)));
                 tc.ElementStyle = st;
             }
         }
