@@ -1176,18 +1176,41 @@
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
                         <StackPanel>
                             <!-- 이번주 쉬는 인원 -->
-                            <TextBlock Text="🏖  이번주 쉬는 인원 (휴무·연차·반차)" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
+                                <Run Text="🏖" FontFamily="Segoe UI Emoji"/><Run Text="  이번주 쉬는 인원 (휴무·연차·반차)"/>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding WeekOffItems}" Margin="0,0,0,4">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                        <Border BorderThickness="1" CornerRadius="9" Padding="12,9" Margin="0,0,0,6">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F9FAFB"/>
+                                                    <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                            <Setter Property="Background" Value="#EEF2FF"/>
+                                                            <Setter Property="BorderBrush" Value="#C7D2FE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="46"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{Binding DateLabel}" FontSize="13" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Top"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding MembersText}" FontSize="13" Foreground="#475569" TextWrapping="Wrap" LineHeight="19"/>
+                                                <!-- 날짜 -->
+                                                <TextBlock Grid.Column="0" Text="{Binding DateLabel}" FontSize="13" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center"/>
+                                                <!-- 인원수 배지 -->
+                                                <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="6" Padding="0,3" Margin="0,0,10,0" HorizontalAlignment="Left" MinWidth="36" VerticalAlignment="Center">
+                                                    <TextBlock FontSize="12" FontWeight="Bold" Foreground="#4338CA" HorizontalAlignment="Center">
+                                                        <Run Text="{Binding Count, Mode=OneWay}"/><Run Text="명"/>
+                                                    </TextBlock>
+                                                </Border>
+                                                <!-- 명단 -->
+                                                <TextBlock Grid.Column="2" Text="{Binding MembersText}" FontSize="13" Foreground="#475569" TextWrapping="Wrap" LineHeight="19" VerticalAlignment="Center"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -1209,7 +1232,9 @@
                             <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
 
                             <!-- 오늘 근무유형별 전체 명단 -->
-                            <TextBlock Text="🧑‍🔧  오늘 근무유형별 전체 명단" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
+                                <Run Text="🧑‍🔧" FontFamily="Segoe UI Emoji"/><Run Text="  오늘 근무유형별 전체 명단"/>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding TodayTypeGroups}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1224,28 +1249,6 @@
                                                 </Border>
                                                 <TextBlock Grid.Column="1" Text="{Binding MembersText}" FontSize="13" Foreground="#334155" TextWrapping="Wrap" LineHeight="20" VerticalAlignment="Center"/>
                                             </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
-
-                            <!-- 팀별 구성 -->
-                            <TextBlock Text="👥  팀별 구성" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
-                            <ItemsControl ItemsSource="{Binding TeamCompItems}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                    <TextBlock Text="{Binding TeamName}" FontSize="13" FontWeight="ExtraBold" Foreground="#1E293B"/>
-                                                    <Border Background="#E2E8F0" CornerRadius="4" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding CountLabel}" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
-                                                    </Border>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding MembersText}" FontSize="13" Foreground="#475569" TextWrapping="Wrap" LineHeight="20"/>
-                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -1283,7 +1286,9 @@
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
                         <StackPanel>
                             <!-- 팀 일정 전체 -->
-                            <TextBlock Text="📌  팀 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
+                                <Run Text="📌" FontFamily="Segoe UI Emoji"/><Run Text="  팀 일정 전체"/>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding AllTeamEventItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1335,7 +1340,9 @@
                             <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
 
                             <!-- 교육 일정 전체 -->
-                            <TextBlock Text="🎓  교육 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
+                                <Run Text="🎓" FontFamily="Segoe UI Emoji"/><Run Text="  교육 일정 전체"/>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding AllEduItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>

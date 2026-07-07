@@ -172,6 +172,7 @@ namespace CleanPotal
         {
             public string DateLabel { get; set; } = "";
             public bool IsToday { get; set; }
+            public int Count { get; set; }
             public string MembersText { get; set; } = "";
         }
         public ObservableCollection<WeekOffItem> WeekOffItems { get; } = new();
@@ -359,9 +360,6 @@ namespace CleanPotal
             StatusModalDateText = $"{today:yyyy-MM-dd (ddd)}  ·  이번주 {weekStart:MM-dd} ~ {weekEnd:MM-dd}";
             OnPropertyChanged(nameof(StatusModalDateText));
 
-            var allUsers = AuthDatabaseHelper.GetAllUsers();
-            string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
-
             // --- 이번주 쉬는 인원 (휴무·연차·반차), 날짜별 ---
             var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
             for (var d = weekStart; d <= weekEnd; d = d.AddDays(1))
@@ -379,6 +377,7 @@ namespace CleanPotal
                 {
                     DateLabel = $"{d:MM-dd} ({dow})",
                     IsToday = d.Date == today.Date,
+                    Count = offs.Count,
                     MembersText = string.Join(", ", offs)
                 });
             }
@@ -416,18 +415,6 @@ namespace CleanPotal
             AddTypeGroup("교육",
                 todayEdus.Select(e => $"{e.MemberName} ({e.CourseName})").Distinct().ToList(),
                 "#ECFCCB", "#65A30D");
-
-            // --- 팀별 구성 ---
-            foreach (var tName in targetTeams)
-            {
-                var members = allUsers.Where(u => u.TeamName == tName).Select(u => u.RealName).ToList();
-                TeamCompItems.Add(new TeamCompItem
-                {
-                    TeamName = tName,
-                    CountLabel = $"{members.Count}명",
-                    MembersText = members.Count > 0 ? string.Join(", ", members) : "-"
-                });
-            }
         }
 
         // ============ 상세 모달: Office 공지 (팀 일정 / 교육 일정 전체) ============
