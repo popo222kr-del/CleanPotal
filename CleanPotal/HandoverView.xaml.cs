@@ -172,7 +172,8 @@ namespace CleanPotal
         {
             public string TeamName { get; set; } = "";
             public System.Windows.Media.Brush TeamBrush { get; set; } = System.Windows.Media.Brushes.Gray;
-            public string MembersText { get; set; } = "";
+            public System.Windows.Media.Brush TeamBg { get; set; } = System.Windows.Media.Brushes.Transparent;
+            public List<string> Members { get; set; } = new();
         }
         public class WeekDayCell
         {
@@ -371,11 +372,19 @@ namespace CleanPotal
             string[] teamOrder = { "김팀", "장팀", "주간팀", "Office", "기타" };
             System.Windows.Media.Brush TeamColor(string t) => t switch
             {
-                "김팀" => HexBrush("#D97706"),
-                "장팀" => HexBrush("#2563EB"),
-                "주간팀" => HexBrush("#16A34A"),
-                "Office" => HexBrush("#7C3AED"),
-                _ => HexBrush("#64748B"),
+                "김팀" => HexBrush("#B45309"),
+                "장팀" => HexBrush("#1D4ED8"),
+                "주간팀" => HexBrush("#15803D"),
+                "Office" => HexBrush("#6D28D9"),
+                _ => HexBrush("#475569"),
+            };
+            System.Windows.Media.Brush TeamBgColor(string t) => t switch
+            {
+                "김팀" => HexBrush("#FEF3C7"),
+                "장팀" => HexBrush("#DBEAFE"),
+                "주간팀" => HexBrush("#DCFCE7"),
+                "Office" => HexBrush("#EDE9FE"),
+                _ => HexBrush("#F1F5F9"),
             };
 
             // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력, 팀 구분 ---
@@ -405,7 +414,8 @@ namespace CleanPotal
                     {
                         TeamName = tName,
                         TeamBrush = TeamColor(tName),
-                        MembersText = string.Join(", ", members)
+                        TeamBg = TeamBgColor(tName),
+                        Members = members
                     });
                 }
 
