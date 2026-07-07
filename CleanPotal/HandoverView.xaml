@@ -1182,39 +1182,68 @@
                                 </Border>
                                 <TextBlock Text="이번주 쉬는 인원 (휴무·연차·반차)" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <ItemsControl ItemsSource="{Binding WeekOffItems}" Margin="0,0,0,4">
+                            <!-- 주간 달력 (일~토) -->
+                            <ItemsControl ItemsSource="{Binding WeekCalendarCells}" Margin="0,0,0,4">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="7"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderThickness="1" CornerRadius="9" Padding="12,9" Margin="0,0,0,6">
+                                        <Border BorderThickness="1" CornerRadius="8" Margin="2" MinHeight="110">
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#F9FAFB"/>
+                                                    <Setter Property="Background" Value="#FFFFFF"/>
                                                     <Setter Property="BorderBrush" Value="#E5E7EB"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsToday}" Value="True">
                                                             <Setter Property="Background" Value="#EEF2FF"/>
-                                                            <Setter Property="BorderBrush" Value="#C7D2FE"/>
+                                                            <Setter Property="BorderBrush" Value="#818CF8"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="90"/>
-                                                    <ColumnDefinition Width="46"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <!-- 날짜 -->
-                                                <TextBlock Grid.Column="0" Text="{Binding DateLabel}" FontSize="13" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center"/>
-                                                <!-- 인원수 배지 -->
-                                                <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="6" Padding="0,3" Margin="0,0,10,0" HorizontalAlignment="Left" MinWidth="36" VerticalAlignment="Center">
-                                                    <TextBlock FontSize="12" FontWeight="Bold" Foreground="#4338CA" HorizontalAlignment="Center">
-                                                        <Run Text="{Binding Count, Mode=OneWay}"/><Run Text="명"/>
-                                                    </TextBlock>
+                                            <StackPanel>
+                                                <!-- 요일 헤더 -->
+                                                <Border CornerRadius="7,7,0,0" Padding="0,4">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#F8FAFC"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                                    <Setter Property="Background" Value="#E0E7FF"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding DowLabel}" FontSize="12" FontWeight="Bold" Foreground="{Binding DowBrush}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding DayNumber}" FontSize="13" FontWeight="ExtraBold" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </Border>
-                                                <!-- 명단 -->
-                                                <TextBlock Grid.Column="2" Text="{Binding MembersText}" FontSize="13" Foreground="#475569" TextWrapping="Wrap" LineHeight="19" VerticalAlignment="Center"/>
-                                            </Grid>
+                                                <!-- 쉬는 인원 명단 -->
+                                                <ItemsControl ItemsSource="{Binding Members}" Margin="4,5,4,6">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" FontSize="11" Foreground="#475569" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,2"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="-" FontSize="12" Foreground="#CBD5E1" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasOff}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
