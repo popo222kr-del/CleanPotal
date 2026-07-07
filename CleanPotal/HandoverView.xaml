@@ -1176,9 +1176,12 @@
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
                         <StackPanel>
                             <!-- 이번주 쉬는 인원 -->
-                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
-                                <Run Text="🏖" FontFamily="Segoe UI Emoji"/><Run Text="  이번주 쉬는 인원 (휴무·연차·반차)"/>
-                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#FFEDD5" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#EA580C" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="이번주 쉬는 인원 (휴무·연차·반차)" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding WeekOffItems}" Margin="0,0,0,4">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1232,9 +1235,12 @@
                             <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
 
                             <!-- 오늘 근무유형별 전체 명단 -->
-                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
-                                <Run Text="🧑‍🔧" FontFamily="Segoe UI Emoji"/><Run Text="  오늘 근무유형별 전체 명단"/>
-                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#E0E7FF" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#4338CA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="오늘 근무유형별 전체 명단" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding TodayTypeGroups}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1286,9 +1292,12 @@
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
                         <StackPanel>
                             <!-- 팀 일정 전체 -->
-                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
-                                <Run Text="📌" FontFamily="Segoe UI Emoji"/><Run Text="  팀 일정 전체"/>
-                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#DBEAFE" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#1D4ED8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="팀 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding AllTeamEventItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -1340,9 +1349,12 @@
                             <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
 
                             <!-- 교육 일정 전체 -->
-                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10">
-                                <Run Text="🎓" FontFamily="Segoe UI Emoji"/><Run Text="  교육 일정 전체"/>
-                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#DCFCE7" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE7BE;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#16A34A" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="교육 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding AllEduItems}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
