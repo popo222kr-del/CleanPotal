@@ -182,6 +182,28 @@
             </Setter>
         </Style>
 
+        <!-- ── Stat tile ── -->
+        <Style x:Key="StatTile" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#EEF0F4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16,13"/>
+            <Setter Property="Effect">
+                <Setter.Value><DropShadowEffect BlurRadius="10" Opacity="0.05" ShadowDepth="2" Direction="270"/></Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="#6B7280"/>
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="24"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#111827"/>
+            <Setter Property="Margin" Value="0,4,0,0"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="StatSub" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/><Setter Property="Foreground" Value="#9CA3AF"/><Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+
         <!-- ── Calendar day button ── -->
         <Style x:Key="CalDay" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
@@ -223,6 +245,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>            <!-- filter / actions -->
             <RowDefinition Height="Auto"/>            <!-- element chips -->
+            <RowDefinition Height="Auto"/>            <!-- 요약 카드 -->
             <RowDefinition x:Name="RowChart" Height="*"/>  <!-- chart (접기 가능) -->
             <RowDefinition x:Name="RowTable" Height="*"/>  <!-- table (접기 가능) -->
         </Grid.RowDefinitions>
@@ -321,8 +344,46 @@
             </DockPanel>
         </Border>
 
+        <!-- 요약 카드 -->
+        <Grid Grid.Row="2" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource StatTile}">
+                <StackPanel>
+                    <TextBlock Text="측정 건수" Style="{StaticResource StatLabel}"/>
+                    <TextBlock x:Name="TxtStatCount" Text="-" Style="{StaticResource StatValue}"/>
+                    <TextBlock x:Name="TxtStatCountSub" Text="" Style="{StaticResource StatSub}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource StatTile}">
+                <StackPanel>
+                    <TextBlock Text="최근 측정일" Style="{StaticResource StatLabel}"/>
+                    <TextBlock x:Name="TxtStatLatest" Text="-" Style="{StaticResource StatValue}"/>
+                    <TextBlock x:Name="TxtStatLatestSub" Text="" Style="{StaticResource StatSub}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Style="{StaticResource StatTile}">
+                <StackPanel>
+                    <TextBlock Text="최고 오염" Style="{StaticResource StatLabel}"/>
+                    <TextBlock x:Name="TxtStatMax" Text="-" Style="{StaticResource StatValue}" Foreground="#DC2626"/>
+                    <TextBlock x:Name="TxtStatMaxWho" Text="" Style="{StaticResource StatSub}"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="6" Style="{StaticResource StatTile}">
+                <StackPanel>
+                    <TextBlock Text="평균 (선택 원소)" Style="{StaticResource StatLabel}"/>
+                    <TextBlock x:Name="TxtStatAvg" Text="-" Style="{StaticResource StatValue}"/>
+                    <TextBlock Text="ppb" Style="{StaticResource StatSub}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- Chart card (헤더 클릭으로 접기/펼치기 → 접으면 표가 커짐) -->
-        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
+        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
             <DockPanel>
                 <Button DockPanel.Dock="Top" Click="ToggleChart_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
                     <Button.Template>
@@ -350,7 +411,7 @@
         </Border>
 
         <!-- Data table card (헤더 클릭으로 접기/펼치기 → 접으면 차트가 커짐) -->
-        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0">
+        <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0">
             <DockPanel x:Name="TableInner" SizeChanged="TableInner_SizeChanged">
                 <Button DockPanel.Dock="Top" Click="ToggleTable_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
                     <Button.Template>

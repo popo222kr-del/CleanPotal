@@ -302,7 +302,38 @@ namespace CleanPotal
 
             BuildChart();
             BuildTable();
+            UpdateStats();
             TxtEmpty.Visibility = _all.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // 요약 카드: 현재 필터+선택 원소 기준
+        private void UpdateStats()
+        {
+            var rows = Filtered().ToList();
+            var elems = SelectedElements();
+
+            TxtStatCount.Text = rows.Count.ToString("#,0");
+            int eqn = rows.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
+            TxtStatCountSub.Text = $"설비 {eqn}대";
+
+            var dates = rows.Select(r => r.AnalysisDate).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            TxtStatLatest.Text = dates.Count > 0 ? dates.Max() : "-";
+            TxtStatLatestSub.Text = dates.Count > 0 ? $"측정일 {dates.Distinct().Count()}일" : "";
+
+            // 최고 오염(선택 원소 중 최대값)
+            double maxV = double.MinValue; string maxEq = "", maxEl = "";
+            foreach (var r in rows)
+                foreach (var el in elems)
+                {
+                    double v = r.Elements.TryGetValue(el, out var x) ? x : 0.0;
+                    if (v > maxV) { maxV = v; maxEq = r.EqId; maxEl = el; }
+                }
+            if (maxV <= double.MinValue) { TxtStatMax.Text = "-"; TxtStatMaxWho.Text = ""; }
+            else { TxtStatMax.Text = maxV.ToString("#,0.##"); TxtStatMaxWho.Text = $"{maxEq} · {maxEl}"; }
+
+            // 평균(선택 원소 전체 셀 평균)
+            var vals = rows.SelectMany(r => elems.Select(el => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToList();
+            TxtStatAvg.Text = vals.Count > 0 ? vals.Average().ToString("#,0.##") : "-";
         }
 
         // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
