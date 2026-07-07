@@ -1151,7 +1151,7 @@
 
         <!-- ===== 상세 모달: 오늘의 세정팀 현황 ===== -->
         <Border Background="#80111827" Visibility="{Binding IsStatusDetailOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="30" Grid.RowSpan="3">
-            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="760" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="1060" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Border.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
                 </Border.Effect>
@@ -1223,11 +1223,14 @@
                                                         <TextBlock Text="{Binding DayNumber}" FontSize="13" FontWeight="ExtraBold" Foreground="#0F172A" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Border>
-                                                <!-- 쉬는 인원 명단 -->
-                                                <ItemsControl ItemsSource="{Binding Members}" Margin="4,5,4,6">
+                                                <!-- 쉬는 인원 명단 (팀별) -->
+                                                <ItemsControl ItemsSource="{Binding TeamGroups}" Margin="7,6,7,6">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <TextBlock Text="{Binding}" FontSize="11" Foreground="#475569" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,2"/>
+                                                            <StackPanel Margin="0,0,0,5">
+                                                                <TextBlock Text="{Binding TeamName}" FontSize="10" FontWeight="Bold" Foreground="{Binding TeamBrush}" Margin="0,0,0,1"/>
+                                                                <TextBlock Text="{Binding MembersText}" FontSize="12" Foreground="#334155" TextWrapping="Wrap" LineHeight="16"/>
+                                                            </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -1260,34 +1263,6 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-
-                            <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
-
-                            <!-- 오늘 근무유형별 전체 명단 -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <Border Width="24" Height="24" CornerRadius="6" Background="#E0E7FF" VerticalAlignment="Center" Margin="0,0,8,0">
-                                    <TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#4338CA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="오늘 근무유형별 전체 명단" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <ItemsControl ItemsSource="{Binding TodayTypeGroups}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="{Binding BadgeBg}" CornerRadius="5" Padding="8,3" Margin="0,0,10,0" VerticalAlignment="Top">
-                                                    <TextBlock Text="{Binding TypeLabel}" FontSize="12" FontWeight="Bold" Foreground="{Binding BadgeFg}"/>
-                                                </Border>
-                                                <TextBlock Grid.Column="1" Text="{Binding MembersText}" FontSize="13" Foreground="#334155" TextWrapping="Wrap" LineHeight="20" VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>

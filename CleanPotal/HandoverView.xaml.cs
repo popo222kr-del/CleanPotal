@@ -168,15 +168,20 @@ namespace CleanPotal
             public string CountLabel { get; set; } = "";
             public string MembersText { get; set; } = "";
         }
+        public class DayTeamGroup
+        {
+            public string TeamName { get; set; } = "";
+            public System.Windows.Media.Brush TeamBrush { get; set; } = System.Windows.Media.Brushes.Gray;
+            public string MembersText { get; set; } = "";
+        }
         public class WeekDayCell
         {
             public string DowLabel { get; set; } = "";
             public string DayNumber { get; set; } = "";
             public bool IsToday { get; set; }
             public System.Windows.Media.Brush DowBrush { get; set; } = System.Windows.Media.Brushes.Gray;
-            public List<string> Members { get; set; } = new();
-            public int Count => Members.Count;
-            public bool HasOff => Members.Count > 0;
+            public List<DayTeamGroup> TeamGroups { get; set; } = new();
+            public bool HasOff => TeamGroups.Count > 0;
         }
         public ObservableCollection<WeekDayCell> WeekCalendarCells { get; } = new();
         public ObservableCollection<TypeGroupItem> TodayTypeGroups { get; } = new();
@@ -356,19 +361,54 @@ namespace CleanPotal
             StatusModalDateText = $"{today:yyyy-MM-dd (ddd)}  ·  이번주 {weekStart:MM-dd} ~ {weekEnd:MM-dd}";
             OnPropertyChanged(nameof(StatusModalDateText));
 
-            // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력 ---
+            // 팀 매핑 (이름 → 팀)
+            var users = AuthDatabaseHelper.GetAllUsers();
+            var teamMap = new Dictionary<string, string>();
+            foreach (var u in users)
+                if (!string.IsNullOrWhiteSpace(u.RealName) && !teamMap.ContainsKey(u.RealName))
+                    teamMap[u.RealName] = string.IsNullOrWhiteSpace(u.TeamName) ? "기타" : u.TeamName;
+
+            string[] teamOrder = { "김팀", "장팀", "주간팀", "Office", "기타" };
+            System.Windows.Media.Brush TeamColor(string t) => t switch
+            {
+                "김팀" => HexBrush("#D97706"),
+                "장팀" => HexBrush("#2563EB"),
+                "주간팀" => HexBrush("#16A34A"),
+                "Office" => HexBrush("#7C3AED"),
+                _ => HexBrush("#64748B"),
+            };
+
+            // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력, 팀 구분 ---
             string[] dowLabels = { "일", "월", "화", "수", "목", "금", "토" };
             var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
             for (int i = 0; i < 7; i++)
             {
                 DateTime d = weekStart.AddDays(i);
-                var offs = weekShifts
+                var dayOffs = weekShifts
                     .Where(s => s.TargetDate.Date == d.Date && IsOffType(s.ShiftType))
-                    .Select(s => s.ShiftType == "휴무" || s.ShiftType == "연차"
-                        ? s.MemberName
-                        : $"{s.MemberName} ({s.ShiftType})")
+                    .Select(s => new
+                    {
+                        Team = teamMap.TryGetValue(s.MemberName, out var t) ? t : "기타",
+                        Display = s.ShiftType == "휴무" || s.ShiftType == "연차"
+                            ? s.MemberName
+                            : $"{s.MemberName} ({s.ShiftType})"
+                    })
                     .Distinct()
                     .ToList();
+
+                var groups = new List<DayTeamGroup>();
+                foreach (var tName in teamOrder)
+                {
+                    var members = dayOffs.Where(x => x.Team == tName).Select(x => x.Display).ToList();
+                    if (members.Count == 0) continue;
+                    groups.Add(new DayTeamGroup
+                    {
+                        TeamName = tName,
+                        TeamBrush = TeamColor(tName),
+                        MembersText = string.Join(", ", members)
+                    });
+                }
+
                 System.Windows.Media.Brush dowBrush =
                     i == 0 ? HexBrush("#DC2626") : i == 6 ? HexBrush("#2563EB") : HexBrush("#64748B");
                 WeekCalendarCells.Add(new WeekDayCell
@@ -377,43 +417,10 @@ namespace CleanPotal
                     DayNumber = d.ToString("dd"),
                     IsToday = d.Date == today.Date,
                     DowBrush = dowBrush,
-                    Members = offs
+                    TeamGroups = groups
                 });
             }
             OnPropertyChanged(nameof(HasWeekOff));
-
-            // --- 오늘 근무유형별 전체 명단 ---
-            var todayShifts = DatabaseHelper.GetShiftSchedulesByDate(today);
-            var todayEdus = DatabaseHelper.GetEducationPlansByDate(today);
-            void AddTypeGroup(string label, List<string> members, string bg, string fg)
-            {
-                if (members.Count == 0) return;
-                TodayTypeGroups.Add(new TypeGroupItem
-                {
-                    TypeLabel = $"{label} ({members.Count})",
-                    BadgeBg = HexBrush(bg),
-                    BadgeFg = HexBrush(fg),
-                    MembersText = string.Join(", ", members)
-                });
-            }
-            AddTypeGroup("주간",
-                todayShifts.Where(s => s.ShiftType == "주간" || s.ShiftType == "예상:주간").Select(s => s.MemberName).Distinct().ToList(),
-                "#FEF3C7", "#D97706");
-            AddTypeGroup("야간",
-                todayShifts.Where(s => s.ShiftType == "야간" || s.ShiftType == "예상:야간").Select(s => s.MemberName).Distinct().ToList(),
-                "#E0E7FF", "#4338CA");
-            AddTypeGroup("휴무",
-                todayShifts.Where(s => s.ShiftType.Contains("휴무")).Select(s => s.MemberName).Distinct().ToList(),
-                "#F3E8FF", "#7E22CE");
-            AddTypeGroup("연차",
-                todayShifts.Where(s => s.ShiftType.Contains("연차")).Select(s => s.MemberName).Distinct().ToList(),
-                "#FCE7F3", "#BE185D");
-            AddTypeGroup("반차",
-                todayShifts.Where(s => s.ShiftType.Contains("반차")).Select(s => $"{s.MemberName} ({s.ShiftType})").Distinct().ToList(),
-                "#FFE4E6", "#BE123C");
-            AddTypeGroup("교육",
-                todayEdus.Select(e => $"{e.MemberName} ({e.CourseName})").Distinct().ToList(),
-                "#ECFCCB", "#65A30D");
         }
 
         // ============ 상세 모달: Office 공지 (팀 일정 / 교육 일정 전체) ============
