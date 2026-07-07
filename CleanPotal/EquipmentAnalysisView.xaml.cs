@@ -417,7 +417,7 @@ namespace CleanPotal
         {
             var elems = SelectedElements();   // 표 컬럼도 선택 원소만 표시
             var dt = new DataTable();
-            dt.Columns.Add("공정");
+            // '공정(설비유형)'은 표에서 숨김 — 필터로만 사용, 다운로드엔 출력됨
             dt.Columns.Add("설비");
             dt.Columns.Add("약액");
             dt.Columns.Add("구분");
@@ -427,7 +427,7 @@ namespace CleanPotal
 
             foreach (var r in Filtered().OrderByDescending(r => r.AnalysisDate).ThenBy(r => r.EqId))
             {
-                var vals = new List<object> { r.ProcessType, r.EqId, r.BathGb, r.Category, r.AnalysisDate, r.Unit };
+                var vals = new List<object> { r.EqId, r.BathGb, r.Category, r.AnalysisDate, r.Unit };
                 foreach (var el in elems) vals.Add(r.Elements.TryGetValue(el, out var v) ? Math.Round(v, 4) : 0.0);
                 dt.Rows.Add(vals.ToArray());
             }
@@ -574,18 +574,19 @@ namespace CleanPotal
                 foreach (var grp in rows.GroupBy(r => string.IsNullOrWhiteSpace(r.ProcessType) ? "DATA" : r.ProcessType))
                 {
                     var ws = wb.Worksheets.Add(grp.Key.Length > 31 ? grp.Key.Substring(0, 31) : grp.Key);
-                    string[] head = new[] { "EQ_ID", "Bath_GB", "구분", "Unit", "EQ_IN_DT" }.Concat(Elements).ToArray();
+                    string[] head = new[] { "설비 유형", "EQ_ID", "Bath_GB", "구분", "Unit", "EQ_IN_DT" }.Concat(Elements).ToArray();
                     for (int c = 0; c < head.Length; c++) ws.Cell(1, c + 1).Value = head[c];
                     int r = 2;
                     foreach (var row in grp.OrderBy(x => x.AnalysisDate).ThenBy(x => x.EqId))
                     {
-                        ws.Cell(r, 1).Value = row.EqId;
-                        ws.Cell(r, 2).Value = row.BathGb;
-                        ws.Cell(r, 3).Value = row.Category;
-                        ws.Cell(r, 4).Value = row.Unit;
-                        ws.Cell(r, 5).Value = row.AnalysisDate;
+                        ws.Cell(r, 1).Value = row.ProcessType;
+                        ws.Cell(r, 2).Value = row.EqId;
+                        ws.Cell(r, 3).Value = row.BathGb;
+                        ws.Cell(r, 4).Value = row.Category;
+                        ws.Cell(r, 5).Value = row.Unit;
+                        ws.Cell(r, 6).Value = row.AnalysisDate;
                         for (int i = 0; i < Elements.Length; i++)
-                            ws.Cell(r, 6 + i).Value = row.Elements.TryGetValue(Elements[i], out var v) ? v : 0.0;
+                            ws.Cell(r, 7 + i).Value = row.Elements.TryGetValue(Elements[i], out var v) ? v : 0.0;
                         r++;
                     }
                     ws.Row(1).Style.Font.Bold = true;
