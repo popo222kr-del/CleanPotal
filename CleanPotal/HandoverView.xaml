@@ -1191,7 +1191,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderThickness="1" CornerRadius="8" Margin="2" MinHeight="110">
+                                        <Border BorderThickness="1" CornerRadius="8" Margin="3" MinHeight="140">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#FFFFFF"/>
@@ -1207,7 +1207,7 @@
                                             </Border.Style>
                                             <StackPanel>
                                                 <!-- 요일 헤더 -->
-                                                <Border CornerRadius="7,7,0,0" Padding="0,4">
+                                                <Border CornerRadius="7,7,0,0" Padding="0,7">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Setter Property="Background" Value="#F8FAFC"/>
@@ -1218,18 +1218,26 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Border.Style>
-                                                    <StackPanel HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding DowLabel}" FontSize="12" FontWeight="Bold" Foreground="{Binding DowBrush}" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="{Binding DayNumber}" FontSize="13" FontWeight="ExtraBold" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding DowLabel}" FontSize="14" FontWeight="Bold" Foreground="{Binding DowBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="{Binding DayNumber}" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Border>
                                                 <!-- 쉬는 인원 명단 (팀별) -->
-                                                <ItemsControl ItemsSource="{Binding TeamGroups}" Margin="7,6,7,6">
+                                                <ItemsControl ItemsSource="{Binding TeamGroups}" Margin="10,10,10,10">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <StackPanel Margin="0,0,0,5">
-                                                                <TextBlock Text="{Binding TeamName}" FontSize="10" FontWeight="Bold" Foreground="{Binding TeamBrush}" Margin="0,0,0,1"/>
-                                                                <TextBlock Text="{Binding MembersText}" FontSize="12" Foreground="#334155" TextWrapping="Wrap" LineHeight="16"/>
+                                                            <StackPanel Margin="0,0,0,10">
+                                                                <Border Background="{Binding TeamBg}" CornerRadius="5" Padding="8,2" HorizontalAlignment="Left" Margin="0,0,0,5">
+                                                                    <TextBlock Text="{Binding TeamName}" FontSize="12" FontWeight="Bold" Foreground="{Binding TeamBrush}"/>
+                                                                </Border>
+                                                                <ItemsControl ItemsSource="{Binding Members}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBlock Text="{Binding}" FontSize="14" Foreground="#1E293B" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,3"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
