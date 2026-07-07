@@ -118,9 +118,10 @@ namespace CleanPotal
                     dayModel.HolidayName = holidayName;
                 }
 
-                var dayShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "주간").ToList();
-                var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "야간").ToList();
-                var rawOffShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && (s.ShiftType.Contains("휴무") || s.ShiftType.Contains("연차") || s.ShiftType.Contains("반차"))).ToList();
+                // ShiftType 정규화: '예상:' 접두어와 앞뒤 공백을 무시해 다른 화면(패턴 생성/오늘의 현황)과 집계 기준을 일치시킨다.
+                var dayShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && NormShift(s.ShiftType) == "주간").ToList();
+                var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && NormShift(s.ShiftType) == "야간").ToList();
+                var rawOffShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && (NormShift(s.ShiftType).Contains("휴무") || NormShift(s.ShiftType).Contains("연차") || NormShift(s.ShiftType).Contains("반차"))).ToList();
                 var dayEdus = edus.Where(e => e.StartDate.Date <= cellDate.Date && e.EndDate.Date >= cellDate.Date).ToList();
 
                 // 1. 주간 근무 뱃지
@@ -189,9 +190,9 @@ namespace CleanPotal
                                 dayOffShifts.Add(off);
                             else
                             {
-                                var adjShift = shifts.FirstOrDefault(s => (s.TeamGroup ?? allUsers.FirstOrDefault(u => u.RealName == s.MemberName)?.TeamName) == tg && (s.ShiftType == "주간" || s.ShiftType == "야간") && Math.Abs((s.TargetDate - cellDate).TotalDays) <= 3);
+                                var adjShift = shifts.FirstOrDefault(s => (s.TeamGroup ?? allUsers.FirstOrDefault(u => u.RealName == s.MemberName)?.TeamName) == tg && (NormShift(s.ShiftType) == "주간" || NormShift(s.ShiftType) == "야간") && Math.Abs((s.TargetDate - cellDate).TotalDays) <= 3);
 
-                                if (adjShift != null && adjShift.ShiftType == "야간")
+                                if (adjShift != null && NormShift(adjShift.ShiftType) == "야간")
                                     nightOffShifts.Add(off);
                                 else
                                     dayOffShifts.Add(off);
@@ -266,6 +267,10 @@ namespace CleanPotal
 
             return days;
         }
+
+        // '예상:' 접두어와 앞뒤 공백을 제거해 근무 유형을 정규화한다.
+        private static string NormShift(string? shiftType)
+            => (shiftType ?? "").Replace("예상:", "").Trim();
 
         private void AddOffBadge(List<ShiftScheduleModel> offList, string prefix, CalendarDayModel dayModel, bool canEdit = false)
         {
