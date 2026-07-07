@@ -153,6 +153,42 @@ namespace CleanPotal
         public ObservableCollection<TeamEventNoticeItem> TeamEventNoticeItems { get; } = new();
         public bool HasTeamEventNotice => TeamEventNoticeItems.Count > 0;
         public ObservableCollection<TeamStatusGroup> TeamStatusGroups { get; } = new();
+
+        // === 상세 모달용 컬렉션 ===
+        public class TypeGroupItem
+        {
+            public string TypeLabel { get; set; } = "";
+            public System.Windows.Media.Brush BadgeBg { get; set; } = System.Windows.Media.Brushes.Transparent;
+            public System.Windows.Media.Brush BadgeFg { get; set; } = System.Windows.Media.Brushes.Black;
+            public string MembersText { get; set; } = "";
+        }
+        public class TeamCompItem
+        {
+            public string TeamName { get; set; } = "";
+            public string CountLabel { get; set; } = "";
+            public string MembersText { get; set; } = "";
+        }
+        public class WeekOffItem
+        {
+            public string DateLabel { get; set; } = "";
+            public bool IsToday { get; set; }
+            public string MembersText { get; set; } = "";
+        }
+        public ObservableCollection<WeekOffItem> WeekOffItems { get; } = new();
+        public ObservableCollection<TypeGroupItem> TodayTypeGroups { get; } = new();
+        public ObservableCollection<TeamCompItem> TeamCompItems { get; } = new();
+        public bool HasWeekOff => WeekOffItems.Count > 0;
+        public string StatusModalDateText { get; private set; } = "";
+
+        public ObservableCollection<TeamEventNoticeItem> AllTeamEventItems { get; } = new();
+        public ObservableCollection<UpcomingEduItem> AllEduItems { get; } = new();
+        public bool HasAllTeamEvent => AllTeamEventItems.Count > 0;
+        public bool HasAllEdu => AllEduItems.Count > 0;
+
+        private bool _isStatusDetailOpen;
+        public bool IsStatusDetailOpen { get => _isStatusDetailOpen; set { _isStatusDetailOpen = value; OnPropertyChanged(); } }
+        private bool _isNoticeDetailOpen;
+        public bool IsNoticeDetailOpen { get => _isNoticeDetailOpen; set { _isNoticeDetailOpen = value; OnPropertyChanged(); } }
         public ObservableCollection<string> RegisterModalAttachmentPaths { get; } = new();
         public ObservableCollection<string> EditModalAttachmentPaths { get; } = new();
 
@@ -292,6 +328,194 @@ namespace CleanPotal
         }
 
         private string FormatMembersText(List<string> members) { if (members.Count == 0) return ""; if (members.Count <= 4) return string.Join(", ", members); return $"{string.Join(", ", members.Take(3))} 외 {members.Count - 3}명"; }
+
+        // ============ 상세 모달: 오늘의 세정팀 현황 ============
+        private void CardStatus_Click(object sender, MouseButtonEventArgs e)
+        {
+            try { BuildStatusDetail(); IsStatusDetailOpen = true; } catch { }
+        }
+        private void CloseStatusDetail_Click(object sender, RoutedEventArgs e) => IsStatusDetailOpen = false;
+
+        private static (DateTime start, DateTime end) CurrentWeekRange()
+        {
+            DateTime today = DateTime.Today;
+            int diff = ((int)today.DayOfWeek + 6) % 7; // 월요일=0
+            DateTime start = today.AddDays(-diff);
+            return (start, start.AddDays(6));
+        }
+
+        private static bool IsOffType(string shiftType)
+            => shiftType.Contains("휴무") || shiftType.Contains("연차") || shiftType.Contains("반차");
+
+        private void BuildStatusDetail()
+        {
+            WeekOffItems.Clear();
+            TodayTypeGroups.Clear();
+            TeamCompItems.Clear();
+
+            DateTime today = DateTime.Today;
+            var korCul = new System.Globalization.CultureInfo("ko-KR");
+            var (weekStart, weekEnd) = CurrentWeekRange();
+            StatusModalDateText = $"{today:yyyy-MM-dd (ddd)}  ·  이번주 {weekStart:MM-dd} ~ {weekEnd:MM-dd}";
+            OnPropertyChanged(nameof(StatusModalDateText));
+
+            var allUsers = AuthDatabaseHelper.GetAllUsers();
+            string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
+
+            // --- 이번주 쉬는 인원 (휴무·연차·반차), 날짜별 ---
+            var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
+            for (var d = weekStart; d <= weekEnd; d = d.AddDays(1))
+            {
+                var offs = weekShifts
+                    .Where(s => s.TargetDate.Date == d.Date && IsOffType(s.ShiftType))
+                    .Select(s => s.ShiftType == "휴무" || s.ShiftType == "연차"
+                        ? s.MemberName
+                        : $"{s.MemberName} ({s.ShiftType})")
+                    .Distinct()
+                    .ToList();
+                if (offs.Count == 0) continue;
+                string dow = korCul.DateTimeFormat.GetAbbreviatedDayName(d.DayOfWeek);
+                WeekOffItems.Add(new WeekOffItem
+                {
+                    DateLabel = $"{d:MM-dd} ({dow})",
+                    IsToday = d.Date == today.Date,
+                    MembersText = string.Join(", ", offs)
+                });
+            }
+            OnPropertyChanged(nameof(HasWeekOff));
+
+            // --- 오늘 근무유형별 전체 명단 ---
+            var todayShifts = DatabaseHelper.GetShiftSchedulesByDate(today);
+            var todayEdus = DatabaseHelper.GetEducationPlansByDate(today);
+            void AddTypeGroup(string label, List<string> members, string bg, string fg)
+            {
+                if (members.Count == 0) return;
+                TodayTypeGroups.Add(new TypeGroupItem
+                {
+                    TypeLabel = $"{label} ({members.Count})",
+                    BadgeBg = HexBrush(bg),
+                    BadgeFg = HexBrush(fg),
+                    MembersText = string.Join(", ", members)
+                });
+            }
+            AddTypeGroup("주간",
+                todayShifts.Where(s => s.ShiftType == "주간" || s.ShiftType == "예상:주간").Select(s => s.MemberName).Distinct().ToList(),
+                "#FEF3C7", "#D97706");
+            AddTypeGroup("야간",
+                todayShifts.Where(s => s.ShiftType == "야간" || s.ShiftType == "예상:야간").Select(s => s.MemberName).Distinct().ToList(),
+                "#E0E7FF", "#4338CA");
+            AddTypeGroup("휴무",
+                todayShifts.Where(s => s.ShiftType.Contains("휴무")).Select(s => s.MemberName).Distinct().ToList(),
+                "#F3E8FF", "#7E22CE");
+            AddTypeGroup("연차",
+                todayShifts.Where(s => s.ShiftType.Contains("연차")).Select(s => s.MemberName).Distinct().ToList(),
+                "#FCE7F3", "#BE185D");
+            AddTypeGroup("반차",
+                todayShifts.Where(s => s.ShiftType.Contains("반차")).Select(s => $"{s.MemberName} ({s.ShiftType})").Distinct().ToList(),
+                "#FFE4E6", "#BE123C");
+            AddTypeGroup("교육",
+                todayEdus.Select(e => $"{e.MemberName} ({e.CourseName})").Distinct().ToList(),
+                "#ECFCCB", "#65A30D");
+
+            // --- 팀별 구성 ---
+            foreach (var tName in targetTeams)
+            {
+                var members = allUsers.Where(u => u.TeamName == tName).Select(u => u.RealName).ToList();
+                TeamCompItems.Add(new TeamCompItem
+                {
+                    TeamName = tName,
+                    CountLabel = $"{members.Count}명",
+                    MembersText = members.Count > 0 ? string.Join(", ", members) : "-"
+                });
+            }
+        }
+
+        // ============ 상세 모달: Office 공지 (팀 일정 / 교육 일정 전체) ============
+        private void CardNotice_Click(object sender, MouseButtonEventArgs e)
+        {
+            try { BuildNoticeDetail(); IsNoticeDetailOpen = true; } catch { }
+        }
+        private void CloseNoticeDetail_Click(object sender, RoutedEventArgs e) => IsNoticeDetailOpen = false;
+
+        private void BuildNoticeDetail()
+        {
+            AllTeamEventItems.Clear();
+            AllEduItems.Clear();
+            var today = DateTime.Today;
+            var korCul = new System.Globalization.CultureInfo("ko-KR");
+
+            // --- 팀 일정 전체 (오늘 이후 종료되는 일정) ---
+            var events = DatabaseHelper.GetTeamEventsInRange(today.AddYears(-1), today.AddYears(2));
+            foreach (var te in events.OrderBy(t => t.StartDate))
+            {
+                DateTime start, end;
+                if (!DateTime.TryParse(te.StartDate, out start)) continue;
+                if (!DateTime.TryParse(te.EndDate, out end)) end = start;
+                if (end.Date < today) continue;
+
+                string startDow = korCul.DateTimeFormat.GetAbbreviatedDayName(start.DayOfWeek);
+                string endDow = korCul.DateTimeFormat.GetAbbreviatedDayName(end.DayOfWeek);
+                string dateLabel = start.Date == end.Date
+                    ? $"{start:MM-dd} ({startDow})"
+                    : $"{start:MM-dd} ({startDow}) ~ {end:MM-dd} ({endDow})";
+
+                System.Windows.Media.Brush bg, fg;
+                int daysUntil = (start.Date - today).Days;
+                if (daysUntil == 0) { bg = HexBrush("#FEE2E2"); fg = HexBrush("#DC2626"); }
+                else if (daysUntil <= 3) { bg = HexBrush("#FEF3C7"); fg = HexBrush("#D97706"); }
+                else if (daysUntil <= 14) { bg = HexBrush("#DBEAFE"); fg = HexBrush("#1D4ED8"); }
+                else { bg = HexBrush("#DCFCE7"); fg = HexBrush("#16A34A"); }
+                string statusLabel = daysUntil == 0 ? "오늘" : $"D-{daysUntil}";
+
+                AllTeamEventItems.Add(new TeamEventNoticeItem
+                {
+                    Content = te.Content,
+                    Detail = te.Detail ?? "",
+                    DateLabel = dateLabel,
+                    StatusBg = bg,
+                    StatusFg = fg,
+                    StatusLabel = statusLabel
+                });
+            }
+            OnPropertyChanged(nameof(HasAllTeamEvent));
+
+            // --- 교육 일정 전체 (진행중/예정) ---
+            var plans = DatabaseHelper.GetEducationPlansInRange(today.AddYears(-1), today.AddYears(2));
+            var users = AuthDatabaseHelper.GetAllUsers();
+            foreach (var ed in plans
+                .Where(ed => ed.Status != "완료" && ed.Status != "취소" && ed.EndDate.Date >= today)
+                .OrderBy(ed => ed.StartDate))
+            {
+                int d = (ed.StartDate.Date - today).Days;
+                string label = d < 0 ? "진행중" : d == 0 ? "D-Day" : $"D-{d}";
+                System.Windows.Media.Brush bg, fg;
+                if (d < 0) { bg = HexBrush("#E0F2FE"); fg = HexBrush("#0369A1"); }
+                else if (d == 0) { bg = HexBrush("#FEE2E2"); fg = HexBrush("#DC2626"); }
+                else if (d <= 2) { bg = HexBrush("#FEF3C7"); fg = HexBrush("#D97706"); }
+                else if (d <= 7) { bg = HexBrush("#DBEAFE"); fg = HexBrush("#2563EB"); }
+                else { bg = HexBrush("#DCFCE7"); fg = HexBrush("#16A34A"); }
+
+                string startDow = korCul.DateTimeFormat.GetAbbreviatedDayName(ed.StartDate.DayOfWeek);
+                string endDow = korCul.DateTimeFormat.GetAbbreviatedDayName(ed.EndDate.DayOfWeek);
+                string dateRange = ed.StartDate.Date == ed.EndDate.Date
+                    ? $"{ed.StartDate:MM-dd} ({startDow})"
+                    : $"{ed.StartDate:MM-dd} ~ {ed.EndDate:dd} ({startDow},{endDow})";
+
+                var user = users.FirstOrDefault(u => u.RealName == ed.MemberName);
+                AllEduItems.Add(new UpcomingEduItem
+                {
+                    DaysLabel = label,
+                    DaysBg = bg,
+                    DaysFg = fg,
+                    MemberName = ed.MemberName,
+                    TeamName = user?.TeamName ?? "-",
+                    CourseName = ed.CourseName,
+                    DateRangeStr = dateRange,
+                    EduMethod = ed.EduMethod ?? ""
+                });
+            }
+            OnPropertyChanged(nameof(HasAllEdu));
+        }
 
         private void SearchVendorBox_TextChanged(object sender, TextChangedEventArgs e) { _activeSearchKeyword = SearchVendorBox.Text?.Trim() ?? ""; _activeView?.Refresh(); }
         private void DoneSearchVendorBox_TextChanged(object sender, TextChangedEventArgs e) { _doneSearchKeyword = DoneSearchVendorBox.Text?.Trim() ?? ""; _doneView?.Refresh(); }
