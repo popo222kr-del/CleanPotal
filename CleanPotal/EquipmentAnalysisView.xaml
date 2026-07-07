@@ -232,8 +232,8 @@
             <Setter Property="Foreground" Value="#6B7280"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="2,0"/>
             <Setter Property="BorderBrush" Value="#EEF0F4"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -431,9 +431,9 @@
                 <Border x:Name="TableBody" BorderBrush="#F1F5F9" BorderThickness="0,1,0,0">
                 <DataGrid x:Name="Grid" AutoGenerateColumns="True" IsReadOnly="True"
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                          HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
-                          Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
-                          ColumnWidth="Auto" HorizontalScrollBarVisibility="Auto"
+                          HorizontalGridLinesBrush="#F3F4F6" FontSize="11" Foreground="#374151"
+                          Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="30"
+                          HorizontalScrollBarVisibility="Disabled"
                           ColumnHeaderStyle="{StaticResource GridHeader}"
                           AutoGeneratingColumn="Grid_AutoGeneratingColumn"
                           CanUserAddRows="False" AlternatingRowBackground="#FCFCFD">
