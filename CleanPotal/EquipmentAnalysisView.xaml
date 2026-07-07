@@ -433,7 +433,8 @@
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="#F3F4F6" FontSize="12" Foreground="#374151"
                           Background="White" BorderThickness="0" RowHeaderWidth="0" RowHeight="32"
-                          ColumnWidth="*" ColumnHeaderStyle="{StaticResource GridHeader}"
+                          ColumnWidth="Auto" HorizontalScrollBarVisibility="Auto"
+                          ColumnHeaderStyle="{StaticResource GridHeader}"
                           AutoGeneratingColumn="Grid_AutoGeneratingColumn"
                           CanUserAddRows="False" AlternatingRowBackground="#FCFCFD">
                     <DataGrid.CellStyle>

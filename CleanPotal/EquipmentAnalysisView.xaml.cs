@@ -463,12 +463,14 @@ namespace CleanPotal
         // 자동 생성 컬럼: 셀 텍스트 상하·좌우 중앙 정렬
         private void Grid_AutoGeneratingColumn(object? sender, DataGridAutoGeneratingColumnEventArgs e)
         {
+            e.Column.MinWidth = 46;   // 너무 좁아지지 않게
             if (e.Column is DataGridTextColumn tc)
             {
                 var st = new Style(typeof(TextBlock));
                 st.Setters.Add(new Setter(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center));
                 st.Setters.Add(new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center));
                 st.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center));
+                st.Setters.Add(new Setter(TextBlock.PaddingProperty, new Thickness(8, 0, 8, 0)));   // 좌우 여백
                 tc.ElementStyle = st;
             }
         }
