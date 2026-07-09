@@ -36,7 +36,7 @@ namespace CleanPotal
         private readonly HashSet<DateTime> _dataDates = new();  // 측정 기록 있는 날짜
 
         // 전체 삭제는 최고 관리자(1004)만 허용
-        private static bool IsAdmin => SessionManager.CurrentUsername == "1004";
+        private static bool IsAdmin => SessionManager.IsMasterAdmin;
         private static string CurrentUser => SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
         private static void ActionLog(string action, string detail)
             => EquipmentAnalysisRepository.InsertActionLog(action, detail, CurrentUser);

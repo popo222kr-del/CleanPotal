@@ -252,7 +252,7 @@ namespace CleanPotal
         private void ApplyAdminMenuVisibility()
         {
             // 관리자 영역(사용자 계정 관리)은 마스터(1004)만
-            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool isMaster = SessionManager.IsMasterAdmin;
             var masterVis = isMaster ? Visibility.Visible : Visibility.Collapsed;
             if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = masterVis;
             if (ExpanderAdmin != null) ExpanderAdmin.Visibility = masterVis;
@@ -275,7 +275,7 @@ namespace CleanPotal
         // OFFICE 팀 · 시스템 마스터 · 임원(직위)인지 여부 → OFFICE 업무 열람 가능
         private static bool IsOfficeTeam()
             => SessionManager.CurrentTeamName == "Office"
-            || SessionManager.CurrentUsername == "1004"
+            || SessionManager.IsMasterAdmin
             || IsExecutive();
 
         // OFFICE 업무 기능 접근 가드 — OFFICE 팀/임원이 아니면 차단
@@ -296,7 +296,7 @@ namespace CleanPotal
             if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
             if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
             // ADMIN 헤더는 마스터(1004)만 표시
-            if (SectionHeaderAdmin != null && SessionManager.CurrentUsername == "1004")
+            if (SectionHeaderAdmin != null && SessionManager.IsMasterAdmin)
                 SectionHeaderAdmin.Visibility = visibility;
         }
 
@@ -367,7 +367,7 @@ namespace CleanPotal
 
         private bool CanOpenEduDashboard()
         {
-            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool isMaster = SessionManager.IsMasterAdmin;
             bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office" || IsExecutive();
             if (!ok) { MessageBox.Show("접근 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
@@ -375,7 +375,7 @@ namespace CleanPotal
 
         private bool CanOpenWorkAssignment()
         {
-            bool ok = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004" || IsExecutive();
+            bool ok = SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin || IsExecutive();
             if (!ok) { MessageBox.Show("교육 관리 권한이 필요합니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
         }

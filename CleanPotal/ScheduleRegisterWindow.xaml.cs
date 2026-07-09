@@ -29,7 +29,7 @@ namespace CleanPotal
 
             _editingPlan = editPlan;
 
-            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool isMaster = SessionManager.IsMasterAdmin;
             bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true || isMaster;
 
             if (eduOnly || editPlan != null)

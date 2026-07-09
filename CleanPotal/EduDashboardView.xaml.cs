@@ -29,7 +29,7 @@ namespace CleanPotal
 
             YearText.Text = _selectedYear.ToString();
 
-            if (SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")
+            if (SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin)
             {
                 BtnAddEdu.Visibility = System.Windows.Visibility.Visible;
                 BtnDeleteEdu.Visibility = System.Windows.Visibility.Visible;
@@ -120,7 +120,7 @@ namespace CleanPotal
         // ── 이벤트 ────────────────────────────────────────────────────
         private void EduDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (!(SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")) return;
+            if (!(SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin)) return;
             if (EduDataGrid.SelectedItem is not EduDashboardRow row) return;
 
             var plan = new EducationPlanModel
@@ -245,7 +245,7 @@ namespace CleanPotal
 
         private void AttachBtn_Click(object sender, MouseButtonEventArgs e)
         {
-            bool canEdit = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004";
+            bool canEdit = SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin;
             if (sender is not FrameworkElement el) return;
             if (el.DataContext is not EduDashboardRow row) return;
 
@@ -298,7 +298,7 @@ namespace CleanPotal
 
         private void StatusPill_Click(object sender, MouseButtonEventArgs e)
         {
-            if (!(SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004")) { e.Handled = true; return; }
+            if (!(SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin)) { e.Handled = true; return; }
             if (sender is not FrameworkElement pill) return;
             if (pill.DataContext is not EduDashboardRow row) return;
 
