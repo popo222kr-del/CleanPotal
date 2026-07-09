@@ -85,13 +85,48 @@ namespace CleanPotal
 
         public static ObservableCollection<QuotationModel> LoadQuotations()
         {
+            ObservableCollection<QuotationModel> list;
             try
             {
                 string? json = AppDataRepository.Get(QuotationsKey);
-                if (string.IsNullOrWhiteSpace(json)) return new();
-                return JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(json) ?? new();
+                list = string.IsNullOrWhiteSpace(json)
+                    ? new()
+                    : JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(json) ?? new();
             }
-            catch { return new(); }
+            catch { list = new(); }
+
+            MergeQuotationsFromBackupOnce(list);
+            return list;
+        }
+
+        // 배포 전 테스트로 .migrated 백업에만 남은 견적을 1회 병합 복구.
+        // Id 기준으로 DB에 없는 항목만 추가 → 배포 후 새로 만든 견적은 그대로 보존.
+        // 완료 후 플래그를 남겨 재실행하지 않음(이후 삭제한 견적이 되살아나는 것 방지).
+        private const string QuotationsMergeFlagKey = "quotations_backup_merged_v1";
+        private static void MergeQuotationsFromBackupOnce(ObservableCollection<QuotationModel> list)
+        {
+            if (!AppPaths.DbMigrationEnabled) return;
+            try
+            {
+                if (AppDataRepository.Get(QuotationsMergeFlagKey) == "1") return;
+
+                string bak = QuotationPath + ".migrated";
+                if (File.Exists(bak))
+                {
+                    var backup = JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(File.ReadAllText(bak));
+                    if (backup != null && backup.Count > 0)
+                    {
+                        var ids = new System.Collections.Generic.HashSet<string>();
+                        foreach (var q in list) ids.Add(q.Id);
+                        int added = 0;
+                        foreach (var q in backup)
+                            if (!string.IsNullOrEmpty(q.Id) && !ids.Contains(q.Id)) { list.Add(q); added++; }
+                        if (added > 0) SaveQuotations(list);
+                    }
+                }
+                AppDataRepository.Set(QuotationsMergeFlagKey, "1");
+            }
+            catch { }
         }
 
         public static void SaveQuotations(ObservableCollection<QuotationModel> list)
@@ -101,13 +136,48 @@ namespace CleanPotal
 
         public static ObservableCollection<ProductMasterItem> LoadProductMaster()
         {
+            ObservableCollection<ProductMasterItem> list;
             try
             {
                 string? json = AppDataRepository.Get(ProductMasterKey);
-                if (string.IsNullOrWhiteSpace(json)) return new();
-                return JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(json) ?? new();
+                list = string.IsNullOrWhiteSpace(json)
+                    ? new()
+                    : JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(json) ?? new();
             }
-            catch { return new(); }
+            catch { list = new(); }
+
+            MergeMasterFromBackupOnce(list);
+            return list;
+        }
+
+        // 단가표도 동일하게 .migrated 백업에서 1회 병합(업체+품명+코드+규격 기준 중복 제외)
+        private const string MasterMergeFlagKey = "product_master_backup_merged_v1";
+        private static void MergeMasterFromBackupOnce(ObservableCollection<ProductMasterItem> list)
+        {
+            if (!AppPaths.DbMigrationEnabled) return;
+            try
+            {
+                if (AppDataRepository.Get(MasterMergeFlagKey) == "1") return;
+
+                string bak = ProductMasterPath + ".migrated";
+                if (File.Exists(bak))
+                {
+                    var backup = JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(File.ReadAllText(bak));
+                    if (backup != null && backup.Count > 0)
+                    {
+                        static string KeyOf(ProductMasterItem m) =>
+                            $"{m.VendorName}|{m.ProductName}|{m.PartCode}|{m.Spec}".ToLowerInvariant();
+                        var keys = new System.Collections.Generic.HashSet<string>();
+                        foreach (var m in list) keys.Add(KeyOf(m));
+                        int added = 0;
+                        foreach (var m in backup)
+                            if (!keys.Contains(KeyOf(m))) { list.Add(m); keys.Add(KeyOf(m)); added++; }
+                        if (added > 0) SaveProductMaster(list);
+                    }
+                }
+                AppDataRepository.Set(MasterMergeFlagKey, "1");
+            }
+            catch { }
         }
 
         public static void SaveProductMaster(IEnumerable<ProductMasterItem> list)
