@@ -554,13 +554,11 @@ namespace CleanPotal
             };
         }
 
-        // X축(막대)용 라벨: 설비명(윗줄) / 공정(아랫줄)로 2줄 분리해 구분
+        // 차트 라벨: 한 줄, 설비명 / 공정 (SkiaSharp는 줄바꿈 미지원 → 구분자 사용)
         private string EqLabel(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}\n{p}" : eq;
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}  /  {p}" : eq;
 
-        // 범례용 라벨: 한 줄("설비 · 공정")
-        private string EqName(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} · {p}" : eq;
+        private string EqName(string eq) => EqLabel(eq);
 
         private void BuildChart()
         {
