@@ -341,23 +341,32 @@ namespace CleanPotal
             TxtStatLatest.Text = dates.Count > 0 ? latest : "-";
             TxtStatLatestSub.Text = dates.Count > 0 ? $"측정일 {dates.Distinct().Count()}일" : "";
 
-            // 최고 오염/평균은 '최근 측정일' 기준(전체 이력의 과거 스파이크가 아닌 현재 상태 반영)
-            var statRows = !string.IsNullOrEmpty(latest) ? rows.Where(r => r.AnalysisDate == latest).ToList() : rows;
+            // 최고 오염/평균은 차트(설비별 비교)와 동일 기준: 각 설비의 '자기 최신 분석일' 값
+            // (같은 날짜 다중 행이면 평균). 전체 이력의 과거 스파이크가 아닌, 차트에 보이는 값과 일치.
+            var eqData = rows.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
+                .GroupBy(r => r.EqId)
+                .Select(g =>
+                {
+                    string d = g.Max(x => x.AnalysisDate);
+                    return new { Eq = g.Key, Date = d, Sub = g.Where(x => x.AnalysisDate == d).ToList() };
+                })
+                .Where(x => x.Sub.Count > 0)
+                .ToList();
 
-            // 최고 오염(최근 측정일, 선택 원소 중 최대값)
-            double maxV = double.MinValue; string maxEq = "", maxEl = "";
-            foreach (var r in statRows)
+            double maxV = double.MinValue; string maxEq = "", maxEl = "", maxDate = "";
+            var allVals = new List<double>();
+            foreach (var x in eqData)
                 foreach (var el in elems)
                 {
-                    double v = r.Elements.TryGetValue(el, out var x) ? x : 0.0;
-                    if (v > maxV) { maxV = v; maxEq = r.EqId; maxEl = el; }
+                    double v = x.Sub.Average(r => r.Elements.TryGetValue(el, out var val) ? val : 0.0);
+                    allVals.Add(v);
+                    if (v > maxV) { maxV = v; maxEq = x.Eq; maxEl = el; maxDate = x.Date; }
                 }
-            if (maxV <= double.MinValue) { TxtStatMax.Text = "-"; TxtStatMaxWho.Text = ""; }
-            else { TxtStatMax.Text = maxV.ToString("#,0.##"); TxtStatMaxWho.Text = string.IsNullOrEmpty(latest) ? $"{maxEq} · {maxEl}" : $"{maxEq} · {maxEl} · {latest}"; }
 
-            // 평균(최근 측정일, 선택 원소 전체 셀 평균)
-            var vals = statRows.SelectMany(r => elems.Select(el => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToList();
-            TxtStatAvg.Text = vals.Count > 0 ? vals.Average().ToString("#,0.##") : "-";
+            if (maxV <= double.MinValue) { TxtStatMax.Text = "-"; TxtStatMaxWho.Text = ""; }
+            else { TxtStatMax.Text = maxV.ToString("#,0.##"); TxtStatMaxWho.Text = $"{maxEq} · {maxEl} · {maxDate}"; }
+
+            TxtStatAvg.Text = allVals.Count > 0 ? allVals.Average().ToString("#,0.##") : "-";
         }
 
         // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
