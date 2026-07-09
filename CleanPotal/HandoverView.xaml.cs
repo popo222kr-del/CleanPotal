@@ -392,6 +392,11 @@ namespace CleanPotal
             // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력, 팀 구분 ---
             string[] dowLabels = { "일", "월", "화", "수", "목", "금", "토" };
             var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
+            // 주간팀(평일 전담)은 주말/공휴일에 근무 기록이 없으면 자동으로 '휴무'로 간주해 표시한다.
+            var weekdayTeamMembers = users
+                .Where(u => u.TeamName == "주간팀" && !string.IsNullOrWhiteSpace(u.RealName))
+                .Select(u => u.RealName)
+                .ToList();
             for (int i = 0; i < 7; i++)
             {
                 DateTime d = weekStart.AddDays(i);
@@ -406,6 +411,19 @@ namespace CleanPotal
                     })
                     .Distinct()
                     .ToList();
+
+                // 주말(토/일): 주간팀 중 그날 아무 근무/휴무 기록도 없는 인원을 자동 '휴무'로 추가
+                if (i == 0 || i == 6)
+                {
+                    var recorded = weekShifts
+                        .Where(s => s.TargetDate.Date == d.Date)
+                        .Select(s => s.MemberName)
+                        .ToHashSet();
+                    foreach (var m in weekdayTeamMembers)
+                        if (!recorded.Contains(m))
+                            dayOffs.Add(new { Team = "주간팀", Display = m });
+                    dayOffs = dayOffs.Distinct().ToList();
+                }
 
                 var groups = new List<DayTeamGroup>();
                 foreach (var tName in teamOrder)
