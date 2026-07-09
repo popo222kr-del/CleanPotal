@@ -327,12 +327,20 @@ namespace CleanPotal
         {
             // 단위(일/월/년)는 기간별 추이에서만 노출. 나머지 필터는 두 모드 공통.
             bool trend = IsTrendMode();
+            bool log = IsLogMode();
             LblPeriod.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
             CmbPeriod.Visibility = trend ? Visibility.Visible : Visibility.Collapsed;
 
+            // 점검 일지 모드: 차트/표 숨기고 로그 패널 표시
+            if (LogPanel != null) LogPanel.Visibility = log ? Visibility.Visible : Visibility.Collapsed;
+            if (ChartCard != null) ChartCard.Visibility = log ? Visibility.Collapsed : Visibility.Visible;
+            if (TableCard != null) TableCard.Visibility = log ? Visibility.Collapsed : Visibility.Visible;
+
+            UpdateStats();
+            if (log) { BuildLogDates(); return; }
+
             BuildChart();
             BuildTable();
-            UpdateStats();
             TxtEmpty.Visibility = _all.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -366,12 +374,13 @@ namespace CleanPotal
             TxtStatAvg.Text = vals.Count > 0 ? vals.Average().ToString("#,0.##") : "-";
         }
 
-        // ===== 측정 현황 + 특이사항 =====
+        // ===== 점검 일지 (날짜별 측정 현황 + 특이사항) =====
         public class CheckStatusItem : INotifyPropertyChanged
         {
             public string EqId { get; set; } = "";
             public bool IsMeasured { get; set; }
             public string StatusText { get; set; } = "";
+            public string Summary { get; set; } = "";     // 그날 주요값(최고 원소)
             public Brush StatusBg { get; set; } = Brushes.Transparent;
             public Brush StatusFg { get; set; } = Brushes.Black;
             private string _note = "";
@@ -381,29 +390,46 @@ namespace CleanPotal
 
         private readonly ObservableCollection<CheckStatusItem> _checkItems = new();
         private string _checkDate = "";
+        private bool _logLoading;
 
         private static SolidColorBrush CB(string hex)
             => new((Color)ColorConverter.ConvertFromString(hex));
 
-        private void BtnCheckStatus_Click(object sender, RoutedEventArgs e)
+        private bool IsLogMode() => RbLog?.IsChecked == true;
+
+        // 점검 일지 진입: 날짜 목록 채우고(최신순) 최신일 선택
+        private void BuildLogDates()
         {
-            // 기준 날짜: 선택 날짜가 있으면 그중 최신, 없으면 데이터 최신일
-            DateTime? dt = _selDates.Count > 0 ? _selDates.Max()
-                         : (_dataDates.Count > 0 ? _dataDates.Max() : (DateTime?)null);
-            if (dt == null) { MessageBox.Show("분석 데이터가 없습니다.", "측정 현황"); return; }
-            _checkDate = dt.Value.ToString("yyyy-MM-dd");
-            BuildCheckStatus();
-            CheckModal.Visibility = Visibility.Visible;
+            _logLoading = true;
+            var dates = _all.Where(r => !string.IsNullOrWhiteSpace(r.AnalysisDate))
+                            .Select(r => r.AnalysisDate).Distinct()
+                            .OrderByDescending(s => s, StringComparer.Ordinal).ToList();
+            LogDateList.ItemsSource = dates;
+            _logLoading = false;
+
+            if (dates.Count > 0)
+                LogDateList.SelectedItem = (!string.IsNullOrEmpty(_checkDate) && dates.Contains(_checkDate)) ? _checkDate : dates[0];
+            else
+            {
+                _checkItems.Clear(); LogEqList.ItemsSource = _checkItems;
+                LogSub.Text = "측정 데이터가 없습니다"; LogSummary.Text = "";
+            }
         }
 
-        private void BuildCheckStatus()
+        private void LogDate_Selected(object sender, SelectionChangedEventArgs e)
+        {
+            if (_logLoading) return;
+            if (LogDateList.SelectedItem is string d) { _checkDate = d; BuildLogItems(); }
+        }
+
+        private void BuildLogItems()
         {
             _checkItems.Clear();
             // 실제 설비 목록 = 지금까지 한 번이라도 측정된 모든 설비
             var eqIds = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
                             .Select(r => r.EqId).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToList();
-            var measured = _all.Where(r => r.AnalysisDate == _checkDate)
-                               .Select(r => r.EqId).Distinct().ToHashSet();
+            var dayRows = _all.Where(r => r.AnalysisDate == _checkDate).ToList();
+            var measured = dayRows.Select(r => r.EqId).Distinct().ToHashSet();
             var notes = EquipmentAnalysisRepository.GetCheckNotes(_checkDate);
 
             int done = 0;
@@ -411,35 +437,54 @@ namespace CleanPotal
             {
                 bool m = measured.Contains(eq);
                 if (m) done++;
+                // 주요값: 그날 그 설비의 최고 원소·값
+                string summary = "-";
+                if (m)
+                {
+                    double mv = double.MinValue; string mel = "";
+                    foreach (var r in dayRows.Where(r => r.EqId == eq))
+                        foreach (var el in Elements)
+                            if (r.Elements.TryGetValue(el, out var v) && v > mv) { mv = v; mel = el; }
+                    if (mv > double.MinValue) summary = $"최고 {mel} {mv:#,0.##}";
+                }
                 _checkItems.Add(new CheckStatusItem
                 {
                     EqId = eq,
                     IsMeasured = m,
                     StatusText = m ? "측정 완료" : "미측정",
+                    Summary = summary,
                     StatusBg = m ? CB("#DCFCE7") : CB("#FEE2E2"),
                     StatusFg = m ? CB("#16A34A") : CB("#DC2626"),
                     Note = notes.TryGetValue(eq, out var n) ? n : ""
                 });
             }
-            CheckStatusList.ItemsSource = _checkItems;
-            CheckModalSub.Text = $"{_checkDate} 기준 · 전체 {eqIds.Count}대";
-            CheckSummary.Text = $"측정 완료 {done}대 · 미측정 {eqIds.Count - done}대";
+            LogEqList.ItemsSource = _checkItems;
+            LogSub.Text = _checkDate;
+            LogSummary.Text = $"전체 {eqIds.Count}대 · 측정 완료 {done}대 · 미측정 {eqIds.Count - done}대";
         }
 
-        private void BtnCheckSave_Click(object sender, RoutedEventArgs e)
+        private void LogSave_Click(object sender, RoutedEventArgs e)
         {
+            if (string.IsNullOrEmpty(_checkDate)) return;
             try
             {
                 foreach (var it in _checkItems)
                     EquipmentAnalysisRepository.UpsertCheckNote(it.EqId, _checkDate, it.Note?.Trim() ?? "");
-                MessageBox.Show("저장되었습니다.", "측정 현황");
-                CheckModal.Visibility = Visibility.Collapsed;
+                MessageBox.Show("저장되었습니다.", "점검 일지");
             }
             catch (Exception ex) { MessageBox.Show("저장 실패: " + ex.Message, "오류"); }
         }
 
-        private void BtnCheckClose_Click(object sender, RoutedEventArgs e)
-            => CheckModal.Visibility = Visibility.Collapsed;
+        // 설비별 특이사항 날짜 이력(누적) 보기
+        private void LogHistory_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not CheckStatusItem it) return;
+            var hist = EquipmentAnalysisRepository.GetCheckNoteHistory(it.EqId);
+            string body = hist.Count == 0
+                ? "기록된 특이사항이 없습니다."
+                : string.Join("\n", hist.Select(h => $"[{h.Date}] {h.Note}"));
+            MessageBox.Show(body, $"{it.EqId} 특이사항 이력");
+        }
 
         // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
         private static string PeriodKey(string date, string unit)
