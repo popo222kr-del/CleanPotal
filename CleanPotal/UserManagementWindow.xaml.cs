@@ -162,7 +162,7 @@ namespace CleanPotal
             DetailTeamBadge.Visibility = string.IsNullOrEmpty(user.TeamName)
                 ? Visibility.Collapsed : Visibility.Visible;
             NewModeBadge.Visibility = Visibility.Collapsed;
-            BtnDeleteUser.Visibility = user.Username == "1004"
+            BtnDeleteUser.Visibility = user.Username == "AETS"
                 ? Visibility.Collapsed : Visibility.Visible;
 
             TxtNewId.Text = user.Username;
@@ -265,9 +265,9 @@ namespace CleanPotal
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                if (_selectedUser.Username == "1004" && id != "1004")
+                if (_selectedUser.Username == "AETS" && id != "AETS")
                 {
-                    MessageBox.Show("최고 관리자(1004)의 아이디는 변경할 수 없습니다.", "오류",
+                    MessageBox.Show("최고 관리자(AETS)의 아이디는 변경할 수 없습니다.", "오류",
                         MessageBoxButton.OK, MessageBoxImage.Stop);
                     return;
                 }
@@ -319,9 +319,9 @@ namespace CleanPotal
         private void BtnDeleteUser_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedUser == null) return;
-            if (_selectedUser.Username == "1004")
+            if (_selectedUser.Username == "AETS")
             {
-                MessageBox.Show("최고 관리자(1004) 계정은 삭제할 수 없습니다.", "오류",
+                MessageBox.Show("최고 관리자(AETS) 계정은 삭제할 수 없습니다.", "오류",
                     MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }

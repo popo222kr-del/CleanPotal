@@ -57,9 +57,10 @@ namespace CleanPotal
                 var def = new List<UserModel>
                 {
                     new UserModel {
-                        Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
+                        Username = "AETS", Password = "1004", RealName = "AETS", TeamName = "관리자", JobTitle = "최고관리자",
                         CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
-                        CanManageSchedule = true, CanManageShiftBoard = true, CanManageInventory = true
+                        CanManageSchedule = true, CanManageBroken = true, CanAccessEtcMenu = true,
+                        CanManageShiftBoard = true, CanManageInventory = true
                     }
                 };
                 File.WriteAllText(UsersFilePath, JsonSerializer.Serialize(def, new JsonSerializerOptions { WriteIndented = true }));
@@ -130,18 +131,19 @@ namespace CleanPotal
                     catch { /* 이관 실패해도 아래 시드로 로그인은 보장 */ }
                 }
 
-                // 비어 있으면 기본 관리자(1004) 시드 — 게이트와 무관하게 로그인 잠김 방지
+                // 비어 있으면 기본 최고 관리자(AETS) 시드 — 게이트와 무관하게 로그인 잠김 방지
                 if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users") == 0)
                 {
                     Upsert(db, new UserModel
                     {
-                        Username = "1004", Password = "1", RealName = "박주언", TeamName = "관리자", JobTitle = "최고관리자",
+                        Username = "AETS", Password = "1004", RealName = "AETS", TeamName = "관리자", JobTitle = "최고관리자",
                         CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
-                        CanManageSchedule = true, CanManageShiftBoard = true, CanManageInventory = true
+                        CanManageSchedule = true, CanManageBroken = true, CanAccessEtcMenu = true,
+                        CanManageShiftBoard = true, CanManageInventory = true
                     }, 0, null);
                 }
 
-                // 추가 최고 관리자(AETS) 시드 — 없을 때만 생성(이후 비밀번호 변경 등은 보존)
+                // 최고 관리자(AETS) 시드 — 없을 때만 생성(이후 비밀번호 변경 등은 보존)
                 if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users WHERE Username = 'AETS'") == 0)
                 {
                     long maxOrder = db.ExecuteScalar<long>("SELECT COALESCE(MAX(OrderNo), 0) FROM Users");

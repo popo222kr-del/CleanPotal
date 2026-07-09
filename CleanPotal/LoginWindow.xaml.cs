@@ -85,7 +85,7 @@ namespace CleanPotal
         {
             var user = AuthDatabaseHelper.ValidateUserObject(TxtUsername.Text.Trim(), TxtPassword.Password.Trim());
             bool isMaster = user != null &&
-                (user.Username == "1004" || string.Equals(user.Username, "AETS", System.StringComparison.OrdinalIgnoreCase));
+                string.Equals(user.Username, "AETS", System.StringComparison.OrdinalIgnoreCase);
             if (isMaster) { new UserManagementWindow { Owner = this }.ShowDialog(); }
             else { MessageBox.Show("사용자 관리는 '최고 관리자' 전용 메뉴입니다.\n아이디와 비밀번호를 올바르게 입력 후 클릭하세요.", "권한 필요", MessageBoxButton.OK, MessageBoxImage.Information); }
         }
