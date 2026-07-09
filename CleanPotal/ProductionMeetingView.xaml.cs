@@ -391,6 +391,15 @@ namespace CleanPotal
         private Point _imageDragStartPoint;
         private bool _imageDragStarted = false;
 
+        // 인라인 이미지 모서리 드래그-크기조절 상태
+        private const double ResizeHandleZone = 18;   // 우하단 이 영역을 잡으면 크기조절
+        private bool _resizingImage = false;
+        private Image? _resizeImg;
+        private FrameworkElement? _resizeRefElement;
+        private Point _resizeStartPoint;
+        private double _resizeStartWidth;
+        private double _resizeRatio = 1;
+
         // 메모 첨부 드래그-정렬 상태
         private ProductionMeetingAttachmentModel? _memoDragSource;
         private Point _memoDragStartPoint;
@@ -791,10 +800,44 @@ namespace CleanPotal
             img.MouseLeftButtonUp += ImageInline_MouseLeftButtonUp;
         }
 
+        // 이미지 우하단 모서리(핸들 영역) 안에 있는지
+        private static bool IsInResizeZone(Image img, Point pos)
+        {
+            double w = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
+            double h = img.ActualHeight > 0 ? img.ActualHeight : img.Height;
+            return pos.X >= w - ResizeHandleZone && pos.Y >= h - ResizeHandleZone;
+        }
+
+        private static FrameworkElement? FindParentRichTextBox(DependencyObject? d)
+        {
+            while (d != null)
+            {
+                if (d is RichTextBox rtb) return rtb;
+                d = LogicalTreeHelper.GetParent(d) ?? System.Windows.Media.VisualTreeHelper.GetParent(d);
+            }
+            return null;
+        }
+
         private void ImageInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Image img) return;
-            _imageDragStartPoint = e.GetPosition(img);
+            var pos = e.GetPosition(img);
+
+            // 우하단 모서리를 잡으면 → 크기 조절 모드
+            if (IsInResizeZone(img, pos) && img.Source is BitmapSource src && src.PixelWidth > 0)
+            {
+                _resizingImage = true;
+                _resizeImg = img;
+                _resizeRefElement = FindParentRichTextBox(img) ?? img;
+                _resizeStartPoint = e.GetPosition(_resizeRefElement);
+                _resizeStartWidth = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
+                _resizeRatio = src.PixelHeight / (double)src.PixelWidth;
+                img.CaptureMouse();
+                e.Handled = true;
+                return;
+            }
+
+            _imageDragStartPoint = pos;
             _imageDragStarted = false;
 
             if (img.Parent is InlineUIContainer iuc)
@@ -809,7 +852,27 @@ namespace CleanPotal
         private void ImageInline_MouseMove(object sender, MouseEventArgs e)
         {
             if (sender is not Image img) return;
-            if (e.LeftButton != MouseButtonState.Pressed) return;
+
+            // 크기 조절 진행 중
+            if (_resizingImage && _resizeImg == img && _resizeRefElement != null)
+            {
+                var cur = e.GetPosition(_resizeRefElement);
+                double newW = _resizeStartWidth + (cur.X - _resizeStartPoint.X);
+                newW = Math.Max(50, Math.Min(1200, newW));
+                img.Width = newW;
+                img.Height = newW * _resizeRatio;
+                e.Handled = true;
+                return;
+            }
+
+            // 버튼을 안 눌렀을 땐 커서 힌트만 (모서리=크기조절, 그 외=이동/보기)
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                img.Cursor = IsInResizeZone(img, e.GetPosition(img))
+                    ? Cursors.SizeNWSE : Cursors.Hand;
+                return;
+            }
+
             if (_movingImageContainer == null) return;
 
             var pos = e.GetPosition(img);
@@ -828,6 +891,18 @@ namespace CleanPotal
         {
             if (sender is not Image img) return;
             img.ReleaseMouseCapture();
+
+            // 크기 조절을 끝냄
+            if (_resizingImage)
+            {
+                _resizingImage = false;
+                _resizeImg = null;
+                _resizeRefElement = null;
+                _isDirty = true;
+                e.Handled = true;
+                return;
+            }
+
             if (!_imageDragStarted && _movingImageContainer != null)
             {
                 // 드래그 없이 떼었으면 → 원본 보기
