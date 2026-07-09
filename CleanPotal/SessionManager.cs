@@ -71,8 +71,8 @@ namespace CleanPotal
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
 
-        // 최고 관리자 판별(단일 소스). 1004 외 추가 관리자 계정도 여기서 관리.
-        private static readonly string[] _masterAdminIds = { "1004", "AETS" };
+        // 최고 관리자 판별(단일 소스). 추가 관리자 계정은 여기서 관리.
+        private static readonly string[] _masterAdminIds = { "AETS" };
         public static bool IsMasterAdmin
             => Array.Exists(_masterAdminIds, id => string.Equals(id, CurrentUsername, StringComparison.OrdinalIgnoreCase));
 
