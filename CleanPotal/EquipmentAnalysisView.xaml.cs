@@ -125,6 +125,14 @@ namespace CleanPotal
             finally { _loading = false; }
             RefreshDependentFilters();
 
+            // 최초 진입(또는 선택 없을 때): 날짜 필터 기본값을 '최신 측정일'로 지정
+            // → 차트·카드가 최신일 데이터만 사용(해당일 분석 없는 설비는 차트에서 제외)
+            if (_selDates.Count == 0 && _dataDates.Count > 0)
+            {
+                _selDates.Add(_dataDates.Max());
+                UpdateDateButton();
+            }
+
             Render();
             int eqCnt = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
             TxtCount.Text = $"총 {_all.Count}행 · 설비 {eqCnt}대";
@@ -341,32 +349,19 @@ namespace CleanPotal
             TxtStatLatest.Text = dates.Count > 0 ? latest : "-";
             TxtStatLatestSub.Text = dates.Count > 0 ? $"측정일 {dates.Distinct().Count()}일" : "";
 
-            // 최고 오염/평균은 차트(설비별 비교)와 동일 기준: 각 설비의 '자기 최신 분석일' 값
-            // (같은 날짜 다중 행이면 평균). 전체 이력의 과거 스파이크가 아닌, 차트에 보이는 값과 일치.
-            var eqData = rows.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
-                .GroupBy(r => r.EqId)
-                .Select(g =>
-                {
-                    string d = g.Max(x => x.AnalysisDate);
-                    return new { Eq = g.Key, Date = d, Sub = g.Where(x => x.AnalysisDate == d).ToList() };
-                })
-                .Where(x => x.Sub.Count > 0)
-                .ToList();
-
+            // 최고 오염/평균은 현재 필터(기본값=최신 측정일) 기준
             double maxV = double.MinValue; string maxEq = "", maxEl = "", maxDate = "";
-            var allVals = new List<double>();
-            foreach (var x in eqData)
+            foreach (var r in rows)
                 foreach (var el in elems)
                 {
-                    double v = x.Sub.Average(r => r.Elements.TryGetValue(el, out var val) ? val : 0.0);
-                    allVals.Add(v);
-                    if (v > maxV) { maxV = v; maxEq = x.Eq; maxEl = el; maxDate = x.Date; }
+                    double v = r.Elements.TryGetValue(el, out var x) ? x : 0.0;
+                    if (v > maxV) { maxV = v; maxEq = r.EqId; maxEl = el; maxDate = r.AnalysisDate; }
                 }
-
             if (maxV <= double.MinValue) { TxtStatMax.Text = "-"; TxtStatMaxWho.Text = ""; }
             else { TxtStatMax.Text = maxV.ToString("#,0.##"); TxtStatMaxWho.Text = $"{maxEq} · {maxEl} · {maxDate}"; }
 
-            TxtStatAvg.Text = allVals.Count > 0 ? allVals.Average().ToString("#,0.##") : "-";
+            var vals = rows.SelectMany(r => elems.Select(el => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToList();
+            TxtStatAvg.Text = vals.Count > 0 ? vals.Average().ToString("#,0.##") : "-";
         }
 
         // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
