@@ -114,7 +114,16 @@ namespace CleanPotal
                                     ?? new List<UserModel>();
                         // ⚠️ 유효 계정이 하나라도 있을 때만 덮어쓰기 — 빈/깨진 JSON 으로 전체 계정이 날아가는 사고 방지
                         var valid = users.Where(u => u != null && !string.IsNullOrWhiteSpace(u.Username)).ToList();
-                        if (valid.Count > 0)
+
+                        // 🛡️ 축소 이관 사고 방지: 기존 DB에 사용자가 더 많은데, 파일이 관리자만/현저히 적으면
+                        //    전체 사용자가 날아가므로 덮어쓰기를 거부하고 그 파일을 격리(.rejected)한다.
+                        long existingCount = db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users");
+                        bool fileOnlyAdmins = valid.Count > 0 &&
+                            valid.All(u => string.Equals(u.Username, "1004", StringComparison.OrdinalIgnoreCase)
+                                        || string.Equals(u.Username, "AETS", StringComparison.OrdinalIgnoreCase));
+                        bool dangerousShrink = existingCount > valid.Count && (fileOnlyAdmins || valid.Count <= 2);
+
+                        if (valid.Count > 0 && !dangerousShrink)
                         {
                             db.Execute("DELETE FROM Users");
                             int order = 0;
@@ -126,6 +135,11 @@ namespace CleanPotal
                                 File.Move(UsersFilePath, bak);
                             }
                             catch { }
+                        }
+                        else if (dangerousShrink)
+                        {
+                            // 위험한 파일 격리 → 다음 실행에도 재발 방지(원본 Users 테이블은 그대로 보존)
+                            try { File.Move(UsersFilePath, UsersFilePath + ".rejected"); } catch { }
                         }
                     }
                     catch { /* 이관 실패해도 아래 시드로 로그인은 보장 */ }
