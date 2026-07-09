@@ -46,7 +46,7 @@ namespace CleanPotal
             Loaded += (_, _) => ReloadAll();
         }
 
-        private void Filter_MultiChanged(object? sender, EventArgs e) { if (!_loading) Render(); }
+        private void Filter_MultiChanged(object? sender, EventArgs e) { if (_loading) return; RefreshDataDates(); Render(); }
 
         // 다른 페이지 갔다가 돌아오면 새로고침
         public void TryRefresh() { if (!_loading) ReloadAll(); }
@@ -168,11 +168,25 @@ namespace CleanPotal
             }
             finally { _loading = false; }
 
-            // 달력: 해당 유형 데이터의 날짜만 표시/선택 가능
+            RefreshDataDates();
+        }
+
+        // 달력: 현재 선택된 설비유형·약액·설비 조합에 실제 분석 기록이 있는 날짜만 표시/선택 가능
+        private void RefreshDataDates()
+        {
+            var proc = FltProcess.SelectedValues;
+            var bath = FltBath.SelectedValues;
+            var eq = FltEquip.SelectedValues;
+
+            var rows = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId));
+            if (proc.Count > 0) rows = rows.Where(r => proc.Contains(r.ProcessType));
+            if (bath.Count > 0) rows = rows.Where(r => bath.Contains(r.BathGb));
+            if (eq.Count > 0)   rows = rows.Where(r => eq.Contains(r.EqId));
+
             _dataDates.Clear();
-            foreach (var d in list.Select(r => r.AnalysisDate))
+            foreach (var d in rows.Select(r => r.AnalysisDate))
                 if (DateTime.TryParse(d, out var dt)) _dataDates.Add(dt.Date);
-            _selDates.RemoveWhere(d => !_dataDates.Contains(d));   // 범위 밖 선택 해제
+            _selDates.RemoveWhere(d => !_dataDates.Contains(d));   // 데이터 없는 날짜 선택 해제
             if (_dataDates.Count > 0) _calMonth = new DateTime(_dataDates.Max().Year, _dataDates.Max().Month, 1);
             UpdateDateButton();
         }
@@ -230,7 +244,9 @@ namespace CleanPotal
                 var g = new Grid { Width = 34, Height = 34 };
                 g.Children.Add(ell);
                 g.Children.Add(tb);
-                var btn = new Button { Content = g, Tag = date, Style = (Style)FindResource("CalDay") };
+                // 데이터 있는 날짜만 선택 가능(없는 날은 비활성)
+                var btn = new Button { Content = g, Tag = date, Style = (Style)FindResource("CalDay"), IsEnabled = hasData };
+                if (!hasData) { tb.Foreground = Br("#CBD5E1"); btn.Opacity = 0.55; }
                 btn.Click += Day_Click;
                 CalDays.Children.Add(btn);
             }
@@ -243,6 +259,7 @@ namespace CleanPotal
         {
             if (sender is Button b && b.Tag is DateTime date)
             {
+                if (!_dataDates.Contains(date)) return;   // 데이터 없는 날짜는 선택 불가
                 if (!_selDates.Remove(date)) _selDates.Add(date);   // 토글(복수 선택). 팝업은 열어둠
                 UpdateDateButton();
                 BuildCalendar();   // 선택 표시 갱신
