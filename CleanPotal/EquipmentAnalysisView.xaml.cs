@@ -120,6 +120,8 @@ namespace CleanPotal
         {
             try { _all = EquipmentAnalysisRepository.GetAll(); }
             catch { _all = new(); }
+            try { _processMap = EquipmentAnalysisRepository.GetEquipmentMaster(); }
+            catch { _processMap = new(); }
 
             // 설비 유형 옵션(전체 기준), 이후 유형에 맞춰 약액·설비·날짜 재구성
             _loading = true;
@@ -377,7 +379,9 @@ namespace CleanPotal
         // ===== 점검 일지 (날짜별 측정 현황 + 특이사항) =====
         public class CheckStatusItem : INotifyPropertyChanged
         {
-            public string EqId { get; set; } = "";
+            public string OrigEqId { get; set; } = "";   // 변경 감지용 원본 이름
+            public string EqId { get; set; } = "";        // 편집 가능(설비명)
+            public string Process { get; set; } = "";     // 편집 가능(공정/급)
             public bool IsMeasured { get; set; }
             public string StatusText { get; set; } = "";
             public string Summary { get; set; } = "";     // 그날 주요값(최고 원소)
@@ -391,6 +395,7 @@ namespace CleanPotal
         private readonly ObservableCollection<CheckStatusItem> _checkItems = new();
         private string _checkDate = "";
         private bool _logLoading;
+        private Dictionary<string, string> _processMap = new();   // EqId → 공정(급)
 
         private static SolidColorBrush CB(string hex)
             => new((Color)ColorConverter.ConvertFromString(hex));
@@ -425,9 +430,10 @@ namespace CleanPotal
         private void BuildLogItems()
         {
             _checkItems.Clear();
-            // 실제 설비 목록 = 지금까지 한 번이라도 측정된 모든 설비
-            var eqIds = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
-                            .Select(r => r.EqId).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToList();
+            // 설비 목록 = 측정 이력 있는 설비 ∪ 마스터 등록 설비(측정 없어도 표시)
+            var eqIds = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId)).Select(r => r.EqId)
+                            .Concat(_processMap.Keys)
+                            .Distinct().OrderBy(s => s, StringComparer.Ordinal).ToList();
             var dayRows = _all.Where(r => r.AnalysisDate == _checkDate).ToList();
             var measured = dayRows.Select(r => r.EqId).Distinct().ToHashSet();
             var notes = EquipmentAnalysisRepository.GetCheckNotes(_checkDate);
@@ -449,7 +455,9 @@ namespace CleanPotal
                 }
                 _checkItems.Add(new CheckStatusItem
                 {
+                    OrigEqId = eq,
                     EqId = eq,
+                    Process = _processMap.TryGetValue(eq, out var pr) ? pr : "",
                     IsMeasured = m,
                     StatusText = m ? "측정 완료" : "미측정",
                     Summary = summary,
@@ -468,11 +476,45 @@ namespace CleanPotal
             if (string.IsNullOrEmpty(_checkDate)) return;
             try
             {
+                // 이름 변경분 확인
+                var renames = _checkItems
+                    .Where(it => !string.IsNullOrWhiteSpace(it.EqId) && it.EqId.Trim() != it.OrigEqId)
+                    .ToList();
+                if (renames.Count > 0)
+                {
+                    string list = string.Join("\n", renames.Select(r => $"{r.OrigEqId} → {r.EqId.Trim()}"));
+                    if (MessageBox.Show($"설비명을 변경하면 해당 설비의 측정 데이터·특이사항이 모두 새 이름으로 매칭됩니다.\n\n{list}\n\n변경할까요?",
+                        "설비명 변경", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                        return;
+                    foreach (var r in renames)
+                        EquipmentAnalysisRepository.RenameEquipment(r.OrigEqId, r.EqId.Trim());
+                }
+
                 foreach (var it in _checkItems)
-                    EquipmentAnalysisRepository.UpsertCheckNote(it.EqId, _checkDate, it.Note?.Trim() ?? "");
+                {
+                    string eq = it.EqId?.Trim() ?? "";
+                    if (string.IsNullOrEmpty(eq)) continue;
+                    EquipmentAnalysisRepository.UpsertEquipmentProcess(eq, it.Process?.Trim() ?? "");
+                    EquipmentAnalysisRepository.UpsertCheckNote(eq, _checkDate, it.Note?.Trim() ?? "");
+                }
+
+                // 데이터/마스터 다시 로드 후 갱신(이름 변경·공정 반영)
+                _all = EquipmentAnalysisRepository.GetAll();
+                _processMap = EquipmentAnalysisRepository.GetEquipmentMaster();
+                BuildLogItems();
                 MessageBox.Show("저장되었습니다.", "점검 일지");
             }
             catch (Exception ex) { MessageBox.Show("저장 실패: " + ex.Message, "오류"); }
+        }
+
+        private void BtnLogAddEq_Click(object sender, RoutedEventArgs e)
+        {
+            string name = LogNewEqBox.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(name)) { MessageBox.Show("추가할 설비명을 입력하세요.", "설비 추가"); return; }
+            EquipmentAnalysisRepository.AddEquipment(name);
+            _processMap = EquipmentAnalysisRepository.GetEquipmentMaster();
+            LogNewEqBox.Text = "";
+            BuildLogItems();
         }
 
         // 설비별 특이사항 날짜 이력(누적) 보기
@@ -497,6 +539,10 @@ namespace CleanPotal
                 _ => date
             };
         }
+
+        // 차트 라벨: 공정(급)이 있으면 "NDC03 (A급)" 형식
+        private string EqLabel(string eq)
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} ({p})" : eq;
 
         private void BuildChart()
         {
@@ -526,7 +572,7 @@ namespace CleanPotal
                     string el = elems.FirstOrDefault() ?? "Fe";
                     Chart.Series = eqIds.Select(eq => (ISeries)new LineSeries<double?>
                     {
-                        Name = eq,
+                        Name = EqLabel(eq),
                         Values = periods.Select(p => PeriodAvg(dated, eq, el, unit, p)).ToArray()
                     }).ToArray();
                     Chart.YAxes = new[] { new Axis { Name = "ppb" } };
@@ -550,7 +596,7 @@ namespace CleanPotal
                     Name = el,
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                Chart.XAxes = new[] { new Axis { Labels = eqData.Select(x => x.Eq).ToArray(), LabelsRotation = 30 } };
+                Chart.XAxes = new[] { new Axis { Labels = eqData.Select(x => EqLabel(x.Eq)).ToArray(), LabelsRotation = 30 } };
                 Chart.YAxes = new[] { new Axis { Name = "ppb" } };
             }
         }

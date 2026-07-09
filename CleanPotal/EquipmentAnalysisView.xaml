@@ -493,23 +493,31 @@
                                 <TextBlock x:Name="LogSub" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Text="측정일을 선택하세요"/>
                                 <TextBlock x:Name="LogSummary" FontSize="12" Foreground="#64748B" Margin="0,3,0,0"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="저장" Style="{StaticResource BtnPrimary}" VerticalAlignment="Center" Click="LogSave_Click"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBox x:Name="LogNewEqBox" Width="120" Height="32" Padding="8,0" VerticalContentAlignment="Center"
+                                         BorderBrush="#E5E7EB" BorderThickness="1" FontSize="13" Margin="0,0,6,0"
+                                         ToolTip="추가할 설비명"/>
+                                <Button Content="설비 추가" Style="{StaticResource BtnGhost}" Margin="0,0,10,0" Click="BtnLogAddEq_Click"/>
+                                <Button Content="저장" Style="{StaticResource BtnPrimary}" Click="LogSave_Click"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
                     <!-- 컬럼 헤더 -->
                     <Grid DockPanel.Dock="Top" Margin="18,8,18,4">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="110"/>
-                            <ColumnDefinition Width="84"/>
-                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="104"/>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="76"/>
+                            <ColumnDefinition Width="132"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="52"/>
+                            <ColumnDefinition Width="46"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="설비" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
-                        <TextBlock Grid.Column="1" Text="상태" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
-                        <TextBlock Grid.Column="2" Text="주요값" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
-                        <TextBlock Grid.Column="3" Text="특이사항" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="1" Text="공정" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="2" Text="상태" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="3" Text="주요값" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="4" Text="특이사항" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
                     </Grid>
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,0,18,10">
@@ -519,23 +527,31 @@
                                     <Border BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" Padding="0,7">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="110"/>
-                                                <ColumnDefinition Width="84"/>
-                                                <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="104"/>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="76"/>
+                                                <ColumnDefinition Width="132"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding EqId}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B" VerticalAlignment="Center"/>
-                                            <Border Grid.Column="1" Background="{Binding StatusBg}" CornerRadius="6" Padding="8,3"
+                                            <TextBox Text="{Binding EqId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="13" FontWeight="SemiBold" Foreground="#1E293B"
+                                                     Padding="6,5" Margin="0,0,6,0" BorderBrush="#E5E7EB" BorderThickness="1"
+                                                     VerticalContentAlignment="Center" Background="#FBFCFE" ToolTip="설비명(변경 시 측정 데이터도 매칭)"/>
+                                            <TextBox Grid.Column="1" Text="{Binding Process, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="13" Foreground="#334155"
+                                                     Padding="6,5" Margin="0,0,6,0" BorderBrush="#E5E7EB" BorderThickness="1"
+                                                     VerticalContentAlignment="Center" Background="#FBFCFE" ToolTip="공정/급 (예: A급)"/>
+                                            <Border Grid.Column="2" Background="{Binding StatusBg}" CornerRadius="6" Padding="8,3"
                                                     HorizontalAlignment="Left" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
                                             </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding Summary}" FontSize="12" Foreground="#475569" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                            <TextBox Grid.Column="3" Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            <TextBlock Grid.Column="3" Text="{Binding Summary}" FontSize="12" Foreground="#475569" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBox Grid.Column="4" Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                      FontSize="13" Padding="8,5" Margin="0,0,6,0"
                                                      BorderBrush="#E5E7EB" BorderThickness="1" VerticalContentAlignment="Center"
                                                      TextWrapping="Wrap" AcceptsReturn="False" Background="#FBFCFE"/>
-                                            <Button Grid.Column="4" Content="이력" FontSize="11" Padding="0" Height="26"
+                                            <Button Grid.Column="5" Content="이력" FontSize="11" Padding="0" Height="26"
                                                     Background="#EEF2FF" Foreground="#4F46E5" BorderThickness="0" Cursor="Hand"
                                                     VerticalAlignment="Center" Click="LogHistory_Click"/>
                                         </Grid>
