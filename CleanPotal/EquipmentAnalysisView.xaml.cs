@@ -554,9 +554,13 @@ namespace CleanPotal
             };
         }
 
-        // 차트 라벨: 공정(급)이 있으면 "NDC03 (A급)" 형식
+        // X축(막대)용 라벨: 설비명(윗줄) / 공정(아랫줄)로 2줄 분리해 구분
         private string EqLabel(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} ({p})" : eq;
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}\n{p}" : eq;
+
+        // 범례용 라벨: 한 줄("설비 · 공정")
+        private string EqName(string eq)
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} · {p}" : eq;
 
         private void BuildChart()
         {
@@ -586,7 +590,7 @@ namespace CleanPotal
                     string el = elems.FirstOrDefault() ?? "Fe";
                     Chart.Series = eqIds.Select(eq => (ISeries)new LineSeries<double?>
                     {
-                        Name = EqLabel(eq),
+                        Name = EqName(eq),
                         Values = periods.Select(p => PeriodAvg(dated, eq, el, unit, p)).ToArray()
                     }).ToArray();
                     Chart.YAxes = new[] { new Axis { Name = "ppb" } };
