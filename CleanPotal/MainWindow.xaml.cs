@@ -357,7 +357,7 @@ namespace CleanPotal
 
         private bool CanOpenAdminFeature()
         {
-            if (SessionManager.CurrentUsername != "1004")
+            if (!SessionManager.IsMasterAdmin)
             {
                 MessageBox.Show("해당 기능은 시스템 관리자(마스터)만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;

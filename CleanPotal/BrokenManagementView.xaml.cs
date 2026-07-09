@@ -373,7 +373,7 @@ namespace CleanPotal
 
         // 임원(직위='임원')은 관리자가 '공식'으로 표시한 항목만 조회 가능한 화면을 본다
         private readonly bool _isExecutiveView =
-            (SessionManager.CurrentJobTitle ?? "").Trim() == "임원" && SessionManager.CurrentUsername != "1004";
+            (SessionManager.CurrentJobTitle ?? "").Trim() == "임원" && !SessionManager.IsMasterAdmin;
 
         public BrokenManagementView()
         {
