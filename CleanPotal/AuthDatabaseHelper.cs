@@ -141,6 +141,19 @@ namespace CleanPotal
                     }, 0, null);
                 }
 
+                // 추가 최고 관리자(AETS) 시드 — 없을 때만 생성(이후 비밀번호 변경 등은 보존)
+                if (db.ExecuteScalar<long>("SELECT COUNT(*) FROM Users WHERE Username = 'AETS'") == 0)
+                {
+                    long maxOrder = db.ExecuteScalar<long>("SELECT COALESCE(MAX(OrderNo), 0) FROM Users");
+                    Upsert(db, new UserModel
+                    {
+                        Username = "AETS", Password = "1004", RealName = "AETS", TeamName = "관리자", JobTitle = "최고관리자",
+                        CanManageFiles = true, CanManageNotices = true, CanManageVendors = true,
+                        CanManageSchedule = true, CanManageBroken = true, CanAccessEtcMenu = true,
+                        CanManageShiftBoard = true, CanManageInventory = true
+                    }, (int)maxOrder + 1, null);
+                }
+
                 // 사번이 비어 있는 사용자는 아이디와 동일하게 보정(기존 로직 계승)
                 db.Execute("UPDATE Users SET EmployeeNumber = Username WHERE EmployeeNumber IS NULL OR EmployeeNumber = ''");
             }

@@ -24,10 +24,10 @@ namespace CleanPotal
                 PermissionType.Vendors => SessionManager.CanManageVendors,
                 PermissionType.Schedule => true,
                 PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자" || SessionManager.IsExecutive,
-                PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.CurrentUsername == "1004",
-                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.CurrentUsername == "1004" || SessionManager.IsExecutive,
-                PermissionType.ShiftBoard => SessionManager.CanManageShiftBoard || SessionManager.CurrentUsername == "1004",
-                PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.CurrentUsername == "1004",
+                PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.IsMasterAdmin,
+                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.IsMasterAdmin || SessionManager.IsExecutive,
+                PermissionType.ShiftBoard => SessionManager.CanManageShiftBoard || SessionManager.IsMasterAdmin,
+                PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.IsMasterAdmin,
                 _ => false
             };
 
@@ -70,6 +70,11 @@ namespace CleanPotal
         public static bool CanManageInventory { get; set; } = false;
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
+
+        // 최고 관리자 판별(단일 소스). 1004 외 추가 관리자 계정도 여기서 관리.
+        private static readonly string[] _masterAdminIds = { "1004", "AETS" };
+        public static bool IsMasterAdmin
+            => Array.Exists(_masterAdminIds, id => string.Equals(id, CurrentUsername, StringComparison.OrdinalIgnoreCase));
 
         // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원). OFFICE 업무 열람 허용 기준(단일 소스).
         private static readonly string[] _execTitles =

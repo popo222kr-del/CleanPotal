@@ -167,7 +167,7 @@ namespace CleanPotal
                     this.Title = "세정팀 통합 근무 스케줄러 (읽기 전용)";
                 }
 
-                bool isAdmin = SessionManager.CurrentUsername == "1004";
+                bool isAdmin = SessionManager.IsMasterAdmin;
                 BtnShowLog.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
 
                 LoadData();

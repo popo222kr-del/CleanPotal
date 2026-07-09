@@ -97,7 +97,7 @@ namespace CleanPotal
             var days = new ObservableCollection<CalendarDayModel>();
 
             bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
-            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+            bool isMaster = SessionManager.IsMasterAdmin || SessionManager.CanManageSchedule;
             bool isWeekdayTeam = SessionManager.CurrentTeamName?.Contains("주간") == true;
             bool canEditShifts = isOffice || isMaster || isWeekdayTeam;
             bool canEditTeamEvents = isOffice || isMaster;
@@ -347,7 +347,7 @@ namespace CleanPotal
         {
             if ((sender as Button)?.DataContext is ScheduleDetailItem item)
             {
-                bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+                bool isMaster = SessionManager.IsMasterAdmin || SessionManager.CanManageSchedule;
                 bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
                 bool isMine = item.Name == SessionManager.CurrentRealName;
                 bool canDeleteTeamEvent = item.SourceType == "TeamEvent" && (isOffice || isMaster);
@@ -514,7 +514,7 @@ namespace CleanPotal
 
         public void CreatePattern()
         {
-            bool canEdit = SessionManager.CurrentUsername == "1004"
+            bool canEdit = SessionManager.IsMasterAdmin
                         || SessionManager.CanManageShiftBoard;
 
             var boardWin = new ScheduleProgramWindow(canEdit) { Owner = Window.GetWindow(this) };
