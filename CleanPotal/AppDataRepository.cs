@@ -70,12 +70,40 @@ namespace CleanPotal
                 // 🚧 배포 스위치가 켜졌을 때만 JSON → DB 이관
                 if (AppPaths.DbMigrationEnabled)
                     foreach (var kv in FileMap())
+                    {
                         MigrateFile(db, kv.Key, kv.Value);
+                        // 자가치유: DB에 데이터가 없는데 .migrated 백업이 있으면 그 내용으로 복구.
+                        // (배포 전 테스트로 원본이 이미 .migrated 상태여서 배포날 이관이
+                        //  건너뛰어진 키를 되살린다 — 예: quotations)
+                        RestoreFromMigratedBackupIfEmpty(db, kv.Key, kv.Value);
+                    }
             }
             finally
             {
                 if (shared == null) db.Dispose();
             }
+        }
+
+        // DB 값이 없거나 비어 있을 때만 .migrated 백업에서 복구(멱등·기존 데이터는 절대 덮어쓰지 않음)
+        private static void RestoreFromMigratedBackupIfEmpty(IDbConnection db, string key, string path)
+        {
+            try
+            {
+                string bak = path + ".migrated";
+                if (!File.Exists(bak)) return;
+
+                string? existing = db.ExecuteScalar<string?>(
+                    "SELECT Json FROM AppData WHERE DataKey=@k", new { k = key });
+                string trimmed = (existing ?? "").Trim();
+                bool empty = trimmed.Length == 0 || trimmed == "[]" || trimmed == "{}";
+                if (!empty) return;   // 이미 데이터 있음 → 백업 무시
+
+                string json = File.ReadAllText(bak);
+                if (string.IsNullOrWhiteSpace(json)) return;
+                db.Execute("INSERT OR REPLACE INTO AppData (DataKey, Json, UpdatedAt) VALUES (@k, @j, datetime('now','localtime'))",
+                           new { k = key, j = json });
+            }
+            catch { }
         }
 
         // 원본 JSON 파일이 있으면 그 내용으로 DB를 '덮어쓰기' 이관 후 파일을 .migrated 로 보존(백업).
