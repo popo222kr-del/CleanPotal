@@ -555,13 +555,9 @@ namespace CleanPotal
             };
         }
 
-        // 공정만 괄호로 (X축 둘째 줄용)
-        private string ProcParen(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"({p})" : "";
-
-        // 범례(기간별 추이)용: 한 줄, 설비명 / 공정
+        // 차트 라벨(한 줄): 설비명 (공정) — 붙여서 매칭이 확실하게
         private string EqName(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}  /  {p}" : eq;
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} ({p})" : eq;
 
         private void BuildChart()
         {
@@ -615,24 +611,14 @@ namespace CleanPotal
                     Name = el,
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                // 설비명(검정, 위)과 공정(회색, 아래)을 두 줄로 구분: X축 2개 겹쳐 표시.
-                // axis[1]이 플롯에 더 가깝게(위) 그려지므로 설비명을 axis[1]에 둔다.
-                Chart.XAxes = new Axis[]
+                // 설비명과 공정을 한 줄로 붙여 표시(두 축은 간격이 벌어져 매칭이 어려움)
+                Chart.XAxes = new[]
                 {
-                    new Axis   // 아래쪽: 공정(회색)
+                    new Axis
                     {
-                        Labels = eqData.Select(x => ProcParen(x.Eq)).ToArray(),
-                        LabelsRotation = 18,
-                        TextSize = 10,
-                        ShowSeparatorLines = false,
-                        LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184))
-                    },
-                    new Axis   // 위쪽(플롯에 가까움): 설비명(검정), 가로로 컴팩트
-                    {
-                        Labels = eqData.Select(x => x.Eq).ToArray(),
-                        LabelsRotation = 0,
+                        Labels = eqData.Select(x => EqName(x.Eq)).ToArray(),
+                        LabelsRotation = 20,
                         TextSize = 12,
-                        ShowSeparatorLines = false,
                         LabelsPaint = new SolidColorPaint(new SKColor(15, 23, 42))
                     }
                 };
