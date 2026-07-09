@@ -816,6 +816,9 @@ namespace CleanPotal
             while (hit != null)
             {
                 if (hit is Image im) return im;
+                // FlowDocument/Run 등 ContentElement는 Visual이 아니므로 시각 트리 탐색 불가 → 중단
+                if (hit is not System.Windows.Media.Visual && hit is not System.Windows.Media.Media3D.Visual3D)
+                    return null;
                 hit = System.Windows.Media.VisualTreeHelper.GetParent(hit);
             }
             return null;
