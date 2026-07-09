@@ -14,6 +14,7 @@ using ClosedXML.Excel;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using Microsoft.Win32;
+using SkiaSharp;
 using CleanPotal.EquipmentAnalysis;
 
 namespace CleanPotal
@@ -36,8 +37,18 @@ namespace CleanPotal
         // 전체 삭제는 최고 관리자(1004)만 허용
         private static bool IsAdmin => SessionManager.CurrentUsername == "1004";
 
+        private static bool _lvcConfigured;
+
         public EquipmentAnalysisView()
         {
+            // 차트에 한글 폰트 적용(원소 라벨/설비 공정명 한글 □·짤림 방지). 앱 1회만.
+            if (!_lvcConfigured)
+            {
+                _lvcConfigured = true;
+                try { LiveCharts.Configure(c => c.HasGlobalSKTypeface(SKTypeface.FromFamilyName("Malgun Gothic"))); }
+                catch { }
+            }
+
             InitializeComponent();
             BuildElementChips();
             // 툴팁을 더 촘촘하게(원소 다수 선택 시 세로로 길어져 잘리는 것 완화)
@@ -353,8 +364,11 @@ namespace CleanPotal
             var elems = SelectedElements();
 
             TxtStatCount.Text = rows.Count.ToString("#,0");
-            int eqn = rows.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
-            TxtStatCountSub.Text = $"설비 {eqn}대";
+            // 부제목: 전체 설비(측정 이력 ∪ 마스터) 대비 이 필터에서 측정된 설비 / 미측정
+            int measuredEq = rows.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
+            int totalEq = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId)).Select(r => r.EqId)
+                              .Concat(_processMap.Keys).Distinct().Count();
+            TxtStatCountSub.Text = $"전체 {totalEq}대 · 측정 완료 {measuredEq}대 · 미측정 {Math.Max(0, totalEq - measuredEq)}대";
 
             var dates = rows.Select(r => r.AnalysisDate).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
             string latest = dates.Count > 0 ? dates.Max() : "";
