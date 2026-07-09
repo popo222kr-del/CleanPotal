@@ -391,14 +391,14 @@ namespace CleanPotal
         private Point _imageDragStartPoint;
         private bool _imageDragStarted = false;
 
-        // 인라인 이미지 모서리 드래그-크기조절 상태
-        private const double ResizeHandleZone = 18;   // 우하단 이 영역을 잡으면 크기조절
-        private bool _resizingImage = false;
-        private Image? _resizeImg;
-        private FrameworkElement? _resizeRefElement;
-        private Point _resizeStartPoint;
-        private double _resizeStartWidth;
-        private double _resizeRatio = 1;
+        // 인라인 이미지 모서리 드래그-크기조절 상태 (RichTextBox 레벨에서 처리)
+        private const double ResizeHandleZone = 22;   // 우하단 이 영역을 잡으면 크기조절
+        private bool _rtbResizing = false;
+        private Image? _rtbResizeImg;
+        private RichTextBox? _rtbResizeEditor;
+        private Point _rtbResizeStart;
+        private double _rtbResizeStartWidth;
+        private double _rtbResizeRatio = 1;
 
         // 메모 첨부 드래그-정렬 상태
         private ProductionMeetingAttachmentModel? _memoDragSource;
@@ -805,39 +805,79 @@ namespace CleanPotal
         {
             double w = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
             double h = img.ActualHeight > 0 ? img.ActualHeight : img.Height;
+            if (double.IsNaN(w) || double.IsNaN(h)) return false;
             return pos.X >= w - ResizeHandleZone && pos.Y >= h - ResizeHandleZone;
         }
 
-        private static FrameworkElement? FindParentRichTextBox(DependencyObject? d)
+        // RichTextBox 안에서 마우스 위치에 있는 Image 찾기
+        private static Image? FindImageUnder(RichTextBox rtb, Point p)
         {
-            while (d != null)
+            if (rtb.InputHitTest(p) is not DependencyObject hit) return null;
+            while (hit != null)
             {
-                if (d is RichTextBox rtb) return rtb;
-                d = LogicalTreeHelper.GetParent(d) ?? System.Windows.Media.VisualTreeHelper.GetParent(d);
+                if (hit is Image im) return im;
+                hit = System.Windows.Media.VisualTreeHelper.GetParent(hit);
             }
             return null;
+        }
+
+        // ── RichTextBox 레벨: 이미지 모서리 드래그 크기조절 (인라인 이미지 이벤트보다 안정적) ──
+        private void RichEditor_ResizePreviewDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not RichTextBox rtb) return;
+            var img = FindImageUnder(rtb, e.GetPosition(rtb));
+            if (img?.Source is not BitmapSource src || src.PixelWidth <= 0) return;
+            if (!IsInResizeZone(img, e.GetPosition(img))) return;
+
+            _rtbResizing = true;
+            _rtbResizeImg = img;
+            _rtbResizeEditor = rtb;
+            _rtbResizeStart = e.GetPosition(rtb);
+            _rtbResizeStartWidth = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
+            _rtbResizeRatio = src.PixelHeight / (double)src.PixelWidth;
+            rtb.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void RichEditor_ResizePreviewMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not RichTextBox rtb) return;
+
+            if (_rtbResizing && _rtbResizeImg != null && _rtbResizeEditor == rtb)
+            {
+                var cur = e.GetPosition(rtb);
+                double newW = _rtbResizeStartWidth + (cur.X - _rtbResizeStart.X);
+                newW = Math.Max(50, Math.Min(1200, newW));
+                _rtbResizeImg.Width = newW;
+                _rtbResizeImg.Height = newW * _rtbResizeRatio;
+                e.Handled = true;
+                return;
+            }
+
+            // 버튼 안 눌렀을 때: 모서리 위면 대각선 커서 힌트
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                var img = FindImageUnder(rtb, e.GetPosition(rtb));
+                bool inZone = img != null && IsInResizeZone(img, e.GetPosition(img));
+                rtb.Cursor = inZone ? Cursors.SizeNWSE : null;
+            }
+        }
+
+        private void RichEditor_ResizePreviewUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_rtbResizing) return;
+            if (sender is RichTextBox rtb) rtb.ReleaseMouseCapture();
+            _rtbResizing = false;
+            _rtbResizeImg = null;
+            _rtbResizeEditor = null;
+            _isDirty = true;
+            e.Handled = true;
         }
 
         private void ImageInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Image img) return;
-            var pos = e.GetPosition(img);
-
-            // 우하단 모서리를 잡으면 → 크기 조절 모드
-            if (IsInResizeZone(img, pos) && img.Source is BitmapSource src && src.PixelWidth > 0)
-            {
-                _resizingImage = true;
-                _resizeImg = img;
-                _resizeRefElement = FindParentRichTextBox(img) ?? img;
-                _resizeStartPoint = e.GetPosition(_resizeRefElement);
-                _resizeStartWidth = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
-                _resizeRatio = src.PixelHeight / (double)src.PixelWidth;
-                img.CaptureMouse();
-                e.Handled = true;
-                return;
-            }
-
-            _imageDragStartPoint = pos;
+            _imageDragStartPoint = e.GetPosition(img);
             _imageDragStarted = false;
 
             if (img.Parent is InlineUIContainer iuc)
@@ -852,27 +892,7 @@ namespace CleanPotal
         private void ImageInline_MouseMove(object sender, MouseEventArgs e)
         {
             if (sender is not Image img) return;
-
-            // 크기 조절 진행 중
-            if (_resizingImage && _resizeImg == img && _resizeRefElement != null)
-            {
-                var cur = e.GetPosition(_resizeRefElement);
-                double newW = _resizeStartWidth + (cur.X - _resizeStartPoint.X);
-                newW = Math.Max(50, Math.Min(1200, newW));
-                img.Width = newW;
-                img.Height = newW * _resizeRatio;
-                e.Handled = true;
-                return;
-            }
-
-            // 버튼을 안 눌렀을 땐 커서 힌트만 (모서리=크기조절, 그 외=이동/보기)
-            if (e.LeftButton != MouseButtonState.Pressed)
-            {
-                img.Cursor = IsInResizeZone(img, e.GetPosition(img))
-                    ? Cursors.SizeNWSE : Cursors.Hand;
-                return;
-            }
-
+            if (e.LeftButton != MouseButtonState.Pressed) return;
             if (_movingImageContainer == null) return;
 
             var pos = e.GetPosition(img);
@@ -891,18 +911,6 @@ namespace CleanPotal
         {
             if (sender is not Image img) return;
             img.ReleaseMouseCapture();
-
-            // 크기 조절을 끝냄
-            if (_resizingImage)
-            {
-                _resizingImage = false;
-                _resizeImg = null;
-                _resizeRefElement = null;
-                _isDirty = true;
-                e.Handled = true;
-                return;
-            }
-
             if (!_imageDragStarted && _movingImageContainer != null)
             {
                 // 드래그 없이 떼었으면 → 원본 보기
