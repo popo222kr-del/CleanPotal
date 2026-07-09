@@ -555,7 +555,13 @@ namespace CleanPotal
             };
         }
 
-        // 차트 라벨(한 줄): 설비명 (공정) — 붙여서 매칭이 확실하게
+        // X축(막대)용 라벨: 설비명 위 / 공정 아래 2줄.
+        // LiveCharts 멀티라인은 Environment.NewLine("\r\n")으로만 분리됨 ("\n" 단독은 □로 렌더링).
+        private string EqLabel(string eq)
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p)
+               ? $"{eq}{Environment.NewLine}({p})" : eq;
+
+        // 범례(기간별 추이)용: 한 줄
         private string EqName(string eq)
             => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq} ({p})" : eq;
 
@@ -611,14 +617,14 @@ namespace CleanPotal
                     Name = el,
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                // 설비명과 공정을 한 줄로 붙여 표시(두 축은 간격이 벌어져 매칭이 어려움)
+                // 설비명(윗줄)/공정(아랫줄) 2줄 라벨. 멀티라인이라 회전 없이 세로로 컴팩트.
                 Chart.XAxes = new[]
                 {
                     new Axis
                     {
-                        Labels = eqData.Select(x => EqName(x.Eq)).ToArray(),
-                        LabelsRotation = 20,
-                        TextSize = 12,
+                        Labels = eqData.Select(x => EqLabel(x.Eq)).ToArray(),
+                        LabelsRotation = 0,
+                        TextSize = 11,
                         LabelsPaint = new SolidColorPaint(new SKColor(15, 23, 42))
                     }
                 };
