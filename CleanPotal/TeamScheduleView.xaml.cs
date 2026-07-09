@@ -525,16 +525,9 @@ namespace CleanPotal
 
         public void RegisterSchedule()
         {
-            bool canEdit = SessionManager.CurrentUsername == "1004"
-                        || SessionManager.CanManageSchedule
-                        || SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
-
-            if (!canEdit)
-            {
-                MessageBox.Show("일정을 등록할 권한이 없습니다.\n관리자에게 문의하세요.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
+            // 팀 구분 없이 누구나 등록 창을 열 수 있다.
+            // 창 내부에서 권한별로 제어됨: 일반 사용자는 본인 근태/휴가만,
+            // '팀 일정 등록' 탭은 OFFICE(또는 마스터)에게만 표시.
             var win = new ScheduleRegisterWindow();
             win.Owner = Window.GetWindow(this);
 
