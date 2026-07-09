@@ -106,13 +106,28 @@ namespace CleanPotal
             catch { }
         }
 
-        // 원본 JSON 파일이 있으면 그 내용으로 DB를 '덮어쓰기' 이관 후 파일을 .migrated 로 보존(백업).
+        // 원본 JSON 파일 → DB 이관. ⚠️ 최초 1회(DB가 비어 있을 때)만 덮어쓴다.
+        //   DB에 이미 데이터가 있으면 그 json 은 옛날 파일일 수 있으므로 '절대 덮어쓰지 않고'
+        //   .superseded 로 격리한다. (옛 json 이 매 시작마다 최신 DB를 롤백시키는 사고 차단)
         private static void MigrateFile(IDbConnection db, string key, string path)
         {
             try
             {
-                if (!File.Exists(path)) return;   // 이미 이관됨(또는 원본 없음)
+                if (!File.Exists(path)) return;   // 원본 없음
 
+                string? existing = db.ExecuteScalar<string?>(
+                    "SELECT Json FROM AppData WHERE DataKey=@k", new { k = key });
+                string trimmed = (existing ?? "").Trim();
+                bool dbHasData = trimmed.Length > 0 && trimmed != "[]" && trimmed != "{}" && trimmed != "null";
+
+                if (dbHasData)
+                {
+                    // 이미 DB가 최신 데이터 보유 → 옛 json 격리(덮어쓰기 금지)
+                    try { File.Move(path, path + ".superseded"); } catch { }
+                    return;
+                }
+
+                // DB가 비어 있을 때만 최초 이관
                 string json = File.ReadAllText(path);
                 db.Execute("INSERT OR REPLACE INTO AppData (DataKey, Json, UpdatedAt) VALUES (@k, @j, datetime('now','localtime'))",
                            new { k = key, j = json });
