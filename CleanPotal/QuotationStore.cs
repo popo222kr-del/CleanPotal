@@ -32,6 +32,10 @@ namespace CleanPotal
         /// </summary>
         public static void MigrateFromLocalIfNeeded()
         {
+            // 🚧 DB 이관 완료(플래그 ON) 후에는 공유폴더에 json 이 없는 게 정상 상태.
+            //    이때 옛 로컬 파일을 NAS로 복사하면 오래된 데이터가 DB를 덮어쓰게 되므로 전체 스킵.
+            if (AppPaths.DbMigrationEnabled) return;
+
             try { Directory.CreateDirectory(SharedDir); }     catch { }
             try { Directory.CreateDirectory(LocalConfigDir); } catch { }
 
@@ -96,6 +100,25 @@ namespace CleanPotal
             catch { list = new(); }
 
             MergeQuotationsFromBackupOnce(list);
+
+            // 최종 안전망: 그래도 비어 있으면 .migrated 백업을 그대로 표시(플래그·병합 이력과 무관하게 무조건).
+            if (list.Count == 0)
+            {
+                try
+                {
+                    string bak = QuotationPath + ".migrated";
+                    if (File.Exists(bak))
+                    {
+                        var backup = JsonSerializer.Deserialize<ObservableCollection<QuotationModel>>(File.ReadAllText(bak));
+                        if (backup != null && backup.Count > 0)
+                        {
+                            foreach (var q in backup) list.Add(q);
+                            SaveQuotations(list);   // DB에 고정 시도(실패해도 화면에는 표시됨)
+                        }
+                    }
+                }
+                catch { }
+            }
             return list;
         }
 
@@ -147,6 +170,25 @@ namespace CleanPotal
             catch { list = new(); }
 
             MergeMasterFromBackupOnce(list);
+
+            // 최종 안전망: 그래도 비어 있으면 .migrated 백업을 그대로 표시
+            if (list.Count == 0)
+            {
+                try
+                {
+                    string bak = ProductMasterPath + ".migrated";
+                    if (File.Exists(bak))
+                    {
+                        var backup = JsonSerializer.Deserialize<ObservableCollection<ProductMasterItem>>(File.ReadAllText(bak));
+                        if (backup != null && backup.Count > 0)
+                        {
+                            foreach (var m in backup) list.Add(m);
+                            SaveProductMaster(list);
+                        }
+                    }
+                }
+                catch { }
+            }
             return list;
         }
 
