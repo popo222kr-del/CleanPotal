@@ -256,6 +256,7 @@
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
                     <Button x:Name="BtnUpload" Content="엑셀 업로드" Style="{StaticResource BtnPrimary}" Click="BtnUpload_Click"/>
                     <Button x:Name="BtnDownload" Content="다운로드" Style="{StaticResource BtnGhost}" Margin="6,0,0,0" Click="BtnDownload_Click"/>
+                    <Button x:Name="BtnActionLog" Content="작업 이력" Style="{StaticResource BtnGhost}" Margin="6,0,0,0" Click="BtnActionLog_Click"/>
                     <Button x:Name="BtnClear" Content="전체 삭제" Style="{StaticResource BtnDanger}" Margin="6,0,0,0" Click="BtnClear_Click"/>
                 </StackPanel>
 

@@ -37,6 +37,9 @@ namespace CleanPotal
 
         // 전체 삭제는 최고 관리자(1004)만 허용
         private static bool IsAdmin => SessionManager.CurrentUsername == "1004";
+        private static string CurrentUser => SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알수없음";
+        private static void ActionLog(string action, string detail)
+            => EquipmentAnalysisRepository.InsertActionLog(action, detail, CurrentUser);
 
         private static bool _lvcConfigured;
 
@@ -58,8 +61,9 @@ namespace CleanPotal
             FltProcess.SelectionChanged += Process_Changed;   // 설비 유형 → 약액·설비·날짜 옵션 갱신
             FltBath.SelectionChanged += Filter_MultiChanged;
             FltEquip.SelectionChanged += Filter_MultiChanged;
-            // 관리자 아니면 '전체 삭제' 숨김
+            // 관리자 아니면 '전체 삭제'·'작업 이력' 숨김
             BtnClear.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
+            BtnActionLog.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
             Loaded += (_, _) => ReloadAll();
         }
 
@@ -393,6 +397,7 @@ namespace CleanPotal
         public class CheckStatusItem : INotifyPropertyChanged
         {
             public string OrigEqId { get; set; } = "";   // 변경 감지용 원본 이름
+            public string OrigNote { get; set; } = "";   // 변경 감지용 원본 특이사항
             public string EqId { get; set; } = "";        // 편집 가능(설비명)
             public string Process { get; set; } = "";     // 편집 가능(공정/급)
             public bool IsMeasured { get; set; }
@@ -466,9 +471,11 @@ namespace CleanPotal
                             if (r.Elements.TryGetValue(el, out var v) && v > mv) { mv = v; mel = el; }
                     if (mv > double.MinValue) summary = $"최고 {mel} {mv:#,0.##}";
                 }
+                string note = notes.TryGetValue(eq, out var n) ? n : "";
                 _checkItems.Add(new CheckStatusItem
                 {
                     OrigEqId = eq,
+                    OrigNote = note,
                     EqId = eq,
                     Process = _processMap.TryGetValue(eq, out var pr) ? pr : "",
                     IsMeasured = m,
@@ -476,7 +483,7 @@ namespace CleanPotal
                     Summary = summary,
                     StatusBg = m ? CB("#DCFCE7") : CB("#FEE2E2"),
                     StatusFg = m ? CB("#16A34A") : CB("#DC2626"),
-                    Note = notes.TryGetValue(eq, out var n) ? n : ""
+                    Note = note
                 });
             }
             LogEqList.ItemsSource = _checkItems;
@@ -500,15 +507,28 @@ namespace CleanPotal
                         "설비명 변경", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                         return;
                     foreach (var r in renames)
+                    {
                         EquipmentAnalysisRepository.RenameEquipment(r.OrigEqId, r.EqId.Trim());
+                        ActionLog("설비명 변경", $"{r.OrigEqId} → {r.EqId.Trim()}");
+                    }
                 }
 
                 foreach (var it in _checkItems)
                 {
                     string eq = it.EqId?.Trim() ?? "";
                     if (string.IsNullOrEmpty(eq)) continue;
-                    EquipmentAnalysisRepository.UpsertEquipmentProcess(eq, it.Process?.Trim() ?? "");
-                    EquipmentAnalysisRepository.UpsertCheckNote(eq, _checkDate, it.Note?.Trim() ?? "");
+
+                    string newProc = it.Process?.Trim() ?? "";
+                    string oldProc = _processMap.TryGetValue(it.OrigEqId, out var op) ? op : "";
+                    if (newProc != oldProc)
+                        ActionLog("공정 변경", $"{eq}: '{oldProc}' → '{newProc}'");
+
+                    string newNote = it.Note?.Trim() ?? "";
+                    if (newNote != (it.OrigNote ?? "").Trim())
+                        ActionLog("특이사항 수정", $"{eq} ({_checkDate}): '{it.OrigNote}' → '{newNote}'");
+
+                    EquipmentAnalysisRepository.UpsertEquipmentProcess(eq, newProc);
+                    EquipmentAnalysisRepository.UpsertCheckNote(eq, _checkDate, newNote);
                 }
 
                 // 데이터/마스터 다시 로드 후 갱신(이름 변경·공정 반영)
@@ -525,6 +545,7 @@ namespace CleanPotal
             string name = LogNewEqBox.Text?.Trim() ?? "";
             if (string.IsNullOrEmpty(name)) { MessageBox.Show("추가할 설비명을 입력하세요.", "설비 추가"); return; }
             EquipmentAnalysisRepository.AddEquipment(name);
+            ActionLog("설비 추가", name);
             _processMap = EquipmentAnalysisRepository.GetEquipmentMaster();
             LogNewEqBox.Text = "";
             BuildLogItems();
@@ -720,6 +741,7 @@ namespace CleanPotal
                 var rows = ParseExcel(dlg.FileName);
                 if (rows.Count == 0) { MessageBox.Show("읽어들일 데이터가 없습니다.", "업로드", MessageBoxButton.OK, MessageBoxImage.Information); return; }
                 int added = EquipmentAnalysisRepository.InsertMany(rows);
+                ActionLog("엑셀 업로드", $"{System.IO.Path.GetFileName(dlg.FileName)} — {rows.Count}행 중 {added}행 추가(중복 {rows.Count - added} 제외)");
                 ReloadAll();
                 MessageBox.Show($"{rows.Count}행 중 {added}행이 추가되었습니다.\n(중복 {rows.Count - added}행 제외)", "업로드 완료", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -836,13 +858,78 @@ namespace CleanPotal
             }
         }
 
+        // 작업 이력 조회(관리자 전용): 업로드/설비명·공정 변경/특이사항 수정/설비 추가/전체 삭제
+        private void BtnActionLog_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsAdmin) { MessageBox.Show("작업 이력은 관리자만 볼 수 있습니다.", "권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return; }
+
+            List<EquipmentAnalysisRepository.ActionLogRow> logs;
+            try { logs = EquipmentAnalysisRepository.GetActionLogs(); }
+            catch (Exception ex) { MessageBox.Show($"이력 조회 실패:\n{ex.Message}", "오류"); return; }
+
+            var dlg = new Window
+            {
+                Title = "설비 ICP-MS 작업 이력",
+                Width = 900, Height = 560,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+                ResizeMode = ResizeMode.CanResizeWithGrip
+            };
+
+            var root = new System.Windows.Controls.Grid { Margin = new Thickness(16) };
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition());
+
+            var header = new TextBlock
+            {
+                Text = logs.Count > 0 ? $"총 {logs.Count}건 (최근 500건까지 표시)" : "기록된 작업 이력이 없습니다.",
+                FontSize = 14, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            System.Windows.Controls.Grid.SetRow(header, 0);
+            root.Children.Add(header);
+
+            var dg = new DataGrid
+            {
+                AutoGenerateColumns = false, IsReadOnly = true,
+                CanUserSortColumns = true, CanUserReorderColumns = false,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+                HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+                Background = Brushes.White,
+                RowBackground = Brushes.White,
+                AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+                FontSize = 13
+            };
+            dg.Columns.Add(new DataGridTextColumn { Header = "일시", Binding = new System.Windows.Data.Binding("CreatedAt"), Width = 150 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "작업자", Binding = new System.Windows.Data.Binding("UserName"), Width = 90 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "구분", Binding = new System.Windows.Data.Binding("ActionType"), Width = 110 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "내용", Binding = new System.Windows.Data.Binding("Detail"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            dg.ItemsSource = logs;
+            System.Windows.Controls.Grid.SetRow(dg, 1);
+            root.Children.Add(dg);
+
+            dlg.Content = root;
+            dlg.ShowDialog();
+        }
+
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
             if (!IsAdmin) { MessageBox.Show("전체 삭제는 관리자만 가능합니다.", "권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return; }
             if (_all.Count == 0) return;
             if (MessageBox.Show("설비 분석 데이터를 전체 삭제하시겠습니까?\n복구할 수 없습니다.", "전체 삭제",
                 MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
-            try { EquipmentAnalysisRepository.DeleteAll(); ReloadAll(); }
+            try
+            {
+                int cnt = _all.Count;
+                EquipmentAnalysisRepository.DeleteAll();
+                ActionLog("전체 삭제", $"분석 데이터 {cnt}행 삭제");
+                ReloadAll();
+            }
             catch (Exception ex) { MessageBox.Show($"삭제 실패:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
     }

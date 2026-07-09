@@ -63,8 +63,49 @@ namespace CleanPotal.EquipmentAnalysis
                         EqId    TEXT PRIMARY KEY,
                         Process TEXT NOT NULL DEFAULT ''
                     );");
+
+                // 작업 이력(업로드/수정/삭제 감사 로그) — 관리자 조회용
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentActionLog (
+                        Id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ActionType TEXT NOT NULL DEFAULT '',
+                        Detail    TEXT NOT NULL DEFAULT '',
+                        UserName  TEXT NOT NULL DEFAULT '',
+                        CreatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                    );");
             }
             finally { if (shared == null) db.Dispose(); }
+        }
+
+        // 작업 이력 기록 (실패해도 본 작업에 영향 없도록 예외 무시)
+        public static void InsertActionLog(string actionType, string detail, string userName)
+        {
+            try
+            {
+                using var db = DatabaseHelper.GetConnection();
+                db.Execute(@"INSERT INTO EquipmentActionLog (ActionType, Detail, UserName, CreatedAt)
+                             VALUES (@a, @d, @u, datetime('now','localtime'))",
+                           new { a = actionType ?? "", d = detail ?? "", u = userName ?? "" });
+            }
+            catch { }
+        }
+
+        public class ActionLogRow
+        {
+            public long Id { get; set; }
+            public string ActionType { get; set; } = "";
+            public string Detail { get; set; } = "";
+            public string UserName { get; set; } = "";
+            public string CreatedAt { get; set; } = "";
+        }
+
+        // 작업 이력 조회(최신순)
+        public static List<ActionLogRow> GetActionLogs(int limit = 500)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query<ActionLogRow>(
+                "SELECT Id, ActionType, Detail, UserName, CreatedAt FROM EquipmentActionLog ORDER BY Id DESC LIMIT @n",
+                new { n = limit }).ToList();
         }
 
         // 설비 마스터 (EqId → 공정)
