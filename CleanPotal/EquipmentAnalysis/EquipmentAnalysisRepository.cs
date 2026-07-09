@@ -56,8 +56,64 @@ namespace CleanPotal.EquipmentAnalysis
                         UpdatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime')),
                         PRIMARY KEY (EqId, CheckDate)
                     );");
+
+                // 설비 마스터(설비명 + 공정/급). 분석 데이터에 없는 설비도 등록 가능.
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentMaster (
+                        EqId    TEXT PRIMARY KEY,
+                        Process TEXT NOT NULL DEFAULT ''
+                    );");
             }
             finally { if (shared == null) db.Dispose(); }
+        }
+
+        // 설비 마스터 (EqId → 공정)
+        public static Dictionary<string, string> GetEquipmentMaster()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT EqId, Process FROM EquipmentMaster");
+            var map = new Dictionary<string, string>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                string eq = (d["EqId"] as string) ?? "";
+                if (!string.IsNullOrEmpty(eq)) map[eq] = (d["Process"] as string) ?? "";
+            }
+            return map;
+        }
+
+        // 설비 추가(이미 있으면 무시)
+        public static void AddEquipment(string eqId)
+        {
+            if (string.IsNullOrWhiteSpace(eqId)) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("INSERT OR IGNORE INTO EquipmentMaster (EqId, Process) VALUES (@e, '')", new { e = eqId.Trim() });
+        }
+
+        // 설비 공정 저장
+        public static void UpsertEquipmentProcess(string eqId, string process)
+        {
+            if (string.IsNullOrWhiteSpace(eqId)) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute(@"INSERT INTO EquipmentMaster (EqId, Process) VALUES (@e, @p)
+                         ON CONFLICT(EqId) DO UPDATE SET Process=@p;",
+                       new { e = eqId.Trim(), p = process ?? "" });
+        }
+
+        // 설비명 변경 → 분석 데이터·특이사항·마스터 모두 새 이름으로 매칭
+        public static void RenameEquipment(string oldId, string newId)
+        {
+            if (string.IsNullOrWhiteSpace(oldId) || string.IsNullOrWhiteSpace(newId)) return;
+            oldId = oldId.Trim(); newId = newId.Trim();
+            if (oldId == newId) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("UPDATE OR REPLACE EquipmentAnalysis SET EqId=@n WHERE EqId=@o", new { n = newId, o = oldId });
+            db.Execute("UPDATE OR REPLACE EquipmentCheckNote SET EqId=@n WHERE EqId=@o", new { n = newId, o = oldId });
+            // 마스터: 기존 공정 보존하며 이름 교체
+            string proc = db.ExecuteScalar<string?>("SELECT Process FROM EquipmentMaster WHERE EqId=@o", new { o = oldId }) ?? "";
+            db.Execute("DELETE FROM EquipmentMaster WHERE EqId=@o", new { o = oldId });
+            db.Execute(@"INSERT INTO EquipmentMaster (EqId, Process) VALUES (@n, @p)
+                         ON CONFLICT(EqId) DO UPDATE SET Process=@p;", new { n = newId, p = proc });
         }
 
         // 특정 날짜의 설비별 특이사항 (EqId → Note)
