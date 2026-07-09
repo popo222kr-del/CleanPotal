@@ -252,6 +252,9 @@
                                  LostKeyboardFocus="AnyRichTextBox_LostFocus"
                                  PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
                                  PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 PreviewMouseLeftButtonDown="RichEditor_ResizePreviewDown"
+                                 PreviewMouseMove="RichEditor_ResizePreviewMove"
+                                 PreviewMouseLeftButtonUp="RichEditor_ResizePreviewUp"
                                  Drop="AnyRichTextBox_Drop"
                                  TextChanged="DayShiftRichEditor_TextChanged"
                                  SpellCheck.IsEnabled="False">
@@ -283,6 +286,9 @@
                                  LostKeyboardFocus="AnyRichTextBox_LostFocus"
                                  PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
                                  PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 PreviewMouseLeftButtonDown="RichEditor_ResizePreviewDown"
+                                 PreviewMouseMove="RichEditor_ResizePreviewMove"
+                                 PreviewMouseLeftButtonUp="RichEditor_ResizePreviewUp"
                                  Drop="AnyRichTextBox_Drop"
                                  TextChanged="NightShiftRichEditor_TextChanged"
                                  SpellCheck.IsEnabled="False">
@@ -317,6 +323,9 @@
                                  LostKeyboardFocus="AnyRichTextBox_LostFocus"
                                  PreviewKeyDown="CardRichTextBox_PreviewKeyDown"
                                  PreviewDragOver="AnyRichTextBox_PreviewDragOver"
+                                 PreviewMouseLeftButtonDown="RichEditor_ResizePreviewDown"
+                                 PreviewMouseMove="RichEditor_ResizePreviewMove"
+                                 PreviewMouseLeftButtonUp="RichEditor_ResizePreviewUp"
                                  Drop="AnyRichTextBox_Drop"
                                  TextChanged="MemoRichEditor_TextChanged"
                                  SpellCheck.IsEnabled="False">
