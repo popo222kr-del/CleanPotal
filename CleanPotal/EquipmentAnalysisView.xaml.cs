@@ -615,23 +615,25 @@ namespace CleanPotal
                     Name = el,
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                // 설비명(검정)과 공정(회색)을 두 줄로 구분: X축 2개 겹쳐 표시
+                // 설비명(검정, 위)과 공정(회색, 아래)을 두 줄로 구분: X축 2개 겹쳐 표시.
+                // axis[1]이 플롯에 더 가깝게(위) 그려지므로 설비명을 axis[1]에 둔다.
                 Chart.XAxes = new Axis[]
                 {
-                    new Axis
-                    {
-                        Labels = eqData.Select(x => x.Eq).ToArray(),
-                        LabelsRotation = 25,
-                        TextSize = 12,
-                        LabelsPaint = new SolidColorPaint(new SKColor(15, 23, 42))     // 설비명: 진한 검정
-                    },
-                    new Axis
+                    new Axis   // 아래쪽: 공정(회색)
                     {
                         Labels = eqData.Select(x => ProcParen(x.Eq)).ToArray(),
-                        LabelsRotation = 25,
-                        TextSize = 11,
+                        LabelsRotation = 18,
+                        TextSize = 10,
                         ShowSeparatorLines = false,
-                        LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184))  // 공정: 회색
+                        LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184))
+                    },
+                    new Axis   // 위쪽(플롯에 가까움): 설비명(검정), 가로로 컴팩트
+                    {
+                        Labels = eqData.Select(x => x.Eq).ToArray(),
+                        LabelsRotation = 0,
+                        TextSize = 12,
+                        ShowSeparatorLines = false,
+                        LabelsPaint = new SolidColorPaint(new SKColor(15, 23, 42))
                     }
                 };
                 Chart.YAxes = new[] { new Axis { Name = "ppb" } };
