@@ -809,19 +809,25 @@ namespace CleanPotal
             return pos.X >= w - ResizeHandleZone && pos.Y >= h - ResizeHandleZone;
         }
 
-        // RichTextBox 안에서 마우스 위치에 있는 Image 찾기
+        // RichTextBox 안에서 마우스 위치에 있는 Image 찾기 (실제 시각 히트테스트 사용)
         private static Image? FindImageUnder(RichTextBox rtb, Point p)
         {
-            if (rtb.InputHitTest(p) is not DependencyObject hit) return null;
-            while (hit != null)
-            {
-                if (hit is Image im) return im;
-                // FlowDocument/Run 등 ContentElement는 Visual이 아니므로 시각 트리 탐색 불가 → 중단
-                if (hit is not System.Windows.Media.Visual && hit is not System.Windows.Media.Media3D.Visual3D)
-                    return null;
-                hit = System.Windows.Media.VisualTreeHelper.GetParent(hit);
-            }
-            return null;
+            Image? found = null;
+            System.Windows.Media.VisualTreeHelper.HitTest(
+                rtb,
+                null,
+                result =>
+                {
+                    DependencyObject? d = result.VisualHit;
+                    while (d != null)
+                    {
+                        if (d is Image im) { found = im; return System.Windows.Media.HitTestResultBehavior.Stop; }
+                        d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+                    }
+                    return System.Windows.Media.HitTestResultBehavior.Continue;
+                },
+                new System.Windows.Media.PointHitTestParameters(p));
+            return found;
         }
 
         // ── RichTextBox 레벨: 이미지 모서리 드래그 크기조절 (인라인 이미지 이벤트보다 안정적) ──
