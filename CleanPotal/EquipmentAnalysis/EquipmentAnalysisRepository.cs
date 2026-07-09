@@ -46,8 +46,49 @@ namespace CleanPotal.EquipmentAnalysis
                 // 재업로드 중복 방지(설비+약액+구분+분석일+공정타입 동일하면 무시)
                 db.Execute(@"CREATE UNIQUE INDEX IF NOT EXISTS UX_EqAnalysis
                              ON EquipmentAnalysis(ProcessType, EqId, BathGb, Category, AnalysisDate);");
+
+                // 측정 현황 특이사항(설비별·날짜별)
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentCheckNote (
+                        EqId      TEXT NOT NULL DEFAULT '',
+                        CheckDate TEXT NOT NULL DEFAULT '',
+                        Note      TEXT NOT NULL DEFAULT '',
+                        UpdatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                        PRIMARY KEY (EqId, CheckDate)
+                    );");
             }
             finally { if (shared == null) db.Dispose(); }
+        }
+
+        // 특정 날짜의 설비별 특이사항 (EqId → Note)
+        public static Dictionary<string, string> GetCheckNotes(string checkDate)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT EqId, Note FROM EquipmentCheckNote WHERE CheckDate = @d", new { d = checkDate ?? "" });
+            var map = new Dictionary<string, string>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                string eq = (d["EqId"] as string) ?? "";
+                if (!string.IsNullOrEmpty(eq)) map[eq] = (d["Note"] as string) ?? "";
+            }
+            return map;
+        }
+
+        // 설비별·날짜별 특이사항 저장(빈 값이면 삭제)
+        public static void UpsertCheckNote(string eqId, string checkDate, string note)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            if (string.IsNullOrWhiteSpace(note))
+            {
+                db.Execute("DELETE FROM EquipmentCheckNote WHERE EqId=@e AND CheckDate=@d",
+                           new { e = eqId ?? "", d = checkDate ?? "" });
+                return;
+            }
+            db.Execute(@"INSERT INTO EquipmentCheckNote (EqId, CheckDate, Note, UpdatedAt)
+                         VALUES (@e, @d, @n, datetime('now','localtime'))
+                         ON CONFLICT(EqId, CheckDate) DO UPDATE SET Note=@n, UpdatedAt=datetime('now','localtime');",
+                       new { e = eqId ?? "", d = checkDate ?? "", n = note });
         }
 
         // 누적 삽입(중복은 무시). 삽입된 신규 행 수 반환.

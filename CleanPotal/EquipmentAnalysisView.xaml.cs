@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Globalization;
@@ -363,6 +365,81 @@ namespace CleanPotal
             var vals = rows.SelectMany(r => elems.Select(el => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToList();
             TxtStatAvg.Text = vals.Count > 0 ? vals.Average().ToString("#,0.##") : "-";
         }
+
+        // ===== 측정 현황 + 특이사항 =====
+        public class CheckStatusItem : INotifyPropertyChanged
+        {
+            public string EqId { get; set; } = "";
+            public bool IsMeasured { get; set; }
+            public string StatusText { get; set; } = "";
+            public Brush StatusBg { get; set; } = Brushes.Transparent;
+            public Brush StatusFg { get; set; } = Brushes.Black;
+            private string _note = "";
+            public string Note { get => _note; set { _note = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Note))); } }
+            public event PropertyChangedEventHandler? PropertyChanged;
+        }
+
+        private readonly ObservableCollection<CheckStatusItem> _checkItems = new();
+        private string _checkDate = "";
+
+        private static SolidColorBrush CB(string hex)
+            => new((Color)ColorConverter.ConvertFromString(hex));
+
+        private void BtnCheckStatus_Click(object sender, RoutedEventArgs e)
+        {
+            // 기준 날짜: 선택 날짜가 있으면 그중 최신, 없으면 데이터 최신일
+            DateTime? dt = _selDates.Count > 0 ? _selDates.Max()
+                         : (_dataDates.Count > 0 ? _dataDates.Max() : (DateTime?)null);
+            if (dt == null) { MessageBox.Show("분석 데이터가 없습니다.", "측정 현황"); return; }
+            _checkDate = dt.Value.ToString("yyyy-MM-dd");
+            BuildCheckStatus();
+            CheckModal.Visibility = Visibility.Visible;
+        }
+
+        private void BuildCheckStatus()
+        {
+            _checkItems.Clear();
+            // 실제 설비 목록 = 지금까지 한 번이라도 측정된 모든 설비
+            var eqIds = _all.Where(r => !string.IsNullOrWhiteSpace(r.EqId))
+                            .Select(r => r.EqId).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToList();
+            var measured = _all.Where(r => r.AnalysisDate == _checkDate)
+                               .Select(r => r.EqId).Distinct().ToHashSet();
+            var notes = EquipmentAnalysisRepository.GetCheckNotes(_checkDate);
+
+            int done = 0;
+            foreach (var eq in eqIds)
+            {
+                bool m = measured.Contains(eq);
+                if (m) done++;
+                _checkItems.Add(new CheckStatusItem
+                {
+                    EqId = eq,
+                    IsMeasured = m,
+                    StatusText = m ? "측정 완료" : "미측정",
+                    StatusBg = m ? CB("#DCFCE7") : CB("#FEE2E2"),
+                    StatusFg = m ? CB("#16A34A") : CB("#DC2626"),
+                    Note = notes.TryGetValue(eq, out var n) ? n : ""
+                });
+            }
+            CheckStatusList.ItemsSource = _checkItems;
+            CheckModalSub.Text = $"{_checkDate} 기준 · 전체 {eqIds.Count}대";
+            CheckSummary.Text = $"측정 완료 {done}대 · 미측정 {eqIds.Count - done}대";
+        }
+
+        private void BtnCheckSave_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                foreach (var it in _checkItems)
+                    EquipmentAnalysisRepository.UpsertCheckNote(it.EqId, _checkDate, it.Note?.Trim() ?? "");
+                MessageBox.Show("저장되었습니다.", "측정 현황");
+                CheckModal.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception ex) { MessageBox.Show("저장 실패: " + ex.Message, "오류"); }
+        }
+
+        private void BtnCheckClose_Click(object sender, RoutedEventArgs e)
+            => CheckModal.Visibility = Visibility.Collapsed;
 
         // 분석일 → 기간 키 (일별=yyyy-MM-dd / 월별=yyyy-MM / 년별=yyyy)
         private static string PeriodKey(string date, string unit)
