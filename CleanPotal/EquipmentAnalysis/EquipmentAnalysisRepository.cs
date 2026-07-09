@@ -75,6 +75,21 @@ namespace CleanPotal.EquipmentAnalysis
             return map;
         }
 
+        // 설비의 날짜별 특이사항 이력(누적, 최신순)
+        public static List<(string Date, string Note)> GetCheckNoteHistory(string eqId)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT CheckDate, Note FROM EquipmentCheckNote WHERE EqId=@e AND Note <> '' ORDER BY CheckDate DESC",
+                                new { e = eqId ?? "" });
+            var list = new List<(string, string)>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                list.Add(((d["CheckDate"] as string) ?? "", (d["Note"] as string) ?? ""));
+            }
+            return list;
+        }
+
         // 설비별·날짜별 특이사항 저장(빈 값이면 삭제)
         public static void UpsertCheckNote(string eqId, string checkDate, string note)
         {

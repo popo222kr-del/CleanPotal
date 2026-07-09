@@ -255,7 +255,6 @@
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtCount" FontSize="12" Foreground="#9CA3AF" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <Button x:Name="BtnCheckStatus" Content="측정 현황" Style="{StaticResource BtnGhost}" Margin="0,0,6,0" Click="BtnCheckStatus_Click"/>
                     <Button x:Name="BtnUpload" Content="엑셀 업로드" Style="{StaticResource BtnPrimary}" Click="BtnUpload_Click"/>
                     <Button x:Name="BtnDownload" Content="다운로드" Style="{StaticResource BtnGhost}" Margin="6,0,0,0" Click="BtnDownload_Click"/>
                     <Button x:Name="BtnClear" Content="전체 삭제" Style="{StaticResource BtnDanger}" Margin="6,0,0,0" Click="BtnClear_Click"/>
@@ -266,6 +265,7 @@
                         <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="RbBar" Content="설비별 비교" Style="{StaticResource SegItem}" IsChecked="True" Checked="Mode_Changed"/>
                             <RadioButton x:Name="RbTrend" Content="기간별 추이" Style="{StaticResource SegItem}" Checked="Mode_Changed"/>
+                            <RadioButton x:Name="RbLog" Content="점검 일지" Style="{StaticResource SegItem}" Checked="Mode_Changed"/>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="설비 유형" Style="{StaticResource LblSmall}"/>
@@ -384,7 +384,7 @@
         </Grid>
 
         <!-- Chart card (헤더 클릭으로 접기/펼치기 → 접으면 표가 커짐) -->
-        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
+        <Border x:Name="ChartCard" Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
             <DockPanel>
                 <Button DockPanel.Dock="Top" Click="ToggleChart_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
                     <Button.Template>
@@ -412,7 +412,7 @@
         </Border>
 
         <!-- Data table card (헤더 클릭으로 접기/펼치기 → 접으면 차트가 커짐) -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0">
+        <Border x:Name="TableCard" Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0">
             <DockPanel x:Name="TableInner" SizeChanged="TableInner_SizeChanged">
                 <Button DockPanel.Dock="Top" Click="ToggleTable_Click" Cursor="Hand" HorizontalContentAlignment="Stretch">
                     <Button.Template>
@@ -457,78 +457,87 @@
             </DockPanel>
         </Border>
 
-        <!-- ===== 측정 현황 + 특이사항 모달 ===== -->
-        <Border x:Name="CheckModal" Grid.RowSpan="5" Background="#66111827" Visibility="Collapsed" Panel.ZIndex="60">
-            <Border Background="White" CornerRadius="16" MaxWidth="760" MaxHeight="720" Margin="40"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    UseLayoutRounding="True" SnapsToDevicePixels="True">
-                <Border.Effect><DropShadowEffect BlurRadius="24" Opacity="0.18" ShadowDepth="6" Direction="270"/></Border.Effect>
-                <DockPanel>
-                    <!-- 헤더 -->
-                    <Grid DockPanel.Dock="Top" Margin="24,20,20,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="측정 현황 · 특이사항" FontSize="19" FontWeight="Bold" Foreground="#0F172A"/>
-                            <TextBlock x:Name="CheckModalSub" FontSize="12" Foreground="#64748B" Margin="0,3,0,0"/>
-                        </StackPanel>
-                        <Button Grid.Column="1" Content="✕" Width="34" Height="34" FontSize="15" Foreground="#64748B"
-                                Background="Transparent" BorderThickness="0" Cursor="Hand" VerticalAlignment="Top"
-                                Click="BtnCheckClose_Click"/>
-                    </Grid>
-                    <Rectangle DockPanel.Dock="Top" Height="1" Fill="#EEF2F6"/>
+        <!-- ===== 점검 일지 탭 패널 (날짜별 측정 현황 + 특이사항) ===== -->
+        <Border x:Name="LogPanel" Grid.Row="3" Grid.RowSpan="2" Style="{StaticResource Card}" Padding="0" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- 푸터 -->
-                    <Border DockPanel.Dock="Bottom" BorderBrush="#EEF2F6" BorderThickness="0,1,0,0" Padding="24,12">
-                        <Grid>
+                <!-- 왼쪽: 날짜 목록 -->
+                <DockPanel Grid.Column="0" Background="#F8FAFC">
+                    <TextBlock DockPanel.Dock="Top" Text="측정일" FontSize="12" FontWeight="Bold" Foreground="#64748B" Margin="16,14,0,8"/>
+                    <ListBox x:Name="LogDateList" BorderThickness="0" Background="Transparent"
+                             SelectionChanged="LogDate_Selected"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="16,8"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="Foreground" Value="#334155"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </DockPanel>
+
+                <!-- 오른쪽: 선택 날짜 현황 -->
+                <DockPanel Grid.Column="1" Margin="0">
+                    <Border DockPanel.Dock="Top" BorderBrush="#F1F5F9" BorderThickness="1,0,0,1">
+                        <Grid Margin="18,14,18,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="CheckSummary" VerticalAlignment="Center" FontSize="13" Foreground="#475569"/>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Content="닫기" Style="{StaticResource BtnGhost}" Margin="0,0,6,0" Click="BtnCheckClose_Click"/>
-                                <Button Content="저장" Style="{StaticResource BtnPrimary}" Click="BtnCheckSave_Click"/>
+                            <StackPanel>
+                                <TextBlock x:Name="LogSub" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Text="측정일을 선택하세요"/>
+                                <TextBlock x:Name="LogSummary" FontSize="12" Foreground="#64748B" Margin="0,3,0,0"/>
                             </StackPanel>
+                            <Button Grid.Column="1" Content="저장" Style="{StaticResource BtnPrimary}" VerticalAlignment="Center" Click="LogSave_Click"/>
                         </Grid>
                     </Border>
 
-                    <!-- 목록 헤더 -->
-                    <Grid DockPanel.Dock="Top" Margin="24,10,24,6">
+                    <!-- 컬럼 헤더 -->
+                    <Grid DockPanel.Dock="Top" Margin="18,8,18,4">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="130"/>
-                            <ColumnDefinition Width="96"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="84"/>
+                            <ColumnDefinition Width="150"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="52"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="설비" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
                         <TextBlock Grid.Column="1" Text="상태" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
-                        <TextBlock Grid.Column="2" Text="특이사항" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="2" Text="주요값" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
+                        <TextBlock Grid.Column="3" Text="특이사항" FontSize="12" FontWeight="Bold" Foreground="#94A3B8"/>
                     </Grid>
 
-                    <!-- 설비 목록 -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,0,24,8">
-                        <ItemsControl x:Name="CheckStatusList">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,0,18,10">
+                        <ItemsControl x:Name="LogEqList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" Padding="0,7">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="130"/>
-                                                <ColumnDefinition Width="96"/>
+                                                <ColumnDefinition Width="110"/>
+                                                <ColumnDefinition Width="84"/>
+                                                <ColumnDefinition Width="150"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="52"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding EqId}" FontSize="13" FontWeight="SemiBold" Foreground="#1E293B" VerticalAlignment="Center"/>
                                             <Border Grid.Column="1" Background="{Binding StatusBg}" CornerRadius="6" Padding="8,3"
                                                     HorizontalAlignment="Left" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
                                             </Border>
-                                            <TextBox Grid.Column="2" Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     FontSize="13" Padding="8,5" Margin="4,0,0,0"
+                                            <TextBlock Grid.Column="2" Text="{Binding Summary}" FontSize="12" Foreground="#475569" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBox Grid.Column="3" Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="13" Padding="8,5" Margin="0,0,6,0"
                                                      BorderBrush="#E5E7EB" BorderThickness="1" VerticalContentAlignment="Center"
-                                                     TextWrapping="Wrap" AcceptsReturn="False"
-                                                     Background="#FBFCFE"/>
+                                                     TextWrapping="Wrap" AcceptsReturn="False" Background="#FBFCFE"/>
+                                            <Button Grid.Column="4" Content="이력" FontSize="11" Padding="0" Height="26"
+                                                    Background="#EEF2FF" Foreground="#4F46E5" BorderThickness="0" Cursor="Hand"
+                                                    VerticalAlignment="Center" Click="LogHistory_Click"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -536,7 +545,7 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </DockPanel>
-            </Border>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>
