@@ -150,8 +150,6 @@ namespace CleanPotal
             }
 
             Render();
-            int eqCnt = _all.Select(r => r.EqId).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count();
-            TxtCount.Text = $"총 {_all.Count}행 · 설비 {eqCnt}대";
         }
 
         private void Process_Changed(object? sender, EventArgs e)
