@@ -246,7 +246,7 @@
             <RowDefinition Height="Auto"/>            <!-- filter / actions -->
             <RowDefinition Height="Auto"/>            <!-- element chips -->
             <RowDefinition Height="Auto"/>            <!-- 요약 카드 -->
-            <RowDefinition x:Name="RowChart" Height="*"/>  <!-- chart (접기 가능) -->
+            <RowDefinition x:Name="RowChart" Height="1.4*"/>  <!-- chart (접기 가능) -->
             <RowDefinition x:Name="RowTable" Height="*"/>  <!-- table (접기 가능) -->
         </Grid.RowDefinitions>
 
