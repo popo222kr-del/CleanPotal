@@ -13,6 +13,7 @@ using System.Windows.Shapes;
 using ClosedXML.Excel;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Win32;
 using SkiaSharp;
 using CleanPotal.EquipmentAnalysis;
@@ -554,11 +555,13 @@ namespace CleanPotal
             };
         }
 
-        // 차트 라벨: 한 줄, 설비명 / 공정 (SkiaSharp는 줄바꿈 미지원 → 구분자 사용)
-        private string EqLabel(string eq)
-            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}  /  {p}" : eq;
+        // 공정만 괄호로 (X축 둘째 줄용)
+        private string ProcParen(string eq)
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"({p})" : "";
 
-        private string EqName(string eq) => EqLabel(eq);
+        // 범례(기간별 추이)용: 한 줄, 설비명 / 공정
+        private string EqName(string eq)
+            => _processMap.TryGetValue(eq, out var p) && !string.IsNullOrWhiteSpace(p) ? $"{eq}  /  {p}" : eq;
 
         private void BuildChart()
         {
@@ -612,7 +615,25 @@ namespace CleanPotal
                     Name = el,
                     Values = eqData.Select(x => x.Sub.Average(r => r.Elements.TryGetValue(el, out var v) ? v : 0.0)).ToArray()
                 }).ToArray();
-                Chart.XAxes = new[] { new Axis { Labels = eqData.Select(x => EqLabel(x.Eq)).ToArray(), LabelsRotation = 30 } };
+                // 설비명(검정)과 공정(회색)을 두 줄로 구분: X축 2개 겹쳐 표시
+                Chart.XAxes = new Axis[]
+                {
+                    new Axis
+                    {
+                        Labels = eqData.Select(x => x.Eq).ToArray(),
+                        LabelsRotation = 25,
+                        TextSize = 12,
+                        LabelsPaint = new SolidColorPaint(new SKColor(15, 23, 42))     // 설비명: 진한 검정
+                    },
+                    new Axis
+                    {
+                        Labels = eqData.Select(x => ProcParen(x.Eq)).ToArray(),
+                        LabelsRotation = 25,
+                        TextSize = 11,
+                        ShowSeparatorLines = false,
+                        LabelsPaint = new SolidColorPaint(new SKColor(148, 163, 184))  // 공정: 회색
+                    }
+                };
                 Chart.YAxes = new[] { new Axis { Name = "ppb" } };
             }
         }
