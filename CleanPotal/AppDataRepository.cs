@@ -95,7 +95,7 @@ namespace CleanPotal
                 string? existing = db.ExecuteScalar<string?>(
                     "SELECT Json FROM AppData WHERE DataKey=@k", new { k = key });
                 string trimmed = (existing ?? "").Trim();
-                bool empty = trimmed.Length == 0 || trimmed == "[]" || trimmed == "{}";
+                bool empty = trimmed.Length == 0 || trimmed == "[]" || trimmed == "{}" || trimmed == "null";
                 if (!empty) return;   // 이미 데이터 있음 → 백업 무시
 
                 string json = File.ReadAllText(bak);
