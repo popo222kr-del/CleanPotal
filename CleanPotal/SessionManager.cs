@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace CleanPotal
 {
-    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport, EtcMenu, BrokenMgmt, InventoryManage }
+    public enum PermissionType { Files, Notices, Vendors, Schedule, WeeklyReport, EtcMenu, BrokenMgmt, ShiftBoard, InventoryManage }
 
     public static class AuthManager
     {
@@ -23,10 +23,11 @@ namespace CleanPotal
                 PermissionType.Notices => SessionManager.CanManageNotices,
                 PermissionType.Vendors => SessionManager.CanManageVendors,
                 PermissionType.Schedule => true,
-                PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자",
-                PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.CurrentUsername == "1004",
-                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.CurrentUsername == "1004",
-                PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.CurrentUsername == "1004",
+                PermissionType.WeeklyReport => SessionManager.CurrentTeamName.ToUpper().Contains("OFFICE") || SessionManager.CurrentTeamName == "관리자" || SessionManager.IsExecutive,
+                PermissionType.EtcMenu => SessionManager.CanAccessEtcMenu || SessionManager.IsMasterAdmin,
+                PermissionType.BrokenMgmt => SessionManager.CanManageBroken || SessionManager.IsMasterAdmin || SessionManager.IsExecutive,
+                PermissionType.ShiftBoard => SessionManager.CanManageShiftBoard || SessionManager.IsMasterAdmin,
+                PermissionType.InventoryManage => SessionManager.CanManageInventory || SessionManager.IsMasterAdmin,
                 _ => false
             };
 
@@ -41,6 +42,7 @@ namespace CleanPotal
                     PermissionType.WeeklyReport => "주간보고",
                     PermissionType.EtcMenu => "기타 메뉴",
                     PermissionType.BrokenMgmt => "BROKEN 관리",
+                    PermissionType.ShiftBoard => "생산근무표",
                     PermissionType.InventoryManage => "재고 관리",
                     _ => "해당"
                 };
@@ -64,9 +66,27 @@ namespace CleanPotal
         public static bool CanManageSchedule { get; set; } = false;
         public static bool CanManageBroken { get; set; } = false;
         public static bool CanAccessEtcMenu { get; set; } = false;
+        public static bool CanManageShiftBoard { get; set; } = false;
         public static bool CanManageInventory { get; set; } = false;
 
         public static bool IsLoggedIn => !string.IsNullOrEmpty(CurrentUsername);
+
+        // 최고 관리자 판별(단일 소스). 추가 관리자 계정은 여기서 관리.
+        private static readonly string[] _masterAdminIds = { "AETS" };
+        public static bool IsMasterAdmin
+            => Array.Exists(_masterAdminIds, id => string.Equals(id, CurrentUsername, StringComparison.OrdinalIgnoreCase));
+
+        // 임원 직위 판별(직위명에 아래 키워드 포함 시 임원). OFFICE 업무 열람 허용 기준(단일 소스).
+        private static readonly string[] _execTitles =
+            { "임원", "회장", "부회장", "대표", "사장", "부사장", "전무", "상무", "이사" };
+        public static bool IsExecutive
+        {
+            get
+            {
+                string t = (CurrentJobTitle ?? "").Replace(" ", "");
+                return t.Length > 0 && System.Array.Exists(_execTitles, k => t.Contains(k));
+            }
+        }
 
         private static readonly string TokenPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CleanPotal", "auth_v2.dat");
 
@@ -74,7 +94,7 @@ namespace CleanPotal
         {
             CurrentUsername = ""; CurrentRealName = ""; CurrentTeamName = "";
             CurrentJobTitle = ""; CurrentPhoneNumber = "";
-            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false; CanManageBroken = false; CanAccessEtcMenu = false; CanManageInventory = false;
+            CanManageFiles = false; CanManageNotices = false; CanManageVendors = false; CanManageSchedule = false; CanManageBroken = false; CanAccessEtcMenu = false; CanManageShiftBoard = false; CanManageInventory = false;
 
             if (File.Exists(TokenPath)) File.Delete(TokenPath);
         }

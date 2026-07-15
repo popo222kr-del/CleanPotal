@@ -13,6 +13,15 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:PercentToBrushConverter x:Key="PercentToBrushConverter"/>
         <local:StatusToBrushConverter x:Key="StatusToBrushConverter"/>
+        <local:DeliveryIconConverter x:Key="DeliveryIconConverter"/>
+        <local:DeliveryLabelConverter x:Key="DeliveryLabelConverter"/>
+        <!-- 배송 방법 콤보 항목: 컬러 아이콘 + 이모지 뗀 라벨 -->
+        <DataTemplate x:Key="DeliveryOptionTemplate">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{Binding Converter={StaticResource DeliveryIconConverter}}" Width="18" Height="18" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding Converter={StaticResource DeliveryLabelConverter}}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
 
         <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#4B5563"/>
@@ -255,7 +264,16 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
+                    <Grid Grid.Row="0" Margin="0,0,0,10" Background="Transparent" Cursor="Hand" MouseLeftButtonUp="CardNotice_Click" ToolTip="클릭하면 팀 일정·교육 일정 전체를 볼 수 있습니다.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Office 공지" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                        <Border Grid.Column="1" Background="#EEF2FF" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
+                            <TextBlock Text="자세히 보기 ›" FontSize="12" FontWeight="SemiBold" Foreground="#4F46E5"/>
+                        </Border>
+                    </Grid>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                         <StackPanel>
@@ -364,9 +382,16 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <Grid Grid.Row="0" Margin="0,0,0,10" Background="Transparent" Cursor="Hand" MouseLeftButtonUp="CardStatus_Click" ToolTip="클릭하면 이번주 쉬는 인원·오늘 근무 명단·팀별 구성을 볼 수 있습니다.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
                         <TextBlock Text="오늘의 세정팀 현황" FontSize="18" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center"/>
-                    </StackPanel>
+                        <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
+                            <TextBlock Text="자세히 보기 ›" FontSize="12" FontWeight="SemiBold" Foreground="#4338CA"/>
+                        </Border>
+                    </Grid>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                         <ItemsControl x:Name="TodayStatusList" ItemsSource="{Binding TeamStatusGroups}">
@@ -576,7 +601,7 @@
                         <DataGridTemplateColumn Header="납품" Width="65">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
+                                    <Image Source="{Binding DeliveryMethod, Converter={StaticResource DeliveryIconConverter}}" Width="30" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -685,7 +710,7 @@
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="배송 방법" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemTemplate="{StaticResource DeliveryOptionTemplate}"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -833,7 +858,7 @@
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="배송 방법" Style="{StaticResource FormLabelStyle}"/>
                                     <Border Style="{StaticResource InputWrapperStyle}">
-                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <ComboBox Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="8,0" ItemsSource="{Binding DeliveryOptions}" SelectedItem="{Binding EditDeliveryMethod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ItemTemplate="{StaticResource DeliveryOptionTemplate}"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -1043,7 +1068,7 @@
                             <DataGridTemplateColumn Header="납품" Width="60">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding DeliveryIcon}" FontFamily="Segoe UI Emoji" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
+                                        <Image Source="{Binding DeliveryMethod, Converter={StaticResource DeliveryIconConverter}}" Width="30" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding DeliveryMethod}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -1120,6 +1145,260 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Grid>
+                </Grid>
+            </Border>
+        </Border>
+
+        <!-- ===== 상세 모달: 오늘의 세정팀 현황 ===== -->
+        <Border Background="#80111827" Visibility="{Binding IsStatusDetailOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="30" Grid.RowSpan="3">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="1060" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                    UseLayoutRounding="True" SnapsToDevicePixels="True"
+                    TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.18" BlurRadius="24" Direction="270" ShadowDepth="6"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="30,24,30,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="오늘의 세정팀 현황" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="{Binding StatusModalDateText}" Margin="0,4,0,0" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseStatusDetail_Click" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource BorderLight}"/>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
+                        <StackPanel>
+                            <!-- 이번주 쉬는 인원 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#FFEDD5" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#EA580C" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="이번주 쉬는 인원 (휴무·연차·반차)" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <!-- 주간 달력 (일~토) -->
+                            <ItemsControl ItemsSource="{Binding WeekCalendarCells}" Margin="0,0,0,4">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="7"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderThickness="1" CornerRadius="8" Margin="3" MinHeight="140">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#FFFFFF"/>
+                                                    <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                            <Setter Property="Background" Value="#EEF2FF"/>
+                                                            <Setter Property="BorderBrush" Value="#818CF8"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <!-- 요일 헤더 -->
+                                                <Border CornerRadius="7,7,0,0" Padding="0,8" Background="{Binding HeaderBgBrush}">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding DowLabel}" FontSize="15" FontWeight="Bold" Foreground="{Binding DowBrush}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                        <TextBlock Text="{Binding DayNumber}" FontSize="17" FontWeight="ExtraBold" Foreground="{Binding DayNumBrush}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <!-- 쉬는 인원 명단 (팀별) -->
+                                                <ItemsControl ItemsSource="{Binding TeamGroups}" Margin="10,10,10,10">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Margin="0,0,0,10">
+                                                                <Border Background="{Binding TeamBg}" CornerRadius="5" Padding="8,2" HorizontalAlignment="Left" Margin="0,0,0,5">
+                                                                    <TextBlock Text="{Binding TeamName}" FontSize="12" FontWeight="Bold" Foreground="{Binding TeamBrush}"/>
+                                                                </Border>
+                                                                <ItemsControl ItemsSource="{Binding Members}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBlock Text="{Binding}" FontSize="14" Foreground="#1E293B" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,3"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="-" FontSize="12" Foreground="#CBD5E1" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasOff}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="이번주 휴무·연차·반차 인원이 없습니다." FontSize="13" Foreground="#94A3B8" Margin="2,0,0,4">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasWeekOff}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Border>
+
+        <!-- ===== 상세 모달: Office 공지 (팀 일정 / 교육 일정 전체) ===== -->
+        <Border Background="#80111827" Visibility="{Binding IsNoticeDetailOpen, Converter={StaticResource BoolToVisibilityConverter}}" Panel.ZIndex="30" Grid.RowSpan="3">
+            <Border Background="#FFFFFF" BorderThickness="0" CornerRadius="20" MaxWidth="780" MaxHeight="760" Margin="40" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="20" Direction="270" ShadowDepth="10"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="30,24,30,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Office 공지 · 일정 전체" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="예정된 팀 일정과 교육 일정을 모두 표시합니다." Margin="0,4,0,0" FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="✕" Width="36" Height="36" FontSize="16" Foreground="{StaticResource TextSecondary}" Background="Transparent" BorderThickness="0" Click="CloseNoticeDetail_Click" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource BorderLight}"/>
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="30,20,30,24">
+                        <StackPanel>
+                            <!-- 팀 일정 전체 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#DBEAFE" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#1D4ED8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="팀 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding AllTeamEventItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{Binding StatusBg}" CornerRadius="5" Padding="8,3" Margin="0,0,10,0" VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusFg}"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DateLabel}" FontSize="13" Foreground="#374151" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding Content}" FontSize="13" FontWeight="Bold" Foreground="#111827" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="#6B7280" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Detail}" Value="">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="예정된 팀 일정이 없습니다." FontSize="13" Foreground="#94A3B8" Margin="2,2,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasAllTeamEvent}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Border Margin="0,16,0,16" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0"/>
+
+                            <!-- 교육 일정 전체 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Width="24" Height="24" CornerRadius="6" Background="#DCFCE7" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="&#xE7BE;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#16A34A" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="교육 일정 전체" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding AllEduItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{Binding DaysBg}" CornerRadius="5" Padding="8,3" Margin="0,0,10,0" VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding DaysLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding DaysFg}"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="1" FontSize="13" Foreground="#111827" TextWrapping="Wrap" LineHeight="20" VerticalAlignment="Center">
+                                                    <Run Text="{Binding DateRangeStr, Mode=OneWay}" FontWeight="Normal" Foreground="#6B7280"/>
+                                                    <Run Text="  "/>
+                                                    <Run Text="{Binding MemberName, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                    <Run Text=" (" Foreground="#9CA3AF"/><Run Text="{Binding TeamName, Mode=OneWay}" Foreground="#6B7280"/><Run Text=")" Foreground="#9CA3AF"/>
+                                                    <Run Text=" · " Foreground="#9CA3AF"/>
+                                                    <Run Text="{Binding CourseName, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                    <Run Text="  [" Foreground="#9CA3AF"/><Run Text="{Binding EduMethod, Mode=OneWay}" Foreground="#6B7280"/><Run Text="]" Foreground="#9CA3AF"/>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="예정된 교육 일정이 없습니다." FontSize="13" Foreground="#94A3B8" Margin="2,2,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasAllEdu}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Border>

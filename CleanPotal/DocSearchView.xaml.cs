@@ -207,7 +207,7 @@ namespace CleanPotal
 
         private void BtnDeleteDoc_Click(object sender, RoutedEventArgs e)
         {
-            if (SessionManager.CurrentUsername != "1004")
+            if (!SessionManager.IsMasterAdmin)
             {
                 MessageBox.Show("문서 삭제는 시스템 관리자(마스터)만 가능합니다.", "문서 삭제", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;

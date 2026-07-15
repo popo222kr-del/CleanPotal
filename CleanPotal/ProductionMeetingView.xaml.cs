@@ -391,6 +391,15 @@ namespace CleanPotal
         private Point _imageDragStartPoint;
         private bool _imageDragStarted = false;
 
+        // 인라인 이미지 모서리 드래그-크기조절 상태 (RichTextBox 레벨에서 처리)
+        private const double ResizeHandleZone = 22;   // 우하단 이 영역을 잡으면 크기조절
+        private bool _rtbResizing = false;
+        private Image? _rtbResizeImg;
+        private RichTextBox? _rtbResizeEditor;
+        private Point _rtbResizeStart;
+        private double _rtbResizeStartWidth;
+        private double _rtbResizeRatio = 1;
+
         // 메모 첨부 드래그-정렬 상태
         private ProductionMeetingAttachmentModel? _memoDragSource;
         private Point _memoDragStartPoint;
@@ -789,6 +798,89 @@ namespace CleanPotal
             img.MouseLeftButtonDown += ImageInline_MouseLeftButtonDown;
             img.MouseMove += ImageInline_MouseMove;
             img.MouseLeftButtonUp += ImageInline_MouseLeftButtonUp;
+        }
+
+        // 이미지 우하단 모서리(핸들 영역) 안에 있는지
+        private static bool IsInResizeZone(Image img, Point pos)
+        {
+            double w = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
+            double h = img.ActualHeight > 0 ? img.ActualHeight : img.Height;
+            if (double.IsNaN(w) || double.IsNaN(h)) return false;
+            return pos.X >= w - ResizeHandleZone && pos.Y >= h - ResizeHandleZone;
+        }
+
+        // RichTextBox 안에서 마우스 위치에 있는 Image 찾기 (실제 시각 히트테스트 사용)
+        private static Image? FindImageUnder(RichTextBox rtb, Point p)
+        {
+            Image? found = null;
+            System.Windows.Media.VisualTreeHelper.HitTest(
+                rtb,
+                null,
+                result =>
+                {
+                    DependencyObject? d = result.VisualHit;
+                    while (d != null)
+                    {
+                        if (d is Image im) { found = im; return System.Windows.Media.HitTestResultBehavior.Stop; }
+                        d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+                    }
+                    return System.Windows.Media.HitTestResultBehavior.Continue;
+                },
+                new System.Windows.Media.PointHitTestParameters(p));
+            return found;
+        }
+
+        // ── RichTextBox 레벨: 이미지 모서리 드래그 크기조절 (인라인 이미지 이벤트보다 안정적) ──
+        private void RichEditor_ResizePreviewDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not RichTextBox rtb) return;
+            var img = FindImageUnder(rtb, e.GetPosition(rtb));
+            if (img?.Source is not BitmapSource src || src.PixelWidth <= 0) return;
+            if (!IsInResizeZone(img, e.GetPosition(img))) return;
+
+            _rtbResizing = true;
+            _rtbResizeImg = img;
+            _rtbResizeEditor = rtb;
+            _rtbResizeStart = e.GetPosition(rtb);
+            _rtbResizeStartWidth = img.ActualWidth > 0 ? img.ActualWidth : img.Width;
+            _rtbResizeRatio = src.PixelHeight / (double)src.PixelWidth;
+            rtb.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void RichEditor_ResizePreviewMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not RichTextBox rtb) return;
+
+            if (_rtbResizing && _rtbResizeImg != null && _rtbResizeEditor == rtb)
+            {
+                var cur = e.GetPosition(rtb);
+                double newW = _rtbResizeStartWidth + (cur.X - _rtbResizeStart.X);
+                newW = Math.Max(50, Math.Min(1200, newW));
+                _rtbResizeImg.Width = newW;
+                _rtbResizeImg.Height = newW * _rtbResizeRatio;
+                e.Handled = true;
+                return;
+            }
+
+            // 버튼 안 눌렀을 때: 모서리 위면 대각선 커서 힌트
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                var img = FindImageUnder(rtb, e.GetPosition(rtb));
+                bool inZone = img != null && IsInResizeZone(img, e.GetPosition(img));
+                rtb.Cursor = inZone ? Cursors.SizeNWSE : null;
+            }
+        }
+
+        private void RichEditor_ResizePreviewUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_rtbResizing) return;
+            if (sender is RichTextBox rtb) rtb.ReleaseMouseCapture();
+            _rtbResizing = false;
+            _rtbResizeImg = null;
+            _rtbResizeEditor = null;
+            _isDirty = true;
+            e.Handled = true;
         }
 
         private void ImageInline_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -2176,8 +2268,7 @@ namespace CleanPotal
             if (_isDirty) return;
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var lastModified = File.GetLastWriteTime(StoragePath);
+                var lastModified = GetWatchTime();
                 if (lastModified <= _lastFileModified) return;
                 string? currentReportId = _currentReport?.Id;
                 LoadFromStorage();
@@ -2645,42 +2736,31 @@ namespace CleanPotal
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
         private static string StoragePath => AppPaths.ProductionMeetingFilePath;
-
-        private static List<PersistedGroup>? TryReadStorageFile(string path)
+        // 생산회의는 이제 SQLite(dispatch.db) 의 AppData['production_meetings'] 에 저장(원자적 저장 → 손상/백업 불필요).
+        private const string StorageKey = "production_meetings";
+        private static string StorageWatchPath => Path.Combine(AppPaths.DataRoot, "dispatch.db");
+        private static DateTime GetWatchTime()
         {
-            try
-            {
-                if (!File.Exists(path)) return null;
-                var json = File.ReadAllText(path);
-                return JsonSerializer.Deserialize<List<PersistedGroup>>(json);
-            }
-            catch { return null; }
+            try { if (File.Exists(StorageWatchPath)) return File.GetLastWriteTime(StorageWatchPath); }
+            catch { }
+            return DateTime.MinValue;
         }
 
         private void LoadFromStorage()
         {
-            List<PersistedGroup>? data = TryReadStorageFile(StoragePath);
-
-            // 메인 파일 손상/누락 시 백업 1~10에서 자동 복구 시도
-            if (data == null)
+            List<PersistedGroup>? data = null;
+            try
             {
-                for (int i = 1; i <= 10; i++)
-                {
-                    var backup = TryReadStorageFile($"{StoragePath}.bak{i}");
-                    if (backup != null)
-                    {
-                        data = backup;
-                        try { File.Copy($"{StoragePath}.bak{i}", StoragePath, true); } catch { }
-                        break;
-                    }
-                }
+                string? json = AppDataRepository.Get(StorageKey);
+                if (!string.IsNullOrWhiteSpace(json))
+                    data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
             }
+            catch { }
             if (data == null) return;
 
             try
             {
-                if (File.Exists(StoragePath))
-                    _lastFileModified = File.GetLastWriteTime(StoragePath);
+                _lastFileModified = GetWatchTime();
 
                 string currentMonthTitle = DateTime.Now.ToString("yyyy년 M월");
                 GroupedHistory.Clear();
@@ -2760,24 +2840,7 @@ namespace CleanPotal
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
-
-                // 🔒 저장 전 회전식 백업: production_meetings.json.bak1 ~ bak10 (최근 10회 보존)
-                if (File.Exists(StoragePath))
-                {
-                    try
-                    {
-                        for (int i = 9; i >= 1; i--)
-                        {
-                            string from = $"{StoragePath}.bak{i}";
-                            string to = $"{StoragePath}.bak{i + 1}";
-                            if (File.Exists(from)) File.Copy(from, to, true);
-                        }
-                        File.Copy(StoragePath, $"{StoragePath}.bak1", true);
-                    }
-                    catch { /* 백업 실패는 무시하고 저장 진행 */ }
-                }
-
+                // SQLite 원자적 저장이라 기존 회전식 파일 백업(.bak1~10)은 불필요.
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {
                     MonthTitle = g.MonthTitle,
@@ -2816,7 +2879,8 @@ namespace CleanPotal
                     }).ToList()
                 }).ToList();
 
-                File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
+                AppDataRepository.Set(StorageKey, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = GetWatchTime();
             }
             catch { }
         }

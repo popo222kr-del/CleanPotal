@@ -33,16 +33,33 @@ namespace CleanPotal
             LoadButtons();
         }
 
+        // 네트워크 접근 없이 확장자 '모양'으로만 파일 여부 판단.
+        // 예: ".xlsm"→파일, "03. 기타세정"의 끝부분(" 기타세정")→폴더 (공백/한글 포함 → 확장자 아님)
+        private static bool IsLikelyFileExtension(string ext)
+        {
+            if (string.IsNullOrEmpty(ext) || ext.Length < 2 || ext.Length > 6) return false;
+            for (int i = 1; i < ext.Length; i++) // [0]은 '.'
+            {
+                char c = ext[i];
+                if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) return false;
+            }
+            return true;
+        }
+
         private void LoadButtons()
         {
             try
             {
-                string path = AppPaths.ButtonsFilePath;
-                if (!File.Exists(path)) path = AppPaths.GetFallbackButtonsPath();
-
-                if (File.Exists(path))
+                // 포털 버튼은 SQLite(dispatch.db) 의 AppData['buttons'] 에 저장. 없으면(신규) 번들 기본값 폴백.
+                string? json = AppDataRepository.Get("buttons");
+                if (string.IsNullOrWhiteSpace(json))
                 {
-                    string json = File.ReadAllText(path, Encoding.UTF8);
+                    string fb = AppPaths.GetFallbackButtonsPath();
+                    if (File.Exists(fb)) json = File.ReadAllText(fb, Encoding.UTF8);
+                }
+
+                if (!string.IsNullOrWhiteSpace(json))
+                {
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     _allGroups = JsonSerializer.Deserialize<List<ButtonGroup>>(json, options) ?? new();
 
@@ -61,10 +78,12 @@ namespace CleanPotal
                                     else
                                     {
                                         string ext = Path.GetExtension(item.path).ToLower();
-                                        if (ext == ".xls" || ext == ".xlsx" || ext == ".csv") item.type = "excel";
+                                        if (ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".csv") item.type = "excel";
                                         else if (ext == ".pdf") item.type = "pdf";
                                         else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif") item.type = "image";
-                                        else if (string.IsNullOrEmpty(ext) || Directory.Exists(item.path)) item.type = "folder";
+                                        // ⚠️ 네트워크(Directory.Exists) 탐색 금지: NAS가 느리거나 죽으면 포털 로드가 멈춤.
+                                        //    확장자 '모양'만으로 폴더/파일 판별 (실제 확장자처럼 안 생기면 폴더로 간주).
+                                        else if (!IsLikelyFileExtension(ext)) item.type = "folder";
                                         else item.type = "file";
                                     }
                                 }

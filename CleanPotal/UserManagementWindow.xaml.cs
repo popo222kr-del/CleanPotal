@@ -162,7 +162,7 @@ namespace CleanPotal
             DetailTeamBadge.Visibility = string.IsNullOrEmpty(user.TeamName)
                 ? Visibility.Collapsed : Visibility.Visible;
             NewModeBadge.Visibility = Visibility.Collapsed;
-            BtnDeleteUser.Visibility = user.Username == "1004"
+            BtnDeleteUser.Visibility = user.Username == "AETS"
                 ? Visibility.Collapsed : Visibility.Visible;
 
             TxtNewId.Text = user.Username;
@@ -177,6 +177,7 @@ namespace CleanPotal
             TxtNewPhone.Text = user.PhoneNumber;
 
             ChkManageFiles.IsChecked = user.CanManageFiles;
+            ChkManageShiftBoard.IsChecked = user.CanManageShiftBoard;
             ChkManageInventory.IsChecked = user.CanManageInventory;
             ChkManageNotices.IsChecked = user.CanManageNotices;
             ChkManageVendors.IsChecked = user.CanManageVendors;
@@ -231,6 +232,7 @@ namespace CleanPotal
                     Email = TxtNewEmail.Text.Trim(),
                     PhoneNumber = TxtNewPhone.Text.Trim(),
                     CanManageFiles = ChkManageFiles.IsChecked == true,
+                    CanManageShiftBoard = ChkManageShiftBoard.IsChecked == true,
                     CanManageInventory = ChkManageInventory.IsChecked == true,
                     CanManageNotices = ChkManageNotices.IsChecked == true,
                     CanManageVendors = ChkManageVendors.IsChecked == true,
@@ -263,9 +265,9 @@ namespace CleanPotal
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                if (_selectedUser.Username == "1004" && id != "1004")
+                if (_selectedUser.Username == "AETS" && id != "AETS")
                 {
-                    MessageBox.Show("최고 관리자(1004)의 아이디는 변경할 수 없습니다.", "오류",
+                    MessageBox.Show("최고 관리자(AETS)의 아이디는 변경할 수 없습니다.", "오류",
                         MessageBoxButton.OK, MessageBoxImage.Stop);
                     return;
                 }
@@ -280,6 +282,7 @@ namespace CleanPotal
                 _selectedUser.Email = TxtNewEmail.Text.Trim();
                 _selectedUser.PhoneNumber = TxtNewPhone.Text.Trim();
                 _selectedUser.CanManageFiles = ChkManageFiles.IsChecked == true;
+                _selectedUser.CanManageShiftBoard = ChkManageShiftBoard.IsChecked == true;
                 _selectedUser.CanManageInventory = ChkManageInventory.IsChecked == true;
                 _selectedUser.CanManageNotices = ChkManageNotices.IsChecked == true;
                 _selectedUser.CanManageVendors = ChkManageVendors.IsChecked == true;
@@ -316,9 +319,9 @@ namespace CleanPotal
         private void BtnDeleteUser_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedUser == null) return;
-            if (_selectedUser.Username == "1004")
+            if (_selectedUser.Username == "AETS")
             {
-                MessageBox.Show("최고 관리자(1004) 계정은 삭제할 수 없습니다.", "오류",
+                MessageBox.Show("최고 관리자(AETS) 계정은 삭제할 수 없습니다.", "오류",
                     MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -357,7 +360,7 @@ namespace CleanPotal
                 {
                     "이름", "아이디", "소속팀", "직위", "사번",
                     "입사일", "근속", "이메일", "전화번호",
-                    "파일관리", "재고관리", "공지관리", "업체관리", "일정관리", "BROKEN관리"
+                    "파일관리", "생산근무표", "재고관리", "공지관리", "업체관리", "일정관리", "BROKEN관리"
                 };
 
                 for (int c = 0; c < headers.Length; c++)
@@ -385,11 +388,12 @@ namespace CleanPotal
                     ws.Cell(row, 8).Value  = u.Email ?? "";
                     ws.Cell(row, 9).Value  = u.PhoneNumber ?? "";
                     ws.Cell(row, 10).Value = u.CanManageFiles       ? "O" : "";
-                    ws.Cell(row, 11).Value = u.CanManageInventory  ? "O" : "";
-                    ws.Cell(row, 12).Value = u.CanManageNotices    ? "O" : "";
-                    ws.Cell(row, 13).Value = u.CanManageVendors    ? "O" : "";
-                    ws.Cell(row, 14).Value = u.CanManageSchedule   ? "O" : "";
-                    ws.Cell(row, 15).Value = u.CanManageBroken     ? "O" : "";
+                    ws.Cell(row, 11).Value = u.CanManageShiftBoard ? "O" : "";
+                    ws.Cell(row, 12).Value = u.CanManageInventory  ? "O" : "";
+                    ws.Cell(row, 13).Value = u.CanManageNotices    ? "O" : "";
+                    ws.Cell(row, 14).Value = u.CanManageVendors    ? "O" : "";
+                    ws.Cell(row, 15).Value = u.CanManageSchedule   ? "O" : "";
+                    ws.Cell(row, 16).Value = u.CanManageBroken     ? "O" : "";
 
                     // 짝수 행 연한 배경 — 행 전체가 아닌 데이터 범위 셀만 적용
                     if (row % 2 == 0)

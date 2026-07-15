@@ -13,9 +13,12 @@ namespace CleanPotal.FieldInspection.Repositories
     /// </summary>
     public static class FieldInspectionRepository
     {
-        public static void InitializeTables()
+        public static void InitializeTables(IDbConnection? shared = null)
         {
-            using var db = DatabaseHelper.GetConnection();
+            // shared 연결이 오면 재사용(닫지 않음) — 시작 시 NAS 연결 왕복 절감
+            var db = shared ?? DatabaseHelper.GetConnection();
+            try
+            {
 
             db.Execute(@"
                 CREATE TABLE IF NOT EXISTS FieldLocations (
@@ -136,6 +139,8 @@ namespace CleanPotal.FieldInspection.Repositories
             // 같은 날 같은 체크시트(+교대)에 대한 중복 제출 방지 — "오늘 기록" 조회/이어쓰기를 단순하게 만들어줌
             db.Execute(@"CREATE UNIQUE INDEX IF NOT EXISTS UX_FieldRecords_Daily
                          ON FieldInspectionRecords(ChecklistId, LocationId, CheckDate, ShiftLabel);");
+            }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         // ---------------- FieldLocations ----------------
@@ -403,7 +408,6 @@ namespace CleanPotal.FieldInspection.Repositories
         public static void InsertRecord(FieldInspectionRecord record)
         {
             using var db = DatabaseHelper.GetConnection();
-            db.Open();
             using var tx = db.BeginTransaction();
 
             string sql = @"

@@ -199,7 +199,8 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <ToggleButton x:Name="TglPredictPattern" Content="근무 미리보기" Style="{StaticResource ModernToggleDarkStyle}" Click="TglPredictPattern_Click" Margin="0,0,12,0"/>
-                    <Button x:Name="BtnOpenNewWindow" Content="이전 근무표" Style="{StaticResource ModernPillButtonStyle}" Background="#1E293B" Foreground="White" BorderThickness="0" Margin="0,0,24,0" Click="BtnOpenNewWindow_Click"/>
+                    <Button x:Name="BtnOpenNewWindow" Content="이전 근무표" Style="{StaticResource ModernPillButtonStyle}" Background="#1E293B" Foreground="White" BorderThickness="0" Margin="0,0,8,0" Click="BtnOpenNewWindow_Click"/>
+                    <Button x:Name="BtnShowLog" Content="수정 이력" Style="{StaticResource ModernPillButtonStyle}" Background="#7C3AED" Foreground="White" BorderThickness="0" Margin="0,0,24,0" Click="BtnShowLog_Click"/>
 
                     <TextBlock Text="도장 :" FontSize="14" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,10,0"/>
 

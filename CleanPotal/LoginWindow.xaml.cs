@@ -53,6 +53,7 @@ namespace CleanPotal
                 SessionManager.CanManageSchedule = user.CanManageSchedule;
                 SessionManager.CanManageBroken = user.CanManageBroken;
                 SessionManager.CanAccessEtcMenu = user.CanAccessEtcMenu;
+                SessionManager.CanManageShiftBoard = user.CanManageShiftBoard;
                 SessionManager.CanManageInventory = user.CanManageInventory;
 
                 // 자동 로그인 체크 시 저장, 해제 시 기존 저장 정보 삭제
@@ -83,8 +84,10 @@ namespace CleanPotal
         private void BtnUserManager_Click(object sender, RoutedEventArgs e)
         {
             var user = AuthDatabaseHelper.ValidateUserObject(TxtUsername.Text.Trim(), TxtPassword.Password.Trim());
-            if (user != null && user.Username == "1004") { new UserManagementWindow { Owner = this }.ShowDialog(); }
-            else { MessageBox.Show("사용자 관리는 '최고 관리자(1004)' 전용 메뉴입니다.\n아이디와 비밀번호를 올바르게 입력 후 클릭하세요.", "권한 필요", MessageBoxButton.OK, MessageBoxImage.Information); }
+            bool isMaster = user != null &&
+                string.Equals(user.Username, "AETS", System.StringComparison.OrdinalIgnoreCase);
+            if (isMaster) { new UserManagementWindow { Owner = this }.ShowDialog(); }
+            else { MessageBox.Show("사용자 관리는 '최고 관리자' 전용 메뉴입니다.\n아이디와 비밀번호를 올바르게 입력 후 클릭하세요.", "권한 필요", MessageBoxButton.OK, MessageBoxImage.Information); }
         }
 
         private void BtnExit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();

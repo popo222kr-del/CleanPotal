@@ -1,16 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using CleanPotal;
 using CleanPotal.StatusBoard.Models;
 using CleanPotal.StatusBoard.Repositories;
-using ClosedXML.Excel;
-using Microsoft.Win32;
+using CleanPotal.StatusBoard.Views;
 
 namespace CleanPotal.StatusBoard.Views
 {
@@ -26,9 +27,27 @@ namespace CleanPotal.StatusBoard.Views
             ("1t\n(4795)", "4795"),
         };
 
+        // 목적지&근무 고정 빠른선택(배차 유무와 무관하게 항상 표시)
+        private static readonly string[] QuickOptions = { "내근", "차량검사소", "천안 ↔ 동탄", "단축근무 (휴무)", "휴무" };
+
+        // 휴무 판정 (목적지에 '휴무' 포함)
+        private static bool IsOff(string? s) => (s ?? "").Contains("휴무");
+
         private readonly ObservableCollection<MaterialLogisticsRow> _rows = new();
         private DateTime _selectedDate;
         private bool _isLoading; // suppress events during programmatic changes
+        private bool _isDirty;   // 저장하지 않은 변경 여부
+
+        // 다른 페이지 이동/종료 전 호출 — 미저장 변경 있으면 확인
+        public bool ConfirmDiscardIfDirty()
+        {
+            if (!_isDirty) return true;
+            var r = MessageBox.Show(
+                "저장하지 않은 변경사항이 있습니다.\n저장하지 않고 이동하시겠습니까?",
+                "미저장 변경사항", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (r == MessageBoxResult.Yes) { _isDirty = false; return true; }
+            return false;
+        }
 
         // Column indices (set during BuildGrid)
         private const int ColPersonName = 0;
@@ -43,7 +62,6 @@ namespace CleanPotal.StatusBoard.Views
             InitializeComponent();
 
             _selectedDate = DateTime.Today;
-            DpBoardDate.SelectedDate = _selectedDate;
 
             Loaded += (_, _) => LoadData();
         }
@@ -52,39 +70,62 @@ namespace CleanPotal.StatusBoard.Views
         //  Date Navigation
         // ══════════════════════════════════════════════════════════════
 
-        private void DpBoardDate_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        // 표 카드의 둥근 모서리: WPF Border는 자식을 라운드로 클립하지 않으므로
+        // ScrollViewer에 크기에 맞춘 둥근 사각형 Clip을 씌워 헤더/셀 모서리를 둥글게 처리.
+        private void TableScroll_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (_isLoading || DpBoardDate.SelectedDate == null) return;
-            _selectedDate = DpBoardDate.SelectedDate.Value;
-            LoadData();
+            if (sender is FrameworkElement fe && fe.ActualWidth > 0 && fe.ActualHeight > 0)
+                fe.Clip = new RectangleGeometry(new Rect(0, 0, fe.ActualWidth, fe.ActualHeight), 11, 11);
         }
 
         private void BtnPrevDay_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = _selectedDate.AddDays(-1);
-            SyncDatePicker();
             LoadData();
         }
 
         private void BtnNextDay_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = _selectedDate.AddDays(1);
-            SyncDatePicker();
             LoadData();
         }
 
         private void BtnToday_Click(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardIfDirty()) return;
             _selectedDate = DateTime.Today;
-            SyncDatePicker();
             LoadData();
         }
 
-        private void SyncDatePicker()
+        // 날짜 알약 클릭 → 달력 팝업 열기
+        private void BtnDatePill_Click(object sender, RoutedEventArgs e)
         {
             _isLoading = true;
-            DpBoardDate.SelectedDate = _selectedDate;
+            CalPicker.DisplayDate = _selectedDate;
+            CalPicker.SelectedDate = _selectedDate;
             _isLoading = false;
+            CalPopup.IsOpen = true;
+        }
+
+        // 달력에서 날짜 선택 → 미저장 확인 후 반영
+        private void CalPicker_SelectedDatesChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoading || CalPicker.SelectedDate == null) return;
+            var picked = CalPicker.SelectedDate.Value;
+            if (picked.Date == _selectedDate.Date) return;
+            if (!ConfirmDiscardIfDirty())
+            {
+                // 취소 시 달력 선택을 현재 날짜로 되돌림(재발화 방지)
+                _isLoading = true;
+                CalPicker.SelectedDate = _selectedDate;
+                _isLoading = false;
+                return;
+            }
+            _selectedDate = picked;
+            CalPopup.IsOpen = false;
+            LoadData();
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -93,34 +134,43 @@ namespace CleanPotal.StatusBoard.Views
 
         private void LoadData()
         {
+            _isLoading = true;
             UpdateHeader();
 
             string dateKey = _selectedDate.ToString("yyyy-MM-dd");
 
             try
             {
+                // 고정 인원 로스터 기준으로 행 구성 (담당자 이름 고정)
+                var members = StatusBoardRepository.GetMaterialLogisticsMembers();
                 var entries = StatusBoardRepository.GetAllMaterialLogistics(dateKey);
                 var memoRow = entries.FirstOrDefault(r => r.PersonName == "__MEMO__");
-                var dataRows = entries.Where(r => r.PersonName != "__MEMO__").OrderBy(r => r.OrderNo).ToList();
+
+                // 해당 날짜의 인원별 데이터(목적지·차량)를 이름으로 매칭
+                var byName = entries.Where(r => r.PersonName != "__MEMO__")
+                                    .GroupBy(r => r.PersonName)
+                                    .ToDictionary(g => g.Key, g => g.First());
 
                 _rows.Clear();
-                foreach (var entry in dataRows)
-                    _rows.Add(entry);
+                int order = 1;
+                foreach (var m in members)
+                {
+                    byName.TryGetValue(m.Name, out var d);
+                    _rows.Add(new MaterialLogisticsRow
+                    {
+                        BoardDate = dateKey,
+                        PersonName = m.Name,
+                        AmDestination = d?.AmDestination ?? "",
+                        AmVehicle = d?.AmVehicle ?? "",
+                        PmDestination = d?.PmDestination ?? "",
+                        PmVehicle = d?.PmVehicle ?? "",
+                        OrderNo = order++
+                    });
+                }
 
                 // 특이사항: 오전 = AmDestination, 오후 = PmDestination (구버전 호환: Memo는 오전으로)
                 TxtAmNotes.Text = memoRow?.AmDestination ?? memoRow?.Memo ?? "";
                 TxtPmNotes.Text = memoRow?.PmDestination ?? "";
-
-                // If no data for this date, add a few blank rows
-                if (_rows.Count == 0)
-                {
-                    for (int i = 0; i < 5; i++)
-                        _rows.Add(new MaterialLogisticsRow
-                        {
-                            BoardDate = dateKey,
-                            OrderNo = i + 1
-                        });
-                }
             }
             catch (Exception ex)
             {
@@ -129,14 +179,15 @@ namespace CleanPotal.StatusBoard.Views
             }
 
             BuildGrid();
+            _isDirty = false;   // 로드 직후는 깨끗
+            _isLoading = false;
         }
 
         private void UpdateHeader()
         {
-            var culture = new CultureInfo("ko-KR");
-            string[] dayNames = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+            string[] dayNames = { "일", "월", "화", "수", "목", "금", "토" };
             string dayName = dayNames[(int)_selectedDate.DayOfWeek];
-            TxtDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayName}";
+            TxtDatePill.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 ({dayName})";
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -172,7 +223,7 @@ namespace CleanPotal.StatusBoard.Views
 
             // ── Row 0: Section Headers ──
             // 담당자는 row 0만 차지 (이름 헤더와 겹쳐 잘리던 문제 수정 — 기존 rowSpan=2 제거)
-            AddSectionHeader(grid, "담당자", 0, 0, 1, 1, "#0F172A", "#F1F5F9");
+            AddSectionHeader(grid, "자재/물류", 0, 0, 1, 1, "#0F172A", "#F1F5F9");
 
             // AM section
             AddSectionHeader(grid, "오전 (AM)", 0, ColAmDest, 1 + Vehicles.Length, 1, "#1E40AF", "#DBEAFE");
@@ -180,11 +231,11 @@ namespace CleanPotal.StatusBoard.Views
             AddSectionHeader(grid, "오후 (PM)", 0, ColPmDest, 1 + Vehicles.Length, 1, "#9A3412", "#FED7AA");
 
             // ── Row 1: Column Sub-headers ──
-            AddColumnHeader(grid, "이름", 1, ColPersonName, "#64748B", "#F8FAFC");
-            AddColumnHeader(grid, "목적지 & 근무", 1, ColAmDest, "#1E40AF", "#EFF6FF");
+            AddColumnHeader(grid, "담당자", 1, ColPersonName, "#64748B", "#F8FAFC", 16);
+            AddColumnHeader(grid, "목적지 & 근무", 1, ColAmDest, "#1E40AF", "#EFF6FF", 16);
             for (int v = 0; v < Vehicles.Length; v++)
                 AddColumnHeader(grid, Vehicles[v].Label, 1, ColAmVehicleStart + v, "#1E40AF", "#EFF6FF");
-            AddColumnHeader(grid, "목적지 & 근무", 1, ColPmDest, "#9A3412", "#FFF7ED");
+            AddColumnHeader(grid, "목적지 & 근무", 1, ColPmDest, "#9A3412", "#FFF7ED", 16);
             for (int v = 0; v < Vehicles.Length; v++)
                 AddColumnHeader(grid, Vehicles[v].Label, 1, ColPmVehicleStart + v, "#9A3412", "#FFF7ED");
 
@@ -193,36 +244,44 @@ namespace CleanPotal.StatusBoard.Views
             {
                 int gridRow = i + 2;
                 var row = _rows[i];
+                bool amOff = IsOff(row.AmDestination);
+                bool pmOff = IsOff(row.PmDestination);
+                bool bothOff = amOff && pmOff;
+                // 휴무면 차량 배정 해제(선택 불가)
+                if (amOff) row.AmVehicle = "";
+                if (pmOff) row.PmVehicle = "";
                 string altBg = (i % 2 == 0) ? "#FFFFFF" : "#FAFAFA";
+                const string offBg = "#CBD5E1";   // 휴무 영역 배경(짙은 회색)
+                string amBg = amOff ? offBg : altBg;
+                string pmBg = pmOff ? offBg : altBg;
 
-                // Person name (editable)
-                AddEditableCell(grid, gridRow, ColPersonName, row.PersonName, altBg, "#334155", true,
-                    (val) => row.PersonName = val);
+                // Person name — 오전·오후 둘 다 휴무일 때만 연하게(배지 없음)
+                AddNameCell(grid, gridRow, ColPersonName, row.PersonName, altBg, bothOff);
 
-                // AM destination (editable)
-                AddEditableCell(grid, gridRow, ColAmDest, row.AmDestination, altBg, "#334155", false,
-                    (val) => row.AmDestination = val);
+                // AM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
+                AddDestinationCell(grid, gridRow, ColAmDest, row.AmDestination, amBg, "#334155",
+                    (val) => { if (row.AmDestination != val) _isDirty = true; bool w = IsOff(row.AmDestination); row.AmDestination = val; if (w != IsOff(val)) BuildGrid(); }, amOff);
 
                 // AM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
                 {
                     int vi = v; // capture
                     bool isAssigned = row.AmVehicle == Vehicles[v].Key;
-                    AddVehicleToggle(grid, gridRow, ColAmVehicleStart + v, isAssigned, altBg,
-                        () => ToggleVehicle(row, "AM", Vehicles[vi].Key));
+                    AddVehicleToggle(grid, gridRow, ColAmVehicleStart + v, isAssigned, amBg,
+                        () => ToggleVehicle(row, "AM", Vehicles[vi].Key), !amOff);
                 }
 
-                // PM destination (editable)
-                AddEditableCell(grid, gridRow, ColPmDest, row.PmDestination, altBg, "#334155", false,
-                    (val) => row.PmDestination = val);
+                // PM destination (editable + 배차 불러오기). 휴무 상태 변하면 즉시 다시 그림
+                AddDestinationCell(grid, gridRow, ColPmDest, row.PmDestination, pmBg, "#334155",
+                    (val) => { if (row.PmDestination != val) _isDirty = true; bool w = IsOff(row.PmDestination); row.PmDestination = val; if (w != IsOff(val)) BuildGrid(); }, pmOff);
 
                 // PM vehicle toggles
                 for (int v = 0; v < Vehicles.Length; v++)
                 {
                     int vi = v;
                     bool isAssigned = row.PmVehicle == Vehicles[v].Key;
-                    AddVehicleToggle(grid, gridRow, ColPmVehicleStart + v, isAssigned, altBg,
-                        () => ToggleVehicle(row, "PM", Vehicles[vi].Key));
+                    AddVehicleToggle(grid, gridRow, ColPmVehicleStart + v, isAssigned, pmBg,
+                        () => ToggleVehicle(row, "PM", Vehicles[vi].Key), !pmOff);
                 }
 
                 // Bottom border for each row
@@ -267,7 +326,8 @@ namespace CleanPotal.StatusBoard.Views
             grid.Children.Add(border);
         }
 
-        private void AddColumnHeader(Grid grid, string text, int row, int col, string fgHex, string bgHex)
+        private void AddColumnHeader(Grid grid, string text, int row, int col, string fgHex, string bgHex,
+            double fontSize = 14)
         {
             var border = new Border
             {
@@ -279,7 +339,7 @@ namespace CleanPotal.StatusBoard.Views
             var tb = new TextBlock
             {
                 Text = text,
-                FontSize = 13,
+                FontSize = fontSize,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fgHex)!),
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -323,8 +383,224 @@ namespace CleanPotal.StatusBoard.Views
             grid.Children.Add(border);
         }
 
+        // 목적지 & 근무 셀: 직접 입력 TextBox + '배차 불러오기' 드롭다운(▾). 휴무면 셀 강조.
+        private void AddDestinationCell(Grid grid, int row, int col, string value, string bgHex,
+            string fgHex, Action<string> onChanged, bool off = false)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
+                BorderThickness = new Thickness(0, 0, 1, 0),
+                Padding = new Thickness(8, 4, 4, 4)
+            };
+
+            var inner = new Grid();
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            inner.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var tb = new TextBox
+            {
+                Text = value ?? "",
+                FontSize = 16,
+                FontWeight = FontWeights.Normal,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(off ? "#DC2626" : fgHex)!),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.NoWrap,
+                Padding = new Thickness(0)
+            };
+            tb.LostFocus += (_, _) => onChanged(tb.Text);
+            Grid.SetColumn(tb, 0);
+            inner.Children.Add(tb);
+
+            var pickBtn = new Button
+            {
+                Content = "▾",
+                FontSize = 12,
+                Width = 22,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")!),
+                Cursor = Cursors.Hand,
+                ToolTip = "배차 이력에서 불러오기",
+                VerticalAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(0)
+            };
+            pickBtn.Click += (_, _) => ShowDispatchPicker(pickBtn, tb, onChanged);
+            Grid.SetColumn(pickBtn, 1);
+            inner.Children.Add(pickBtn);
+
+            border.Child = inner;
+            Grid.SetRow(border, row);
+            Grid.SetColumn(border, col);
+            grid.Children.Add(border);
+        }
+
+        // 선택한 날짜의 배차 이력을 팝업으로 띄우고, 선택 시 목적지&근무 칸에 채운다.
+        private void ShowDispatchPicker(UIElement anchor, TextBox target, Action<string> onChanged)
+        {
+            List<DispatchItemModel> records;
+            try
+            {
+                records = DatabaseHelper.GetDispatchModelsByDate(_selectedDate)
+                                        .Where(r => !string.IsNullOrWhiteSpace(r.VendorName))
+                                        .ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"배차 이력 조회 중 오류:\n{ex.Message}", "오류",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var popup = new Popup
+            {
+                PlacementTarget = anchor,
+                Placement = PlacementMode.Bottom,
+                StaysOpen = false,
+                AllowsTransparency = true
+            };
+
+            SolidColorBrush Br(string hex) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!);
+
+            TextBlock Section(string t) => new TextBlock
+            {
+                Text = t, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = Br("#64748B"), Margin = new Thickness(10, 8, 10, 6)
+            };
+
+            Button ItemBtn(object content, string fill)
+            {
+                var b = new Button
+                {
+                    Content = content,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0, 0, 0, 1),
+                    BorderBrush = Br("#F1F5F9"),
+                    Padding = new Thickness(10, 7, 10, 7),
+                    Cursor = Cursors.Hand
+                };
+                b.Click += (_, _) => { target.Text = fill; onChanged(fill); popup.IsOpen = false; };
+                return b;
+            }
+
+            // 왼쪽: 배차 목록 (없으면 안내)
+            var leftSp = new StackPanel();
+            leftSp.Children.Add(Section($"{_selectedDate:M월 d일} 배차 ({records.Count}건)"));
+            if (records.Count == 0)
+                leftSp.Children.Add(new TextBlock
+                {
+                    Text = "배차 목록 없음", FontSize = 13, Foreground = Br("#94A3B8"),
+                    Margin = new Thickness(12, 4, 12, 14)
+                });
+            else
+                foreach (var r in records)
+                    leftSp.Children.Add(ItemBtn(BuildDispatchItemContent(r), BuildDestinationText(r)));
+
+            // 오른쪽: 고정 빠른선택 (항상 표시)
+            var rightSp = new StackPanel();
+            rightSp.Children.Add(Section("빠른 선택"));
+            foreach (var opt in QuickOptions)
+                rightSp.Children.Add(ItemBtn(
+                    new TextBlock { Text = opt, FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = Br("#0F172A") },
+                    opt));
+
+            var layout = new Grid();
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1) });
+            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+            var leftScroll = new ScrollViewer { Content = leftSp, MaxHeight = 320, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetColumn(leftScroll, 0); layout.Children.Add(leftScroll);
+            var divider = new Border { Background = Br("#E2E8F0") };
+            Grid.SetColumn(divider, 1); layout.Children.Add(divider);
+            Grid.SetColumn(rightSp, 2); layout.Children.Add(rightSp);
+
+            var listBorder = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = Br("#CBD5E1"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                MinWidth = 440,
+                MaxWidth = 640,
+                Child = layout,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = (Color)ColorConverter.ConvertFromString("#94A3B8")!,
+                    BlurRadius = 12, ShadowDepth = 2, Opacity = 0.4
+                }
+            };
+            popup.Child = listBorder;
+            popup.IsOpen = true;
+        }
+
+        // 팝업 항목 표시: 업체명(굵게) + 주소 + 납품 미리보기
+        private static UIElement BuildDispatchItemContent(DispatchItemModel r)
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock
+            {
+                Text = (r.VendorName ?? "").Trim(),
+                FontSize = 14, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")!)
+            });
+            string addr = (r.FullAddress ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(addr))
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "📍 " + addr,
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")!),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            string deliv = (r.IncomingDetails ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+            if (!string.IsNullOrWhiteSpace(deliv) && deliv != "-")
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "📦 " + (deliv.Length > 60 ? deliv.Substring(0, 60) + "…" : deliv),
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")!),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            return panel;
+        }
+
+        // 목적지&근무 칸에 채울 텍스트: 업체명만
+        private static string BuildDestinationText(DispatchItemModel r)
+        {
+            return (r.VendorName ?? "").Trim();
+        }
+
+        // 담당자 이름: 고정 표시(읽기 전용). dim=true(오전·오후 둘 다 휴무)면 이름을 연하게.
+        private void AddNameCell(Grid grid, int row, int col, string value, string bgHex, bool dim = false)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex)!),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")!),
+                BorderThickness = new Thickness(0, 0, 1, 0),
+                Padding = new Thickness(6, 4, 6, 4)
+            };
+            border.Child = new TextBlock
+            {
+                Text = value ?? "",
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dim ? "#B0B8C4" : "#334155")!),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            Grid.SetRow(border, row);
+            Grid.SetColumn(border, col);
+            grid.Children.Add(border);
+        }
+
         private void AddVehicleToggle(Grid grid, int row, int col, bool isAssigned, string bgHex,
-            Action onToggle)
+            Action onToggle, bool enabled = true)
         {
             var border = new Border
             {
@@ -340,13 +616,17 @@ namespace CleanPotal.StatusBoard.Views
                 Foreground = isAssigned
                     ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")!)
                     : Brushes.Transparent,
-                Tag = isAssigned
+                Tag = isAssigned,
+                IsEnabled = enabled,                                  // 휴무면 클릭 불가
+                IsHitTestVisible = enabled,
+                Cursor = enabled ? Cursors.Hand : Cursors.Arrow
             };
-            btn.Click += (_, _) =>
-            {
-                onToggle();
-                BuildGrid(); // rebuild to reflect toggle state
-            };
+            if (enabled)
+                btn.Click += (_, _) =>
+                {
+                    onToggle();
+                    BuildGrid(); // rebuild to reflect toggle state
+                };
             border.Child = btn;
 
             Grid.SetRow(border, row);
@@ -356,44 +636,112 @@ namespace CleanPotal.StatusBoard.Views
 
         private void ToggleVehicle(MaterialLogisticsRow row, string period, string vehicleKey)
         {
+            _isDirty = true;
             if (period == "AM")
                 row.AmVehicle = row.AmVehicle == vehicleKey ? "" : vehicleKey;
             else
                 row.PmVehicle = row.PmVehicle == vehicleKey ? "" : vehicleKey;
         }
 
+        // 특이사항 입력 변경 → dirty (로딩 중 프로그램 설정은 제외)
+        private void Notes_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_isLoading) _isDirty = true;
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        //  캡처 — 제목+날짜+표+특이사항을 한 이미지로(클립보드 복사)
+        // ══════════════════════════════════════════════════════════════
+        private void BtnCapture_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ScheduleGrid.ActualWidth < 1 || ScheduleGrid.ActualHeight < 1)
+                {
+                    MessageBox.Show("표가 아직 준비되지 않았습니다.", "캡처", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                const double scale = 4.0;   // 컨테이너를 이 배율로 통째로 재렌더 → 벡터가 4배로 다시 그려져 선명
+
+                // 캡처용 제목/날짜 텍스트
+                string[] dayFull = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
+                TxtCaptureDate.Text = $"{_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayFull[(int)_selectedDate.DayOfWeek]}";
+
+                // 캡처 순간에만: 제목 표시 + 흰 배경 + 표 세로 제한 해제(행 많아도 안 잘림)
+                var prevBg = CaptureArea.Background;
+                double prevMaxH = TableScroll.MaxHeight;
+                CaptureHeader.Visibility = Visibility.Visible;
+                CaptureArea.Background = Brushes.White;
+                TableScroll.MaxHeight = double.PositiveInfinity;
+                CaptureArea.UpdateLayout();   // 위 변경을 실제 크기에 반영
+
+                double areaW = CaptureArea.ActualWidth;
+                if (areaW < 1) areaW = ScheduleGrid.ActualWidth;
+
+                try
+                {
+                    // ⚠️ 제목을 넣으면 내용이 아래로 밀려 특이사항 하단이 창 밖으로 나갈 수 있고,
+                    //    RenderTargetBitmap 은 창에 실제로 그려진 부분만 캡처하므로 창 밖은 잘린다.
+                    //    → 화면 크기가 아니라 '내용 전체(desired) 크기'로 강제 측정·배치한 뒤 렌더한다.
+                    CaptureArea.Measure(new Size(areaW, double.PositiveInfinity));
+                    var full = new Size(areaW, CaptureArea.DesiredSize.Height);
+                    CaptureArea.Arrange(new Rect(full));
+                    CaptureArea.UpdateLayout();
+
+                    double w = full.Width, h = full.Height;
+                    // 컨테이너(제목+표+특이사항)를 통째로 고DPI 렌더 → 조각 합성이 없어 잘림/흐림/모서리 문제 없음
+                    var rtb = new RenderTargetBitmap(
+                        (int)Math.Ceiling(w * scale), (int)Math.Ceiling(h * scale),
+                        96 * scale, 96 * scale, PixelFormats.Pbgra32);
+                    rtb.Render(CaptureArea);
+                    rtb.Freeze();
+
+                    // ⚠️ rtb 는 384 DPI(96×4)라 붙여넣는 앱이 논리 크기를 1/4로 축소해 흐리게 보일 수 있다.
+                    //    같은 픽셀을 그대로 96 DPI로 다시 감싸면 앱이 8000px 원본 그대로 표시 → 선명.
+                    int stride = rtb.PixelWidth * 4;
+                    var pixels = new byte[stride * rtb.PixelHeight];
+                    rtb.CopyPixels(pixels, stride, 0);
+                    var outBmp = BitmapSource.Create(rtb.PixelWidth, rtb.PixelHeight,
+                        96, 96, PixelFormats.Pbgra32, null, pixels, stride);
+                    outBmp.Freeze();
+
+                    Clipboard.SetImage(outBmp);
+                    MessageBox.Show("일정표 이미지가 클립보드에 복사되었습니다.\n카카오톡·메신저 등에 붙여넣기(Ctrl+V) 하세요.",
+                        "캡처 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                finally
+                {
+                    // 화면 원상 복구(강제 배치를 무효화하고 정상 레이아웃 재계산)
+                    CaptureHeader.Visibility = Visibility.Collapsed;
+                    CaptureArea.Background = prevBg;
+                    TableScroll.MaxHeight = prevMaxH;
+                    CaptureArea.InvalidateMeasure();
+                    CaptureArea.InvalidateArrange();
+                    UpdateLayout();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"캡처 중 오류:\n{ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         // ══════════════════════════════════════════════════════════════
         //  Add / Remove Rows
         // ══════════════════════════════════════════════════════════════
 
-        private void BtnAddRow_Click(object sender, RoutedEventArgs e)
+        // 인원 관리(추가/삭제/순서) 다이얼로그 → 저장 시 로스터 반영 후 새로고침
+        private void BtnManageMembers_Click(object sender, RoutedEventArgs e)
         {
-            string dateKey = _selectedDate.ToString("yyyy-MM-dd");
-            int nextOrder = _rows.Count > 0 ? _rows.Max(r => r.OrderNo) + 1 : 1;
-            _rows.Add(new MaterialLogisticsRow
+            // 현재 편집 중인 목적지/차량 값을 잃지 않도록 먼저 저장 안내는 생략(로스터만 변경)
+            var current = StatusBoardRepository.GetMaterialLogisticsMembers()
+                                               .Select(m => m.Name).ToList();
+            var win = new MemberManagerWindow(current) { Owner = Window.GetWindow(this) };
+            if (win.ShowDialog() == true)
             {
-                BoardDate = dateKey,
-                OrderNo = nextOrder
-            });
-            BuildGrid();
-        }
-
-        private void BtnRemoveRow_Click(object sender, RoutedEventArgs e)
-        {
-            if (_rows.Count == 0) return;
-
-            var result = MessageBox.Show(
-                "마지막 행을 삭제하시겠습니까?",
-                "인원 삭제",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                var lastRow = _rows.Last();
-                if (lastRow.Id > 0) StatusBoardRepository.DeleteMaterialLogistics(lastRow.Id);
-                _rows.Remove(lastRow);
-                BuildGrid();
+                StatusBoardRepository.ReplaceMaterialLogisticsMembers(win.ResultMembers);
+                LoadData();
             }
         }
 
@@ -472,207 +820,5 @@ namespace CleanPotal.StatusBoard.Views
             }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        //  Print / Excel Export (A4 Landscape)
-        // ══════════════════════════════════════════════════════════════
-
-        private void BtnPrint_Click(object sender, RoutedEventArgs e)
-        {
-            SyncGridToModel();
-
-            var dlg = new SaveFileDialog
-            {
-                Title = "자재 & 물류 일정 현황 엑셀 내보내기 (A4 가로)",
-                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = $"자재물류일정_{_selectedDate:yyyyMMdd}"
-            };
-            if (dlg.ShowDialog() != true) return;
-
-            try
-            {
-                using var wb = new XLWorkbook();
-                var ws = wb.AddWorksheet("자재물류일정");
-
-                // ── A4 landscape print setup ──
-                ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
-                ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-                ws.PageSetup.Margins.Top = 0.2;
-                ws.PageSetup.Margins.Bottom = 0.2;
-                ws.PageSetup.Margins.Left = 0.2;
-                ws.PageSetup.Margins.Right = 0.2;
-                ws.PageSetup.Margins.Header = 0;
-                ws.PageSetup.Margins.Footer = 0;
-                ws.PageSetup.CenterHorizontally = true;
-                ws.PageSetup.FitToPages(1, 1);
-
-                int totalCols = TotalColumns;
-
-                // ── Row 1: Title ──
-                var culture = new CultureInfo("ko-KR");
-                string[] dayNames = { "일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일" };
-                string dayName = dayNames[(int)_selectedDate.DayOfWeek];
-                string titleText = $"천안사업장 자재 & 물류 일정 현황  ({_selectedDate:yyyy}년 {_selectedDate.Month}월 {_selectedDate.Day}일 {dayName})";
-
-                var titleCell = ws.Cell(1, 1);
-                titleCell.Value = titleText;
-                ws.Range(1, 1, 1, totalCols).Merge();
-                titleCell.Style.Font.Bold = true;
-                titleCell.Style.Font.FontSize = 16;
-                titleCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                titleCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-                ws.Row(1).Height = 30;
-
-                // ── Row 2: Section headers ──
-                // Person column
-                var personHeader = ws.Cell(2, 1);
-                personHeader.Value = "담당자";
-                personHeader.Style.Font.Bold = true;
-                personHeader.Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");
-                personHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                ws.Range(2, 1, 3, 1).Merge();
-
-                // AM header
-                ws.Cell(2, 2).Value = "오전 (AM)";
-                ws.Range(2, 2, 2, 2 + Vehicles.Length).Merge();
-                ws.Cell(2, 2).Style.Font.Bold = true;
-                ws.Cell(2, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
-                ws.Cell(2, 2).Style.Font.FontColor = XLColor.FromHtml("#1E40AF");
-                ws.Cell(2, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // PM header
-                int pmStart = 2 + Vehicles.Length + 1;
-                ws.Cell(2, pmStart).Value = "오후 (PM)";
-                ws.Range(2, pmStart, 2, pmStart + Vehicles.Length).Merge();
-                ws.Cell(2, pmStart).Style.Font.Bold = true;
-                ws.Cell(2, pmStart).Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
-                ws.Cell(2, pmStart).Style.Font.FontColor = XLColor.FromHtml("#9A3412");
-                ws.Cell(2, pmStart).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                // ── Row 3: Sub-headers ──
-                // AM dest
-                ws.Cell(3, 2).Value = "목적지 & 근무";
-                ws.Cell(3, 2).Style.Font.Bold = true;
-                ws.Cell(3, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#EFF6FF");
-                ws.Cell(3, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                for (int v = 0; v < Vehicles.Length; v++)
-                {
-                    var c = ws.Cell(3, 3 + v);
-                    c.Value = $"{Vehicles[v].Label.Replace("\n", " ")}";
-                    c.Style.Font.Bold = true;
-                    c.Style.Font.FontSize = 9;
-                    c.Style.Fill.BackgroundColor = XLColor.FromHtml("#EFF6FF");
-                    c.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    c.Style.Alignment.WrapText = true;
-                }
-
-                // PM dest
-                ws.Cell(3, pmStart).Value = "목적지 & 근무";
-                ws.Cell(3, pmStart).Style.Font.Bold = true;
-                ws.Cell(3, pmStart).Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF7ED");
-                ws.Cell(3, pmStart).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                for (int v = 0; v < Vehicles.Length; v++)
-                {
-                    var c = ws.Cell(3, pmStart + 1 + v);
-                    c.Value = $"{Vehicles[v].Label.Replace("\n", " ")}";
-                    c.Style.Font.Bold = true;
-                    c.Style.Font.FontSize = 9;
-                    c.Style.Fill.BackgroundColor = XLColor.FromHtml("#FFF7ED");
-                    c.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    c.Style.Alignment.WrapText = true;
-                }
-
-                ws.Row(2).Height = 22;
-                ws.Row(3).Height = 30;
-
-                // ── Data rows ──
-                int exRow = 4;
-                foreach (var row in _rows)
-                {
-                    ws.Cell(exRow, 1).Value = row.PersonName;
-                    ws.Cell(exRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-
-                    ws.Cell(exRow, 2).Value = row.AmDestination;
-
-                    for (int v = 0; v < Vehicles.Length; v++)
-                    {
-                        ws.Cell(exRow, 3 + v).Value = row.AmVehicle == Vehicles[v].Key ? "●" : "";
-                        ws.Cell(exRow, 3 + v).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        ws.Cell(exRow, 3 + v).Style.Font.FontSize = 14;
-                    }
-
-                    ws.Cell(exRow, pmStart).Value = row.PmDestination;
-
-                    for (int v = 0; v < Vehicles.Length; v++)
-                    {
-                        ws.Cell(exRow, pmStart + 1 + v).Value = row.PmVehicle == Vehicles[v].Key ? "●" : "";
-                        ws.Cell(exRow, pmStart + 1 + v).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        ws.Cell(exRow, pmStart + 1 + v).Style.Font.FontSize = 14;
-                    }
-
-                    ws.Row(exRow).Height = 22;
-                    exRow++;
-                }
-
-                // ── Special notes rows (오전/오후 분리) ──
-                string amNotes = TxtAmNotes.Text?.Trim() ?? "";
-                string pmNotes = TxtPmNotes.Text?.Trim() ?? "";
-                if (!string.IsNullOrEmpty(amNotes) || !string.IsNullOrEmpty(pmNotes))
-                {
-                    exRow++;
-                    // 오전 특이사항
-                    ws.Cell(exRow, 1).Value = "특이사항(오전)";
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
-                    ws.Range(exRow, 2, exRow, totalCols).Merge();
-                    ws.Cell(exRow, 2).Value = amNotes;
-                    ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
-                    ws.Row(exRow).Height = 40;
-
-                    exRow++;
-                    // 오후 특이사항
-                    ws.Cell(exRow, 1).Value = "특이사항(오후)";
-                    ws.Cell(exRow, 1).Style.Font.Bold = true;
-                    ws.Cell(exRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#FED7AA");
-                    ws.Range(exRow, 2, exRow, totalCols).Merge();
-                    ws.Cell(exRow, 2).Value = pmNotes;
-                    ws.Cell(exRow, 2).Style.Alignment.WrapText = true;
-                    ws.Row(exRow).Height = 40;
-                }
-
-                int lastRow = exRow;
-
-                // ── Borders ──
-                if (lastRow >= 2)
-                {
-                    var table = ws.Range(2, 1, lastRow, totalCols);
-                    table.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-                    table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                    table.Style.Border.OutsideBorderColor = XLColor.FromHtml("#475569");
-                    table.Style.Border.InsideBorderColor = XLColor.FromHtml("#CBD5E1");
-                }
-
-                // ── Column widths ──
-                ws.Column(1).Width = 16;  // 담당자
-                ws.Column(2).Width = 24;  // AM 목적지
-                for (int v = 0; v < Vehicles.Length; v++)
-                    ws.Column(3 + v).Width = 10; // AM vehicles
-                ws.Column(pmStart).Width = 24;    // PM 목적지
-                for (int v = 0; v < Vehicles.Length; v++)
-                    ws.Column(pmStart + 1 + v).Width = 10; // PM vehicles
-
-                ws.Range(2, 1, lastRow, totalCols).Style.Font.FontSize = 11;
-
-                wb.SaveAs(dlg.FileName);
-                MessageBox.Show("엑셀 파일이 저장되었습니다.", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"엑셀 내보내기 중 오류:\n{ex.Message}", "오류",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
     }
 }

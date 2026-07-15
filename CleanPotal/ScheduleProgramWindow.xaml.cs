@@ -138,11 +138,17 @@ namespace CleanPotal
         public ObservableCollection<TeamBoardGroup> Teams { get; set; } = new();
         private List<string> _holidays = new();
 
-        private bool _isWindowLoaded = false; // 🔥 추가: 윈도우 로딩 상태 체크용 플래그
+        private bool _isWindowLoaded = false;
+        private readonly bool _canEdit;
 
-        public ScheduleProgramWindow()
+        // 실제 교육 일정이 있는 (대상자, 날짜) 집합. 이 집합에 없는 '교육' 셀은 고아(삭제된 교육)로 보고 수정 허용.
+        private HashSet<(string Member, DateTime Date)> _eduCells = new();
+        private bool IsRealEdu(string member, DateTime date) => _eduCells.Contains((member, date.Date));
+
+        public ScheduleProgramWindow(bool canEdit = true)
         {
             InitializeComponent();
+            _canEdit = canEdit;
             this.DataContext = this;
             _currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             LeftTeamsList.ItemsSource = Teams;
@@ -152,7 +158,18 @@ namespace CleanPotal
                 var fetchedHolidays = await HolidayManager.GetHolidaysAsync(_currentMonth.Year);
                 if (fetchedHolidays != null) _holidays = fetchedHolidays;
 
-                _isWindowLoaded = true; // 🔥 창이 완전히 준비됨을 알림
+                _isWindowLoaded = true;
+
+                if (!_canEdit)
+                {
+                    CmbPaintType.IsEnabled = false;
+                    TxtPaintDays.IsEnabled = false;
+                    this.Title = "세정팀 통합 근무 스케줄러 (읽기 전용)";
+                }
+
+                bool isAdmin = SessionManager.IsMasterAdmin;
+                BtnShowLog.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+
                 LoadData();
             };
         }
@@ -217,6 +234,14 @@ namespace CleanPotal
                 .ToList();
 
             var allShifts = DatabaseHelper.GetShiftSchedulesInRange(startMonth, endMonth);
+
+            // 실제 교육 일정이 있는 셀 집합을 미리 구성 (교육 일정이 삭제된 고아 '교육' 셀과 구분하기 위함)
+            _eduCells = new HashSet<(string, DateTime)>();
+            foreach (var ep in DatabaseHelper.GetEducationPlansInRange(startMonth, endMonth))
+            {
+                for (var d = ep.StartDate.Date; d <= ep.EndDate.Date; d = d.AddDays(1))
+                    _eduCells.Add((ep.MemberName, d));
+            }
 
             foreach (var teamGrp in allUsers.GroupBy(u => u.TeamName))
             {
@@ -298,7 +323,8 @@ namespace CleanPotal
         {
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
-                if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 수정할 수 없습니다.", "알림"); return; }
+                if (!_canEdit) { MessageBox.Show("근무표 수정 권한이 없습니다.\n관리자에게 문의하세요.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+                if (clickedCell.ShiftType.Contains("교육") && IsRealEdu(clickedCell.MemberName, clickedCell.Date)) { MessageBox.Show("교육 일정은 직접 수정할 수 없습니다.", "알림"); return; }
                 var targetRow = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).FirstOrDefault(r => r.MemberName == clickedCell.MemberName);
                 if (targetRow == null || !targetRow.IsChecked) return;
 
@@ -312,7 +338,7 @@ namespace CleanPotal
                     {
                         DateTime targetDate = clickedCell.Date.AddDays(i);
                         var targetCell = row.Cells.FirstOrDefault(c => c.Date.Date == targetDate.Date);
-                        if (targetCell != null && !targetCell.ShiftType.Contains("교육"))
+                        if (targetCell != null && !(targetCell.ShiftType.Contains("교육") && IsRealEdu(row.MemberName, targetCell.Date)))
                         {
                             targetCell.ShiftType = paintType;
                             DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel { TargetDate = targetCell.Date, MemberName = row.MemberName, TeamGroup = targetCell.TeamGroup, ShiftType = paintType });
@@ -327,12 +353,13 @@ namespace CleanPotal
         {
             if ((sender as FrameworkElement)?.DataContext is ShiftBoardCell clickedCell)
             {
-                if (clickedCell.ShiftType.Contains("교육")) { MessageBox.Show("교육 일정은 직접 삭제할 수 없습니다.", "알림"); return; }
+                if (!_canEdit) return;
+                if (clickedCell.ShiftType.Contains("교육") && IsRealEdu(clickedCell.MemberName, clickedCell.Date)) { MessageBox.Show("교육 일정은 직접 삭제할 수 없습니다.", "알림"); return; }
                 var checkedRows = Teams.SelectMany(t => t.JobTitles).SelectMany(j => j.Rows).Where(r => r.IsChecked).ToList();
                 foreach (var row in checkedRows)
                 {
                     var targetCell = row.Cells.FirstOrDefault(c => c.Date.Date == clickedCell.Date.Date);
-                    if (targetCell != null && !targetCell.ShiftType.Contains("교육"))
+                    if (targetCell != null && !(targetCell.ShiftType.Contains("교육") && IsRealEdu(row.MemberName, targetCell.Date)))
                     {
                         targetCell.ShiftType = "";
                         DatabaseHelper.UpsertShiftSchedule(new ShiftScheduleModel { TargetDate = targetCell.Date, MemberName = row.MemberName, TeamGroup = targetCell.TeamGroup, ShiftType = "비우기" });
@@ -353,5 +380,65 @@ namespace CleanPotal
         }
 
         private void TglPredictPattern_Click(object sender, RoutedEventArgs e) => LoadData();
+
+        private void BtnShowLog_Click(object sender, RoutedEventArgs e)
+        {
+            var from = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
+            var to = from.AddMonths(1).AddDays(-1);
+            var logs = DatabaseHelper.GetShiftScheduleLogs(from, to);
+
+            var dlg = new Window
+            {
+                Title = $"근무표 수정 이력 — {_currentMonth:yyyy년 M월}",
+                Width = 820, Height = 520,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this, Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+                ResizeMode = ResizeMode.CanResizeWithGrip
+            };
+
+            var root = new Grid { Margin = new Thickness(16) };
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition());
+
+            var header = new TextBlock
+            {
+                Text = logs.Count > 0 ? $"총 {logs.Count}건의 수정 이력" : "수정 이력이 없습니다.",
+                FontSize = 14, FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            Grid.SetRow(header, 0);
+            root.Children.Add(header);
+
+            var dg = new DataGrid
+            {
+                AutoGenerateColumns = false, IsReadOnly = true,
+                CanUserSortColumns = true, CanUserReorderColumns = false,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+                HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+                Background = Brushes.White,
+                RowBackground = Brushes.White,
+                AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+                FontSize = 13
+            };
+
+            dg.Columns.Add(new DataGridTextColumn { Header = "수정 일시", Binding = new System.Windows.Data.Binding("ModifiedAt"), Width = 140 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "수정자", Binding = new System.Windows.Data.Binding("ModifiedBy"), Width = 80 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "대상 날짜", Binding = new System.Windows.Data.Binding("TargetDate"), Width = 100 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "대상자", Binding = new System.Windows.Data.Binding("MemberName"), Width = 80 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "구분", Binding = new System.Windows.Data.Binding("Action"), Width = 60 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "변경 전", Binding = new System.Windows.Data.Binding("OldShiftType"), Width = 100 });
+            dg.Columns.Add(new DataGridTextColumn { Header = "변경 후", Binding = new System.Windows.Data.Binding("NewShiftType"), Width = 100 });
+
+            dg.ItemsSource = logs;
+            Grid.SetRow(dg, 1);
+            root.Children.Add(dg);
+
+            dlg.Content = root;
+            dlg.ShowDialog();
+        }
     }
 }

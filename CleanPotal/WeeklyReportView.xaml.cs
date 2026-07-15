@@ -243,8 +243,7 @@ namespace CleanPotal
             if (_isDirty || IsUserTyping()) return;
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var lastModified = File.GetLastWriteTime(StoragePath);
+                var lastModified = GetWatchTime();
                 if (lastModified <= _lastFileModified) return;
                 string? currentReportId = _currentReport?.Id;
                 LoadFromStorage();
@@ -516,8 +515,7 @@ namespace CleanPotal
             if (_isDirty || IsUserTyping()) return;
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                var lastModified = File.GetLastWriteTime(StoragePath);
+                var lastModified = GetWatchTime();
                 if (lastModified <= _lastFileModified) return;
 
                 string? currentReportId = _currentReport?.Id;
@@ -1106,6 +1104,10 @@ namespace CleanPotal
 
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
         private static string StoragePath => AppPaths.WeeklyReportsFilePath;
+        // 주간보고는 이제 SQLite(dispatch.db) 의 AppData['weekly_reports'] 에 저장.
+        private const string StorageKey = "weekly_reports";
+        // 외부 변경 감지는 DB 파일(dispatch.db) 수정시각으로 판단(다른 PC 반영).
+        private static string StorageWatchPath => Path.Combine(AppPaths.DataRoot, "dispatch.db");
 
         private void NormalizeGroups()
         {
@@ -1134,9 +1136,9 @@ namespace CleanPotal
         {
             try
             {
-                if (!File.Exists(StoragePath)) return;
-                _lastFileModified = File.GetLastWriteTime(StoragePath);
-                var json = File.ReadAllText(StoragePath);
+                _lastFileModified = GetWatchTime();
+                var json = AppDataRepository.Get(StorageKey);
+                if (string.IsNullOrWhiteSpace(json)) return;
                 var data = JsonSerializer.Deserialize<List<PersistedGroup>>(json);
                 if (data == null) return;
 
@@ -1171,7 +1173,6 @@ namespace CleanPotal
             try
             {
                 NormalizeGroups();
-                Directory.CreateDirectory(Path.GetDirectoryName(StoragePath)!);
                 var data = GroupedHistory.Select(g => new PersistedGroup
                 {
                     MonthTitle = g.MonthTitle,
@@ -1186,10 +1187,18 @@ namespace CleanPotal
                         MemoAttachments = r.MemoAttachments.Select(a => new PersistedAttachment { FilePath = a.FilePath }).ToList()
                     }).ToList()
                 }).ToList();
-                File.WriteAllText(StoragePath, JsonSerializer.Serialize(data, JsonOptions));
-                _lastFileModified = File.GetLastWriteTime(StoragePath);
+                AppDataRepository.Set(StorageKey, JsonSerializer.Serialize(data, JsonOptions));
+                _lastFileModified = GetWatchTime();
             }
             catch { }
+        }
+
+        // dispatch.db 수정시각(외부 변경 감지 기준). 파일 없으면 MinValue.
+        private static DateTime GetWatchTime()
+        {
+            try { if (File.Exists(StorageWatchPath)) return File.GetLastWriteTime(StorageWatchPath); }
+            catch { }
+            return DateTime.MinValue;
         }
 
         private class PersistedGroup { public string? MonthTitle { get; set; } public List<PersistedReport> Reports { get; set; } = new(); }

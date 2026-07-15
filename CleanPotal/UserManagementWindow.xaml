@@ -517,12 +517,14 @@
                                         <UniformGrid Rows="2" Columns="4">
                                             <CheckBox x:Name="ChkManageFiles" Content="파일 관리자"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
+                                            <CheckBox x:Name="ChkManageShiftBoard" Content="생산근무표"
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageInventory" Content="재고 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageNotices" Content="공지사항 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
                                             <CheckBox x:Name="ChkManageVendors" Content="업체 관리"
-                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,8"/>
+                                                      Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                             <CheckBox x:Name="ChkManageSchedule" Content="교육 관리"
                                                       Style="{StaticResource PermCheck}" Margin="0,0,8,0"/>
                                             <CheckBox x:Name="ChkManageBroken" Content="BROKEN 관리"

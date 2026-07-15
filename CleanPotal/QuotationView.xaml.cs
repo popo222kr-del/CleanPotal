@@ -184,7 +184,7 @@ namespace CleanPotal
             set { _masterSearch = value; OnPropertyChanged(nameof(MasterSearch)); ApplyMasterFilter(); }
         }
 
-        public bool IsQuotationAdmin => SessionManager.CurrentUsername == "1004";
+        public bool IsQuotationAdmin => SessionManager.IsMasterAdmin;
 
         private bool _isMasterDirty = false;
 

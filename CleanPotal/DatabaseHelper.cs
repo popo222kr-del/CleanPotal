@@ -20,7 +20,10 @@ namespace CleanPotal
         private static readonly string ConnectionString = $"Data Source={DbPath}";
         private static bool _isMapperInitialized = false;
 
-        public static void InitializeDatabase()
+        // 🚀 시작 성능: NAS(SMB) 위 SQLite는 연결을 새로 열 때마다 네트워크 왕복이 크다.
+        //   기존엔 시작 시 초기화 메서드마다 연결을 따로 열어 7번씩 열었는데,
+        //   shared 연결 하나를 넘겨받아 재사용하면 왕복이 1/7로 줄어 로그인 후 창 뜨는 속도가 빨라진다.
+        public static void InitializeDatabase(IDbConnection? shared = null)
         {
             if (!Directory.Exists(AppPaths.DataRoot)) Directory.CreateDirectory(AppPaths.DataRoot);
 
@@ -30,11 +33,10 @@ namespace CleanPotal
                 _isMapperInitialized = true;
             }
 
-            using (var connection = new SqliteConnection(ConnectionString))
+            // shared 가 넘어오면 그 연결을 재사용(닫지 않음), 없으면 직접 연다.
+            var connection = shared ?? GetConnection();
+            try
             {
-                connection.Open();
-                try { connection.Execute("PRAGMA journal_mode=DELETE;"); } catch { }
-                connection.Execute("PRAGMA busy_timeout=5000;");
                 string createDispatchTableSql = @"
                     CREATE TABLE IF NOT EXISTS DispatchList (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,22 +62,47 @@ namespace CleanPotal
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ModifierName TEXT;"); } catch { }
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ModifyDate DATETIME;"); } catch { }
                 try { connection.Execute("ALTER TABLE HandoverList ADD COLUMN ReadBy TEXT;"); } catch { }
+
+                // 아래 초기화들도 같은 연결(connection)을 재사용해 NAS 왕복을 줄인다.
+                InitializeScheduleTables(connection);
+                InitializeWorkAssignmentTables(connection);
+
+                // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
+                CreateProdReqTable(connection);
+
+                // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
+                FieldInspection.Repositories.FieldInspectionRepository.InitializeTables(connection);
+
+                // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
+                FieldInventory.Repositories.FieldInventoryRepository.InitializeTables(connection);
+
+                // 🔥 사무실 공지: office_notice.json → SQLite 이관(파일럿)
+                OfficeNoticeRepository.InitializeTables(connection);
+
+                // 🔥 범용 앱 데이터(blob) 테이블 + weekly_reports.json 등 문서형 JSON 이관
+                AppDataRepository.InitializeTables(connection);
+
+                // 🔥 설비 분석(ICP-MS) 데이터 테이블
+                EquipmentAnalysis.EquipmentAnalysisRepository.InitializeTables(connection);
             }
-
-            InitializeScheduleTables();
-            InitializeWorkAssignmentTables();
-
-            // 🔥 앱 실행 시 생산팀 요청사항 테이블 자동 생성 호출!
-            CreateProdReqTable();
-
-            // 🔥 현장 점검(NFC/QR 체크시트) 테이블 자동 생성
-            FieldInspection.Repositories.FieldInspectionRepository.InitializeTables();
-
-            // 🔥 현장 재고 관리 테이블 자동 생성 + 초기 데이터 주입
-            FieldInventory.Repositories.FieldInventoryRepository.InitializeTables();
+            finally { if (shared == null) connection.Dispose(); }
         }
 
-        public static IDbConnection GetConnection() => new SqliteConnection(ConnectionString);
+        // ⚠️⚠️ 중요: DB가 네트워크 공유 폴더(\\10.10.40.98)에 있으므로 절대 WAL 모드를 쓰면 안 된다.
+        //   WAL은 -shm 공유 메모리가 필요한데 SMB 네트워크 드라이브가 이를 지원하지 않아
+        //   DB를 여는 순간 프로그램이 멈춘다(모든 사용자 동시 멈춤). 반드시 DELETE(롤백) 모드만 사용.
+        //   장시간 사용 시 락 문제는 WAL이 아니라 busy_timeout 으로만 해결한다.
+        public static IDbConnection GetConnection()
+        {
+            var conn = new SqliteConnection(ConnectionString);
+            conn.Open();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;";
+                cmd.ExecuteNonQuery();
+            }
+            return conn;
+        }
 
         public static int InsertDispatch(DispatchItemModel item, DateTime targetDate)
         {
@@ -206,9 +233,10 @@ namespace CleanPotal
             }
         }
 
-        public static void InitializeScheduleTables()
+        public static void InitializeScheduleTables(IDbConnection? shared = null)
         {
-            using (var connection = GetConnection())
+            var connection = shared ?? GetConnection();
+            try
             {
                 string createShiftTable = @"
                     CREATE TABLE IF NOT EXISTS ShiftSchedule (
@@ -235,6 +263,19 @@ namespace CleanPotal
                 connection.Execute(createEduTable);
                 try { connection.Execute("ALTER TABLE EducationPlan ADD COLUMN AttachmentPath TEXT;"); } catch { }
 
+                string createLogTable = @"
+                    CREATE TABLE IF NOT EXISTS ShiftScheduleLog (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        TargetDate TEXT NOT NULL,
+                        MemberName TEXT NOT NULL,
+                        OldShiftType TEXT,
+                        NewShiftType TEXT,
+                        Action TEXT NOT NULL,
+                        ModifiedBy TEXT NOT NULL,
+                        ModifiedAt TEXT NOT NULL
+                    )";
+                connection.Execute(createLogTable);
+
                 string createTeamEventsTable = @"
                     CREATE TABLE IF NOT EXISTS TeamEvents (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -246,6 +287,7 @@ namespace CleanPotal
                 connection.Execute(createTeamEventsTable);
                 try { connection.Execute("ALTER TABLE TeamEvents ADD COLUMN Detail TEXT;"); } catch { }
             }
+            finally { if (shared == null) connection.Dispose(); }
         }
 
         public static void UpdateEducationPlanAttachment(int id, string? path)
@@ -255,25 +297,44 @@ namespace CleanPotal
                     new { Path = path ?? "", Id = id });
         }
 
+        private static void InsertShiftLog(IDbConnection db, string targetDate, string memberName, string? oldType, string? newType, string action)
+        {
+            string modifier = SessionManager.IsLoggedIn ? SessionManager.CurrentRealName : "알 수 없음";
+            if (string.IsNullOrEmpty(modifier)) modifier = SessionManager.CurrentUsername;
+            db.Execute(@"INSERT INTO ShiftScheduleLog (TargetDate, MemberName, OldShiftType, NewShiftType, Action, ModifiedBy, ModifiedAt)
+                         VALUES (@TargetDate, @MemberName, @Old, @New, @Action, @By, @At)",
+                new { TargetDate = targetDate, MemberName = memberName, Old = oldType ?? "", New = newType ?? "", Action = action, By = modifier, At = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+        }
+
         public static void UpsertShiftSchedule(ShiftScheduleModel item)
         {
             using (var db = GetConnection())
             {
+                string dateStr = item.TargetDate.ToString("yyyy-MM-dd");
+                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE TargetDate = @Date AND MemberName = @Name",
+                    new { Date = dateStr, Name = item.MemberName });
+
                 string delSql = "DELETE FROM ShiftSchedule WHERE TargetDate = @Date AND MemberName = @Name";
-                db.Execute(delSql, new { Date = item.TargetDate.ToString("yyyy-MM-dd"), Name = item.MemberName });
+                db.Execute(delSql, new { Date = dateStr, Name = item.MemberName });
 
                 if (!string.IsNullOrWhiteSpace(item.ShiftType) && item.ShiftType != "비우기")
                 {
-                    string insertSql = @"INSERT INTO ShiftSchedule (TargetDate, TeamGroup, Role, MemberName, ShiftType) 
+                    string insertSql = @"INSERT INTO ShiftSchedule (TargetDate, TeamGroup, Role, MemberName, ShiftType)
                                          VALUES (@TargetDate, @TeamGroup, @Role, @MemberName, @ShiftType)";
                     db.Execute(insertSql, new
                     {
-                        TargetDate = item.TargetDate.ToString("yyyy-MM-dd"),
+                        TargetDate = dateStr,
                         TeamGroup = item.TeamGroup ?? "세정",
                         Role = item.Role ?? "사원",
                         MemberName = item.MemberName,
                         ShiftType = item.ShiftType
                     });
+                    string action = old != null ? "수정" : "등록";
+                    InsertShiftLog(db, dateStr, item.MemberName, old?.ShiftType, item.ShiftType, action);
+                }
+                else if (old != null)
+                {
+                    InsertShiftLog(db, dateStr, item.MemberName, old.ShiftType, null, "삭제");
                 }
             }
         }
@@ -348,14 +409,23 @@ namespace CleanPotal
 
         public static void DeleteShiftSchedule(int id)
         {
-            using (var db = GetConnection()) db.Execute("DELETE FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
+            using (var db = GetConnection())
+            {
+                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
+                db.Execute("DELETE FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
+                if (old != null) InsertShiftLog(db, old.TargetDate.ToString("yyyy-MM-dd"), old.MemberName, old.ShiftType, null, "삭제");
+            }
         }
 
         public static void UpdateShiftScheduleType(int id, string newShiftType)
         {
             using (var db = GetConnection())
+            {
+                var old = db.QueryFirstOrDefault<ShiftScheduleModel>("SELECT * FROM ShiftSchedule WHERE Id = @Id", new { Id = id });
                 db.Execute("UPDATE ShiftSchedule SET ShiftType = @ShiftType WHERE Id = @Id",
                     new { ShiftType = newShiftType, Id = id });
+                if (old != null) InsertShiftLog(db, old.TargetDate.ToString("yyyy-MM-dd"), old.MemberName, old.ShiftType, newShiftType, "수정");
+            }
         }
 
         public static void DeleteEducationPlan(int id)
@@ -391,6 +461,20 @@ namespace CleanPotal
                     new { item.StartDate, item.EndDate, item.Content, item.Detail, item.Id });
         }
 
+        public static List<ShiftScheduleLogModel> GetShiftScheduleLogs(DateTime? from = null, DateTime? to = null, string? memberName = null)
+        {
+            using (var db = GetConnection())
+            {
+                string sql = "SELECT * FROM ShiftScheduleLog WHERE 1=1";
+                var p = new DynamicParameters();
+                if (from.HasValue) { sql += " AND TargetDate >= @From"; p.Add("From", from.Value.ToString("yyyy-MM-dd")); }
+                if (to.HasValue) { sql += " AND TargetDate <= @To"; p.Add("To", to.Value.ToString("yyyy-MM-dd")); }
+                if (!string.IsNullOrEmpty(memberName)) { sql += " AND MemberName = @Name"; p.Add("Name", memberName); }
+                sql += " ORDER BY ModifiedAt DESC";
+                return db.Query<ShiftScheduleLogModel>(sql, p).ToList();
+            }
+        }
+
         public static void UpdateEducationPlanStatus(int id, string status, int? progress = null)
         {
             using (var db = GetConnection())
@@ -415,9 +499,10 @@ namespace CleanPotal
         // 개인별 업무 분장표 (WorkAssignment)
         // ==========================================================
 
-        public static void InitializeWorkAssignmentTables()
+        public static void InitializeWorkAssignmentTables(IDbConnection? shared = null)
         {
-            using (var db = GetConnection())
+            var db = shared ?? GetConnection();
+            try
             {
                 db.Execute(@"CREATE TABLE IF NOT EXISTS WorkAssignmentMembers (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -443,6 +528,7 @@ namespace CleanPotal
                     Note TEXT
                 )");
             }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         public static List<string> GetWorkAssignmentUsernames()
@@ -527,9 +613,10 @@ namespace CleanPotal
         // 🔥 생산팀 요청사항 (ProdReq) 전용 DB 연동 메서드 (Dapper 최적화)
         // ==========================================================
 
-        public static void CreateProdReqTable()
+        public static void CreateProdReqTable(IDbConnection? shared = null)
         {
-            using (var db = GetConnection())
+            var db = shared ?? GetConnection();
+            try
             {
                 db.Execute(@"
                     CREATE TABLE IF NOT EXISTS ProdReqs (
@@ -555,6 +642,7 @@ namespace CleanPotal
                         LastReadTime TEXT NOT NULL
                     )");
             }
+            finally { if (shared == null) db.Dispose(); }
         }
 
         public static int GetUnreadProdReqCount(string username)

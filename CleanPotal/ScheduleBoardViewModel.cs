@@ -34,10 +34,24 @@ namespace CleanPotal
         private static string DbPath => Path.Combine(AppPaths.DataRoot, "CleanPotal.db");
         private static string RecipeFile => Path.Combine(AppPaths.DataRoot, "recipes.json");
 
+        // ⚠️⚠️ 중요: CleanPotal.db도 네트워크 공유 폴더(\\10.10.40.98)에 있다.
+        //   절대 WAL 모드 금지(-shm 미지원으로 프로그램 멈춤). 반드시 DELETE(롤백) 모드만 사용하고,
+        //   장시간 사용 시 락은 busy_timeout 으로만 처리한다. 모든 연결은 이 헬퍼로만 연다.
+        private static SqliteConnection OpenConn()
+        {
+            var conn = new SqliteConnection($"Data Source={DbPath}");
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE;";
+            cmd.ExecuteNonQuery();
+            return conn;
+        }
+
         private void LoadRecipes()
         {
-            if (!File.Exists(RecipeFile)) return;
-            var json = File.ReadAllText(RecipeFile);
+            // 레시피는 SQLite(dispatch.db) 의 AppData['recipes'] 에 저장
+            string? json = AppDataRepository.Get("recipes");
+            if (string.IsNullOrWhiteSpace(json)) return;
             var list = JsonSerializer.Deserialize<List<RecipeDefinition>>(json);
             if (list == null) return;
             Recipes.Clear();
@@ -46,10 +60,8 @@ namespace CleanPotal
 
         public void SaveRecipes()
         {
-            var dir = Path.GetDirectoryName(RecipeFile);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
             var json = JsonSerializer.Serialize(Recipes.ToList(), new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(RecipeFile, json);
+            AppDataRepository.Set("recipes", json);
         }
 
         private void InitializeDatabase()
@@ -57,8 +69,7 @@ namespace CleanPotal
             var dir = Path.GetDirectoryName(DbPath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-            using var conn = new SqliteConnection($"Data Source={DbPath}");
-            conn.Open();
+            using var conn = OpenConn();
             using var cmd = conn.CreateCommand();
 
             cmd.CommandText = @"
@@ -75,9 +86,92 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
     CreatedTime TEXT NOT NULL
 );";
             cmd.ExecuteNonQuery();
+
+            MigrateAddBoardDateColumn(conn);
         }
 
-        public string TodayText => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (" + GetKoreanDayName(DateTime.Now.DayOfWeek) + ")";
+        private void MigrateAddBoardDateColumn(SqliteConnection conn)
+        {
+            using var pragmaCmd = conn.CreateCommand();
+            pragmaCmd.CommandText = "PRAGMA table_info(ScheduleBlocks);";
+            using var reader = pragmaCmd.ExecuteReader();
+            bool hasBoardDate = false;
+            while (reader.Read())
+            {
+                if (reader.GetString(1) == "BoardDate") { hasBoardDate = true; break; }
+            }
+            reader.Close();
+
+            if (!hasBoardDate)
+            {
+                string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                using var alterCmd = conn.CreateCommand();
+                alterCmd.CommandText = $"ALTER TABLE ScheduleBlocks ADD COLUMN BoardDate TEXT NOT NULL DEFAULT '{today}';";
+                alterCmd.ExecuteNonQuery();
+            }
+        }
+
+        private DateTime _currentDate = DateTime.Today;
+        public DateTime CurrentDate
+        {
+            get => _currentDate;
+            set
+            {
+                if (_currentDate != value)
+                {
+                    _currentDate = value;
+                    OnPropertyChanged(nameof(CurrentDate));
+                    OnPropertyChanged(nameof(CurrentDateText));
+                    _undoStack.Clear();
+                    OnPropertyChanged(nameof(CanUndoLastBoardAction));
+                    LoadBlocksFromDb();
+                }
+            }
+        }
+
+        public string CurrentDateText => _currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + " (" + GetKoreanDayName(_currentDate.DayOfWeek) + ")";
+
+        public void GoToPrevDay() => CurrentDate = CurrentDate.AddDays(-1);
+        public void GoToNextDay() => CurrentDate = CurrentDate.AddDays(1);
+        public void GoToToday() => CurrentDate = DateTime.Today;
+
+        public bool CopyFromPrevDay(out string message)
+        {
+            string prevDateStr = CurrentDate.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            string curDateStr = CurrentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (!File.Exists(DbPath)) { message = "DB 파일이 없습니다."; return false; }
+
+            using var conn = OpenConn();
+
+            using var countCmd = conn.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(*) FROM ScheduleBlocks WHERE BoardDate = @date;";
+            countCmd.Parameters.AddWithValue("@date", prevDateStr);
+            long prevCount = (long)countCmd.ExecuteScalar()!;
+
+            if (prevCount == 0) { message = $"전일({prevDateStr})에 배치된 데이터가 없습니다."; return false; }
+
+            if (PlacedBlocks.Count > 0)
+            {
+                PushUndoSnapshot("전일 복사 취소");
+            }
+
+            using var copyCmd = conn.CreateCommand();
+            copyCmd.CommandText = @"
+INSERT INTO ScheduleBlocks (EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+SELECT EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, @time, @curDate
+FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
+            copyCmd.Parameters.AddWithValue("@prevDate", prevDateStr);
+            copyCmd.Parameters.AddWithValue("@curDate", curDateStr);
+            copyCmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            int copied = copyCmd.ExecuteNonQuery();
+
+            LoadBlocksFromDb();
+            message = $"전일({prevDateStr}) 데이터 {copied}건 복사 완료";
+            return true;
+        }
+
+        private string CurrentDateString => _currentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         private string _statusText = "";
         public string StatusText { get => _statusText; set { if (_statusText != value) { _statusText = value; OnPropertyChanged(nameof(StatusText)); } } }
@@ -90,13 +184,39 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
         public void ReloadFromDatabase() { LoadBlocksFromDb(); }
 
+        public List<PlacedRecipeBlock> LoadBlocksForDate(DateTime date)
+        {
+            var blocks = new List<PlacedRecipeBlock>();
+            if (!File.Exists(DbPath)) return blocks;
+            string dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            using var conn = OpenConn();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", dateStr);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                blocks.Add(new PlacedRecipeBlock
+                {
+                    EquipmentIndex = reader.GetInt32(0),
+                    StartMinute = reader.GetInt32(1),
+                    RecipeText = reader.GetString(2),
+                    S2Minutes = reader.GetInt32(3),
+                    HFMinutes = reader.GetInt32(4),
+                    DIMinutes = reader.GetInt32(5),
+                    S2Temperature = reader.IsDBNull(6) ? null : reader.GetInt32(6)
+                });
+            }
+            return blocks;
+        }
+
         private void LoadBlocksFromDb()
         {
             if (!File.Exists(DbPath)) return;
-            using var conn = new SqliteConnection($"Data Source={DbPath}");
-            conn.Open();
+            using var conn = OpenConn();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks;";
+            cmd.CommandText = "SELECT EquipmentIndex, StartCellIndex, RecipeText, S2Cells, HFCells, DICells, S2Temperature FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", CurrentDateString);
             using var reader = cmd.ExecuteReader();
 
             PlacedBlocks.Clear();
@@ -105,7 +225,7 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
                 var block = new PlacedRecipeBlock
                 {
                     EquipmentIndex = reader.GetInt32(0),
-                    StartMinute = reader.GetInt32(1) % TotalMinutes,
+                    StartMinute = reader.GetInt32(1),
                     RecipeText = reader.GetString(2),
                     S2Minutes = reader.GetInt32(3),
                     HFMinutes = reader.GetInt32(4),
@@ -154,7 +274,25 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
         public bool TryUndoLastBoardAction(out string message)
         {
             if (_undoStack.Count == 0) { message = "되돌릴 작업이 없습니다."; return false; }
-            var snapshot = _undoStack.Pop(); RestorePlacedBlocks(snapshot.Blocks); SaveAllBlocksToDb(); OnPropertyChanged(nameof(CanUndoLastBoardAction));
+            var snapshot = _undoStack.Pop();
+            RestorePlacedBlocks(snapshot.Blocks);
+            SaveAllBlocksToDb();
+
+            if (snapshot.NextDayOverflows.Count > 0)
+            {
+                using var conn = OpenConn();
+                foreach (var (dateStr, eqIdx, startMin) in snapshot.NextDayOverflows)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
+                    cmd.Parameters.AddWithValue("@date", dateStr);
+                    cmd.Parameters.AddWithValue("@eq", eqIdx);
+                    cmd.Parameters.AddWithValue("@start", startMin);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            OnPropertyChanged(nameof(CanUndoLastBoardAction));
             message = $"되돌리기 완료: {snapshot.ActionDescription}"; return true;
         }
 
@@ -186,19 +324,9 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
             message = $"레시피 삭제 완료: {target}"; return true;
         }
 
-        private bool IntersectsCircularMin(int s1, int l1, int s2, int l2, int ringSize)
+        private static bool IntersectsLinear(int s1, int l1, int s2, int l2)
         {
-            s1 %= ringSize; s2 %= ringSize;
-            for (int i = 0; i < l1; i++)
-            {
-                int c1 = (s1 + i) % ringSize;
-                for (int j = 0; j < l2; j++)
-                {
-                    int c2 = (s2 + j) % ringSize;
-                    if (c1 == c2) return true;
-                }
-            }
-            return false;
+            return s1 < s2 + l2 && s2 < s1 + l1;
         }
 
         public bool TryPlaceRecipe(int equipmentIndex, int startMinute, out string message)
@@ -209,51 +337,130 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
             if (SelectedRecipe.TotalMinutes > TotalMinutes) { message = "배치 불가: 레시피 길이가 24시간을 초과합니다."; return false; }
 
-            bool overlap = PlacedBlocks.Any(b => b.EquipmentIndex == equipmentIndex && IntersectsCircularMin(startMinute, SelectedRecipe.TotalMinutes, b.StartMinute, b.TotalMinutes, TotalMinutes));
+            int endMinute = startMinute + SelectedRecipe.TotalMinutes;
+            int todayLength = Math.Min(SelectedRecipe.TotalMinutes, TotalMinutes - startMinute);
+            int overflow = endMinute - TotalMinutes;
+
+            bool overlap = PlacedBlocks.Any(b => b.EquipmentIndex == equipmentIndex && IntersectsLinear(startMinute, todayLength, b.StartMinute, b.TotalMinutes));
             if (overlap) { message = $"배치 불가: {Equipments[equipmentIndex].DisplayName} 행에 겹치는 레시피가 있습니다."; return false; }
 
-            if (ExceedsConcurrentDILimit(startMinute, SelectedRecipe, out string diLimitMsg)) { message = $"배치 불가: {diLimitMsg}"; return false; }
+            if (ExceedsConcurrentDILimit(startMinute, todayLength, SelectedRecipe, out string diLimitMsg)) { message = $"배치 불가: {diLimitMsg}"; return false; }
 
             PushUndoSnapshot($"배치 취소 ({Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text})");
 
-            var block = new PlacedRecipeBlock
-            {
-                EquipmentIndex = equipmentIndex,
-                StartMinute = startMinute,
-                RecipeText = SelectedRecipe.Text,
-                S2Minutes = SelectedRecipe.S2Minutes,
-                HFMinutes = SelectedRecipe.HFMinutes,
-                DIMinutes = SelectedRecipe.DIMinutes,
-                S2Temperature = SelectedRecipe.S2Temperature
-            };
+            SplitAndPlaceBlock(equipmentIndex, startMinute, SelectedRecipe);
 
-            PlacedBlocks.Add(block);
             SaveAllBlocksToDb();
-            message = $"적용 완료: {Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text}";
+            string overflowMsg = overflow > 0 ? $" (다음날로 {overflow}분 이어짐)" : "";
+            message = $"적용 완료: {Equipments[equipmentIndex].DisplayName} / {SelectedRecipe.Text}{overflowMsg}";
             return true;
         }
 
-        private bool ExceedsConcurrentDILimit(int newStartMinute, RecipeDefinition recipe, out string detail)
+        private void SplitAndPlaceBlock(int equipmentIndex, int startMinute, RecipeDefinition recipe)
+        {
+            int endMinute = startMinute + recipe.TotalMinutes;
+            int overflow = endMinute - TotalMinutes;
+
+            if (overflow <= 0)
+            {
+                PlacedBlocks.Add(new PlacedRecipeBlock
+                {
+                    EquipmentIndex = equipmentIndex, StartMinute = startMinute,
+                    RecipeText = recipe.Text, S2Minutes = recipe.S2Minutes,
+                    HFMinutes = recipe.HFMinutes, DIMinutes = recipe.DIMinutes,
+                    S2Temperature = recipe.S2Temperature
+                });
+                return;
+            }
+
+            int todayMinutes = TotalMinutes - startMinute;
+            SplitPhases(recipe.S2Minutes, recipe.HFMinutes, recipe.DIMinutes, todayMinutes,
+                out int todayS2, out int todayHF, out int todayDI,
+                out int nextS2, out int nextHF, out int nextDI);
+
+            PlacedBlocks.Add(new PlacedRecipeBlock
+            {
+                EquipmentIndex = equipmentIndex, StartMinute = startMinute,
+                RecipeText = recipe.Text, S2Minutes = todayS2,
+                HFMinutes = todayHF, DIMinutes = todayDI,
+                S2Temperature = recipe.S2Temperature
+            });
+
+            SaveBlockToNextDay(equipmentIndex, 0, recipe.Text, nextS2, nextHF, nextDI, recipe.S2Temperature);
+
+            if (_undoStack.Count > 0)
+            {
+                string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                _undoStack.Peek().NextDayOverflows.Add((nextDateStr, equipmentIndex, 0));
+            }
+        }
+
+        private static void SplitPhases(int s2, int hf, int di, int keepMinutes,
+            out int keepS2, out int keepHF, out int keepDI,
+            out int nextS2, out int nextHF, out int nextDI)
+        {
+            keepS2 = Math.Min(keepMinutes, s2);
+            int remain = keepMinutes - keepS2;
+            keepHF = Math.Min(remain, hf);
+            remain -= keepHF;
+            keepDI = Math.Min(remain, di);
+
+            nextS2 = s2 - keepS2;
+            nextHF = hf - keepHF;
+            nextDI = di - keepDI;
+        }
+
+        private void SaveBlockToNextDay(int equipmentIndex, int startMinute, string recipeText, int s2, int hf, int di, int? s2Temp)
+        {
+            if (s2 + hf + di <= 0) return;
+            string nextDateStr = CurrentDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            using var conn = OpenConn();
+
+            using var delCmd = conn.CreateCommand();
+            delCmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date AND EquipmentIndex = @eq AND StartCellIndex = @start;";
+            delCmd.Parameters.AddWithValue("@date", nextDateStr);
+            delCmd.Parameters.AddWithValue("@eq", equipmentIndex);
+            delCmd.Parameters.AddWithValue("@start", startMinute);
+            delCmd.ExecuteNonQuery();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO ScheduleBlocks
+(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
+            cmd.Parameters.AddWithValue("@eq", equipmentIndex);
+            cmd.Parameters.AddWithValue("@start", startMinute);
+            cmd.Parameters.AddWithValue("@total", s2 + hf + di);
+            cmd.Parameters.AddWithValue("@s2", s2);
+            cmd.Parameters.AddWithValue("@hf", hf);
+            cmd.Parameters.AddWithValue("@di", di);
+            cmd.Parameters.AddWithValue("@recipe", recipeText);
+            cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            cmd.Parameters.AddWithValue("@temp", (object?)s2Temp ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@date", nextDateStr);
+            cmd.ExecuteNonQuery();
+        }
+
+        private bool ExceedsConcurrentDILimit(int newStartMinute, int todayLength, RecipeDefinition recipe, out string detail)
         {
             detail = string.Empty;
             if (recipe.DIMinutes <= 0) return false;
 
-            int ringSize = TotalMinutes;
-            for (int i = 0; i < recipe.DIMinutes; i++)
+            int diStart = newStartMinute + recipe.S2Minutes + recipe.HFMinutes;
+            int diEnd = diStart + recipe.DIMinutes;
+            int todayDiEnd = Math.Min(diEnd, TotalMinutes);
+
+            for (int minOffset = diStart; minOffset < todayDiEnd; minOffset++)
             {
-                int minOffset = (newStartMinute + recipe.S2Minutes + recipe.HFMinutes + i) % ringSize;
                 int concurrent = 1;
 
                 foreach (var b in PlacedBlocks)
                 {
                     if (b.DIMinutes <= 0) continue;
                     int bDiStart = b.StartMinute + b.S2Minutes + b.HFMinutes;
-                    bool inside = false;
-                    for (int j = 0; j < b.DIMinutes; j++)
-                    {
-                        if ((bDiStart + j) % ringSize == minOffset) { inside = true; break; }
-                    }
-                    if (inside) concurrent++;
+                    int bDiEnd = bDiStart + b.DIMinutes;
+                    if (minOffset >= bDiStart && minOffset < bDiEnd) concurrent++;
                 }
 
                 if (concurrent > MaxConcurrentDIBatches)
@@ -268,15 +475,10 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
         public bool TryRemoveBlockAt(int equipmentIndex, int clickMinute, out string message)
         {
-            int ringSize = TotalMinutes;
             var block = PlacedBlocks.FirstOrDefault(b =>
             {
                 if (b.EquipmentIndex != equipmentIndex) return false;
-                for (int i = 0; i < b.TotalMinutes; i++)
-                {
-                    if ((b.StartMinute + i) % ringSize == clickMinute) return true;
-                }
-                return false;
+                return clickMinute >= b.StartMinute && clickMinute < b.StartMinute + b.TotalMinutes;
             });
 
             if (block == null) { message = "해당 시간에 삭제할 레시피가 없습니다."; return false; }
@@ -302,36 +504,28 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
             string timeText = GetCellTimeText(minuteIdx);
             PushUndoSnapshot($"부분 초기화 취소 (시간 {timeText} 이후 트림)");
 
-            int removedCount = 0; int trimmedCount = 0; int ringSize = TotalMinutes;
+            int removedCount = 0; int trimmedCount = 0;
             var blocks = PlacedBlocks.ToList();
 
             foreach (var b in blocks)
             {
-                bool covers = false;
-                for (int i = 0; i < b.TotalMinutes; i++)
-                {
-                    if ((b.StartMinute + i) % ringSize == minuteIdx) { covers = true; break; }
-                }
+                int blockEnd = b.StartMinute + b.TotalMinutes;
 
-                if (covers)
+                if (b.StartMinute >= minuteIdx)
                 {
-                    int keepMinutes = (minuteIdx - b.StartMinute + ringSize) % ringSize;
-                    if (keepMinutes <= 0) { PlacedBlocks.Remove(b); removedCount++; }
-                    else
-                    {
-                        int keepS2 = Math.Min(keepMinutes, b.S2Minutes);
-                        int remain = keepMinutes - keepS2;
-                        int keepHF = Math.Min(Math.Max(0, remain), b.HFMinutes);
-                        remain -= keepHF;
-                        int keepDI = Math.Min(Math.Max(0, remain), b.DIMinutes);
-
-                        b.S2Minutes = keepS2; b.HFMinutes = keepHF; b.DIMinutes = keepDI;
-                        trimmedCount++;
-                    }
+                    PlacedBlocks.Remove(b); removedCount++;
                 }
-                else
+                else if (blockEnd > minuteIdx)
                 {
-                    if (b.StartMinute % ringSize >= minuteIdx) { PlacedBlocks.Remove(b); removedCount++; }
+                    int keepMinutes = minuteIdx - b.StartMinute;
+                    int keepS2 = Math.Min(keepMinutes, b.S2Minutes);
+                    int remain = keepMinutes - keepS2;
+                    int keepHF = Math.Min(remain, b.HFMinutes);
+                    remain -= keepHF;
+                    int keepDI = Math.Min(remain, b.DIMinutes);
+
+                    b.S2Minutes = keepS2; b.HFMinutes = keepHF; b.DIMinutes = keepDI;
+                    trimmedCount++;
                 }
             }
 
@@ -343,21 +537,24 @@ CREATE TABLE IF NOT EXISTS ScheduleBlocks (
 
         private void ClearScheduleTable()
         {
-            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open(); using var cmd = conn.CreateCommand(); cmd.CommandText = "DELETE FROM ScheduleBlocks;"; cmd.ExecuteNonQuery();
+            using var conn = OpenConn(); using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DELETE FROM ScheduleBlocks WHERE BoardDate = @date;";
+            cmd.Parameters.AddWithValue("@date", CurrentDateString);
+            cmd.ExecuteNonQuery();
         }
 
         private void SaveAllBlocksToDb()
         {
             ClearScheduleTable();
-            using var conn = new SqliteConnection($"Data Source={DbPath}"); conn.Open();
+            using var conn = OpenConn();
 
             foreach (var block in PlacedBlocks)
             {
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
 INSERT INTO ScheduleBlocks
-(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime)
-VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time);";
+(EquipmentIndex, StartCellIndex, TotalCells, S2Cells, HFCells, DICells, S2Temperature, RecipeText, CreatedTime, BoardDate)
+VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
                 cmd.Parameters.AddWithValue("@eq", block.EquipmentIndex);
                 cmd.Parameters.AddWithValue("@start", block.StartMinute);
                 cmd.Parameters.AddWithValue("@total", block.TotalMinutes);
@@ -367,12 +564,18 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time);";
                 cmd.Parameters.AddWithValue("@recipe", block.RecipeText);
                 cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 cmd.Parameters.AddWithValue("@temp", (object?)block.S2Temperature ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@date", CurrentDateString);
                 cmd.ExecuteNonQuery();
             }
         }
     }
 
-    public class BoardUndoSnapshot { public string ActionDescription { get; set; } = ""; public List<PlacedRecipeBlock> Blocks { get; set; } = new(); }
+    public class BoardUndoSnapshot
+    {
+        public string ActionDescription { get; set; } = "";
+        public List<PlacedRecipeBlock> Blocks { get; set; } = new();
+        public List<(string DateStr, int EquipmentIndex, int StartMinute)> NextDayOverflows { get; set; } = new();
+    }
     public class EquipmentLine { public int Index { get; set; } public string DisplayName { get; set; } = ""; }
 
     public class RecipeDefinition

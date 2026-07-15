@@ -23,11 +23,13 @@ namespace CleanPotal
         private PersonalMemoView? _personalMemoView;
         private FieldChecklistView? _fieldChecklistView;
         private FieldInventoryView? _fieldInventoryView;
+        private EquipmentAnalysisView? _equipmentAnalysisView;
         private EduDashboardView? _eduDashboardView;
         private WorkAssignmentView? _workAssignmentView;
         private QuotationView? _quotationView;
         private BrokenManagementView? _brokenMgmtView;
         private DocSearchView? _docSearchView;
+        private WfStandardConverterView? _wfConverterView;
         private MaterialLogisticsView? _materialLogisticsView;
         private ProductionBoardView? _productionBoardView;
         private DongtanLogisticsView? _dongtanLogisticsView;
@@ -39,7 +41,15 @@ namespace CleanPotal
         {
             if (MainContent.Content is ProductionMeetingView pm)
                 return pm.ConfirmDiscardIfDirty();
+            if (MainContent.Content is CleanPotal.StatusBoard.Views.MaterialLogisticsView ml)
+                return ml.ConfirmDiscardIfDirty();
             return true;
+        }
+
+        // 창 종료 시 미저장 변경 확인
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (!TryNavigateAway()) e.Cancel = true;
         }
 
         private DispatcherTimer? _pollingTimer;
@@ -72,9 +82,16 @@ namespace CleanPotal
             BtnCommandNotice.Click += BtnCommandNotice_Click;
             BtnCommandSecondary.Click += BtnCommandSecondary_Click;
             BtnCommandVendor.Click += BtnCommandVendor_Click;
+            this.Closing += MainWindow_Closing;
 
-            DatabaseHelper.InitializeDatabase();
-            CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables();
+            // 🚀 시작 성능: 예전엔 초기화 메서드마다 NAS(SMB) SQLite 연결을 새로 열어
+            //   로그인 직후 창이 뜨기 전 연결을 7번 열었다. 이제 연결 하나를 열어
+            //   모든 테이블 초기화에 재사용해 네트워크 왕복을 크게 줄인다.
+            using (var startupConn = DatabaseHelper.GetConnection())
+            {
+                DatabaseHelper.InitializeDatabase(startupConn);
+                CleanPotal.StatusBoard.Repositories.StatusBoardRepository.InitializeTables(startupConn);
+            }
 
             // 버전 표시
             VersionText.Text = GetAppVersion();
@@ -98,39 +115,53 @@ namespace CleanPotal
             _pollingTimer.Start();
         }
 
-        private void PollingTimer_Tick(object? sender, EventArgs e)
+        private bool _pollBusy;   // 틱 중복 실행 방지(NAS 지연 시 누적 방지)
+
+        private async void PollingTimer_Tick(object? sender, EventArgs e)
         {
-            // ProdReq 개인별 미읽음 배지/토스트 (UI 스레드에서 직접 실행 - Task.Run 제거)
+            if (_pollBusy) return;   // 이전 틱이 아직 처리 중이면 이번 틱은 건너뜀
+            _pollBusy = true;
             try
             {
+                // ⚠️ NAS(SMB) SQLite 조회를 UI 스레드에서 하면 네트워크 지연 시 화면이 통째로 멈춘다.
+                //    미읽음 배지 조회는 백그라운드(Task.Run)로 돌리고, UI 갱신만 메인 스레드에서 한다.
                 string username = SessionManager.CurrentUsername ?? "";
                 if (!string.IsNullOrEmpty(username))
                 {
-                    int unread = DatabaseHelper.GetUnreadProdReqCount(username);
-                    int prev = _unreadReqCount;
-                    _unreadReqCount = unread;
-                    UpdateBadge();
+                    int unread = -1;
+                    try { unread = await Task.Run(() => DatabaseHelper.GetUnreadProdReqCount(username)); }
+                    catch { unread = -1; }
 
-                    if (unread > prev && _currentViewName != "ProdReq")
-                        ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
+                    if (unread >= 0)   // 조회 성공 시에만 반영(실패/지연 시 조용히 건너뜀)
+                    {
+                        int prev = _unreadReqCount;
+                        _unreadReqCount = unread;
+                        UpdateBadge();
+                        if (unread > prev && _currentViewName != "ProdReq")
+                            ShowToast($"새로운 요청사항 {unread - prev}건이 등록되었습니다.");
+                    }
                 }
-            }
-            catch { }
 
-            // 현재 화면 자동 갱신
-            switch (MainContent.Content)
-            {
-                case ProdReqView pv:                    pv.TryRefresh(); break;
-                case TeamScheduleView tsv:              tsv.TryRefresh(); break;
-                case ProductionMeetingView pm:          pm.TryRefresh(); break;
-                case PersonalMemoView memo:             memo.TryRefresh(); break;
-                case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
-                case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
-                case EduDashboardView ed:               ed.TryRefresh(); break;
-                case HandoverView hv:                   hv.TryRefresh(); break;
-                case WeeklyReportView wr:               wr.TryRefresh(); break;
-                case BrokenManagementView bm:           bm.TryRefresh(); break;
+                // 현재 화면 자동 갱신(각 View 의 TryRefresh 는 내부에서 미저장/입력 중이면 스스로 건너뜀)
+                try
+                {
+                    switch (MainContent.Content)
+                    {
+                        case ProdReqView pv:                    pv.TryRefresh(); break;
+                        case TeamScheduleView tsv:              tsv.TryRefresh(); break;
+                        case ProductionMeetingView pm:          pm.TryRefresh(); break;
+                        case PersonalMemoView memo:             memo.TryRefresh(); break;
+                        case FieldChecklistView fc:             fc.RefreshDashboardCounters(); break;
+                        case DispatchCertificateBatchView dc:   dc.LoadHistoryData(); break;
+                        case EduDashboardView ed:               ed.TryRefresh(); break;
+                        case HandoverView hv:                   hv.TryRefresh(); break;
+                        case WeeklyReportView wr:               wr.TryRefresh(); break;
+                        case BrokenManagementView bm:           bm.TryRefresh(); break;
+                    }
+                }
+                catch { }
             }
+            finally { _pollBusy = false; }
         }
 
         private void UpdateBadge()
@@ -221,7 +252,7 @@ namespace CleanPotal
         private void ApplyAdminMenuVisibility()
         {
             // 관리자 영역(사용자 계정 관리)은 마스터(1004)만
-            bool isMaster = SessionManager.CurrentUsername == "1004";
+            bool isMaster = SessionManager.IsMasterAdmin;
             var masterVis = isMaster ? Visibility.Visible : Visibility.Collapsed;
             if (SectionHeaderAdmin != null) SectionHeaderAdmin.Visibility = masterVis;
             if (ExpanderAdmin != null) ExpanderAdmin.Visibility = masterVis;
@@ -232,21 +263,27 @@ namespace CleanPotal
 
             // OFFICE 업무 내 교육 메뉴 가시성
             bool canEditEdu = SessionManager.CanManageSchedule || isMaster;
-            bool canViewEdu = canEditEdu || SessionManager.CurrentTeamName == "Office";
+            bool canViewEdu = canEditEdu || IsOfficeTeam();
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Visibility = canViewEdu ? Visibility.Visible : Visibility.Collapsed;
-            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = canEditEdu ? Visibility.Visible : Visibility.Collapsed;
+            // 개인별 업무 분장표: 편집 권한자 + 임원(열람)
+            if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Visibility = (canEditEdu || IsExecutive()) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        // OFFICE 팀(또는 시스템 마스터)인지 여부
-        private static bool IsOfficeTeam()
-            => SessionManager.CurrentTeamName == "Office" || SessionManager.CurrentUsername == "1004";
+        // 임원 판별은 SessionManager.IsExecutive 단일 소스 사용
+        private static bool IsExecutive() => SessionManager.IsExecutive;
 
-        // OFFICE 업무 기능 접근 가드 — OFFICE 팀이 아니면 차단
+        // OFFICE 팀 · 시스템 마스터 · 임원(직위)인지 여부 → OFFICE 업무 열람 가능
+        private static bool IsOfficeTeam()
+            => SessionManager.CurrentTeamName == "Office"
+            || SessionManager.IsMasterAdmin
+            || IsExecutive();
+
+        // OFFICE 업무 기능 접근 가드 — OFFICE 팀/임원이 아니면 차단
         private bool CanOpenOfficeFeature()
         {
             if (!IsOfficeTeam())
             {
-                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                MessageBox.Show("OFFICE 업무 메뉴는 OFFICE 팀·임원만 열람할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
             }
             return true;
@@ -259,7 +296,7 @@ namespace CleanPotal
             if (SectionHeaderWorkspace != null) SectionHeaderWorkspace.Visibility = visibility;
             if (SectionHeaderTools != null) SectionHeaderTools.Visibility = visibility;
             // ADMIN 헤더는 마스터(1004)만 표시
-            if (SectionHeaderAdmin != null && SessionManager.CurrentUsername == "1004")
+            if (SectionHeaderAdmin != null && SessionManager.IsMasterAdmin)
                 SectionHeaderAdmin.Visibility = visibility;
         }
 
@@ -277,7 +314,7 @@ namespace CleanPotal
             else if (_currentViewName == "TeamSchedule") ExpanderAttendance.IsExpanded = true;
             else if (_currentViewName == "Quotation" || _currentViewName == "WeeklyReport") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "PersonalTask") ExpanderProduction.IsExpanded = true;
-            else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory") ExpanderFieldInspection.IsExpanded = true;
+            else if (_currentViewName == "FieldChecklist" || _currentViewName == "FieldInventory" || _currentViewName == "EquipAnalysis") ExpanderFieldInspection.IsExpanded = true;
             else if (_currentViewName == "EduDashboard" || _currentViewName == "WorkAssignment") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "BrokenMgmt") ExpanderOffice.IsExpanded = true;
             else if (_currentViewName == "MaterialLogistics" || _currentViewName == "ProductionBoard" || _currentViewName == "DongtanLogistics") ExpanderStatusBoard.IsExpanded = true;
@@ -288,8 +325,8 @@ namespace CleanPotal
         private void ExpanderAttendance_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "TeamSchedule") OpenTeamSchedule(sender, e); }
         private void ExpanderProduction_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Handover" && _currentViewName != "WeeklyHandover" && _currentViewName != "PersonalTask" && _currentViewName != "ProdReq" && _currentViewName != "Schedule") OpenHandover(sender, e); }
         private void ExpanderOffice_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Quotation" && _currentViewName != "WeeklyReport" && _currentViewName != "PersonalTask" && _currentViewName != "EduDashboard" && _currentViewName != "WorkAssignment" && _currentViewName != "BrokenMgmt") OpenQuotation_Click(sender, e); }
-        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert" && _currentViewName != "DocSearch") OpenReport_Click(sender, e); }
-        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory") OpenFieldInventory_Click(sender, e); }
+        private void ExpanderEtc_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "Report" && _currentViewName != "DispatchCert" && _currentViewName != "DocSearch" && _currentViewName != "WfConverter") OpenReport_Click(sender, e); }
+        private void ExpanderFieldInspection_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); if (!_isUpdatingNav && _currentViewName != "FieldChecklist" && _currentViewName != "FieldInventory" && _currentViewName != "EquipAnalysis") OpenEquipAnalysis_Click(sender, e); }
         private void ExpanderAdmin_Expanded(object sender, RoutedEventArgs e) { OpenSidebar(); }
 
         private void OpenPortal(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPortal(); }
@@ -320,7 +357,7 @@ namespace CleanPotal
 
         private bool CanOpenAdminFeature()
         {
-            if (SessionManager.CurrentUsername != "1004")
+            if (!SessionManager.IsMasterAdmin)
             {
                 MessageBox.Show("해당 기능은 시스템 관리자(마스터)만 사용할 수 있습니다.", "접근 권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return false;
@@ -330,15 +367,15 @@ namespace CleanPotal
 
         private bool CanOpenEduDashboard()
         {
-            bool isMaster = SessionManager.CurrentUsername == "1004";
-            bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office";
+            bool isMaster = SessionManager.IsMasterAdmin;
+            bool ok = SessionManager.CanManageSchedule || isMaster || SessionManager.CurrentTeamName == "Office" || IsExecutive();
             if (!ok) { MessageBox.Show("접근 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
         }
 
         private bool CanOpenWorkAssignment()
         {
-            bool ok = SessionManager.CanManageSchedule || SessionManager.CurrentUsername == "1004";
+            bool ok = SessionManager.CanManageSchedule || SessionManager.IsMasterAdmin || IsExecutive();
             if (!ok) { MessageBox.Show("교육 관리 권한이 필요합니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop); return false; }
             return true;
         }
@@ -425,11 +462,30 @@ namespace CleanPotal
             HideAllHeaderButtons();
         }
 
+        private void OpenWfConverter_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSidebar();
+            ShowWfConverter();
+        }
+
+        private void ShowWfConverter()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "WfConverter";
+            ApplySectionMeta("문서 개정작업", "마스터 파일 기반으로 표준 문서를 모표준+부속서 체계로 일괄 개정합니다.");
+            UpdateNavSelection("WfConverter");
+            if (_wfConverterView == null) _wfConverterView = new WfStandardConverterView();
+            else _wfConverterView.TryRefresh();
+            MainContent.Content = _wfConverterView;
+            HideAllHeaderButtons();
+        }
+
         private void OpenDispatchCert_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowDispatchCert(); }
         private void OpenReport_Click(object sender, RoutedEventArgs e) { OpenSidebar(); if (!CanOpenEtcOfficeFeature()) return; ShowReport(); }
         private void OpenPersonalMemo_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowPersonalMemo(); }
         private void OpenFieldChecklist_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldChecklist(); }
         private void OpenFieldInventory_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowFieldInventory(); }
+        private void OpenEquipAnalysis_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowEquipAnalysis(); }
         private void OpenMaterialLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowMaterialLogistics(); }
         private void OpenProductionBoard_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowProductionBoard(); }
         private void OpenDongtanLogistics_Click(object sender, RoutedEventArgs e) { OpenSidebar(); ShowDongtanLogistics(); }
@@ -457,8 +513,8 @@ namespace CleanPotal
 
             BtnCommandPrimary.Visibility = Visibility.Collapsed; BtnCommandNotice.Visibility = Visibility.Collapsed;
             BtnCommandSecondary.Visibility = Visibility.Collapsed; BtnCommandVendor.Visibility = Visibility.Collapsed;
-            BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed;
-            BtnCommandUndo.Visibility = Visibility.Collapsed; BtnCommandPartialReset.Visibility = Visibility.Collapsed;
+            BtnCommandRecipeManage.Visibility = Visibility.Collapsed; BtnCommandCapture.Visibility = Visibility.Collapsed; BtnCommandMultiCapture.Visibility = Visibility.Collapsed;
+            BtnCommandUndo.Visibility = Visibility.Collapsed;
             BtnCommandReset.Visibility = Visibility.Collapsed; BtnCommandNewReq.Visibility = Visibility.Collapsed;
         }
 
@@ -541,7 +597,7 @@ namespace CleanPotal
             MainContent.Content = _scheduleBoardView;
             HideAllHeaderButtons();
             BtnCommandRecipeManage.Visibility = Visibility.Visible; BtnCommandCapture.Visibility = Visibility.Visible;
-            BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandPartialReset.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
+            BtnCommandMultiCapture.Visibility = Visibility.Visible; BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
         }
 
         private void ShowTeamSchedule()
@@ -609,6 +665,17 @@ namespace CleanPotal
             UpdateNavSelection("PersonalTask");
             HideAllHeaderButtons();
             BtnCommandSecondary.Content = "변경사항 저장"; BtnCommandSecondary.Visibility = Visibility.Visible;
+        }
+
+        private void ShowEquipAnalysis()
+        {
+            if (!TryNavigateAway()) return;
+            _currentViewName = "EquipAnalysis";
+            ApplySectionMeta("설비 ICP-MS", "ICP-MS 설비별 분석 데이터를 확인합니다.");
+            UpdateNavSelection("EquipAnalysis");
+            if (_equipmentAnalysisView == null) _equipmentAnalysisView = new EquipmentAnalysisView();
+            MainContent.Content = _equipmentAnalysisView;
+            HideAllHeaderButtons();
         }
 
         private void ShowFieldInventory()
@@ -682,8 +749,8 @@ namespace CleanPotal
         private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); else if (MainContent.Content is ProductionMeetingView pm) pm.SaveReportChanges(); }
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
+        private void BtnCommandMultiCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.MultiCaptureBoard();
         private void BtnCommandUndo_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.UndoAction();
-        private void BtnCommandPartialReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.PartialReset();
         private void BtnCommandReset_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.ResetAll();
         private void BtnCommandNewReq_Click(object sender, RoutedEventArgs e) => _prodReqView?.OpenRegisterModal();
         private void HeaderPrevMonth_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoPrevMonth();
@@ -691,6 +758,8 @@ namespace CleanPotal
         private void HeaderToday_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.GoToday();
         private void HeaderCreatePattern_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.CreatePattern();
         private void HeaderRegisterSchedule_Click(object sender, RoutedEventArgs e) => _teamScheduleView?.RegisterSchedule();
+
+        private Expander? _activeExpander;   // 현재 활성(펼침 강조) 그룹 — 그룹이 바뀔 때만 애니메이션
 
         private void UpdateNavSelection(string viewName)
         {
@@ -703,34 +772,67 @@ namespace CleanPotal
             BtnNavPortal.Style = mainNormal; BtnNavReport.Style = subNormal; BtnNavHandover.Style = subNormal; BtnNavWeeklyHandover.Style = subNormal; BtnNavProdReq.Style = subNormal;
             BtnNavTeamSchedule.Style = subNormal; BtnNavSchedule.Style = subNormal; BtnNavWeeklyReport.Style = subNormal; BtnNavPersonalTask.Style = subNormal; BtnNavDispatchCert.Style = subNormal;
             BtnNavPersonalMemo.Style = subNormal; BtnNavFieldChecklist.Style = subNormal; BtnNavFieldInventory.Style = subNormal; BtnNavQuotation.Style = subNormal;
+            if (BtnNavEquipAnalysis != null) BtnNavEquipAnalysis.Style = subNormal;
             if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subNormal;
             if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subNormal;
             if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subNormal;
             if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subNormal;
+            if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subNormal;
+            if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subNormal;
+            if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subNormal;
+            if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subNormal;
 
-            ExpanderAttendance.Style = expNormal; ExpanderProduction.Style = expNormal; ExpanderOffice.Style = expNormal; ExpanderEtc.Style = expNormal;
-            ExpanderFieldInspection.Style = expNormal; ExpanderAdmin.Style = expNormal;
+            // 이 화면이 속한 활성 그룹(Expander) 결정
+            Expander? target = viewName switch
+            {
+                "Report" or "DispatchCert" or "DocSearch" or "WfConverter" => ExpanderEtc,
+                "Handover" or "WeeklyHandover" or "ProdReq" or "Schedule" or "PersonalTask" => ExpanderProduction,
+                "TeamSchedule" or "PersonalMemo" => ExpanderAttendance,
+                "Quotation" or "WeeklyReport" or "EduDashboard" or "WorkAssignment" or "BrokenMgmt" => ExpanderOffice,
+                "FieldChecklist" or "FieldInventory" or "EquipAnalysis" => ExpanderFieldInspection,
+                "MaterialLogistics" or "ProductionBoard" or "DongtanLogistics" => ExpanderStatusBoard,
+                _ => null
+            };
 
+            // 서브버튼 선택 강조 (버튼은 출렁임 없음 — 매번 갱신)
             switch (viewName)
             {
                 case "Portal": BtnNavPortal.Style = mainSelected; break;
-                case "Report": BtnNavReport.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "Handover": BtnNavHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "ProdReq": BtnNavProdReq.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "Schedule": BtnNavSchedule.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
-                case "Quotation": BtnNavQuotation.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; ExpanderProduction.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderProduction); break;
-                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
-                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; ExpanderAttendance.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderAttendance); break;
-                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
-                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; ExpanderFieldInspection.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderFieldInspection); break;
-                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; ExpanderOffice.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderOffice); break;
-                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; ExpanderEtc.Style = expActive; if (_isSidebarOpen) ForceExpand(ExpanderEtc); break;
+                case "Report": BtnNavReport.Style = subSelected; break;
+                case "Handover": BtnNavHandover.Style = subSelected; break;
+                case "WeeklyHandover": BtnNavWeeklyHandover.Style = subSelected; break;
+                case "ProdReq": BtnNavProdReq.Style = subSelected; break;
+                case "Schedule": BtnNavSchedule.Style = subSelected; break;
+                case "TeamSchedule": BtnNavTeamSchedule.Style = subSelected; break;
+                case "Quotation": BtnNavQuotation.Style = subSelected; break;
+                case "WeeklyReport": BtnNavWeeklyReport.Style = subSelected; break;
+                case "PersonalTask": BtnNavPersonalTask.Style = subSelected; break;
+                case "DispatchCert": BtnNavDispatchCert.Style = subSelected; break;
+                case "PersonalMemo": BtnNavPersonalMemo.Style = subSelected; break;
+                case "FieldChecklist": BtnNavFieldChecklist.Style = subSelected; break;
+                case "FieldInventory": BtnNavFieldInventory.Style = subSelected; break;
+                case "EquipAnalysis": if (BtnNavEquipAnalysis != null) BtnNavEquipAnalysis.Style = subSelected; break;
+                case "EduDashboard": if (BtnNavEduDashboard != null) BtnNavEduDashboard.Style = subSelected; break;
+                case "WorkAssignment": if (BtnNavWorkAssignment != null) BtnNavWorkAssignment.Style = subSelected; break;
+                case "BrokenMgmt": if (BtnNavBrokenMgmt != null) BtnNavBrokenMgmt.Style = subSelected; break;
+                case "DocSearch": if (BtnNavDocSearch != null) BtnNavDocSearch.Style = subSelected; break;
+                case "WfConverter": if (BtnNavWfConverter != null) BtnNavWfConverter.Style = subSelected; break;
+                case "MaterialLogistics": if (BtnNavMaterialLogistics != null) BtnNavMaterialLogistics.Style = subSelected; break;
+                case "ProductionBoard": if (BtnNavProductionBoard != null) BtnNavProductionBoard.Style = subSelected; break;
+                case "DongtanLogistics": if (BtnNavDongtanLogistics != null) BtnNavDongtanLogistics.Style = subSelected; break;
+            }
+
+            // Expander 스타일은 '활성 그룹이 바뀔 때만' 변경 → 같은 그룹 내 하위 메뉴 이동 시
+            // 접혔다 펴지는 '출렁임' 제거. (그룹을 새로 열 때만 펼침 애니메이션 재생)
+            if (target != _activeExpander)
+            {
+                if (_activeExpander != null) _activeExpander.Style = expNormal;
+                if (target != null)
+                {
+                    target.Style = expActive;
+                    if (_isSidebarOpen) ForceExpand(target);
+                }
+                _activeExpander = target;
             }
 
             _isUpdatingNav = false;

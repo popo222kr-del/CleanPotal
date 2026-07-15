@@ -1,0 +1,4 @@
+# WF 표준 변환 도구 실행에 필요한 Python 패키지
+# 설치: python -m pip install -r requirements.txt
+openpyxl>=3.1
+lxml>=4.9

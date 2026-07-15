@@ -97,7 +97,7 @@ namespace CleanPotal
             var days = new ObservableCollection<CalendarDayModel>();
 
             bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
-            bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+            bool isMaster = SessionManager.IsMasterAdmin || SessionManager.CanManageSchedule;
             bool isWeekdayTeam = SessionManager.CurrentTeamName?.Contains("주간") == true;
             bool canEditShifts = isOffice || isMaster || isWeekdayTeam;
             bool canEditTeamEvents = isOffice || isMaster;
@@ -118,9 +118,10 @@ namespace CleanPotal
                     dayModel.HolidayName = holidayName;
                 }
 
-                var dayShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "주간").ToList();
-                var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && s.ShiftType == "야간").ToList();
-                var rawOffShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && (s.ShiftType.Contains("휴무") || s.ShiftType.Contains("연차") || s.ShiftType.Contains("반차"))).ToList();
+                // ShiftType 정규화: '예상:' 접두어와 앞뒤 공백을 무시해 다른 화면(패턴 생성/오늘의 현황)과 집계 기준을 일치시킨다.
+                var dayShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && NormShift(s.ShiftType) == "주간").ToList();
+                var nightShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && NormShift(s.ShiftType) == "야간").ToList();
+                var rawOffShifts = shifts.Where(s => s.TargetDate.ToString("yyyy-MM-dd") == cellDateStr && (NormShift(s.ShiftType).Contains("휴무") || NormShift(s.ShiftType).Contains("연차") || NormShift(s.ShiftType).Contains("반차"))).ToList();
                 var dayEdus = edus.Where(e => e.StartDate.Date <= cellDate.Date && e.EndDate.Date >= cellDate.Date).ToList();
 
                 // 1. 주간 근무 뱃지
@@ -189,9 +190,9 @@ namespace CleanPotal
                                 dayOffShifts.Add(off);
                             else
                             {
-                                var adjShift = shifts.FirstOrDefault(s => (s.TeamGroup ?? allUsers.FirstOrDefault(u => u.RealName == s.MemberName)?.TeamName) == tg && (s.ShiftType == "주간" || s.ShiftType == "야간") && Math.Abs((s.TargetDate - cellDate).TotalDays) <= 3);
+                                var adjShift = shifts.FirstOrDefault(s => (s.TeamGroup ?? allUsers.FirstOrDefault(u => u.RealName == s.MemberName)?.TeamName) == tg && (NormShift(s.ShiftType) == "주간" || NormShift(s.ShiftType) == "야간") && Math.Abs((s.TargetDate - cellDate).TotalDays) <= 3);
 
-                                if (adjShift != null && adjShift.ShiftType == "야간")
+                                if (adjShift != null && NormShift(adjShift.ShiftType) == "야간")
                                     nightOffShifts.Add(off);
                                 else
                                     dayOffShifts.Add(off);
@@ -266,6 +267,10 @@ namespace CleanPotal
 
             return days;
         }
+
+        // '예상:' 접두어와 앞뒤 공백을 제거해 근무 유형을 정규화한다.
+        private static string NormShift(string? shiftType)
+            => (shiftType ?? "").Replace("예상:", "").Trim();
 
         private void AddOffBadge(List<ShiftScheduleModel> offList, string prefix, CalendarDayModel dayModel, bool canEdit = false)
         {
@@ -342,7 +347,7 @@ namespace CleanPotal
         {
             if ((sender as Button)?.DataContext is ScheduleDetailItem item)
             {
-                bool isMaster = SessionManager.CurrentUsername == "1004" || SessionManager.CanManageSchedule;
+                bool isMaster = SessionManager.IsMasterAdmin || SessionManager.CanManageSchedule;
                 bool isOffice = SessionManager.CurrentTeamName?.ToUpper().Contains("OFFICE") == true;
                 bool isMine = item.Name == SessionManager.CurrentRealName;
                 bool canDeleteTeamEvent = item.SourceType == "TeamEvent" && (isOffice || isMaster);
@@ -509,15 +514,10 @@ namespace CleanPotal
 
         public void CreatePattern()
         {
-            // 실제 배포 시에는 마스터 권한 로직 활성화
-            bool isMaster = true;
-            if (!isMaster)
-            {
-                MessageBox.Show("부서 전체의 근무표를 생성/관리할 수 있는 마스터 권한이 없습니다.", "접근 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
-                return;
-            }
+            bool canEdit = SessionManager.IsMasterAdmin
+                        || SessionManager.CanManageShiftBoard;
 
-            var boardWin = new ScheduleProgramWindow { Owner = Window.GetWindow(this) };
+            var boardWin = new ScheduleProgramWindow(canEdit) { Owner = Window.GetWindow(this) };
             boardWin.ShowDialog();
 
             _ = BuildCalendarAsync(_currentDate);
@@ -525,6 +525,9 @@ namespace CleanPotal
 
         public void RegisterSchedule()
         {
+            // 팀 구분 없이 누구나 등록 창을 열 수 있다.
+            // 창 내부에서 권한별로 제어됨: 일반 사용자는 본인 근태/휴가만,
+            // '팀 일정 등록' 탭은 OFFICE(또는 마스터)에게만 표시.
             var win = new ScheduleRegisterWindow();
             win.Owner = Window.GetWindow(this);
 

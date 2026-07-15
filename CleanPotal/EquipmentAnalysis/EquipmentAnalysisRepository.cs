@@ -1,0 +1,269 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using Dapper;
+
+namespace CleanPotal.EquipmentAnalysis
+{
+    // ICP-MS 설비 분석 데이터 1행 (설비별 금속 오염도 ppb)
+    public class EquipmentAnalysisRow
+    {
+        public long Id { get; set; }
+        public string ProcessType { get; set; } = "";   // 시트 구분: DIP / US
+        public string EqId { get; set; } = "";           // 설비 ID
+        public string BathGb { get; set; } = "";         // 약액: S2/HF/HNO3/DIW 등
+        public string Category { get; set; } = "";       // DIP=Use_CNT / US=공정 (C열 원본값)
+        public string Unit { get; set; } = "ppb";
+        public string AnalysisDate { get; set; } = "";   // yyyy-MM-dd
+        // 원소별 값
+        public Dictionary<string, double> Elements { get; set; } = new();
+    }
+
+    public static class EquipmentAnalysisRepository
+    {
+        // 원소 컬럼(엑셀 헤더와 동일한 순서). 컬럼 생성/입출력에 공통 사용.
+        public static readonly string[] ElementCols =
+            { "Li","Na","Mg","Al","K","Ca","Ti","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ge","As","Cd","In","Ba","Ta","W","Pb" };
+
+        public static void InitializeTables(IDbConnection? shared = null)
+        {
+            var db = shared ?? DatabaseHelper.GetConnection();
+            try
+            {
+                string elemCols = string.Join(",\n", ElementCols.Select(e => $"        \"{e}\" REAL NOT NULL DEFAULT 0"));
+                db.Execute($@"
+                    CREATE TABLE IF NOT EXISTS EquipmentAnalysis (
+                        Id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ProcessType  TEXT NOT NULL DEFAULT '',
+                        EqId         TEXT NOT NULL DEFAULT '',
+                        BathGb       TEXT NOT NULL DEFAULT '',
+                        Category     TEXT NOT NULL DEFAULT '',
+                        Unit         TEXT NOT NULL DEFAULT 'ppb',
+                        AnalysisDate TEXT NOT NULL DEFAULT '',
+{elemCols}
+                    );");
+                // 재업로드 중복 방지(설비+약액+구분+분석일+공정타입 동일하면 무시)
+                db.Execute(@"CREATE UNIQUE INDEX IF NOT EXISTS UX_EqAnalysis
+                             ON EquipmentAnalysis(ProcessType, EqId, BathGb, Category, AnalysisDate);");
+
+                // 측정 현황 특이사항(설비별·날짜별)
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentCheckNote (
+                        EqId      TEXT NOT NULL DEFAULT '',
+                        CheckDate TEXT NOT NULL DEFAULT '',
+                        Note      TEXT NOT NULL DEFAULT '',
+                        UpdatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                        PRIMARY KEY (EqId, CheckDate)
+                    );");
+
+                // 설비 마스터(설비명 + 공정/급). 분석 데이터에 없는 설비도 등록 가능.
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentMaster (
+                        EqId    TEXT PRIMARY KEY,
+                        Process TEXT NOT NULL DEFAULT ''
+                    );");
+
+                // 작업 이력(업로드/수정/삭제 감사 로그) — 관리자 조회용
+                db.Execute(@"
+                    CREATE TABLE IF NOT EXISTS EquipmentActionLog (
+                        Id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ActionType TEXT NOT NULL DEFAULT '',
+                        Detail    TEXT NOT NULL DEFAULT '',
+                        UserName  TEXT NOT NULL DEFAULT '',
+                        CreatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                    );");
+            }
+            finally { if (shared == null) db.Dispose(); }
+        }
+
+        // 작업 이력 기록 (실패해도 본 작업에 영향 없도록 예외 무시)
+        public static void InsertActionLog(string actionType, string detail, string userName)
+        {
+            try
+            {
+                using var db = DatabaseHelper.GetConnection();
+                db.Execute(@"INSERT INTO EquipmentActionLog (ActionType, Detail, UserName, CreatedAt)
+                             VALUES (@a, @d, @u, datetime('now','localtime'))",
+                           new { a = actionType ?? "", d = detail ?? "", u = userName ?? "" });
+            }
+            catch { }
+        }
+
+        public class ActionLogRow
+        {
+            public long Id { get; set; }
+            public string ActionType { get; set; } = "";
+            public string Detail { get; set; } = "";
+            public string UserName { get; set; } = "";
+            public string CreatedAt { get; set; } = "";
+        }
+
+        // 작업 이력 조회(최신순)
+        public static List<ActionLogRow> GetActionLogs(int limit = 500)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.Query<ActionLogRow>(
+                "SELECT Id, ActionType, Detail, UserName, CreatedAt FROM EquipmentActionLog ORDER BY Id DESC LIMIT @n",
+                new { n = limit }).ToList();
+        }
+
+        // 설비 마스터 (EqId → 공정)
+        public static Dictionary<string, string> GetEquipmentMaster()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT EqId, Process FROM EquipmentMaster");
+            var map = new Dictionary<string, string>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                string eq = (d["EqId"] as string) ?? "";
+                if (!string.IsNullOrEmpty(eq)) map[eq] = (d["Process"] as string) ?? "";
+            }
+            return map;
+        }
+
+        // 설비 추가(이미 있으면 무시)
+        public static void AddEquipment(string eqId)
+        {
+            if (string.IsNullOrWhiteSpace(eqId)) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("INSERT OR IGNORE INTO EquipmentMaster (EqId, Process) VALUES (@e, '')", new { e = eqId.Trim() });
+        }
+
+        // 설비 공정 저장
+        public static void UpsertEquipmentProcess(string eqId, string process)
+        {
+            if (string.IsNullOrWhiteSpace(eqId)) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute(@"INSERT INTO EquipmentMaster (EqId, Process) VALUES (@e, @p)
+                         ON CONFLICT(EqId) DO UPDATE SET Process=@p;",
+                       new { e = eqId.Trim(), p = process ?? "" });
+        }
+
+        // 설비명 변경 → 분석 데이터·특이사항·마스터 모두 새 이름으로 매칭
+        public static void RenameEquipment(string oldId, string newId)
+        {
+            if (string.IsNullOrWhiteSpace(oldId) || string.IsNullOrWhiteSpace(newId)) return;
+            oldId = oldId.Trim(); newId = newId.Trim();
+            if (oldId == newId) return;
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("UPDATE OR REPLACE EquipmentAnalysis SET EqId=@n WHERE EqId=@o", new { n = newId, o = oldId });
+            db.Execute("UPDATE OR REPLACE EquipmentCheckNote SET EqId=@n WHERE EqId=@o", new { n = newId, o = oldId });
+            // 마스터: 기존 공정 보존하며 이름 교체
+            string proc = db.ExecuteScalar<string?>("SELECT Process FROM EquipmentMaster WHERE EqId=@o", new { o = oldId }) ?? "";
+            db.Execute("DELETE FROM EquipmentMaster WHERE EqId=@o", new { o = oldId });
+            db.Execute(@"INSERT INTO EquipmentMaster (EqId, Process) VALUES (@n, @p)
+                         ON CONFLICT(EqId) DO UPDATE SET Process=@p;", new { n = newId, p = proc });
+        }
+
+        // 특정 날짜의 설비별 특이사항 (EqId → Note)
+        public static Dictionary<string, string> GetCheckNotes(string checkDate)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT EqId, Note FROM EquipmentCheckNote WHERE CheckDate = @d", new { d = checkDate ?? "" });
+            var map = new Dictionary<string, string>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                string eq = (d["EqId"] as string) ?? "";
+                if (!string.IsNullOrEmpty(eq)) map[eq] = (d["Note"] as string) ?? "";
+            }
+            return map;
+        }
+
+        // 설비의 날짜별 특이사항 이력(누적, 최신순)
+        public static List<(string Date, string Note)> GetCheckNoteHistory(string eqId)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT CheckDate, Note FROM EquipmentCheckNote WHERE EqId=@e AND Note <> '' ORDER BY CheckDate DESC",
+                                new { e = eqId ?? "" });
+            var list = new List<(string, string)>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                list.Add(((d["CheckDate"] as string) ?? "", (d["Note"] as string) ?? ""));
+            }
+            return list;
+        }
+
+        // 설비별·날짜별 특이사항 저장(빈 값이면 삭제)
+        public static void UpsertCheckNote(string eqId, string checkDate, string note)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            if (string.IsNullOrWhiteSpace(note))
+            {
+                db.Execute("DELETE FROM EquipmentCheckNote WHERE EqId=@e AND CheckDate=@d",
+                           new { e = eqId ?? "", d = checkDate ?? "" });
+                return;
+            }
+            db.Execute(@"INSERT INTO EquipmentCheckNote (EqId, CheckDate, Note, UpdatedAt)
+                         VALUES (@e, @d, @n, datetime('now','localtime'))
+                         ON CONFLICT(EqId, CheckDate) DO UPDATE SET Note=@n, UpdatedAt=datetime('now','localtime');",
+                       new { e = eqId ?? "", d = checkDate ?? "", n = note });
+        }
+
+        // 누적 삽입(중복은 무시). 삽입된 신규 행 수 반환.
+        public static int InsertMany(IEnumerable<EquipmentAnalysisRow> rows)
+        {
+            using var db = DatabaseHelper.GetConnection();
+            using var tx = db.BeginTransaction();
+            int added = 0;
+            string cols = "ProcessType,EqId,BathGb,Category,Unit,AnalysisDate," + string.Join(",", ElementCols.Select(e => $"\"{e}\""));
+            string vals = "@ProcessType,@EqId,@BathGb,@Category,@Unit,@AnalysisDate," + string.Join(",", ElementCols.Select(e => "@" + e));
+            string sql = $"INSERT OR IGNORE INTO EquipmentAnalysis ({cols}) VALUES ({vals});";
+            foreach (var r in rows)
+            {
+                var p = new DynamicParameters();
+                p.Add("ProcessType", r.ProcessType ?? "");
+                p.Add("EqId", r.EqId ?? "");
+                p.Add("BathGb", r.BathGb ?? "");
+                p.Add("Category", r.Category ?? "");
+                p.Add("Unit", string.IsNullOrWhiteSpace(r.Unit) ? "ppb" : r.Unit);
+                p.Add("AnalysisDate", r.AnalysisDate ?? "");
+                foreach (var e in ElementCols)
+                    p.Add(e, r.Elements != null && r.Elements.TryGetValue(e, out var v) ? v : 0.0);
+                added += db.Execute(sql, p, tx);
+            }
+            tx.Commit();
+            return added;
+        }
+
+        public static List<EquipmentAnalysisRow> GetAll()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            var rows = db.Query("SELECT * FROM EquipmentAnalysis ORDER BY AnalysisDate, EqId");
+            var list = new List<EquipmentAnalysisRow>();
+            foreach (var r in rows)
+            {
+                var d = (IDictionary<string, object>)r;
+                var row = new EquipmentAnalysisRow
+                {
+                    Id = Convert.ToInt64(d["Id"]),
+                    ProcessType = (d["ProcessType"] as string) ?? "",
+                    EqId = (d["EqId"] as string) ?? "",
+                    BathGb = (d["BathGb"] as string) ?? "",
+                    Category = (d["Category"] as string) ?? "",
+                    Unit = (d["Unit"] as string) ?? "ppb",
+                    AnalysisDate = (d["AnalysisDate"] as string) ?? "",
+                };
+                foreach (var e in ElementCols)
+                    row.Elements[e] = d.TryGetValue(e, out var v) && v != null ? Convert.ToDouble(v) : 0.0;
+                list.Add(row);
+            }
+            return list;
+        }
+
+        public static void DeleteAll()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            db.Execute("DELETE FROM EquipmentAnalysis;");
+        }
+
+        public static int Count()
+        {
+            using var db = DatabaseHelper.GetConnection();
+            return db.ExecuteScalar<int>("SELECT COUNT(*) FROM EquipmentAnalysis;");
+        }
+    }
+}
