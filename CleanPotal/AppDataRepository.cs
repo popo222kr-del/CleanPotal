@@ -183,6 +183,22 @@ namespace CleanPotal
             try
             {
                 using var db = DatabaseHelper.GetConnection();
+
+                // 덮어쓰기 사고 대비 1단계 백업: 기존 값을 <key>__prev 에 보존(다음 덮어쓰기 전까지 복구 가능)
+                if (!key.EndsWith("__prev", StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        string? prev = db.ExecuteScalar<string?>(
+                            "SELECT Json FROM AppData WHERE DataKey=@k", new { k = key });
+                        if (!string.IsNullOrWhiteSpace(prev) && prev != (json ?? ""))
+                            db.Execute(@"INSERT INTO AppData (DataKey, Json, UpdatedAt) VALUES (@k, @j, datetime('now','localtime'))
+                                         ON CONFLICT(DataKey) DO UPDATE SET Json=@j, UpdatedAt=datetime('now','localtime')",
+                                       new { k = key + "__prev", j = prev });
+                    }
+                    catch { }
+                }
+
                 db.Execute(@"INSERT INTO AppData (DataKey, Json, UpdatedAt) VALUES (@k, @j, datetime('now','localtime'))
                              ON CONFLICT(DataKey) DO UPDATE SET Json=@j, UpdatedAt=datetime('now','localtime')",
                            new { k = key, j = json ?? "" });
