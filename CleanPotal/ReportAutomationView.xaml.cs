@@ -346,6 +346,19 @@ namespace CleanPotal
 
             string printerName = printDialog.PrintQueue.FullName;
 
+            // 다이얼로그에서 고른 세부 설정(급지 트레이·용지 등)을 출력 동안 프린터 기본값에 임시 반영.
+            // Excel/PPT/PDF 출력은 드라이버 '기본 설정'을 따르므로 반영하지 않으면 트레이 선택이 무시된다.
+            System.Printing.PrintQueue? cfgQueue = null;
+            System.Printing.PrintTicket? originalTicket = null;
+            try
+            {
+                cfgQueue = printDialog.PrintQueue;
+                originalTicket = cfgQueue.DefaultPrintTicket;
+                cfgQueue.DefaultPrintTicket = printDialog.PrintTicket;
+                cfgQueue.Commit();
+            }
+            catch { cfgQueue = null; originalTicket = null; }   // 권한 등으로 실패해도 출력은 계속(기존 동작)
+
             BtnRunPrint.IsEnabled = false;
             BtnRunPrint.Content   = "⏳ 출력 진행 중...";
 
@@ -431,6 +444,17 @@ namespace CleanPotal
             staThread.IsBackground = true;
             staThread.Start();
             await tcs.Task;
+
+            // 임시로 바꿔둔 프린터 기본 설정 복원
+            try
+            {
+                if (cfgQueue != null && originalTicket != null)
+                {
+                    cfgQueue.DefaultPrintTicket = originalTicket;
+                    cfgQueue.Commit();
+                }
+            }
+            catch { }
 
             BtnRunPrint.IsEnabled = true;
             BtnRunPrint.Content   = "일괄출력 실행";
