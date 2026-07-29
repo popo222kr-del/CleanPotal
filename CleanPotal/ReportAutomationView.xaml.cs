@@ -19,6 +19,7 @@ namespace CleanPotal
     public class ReportTaskModel : INotifyPropertyChanged
     {
         public string LotNumber { get; set; } = "";
+        public string ProductName { get; set; } = "";
         public string SerialNumber { get; set; } = "";
         public string SourceFilePath { get; set; } = "";
         public string FileType { get; set; } = "MES";
@@ -86,12 +87,14 @@ namespace CleanPotal
                         string[] cols = row.Split('\t');
                         if (cols.Length >= 2)
                         {
+                            // 3열 이상: LOT / 품명 / S/N — 2열(구버전 양식): LOT / S/N (품명 공백)
                             string lot = cols[0].Trim();
-                            string sn = cols[1].Trim();
+                            string product = cols.Length >= 3 ? cols[1].Trim() : "";
+                            string sn = (cols.Length >= 3 ? cols[2] : cols[1]).Trim();
 
                             if (!string.IsNullOrEmpty(lot) && !string.IsNullOrEmpty(sn))
                             {
-                                MesTaskList.Add(new ReportTaskModel { LotNumber = lot, SerialNumber = sn, Status = "대기중", FileType = "MES" });
+                                MesTaskList.Add(new ReportTaskModel { LotNumber = lot, ProductName = product, SerialNumber = sn, Status = "대기중", FileType = "MES" });
                             }
                         }
                     }

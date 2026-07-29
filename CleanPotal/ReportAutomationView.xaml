@@ -167,7 +167,7 @@
                                 </Border>
                                 <TextBlock Text="NAS 성적서 자동 변환" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Text="엑셀에서 LOT/SN 복사 후  Ctrl + V  로 붙여넣기" FontSize="12" Foreground="#94A3B8" Margin="0,6,0,0"/>
+                            <TextBlock Text="엑셀에서 LOT/품명/SN 복사 후  Ctrl + V  로 붙여넣기 (LOT/SN 2열도 가능)" FontSize="12" Foreground="#94A3B8" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
 
@@ -203,6 +203,7 @@
                         </DataGrid.Resources>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="LOT 번호"    Binding="{Binding LotNumber}"    Width="*"   ElementStyle="{StaticResource CellLeft}"/>
+                            <DataGridTextColumn Header="품명"        Binding="{Binding ProductName}"  Width="*"   ElementStyle="{StaticResource CellLeft}"/>
                             <DataGridTextColumn Header="S/N (파일명)" Binding="{Binding SerialNumber}" Width="*"   ElementStyle="{StaticResource CellLeft}"/>
                             <DataGridTextColumn Header="진행 상태"    Binding="{Binding Status}"       Width="110">
                                 <DataGridTextColumn.ElementStyle>
