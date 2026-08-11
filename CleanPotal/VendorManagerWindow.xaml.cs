@@ -142,6 +142,24 @@ namespace CleanPotal
         private void BrowseFolder_Click(object sender, RoutedEventArgs e) { if (VendorListBox.SelectedItem is VendorModel v) { var d = new Microsoft.Win32.OpenFolderDialog(); if (d.ShowDialog() == true) v.BasePath = GetUNCPath(d.FolderName ?? ""); } }
         private void BrowseGlobalTemplate_Click(object sender, RoutedEventArgs e) { if ((sender as FrameworkElement)?.DataContext is GlobalTemplateModel t) { var d = new OpenFileDialog { Filter = "Excel 서식 파일|*.xltx;*.xlsx" }; if (d.ShowDialog() == true) t.TemplatePath = GetUNCPath(d.FileName ?? ""); } }
         private void BtnSave_Click(object sender, RoutedEventArgs e) { try { Keyboard.Focus(this); VendorStore.Save(Vendors); UpdateSummary(); MessageBox.Show("저장되었습니다."); } catch (Exception ex) { MessageBox.Show("오류: " + ex.Message); } }
+
+        // 업체명·분류·주간팀·기본저장폴더·주소/담당자 편집이 '전체 데이터 저장' 버튼을 누르지 않으면
+        // 저장되지 않고 창을 닫으면 그대로 사라지던 문제 → 필드 편집 즉시 자동저장(다른 화면과 동일 방식).
+        private void AutoSaveVendors() { try { VendorStore.Save(Vendors); UpdateSummary(); } catch { } }
+        private void DetailField_LostFocus(object sender, RoutedEventArgs e) => AutoSaveVendors();
+        private void DetailField_Changed(object sender, RoutedEventArgs e) => AutoSaveVendors();
+        private void DetailGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            // 편집 커밋(바인딩 반영)이 끝난 다음 틱에 저장
+            Dispatcher.BeginInvoke(new Action(AutoSaveVendors), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // 최종 안전망: 텍스트박스에 포커스가 남은 채로 창을 닫아도 저장되도록
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            AutoSaveVendors();
+            base.OnClosing(e);
+        }
         private void UpdateSummary() { if (_vendorView != null && Vendors != null) TxtSummary.Text = $"전체 {Vendors.Count}개 · 주소 {Vendors.Sum(v => v.Addresses?.Count ?? 0)}개 · 담당자 {Vendors.Sum(v => v.Managers?.Count ?? 0)}명"; }
     }
 }

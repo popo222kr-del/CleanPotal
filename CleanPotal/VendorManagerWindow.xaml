@@ -224,11 +224,11 @@
                     <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="업체명" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,4" Background="White" Margin="0,0,24,0">
-                            <TextBox Text="{Binding VendorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Width="200" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+                            <TextBox Text="{Binding VendorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Width="200" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" LostFocus="DetailField_LostFocus"/>
                         </Border>
                         <TextBlock Text="분류" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="White" Padding="4,0">
-                            <ComboBox SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Width="120" Height="32" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center">
+                            <ComboBox SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Width="120" Height="32" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" SelectionChanged="DetailField_Changed">
                                 <ComboBoxItem Content="일반"/>
                                 <ComboBoxItem Content="삼성"/>
                                 <ComboBoxItem Content="SEMES"/>
@@ -236,14 +236,14 @@
                             </ComboBox>
                         </Border>
                         <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Background="White" Padding="10,0" Margin="12,0,0,0" Height="32">
-                            <CheckBox Content="주간팀" IsChecked="{Binding IsWeekly, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#334155"/>
+                            <CheckBox Content="주간팀" IsChecked="{Binding IsWeekly, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#334155" Checked="DetailField_Changed" Unchecked="DetailField_Changed"/>
                         </Border>
                     </StackPanel>
                     <Button Grid.Row="0" Grid.Column="1" Content="이 업체 삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="34" VerticalAlignment="Center" Click="DeleteVendor_Click"/>
                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="기본 저장 폴더" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
                         <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,4" Background="#F8FAFC" Width="550" Margin="0,0,8,0">
-                            <TextBox Text="{Binding BasePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Foreground="#334155" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"/>
+                            <TextBox Text="{Binding BasePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Foreground="#334155" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" LostFocus="DetailField_LostFocus"/>
                         </Border>
                         <Button Content="경로 찾기" Focusable="False" Width="80" Height="32" Style="{StaticResource SecondaryButton}" Click="BrowseFolder_Click"/>
                     </StackPanel>
@@ -263,7 +263,7 @@
                                 <Button Content="삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="30" Click="DeleteAddress_Click"/>
                             </StackPanel>
                         </Grid>
-                        <DataGrid x:Name="DetailGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}">
+                        <DataGrid x:Name="DetailGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}" CellEditEnding="DetailGrid_CellEditEnding">
                             <DataGrid.Resources>
                                 <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
                             </DataGrid.Resources>
@@ -293,7 +293,7 @@
                                 <Button Content="삭제" Focusable="False" Style="{StaticResource DangerButton}" Height="30" Click="DeleteManager_Click"/>
                             </StackPanel>
                         </Grid>
-                        <DataGrid x:Name="ManagersDataGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}">
+                        <DataGrid x:Name="ManagersDataGrid" Grid.Row="1" Style="{StaticResource ModernDataGridStyle}" CellEditEnding="DetailGrid_CellEditEnding">
                             <DataGrid.Resources>
                                 <Style TargetType="ScrollBar" BasedOn="{StaticResource ModernScrollBar}"/>
                             </DataGrid.Resources>
