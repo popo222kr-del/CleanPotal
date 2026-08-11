@@ -102,6 +102,10 @@ namespace CleanPotal
             bool canEditShifts = isOffice || isMaster || isWeekdayTeam;
             bool canEditTeamEvents = isOffice || isMaster;
 
+            // 퇴사자는 과거 등록된 근무/휴무 레코드가 남아 있어도 달력에 표시하지 않는다.
+            var resignedNames = new HashSet<string>(allUsers.Where(u => u.IsResigned).Select(u => u.RealName));
+            if (resignedNames.Count > 0) shifts = shifts.Where(s => !resignedNames.Contains(s.MemberName)).ToList();
+
             for (int i = 0; i < 42; i++)
             {
                 DateTime cellDate = startDate.AddDays(i);

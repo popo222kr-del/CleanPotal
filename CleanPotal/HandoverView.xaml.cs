@@ -311,14 +311,16 @@ namespace CleanPotal
                 var shifts = DatabaseHelper.GetShiftSchedulesByDate(today);
                 var edus = DatabaseHelper.GetEducationPlansByDate(today);
                 var allUsers = AuthDatabaseHelper.GetAllUsers();
+                // 퇴사자는 과거 등록된 일정 레코드가 남아 있어도 화면에 표시하지 않는다.
+                var resignedNames = new HashSet<string>(allUsers.Where(u => u.IsResigned).Select(u => u.RealName));
                 string[] targetTeams = { "김팀", "장팀", "주간팀", "Office" };
 
                 foreach (var tName in targetTeams)
                 {
                     var group = new TeamStatusGroup { TeamName = tName };
-                    var teamUsers = allUsers.Where(u => u.TeamName == tName).Select(u => u.RealName).ToList();
-                    var tShifts = shifts.Where(s => teamUsers.Contains(s.MemberName) || s.TeamGroup == tName).ToList();
-                    var tEdus = edus.Where(e => teamUsers.Contains(e.MemberName)).ToList();
+                    var teamUsers = allUsers.Where(u => u.TeamName == tName && !u.IsResigned).Select(u => u.RealName).ToList();
+                    var tShifts = shifts.Where(s => (teamUsers.Contains(s.MemberName) || s.TeamGroup == tName) && !resignedNames.Contains(s.MemberName)).ToList();
+                    var tEdus = edus.Where(e => teamUsers.Contains(e.MemberName) && !resignedNames.Contains(e.MemberName)).ToList();
 
                     var dayShifts = tShifts.Where(s => s.ShiftType == "주간" || s.ShiftType == "예상:주간").Select(s => s.MemberName).Distinct().ToList();
                     if (dayShifts.Count > 0) group.StatusList.Add(new TodayStatusItem { BadgeText = $"주간 ({dayShifts.Count})", BackgroundBrush = new SolidColorBrush(Color.FromRgb(254, 243, 199)), TextBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)), MembersText = FormatMembersText(dayShifts) });
@@ -392,16 +394,18 @@ namespace CleanPotal
             // --- 이번주 쉬는 인원 (휴무·연차·반차), 요일 달력, 팀 구분 ---
             string[] dowLabels = { "일", "월", "화", "수", "목", "금", "토" };
             var weekShifts = DatabaseHelper.GetShiftSchedulesInRange(weekStart, weekEnd);
+            // 퇴사자는 과거 등록된 일정 레코드가 남아 있어도 표시하지 않는다.
+            var weekResignedNames = new HashSet<string>(users.Where(u => u.IsResigned).Select(u => u.RealName));
             // 주간팀(평일 전담)은 주말/공휴일에 근무 기록이 없으면 자동으로 '휴무'로 간주해 표시한다.
             var weekdayTeamMembers = users
-                .Where(u => u.TeamName == "주간팀" && !string.IsNullOrWhiteSpace(u.RealName))
+                .Where(u => u.TeamName == "주간팀" && !u.IsResigned && !string.IsNullOrWhiteSpace(u.RealName))
                 .Select(u => u.RealName)
                 .ToList();
             for (int i = 0; i < 7; i++)
             {
                 DateTime d = weekStart.AddDays(i);
                 var dayOffs = weekShifts
-                    .Where(s => s.TargetDate.Date == d.Date && IsOffType(s.ShiftType))
+                    .Where(s => s.TargetDate.Date == d.Date && IsOffType(s.ShiftType) && !weekResignedNames.Contains(s.MemberName))
                     .Select(s => new
                     {
                         Team = teamMap.TryGetValue(s.MemberName, out var t) ? t : "기타",
