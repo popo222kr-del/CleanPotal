@@ -298,7 +298,10 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
         private void SeedEquipments()
         {
-            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC01-1 (POLY/대대배치)", "MSC01-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)" };
+            // ⚠️ EquipmentIndex는 DB에 배열 순번(정수)으로 저장되어 있어, 기존 설비 사이에 끼워 넣으면
+            //    이후 설비들의 인덱스가 밀리면서 이미 저장된 스케줄 블록이 엉뚱한 설비 줄로 옮겨간다.
+            //    새 설비는 반드시 배열 맨 끝에만 추가할 것.
+            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC01-1 (POLY/대대배치)", "MSC01-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)", "NDC08 (OTT, A급)" };
             for (int i = 0; i < names.Length; i++) Equipments.Add(new EquipmentLine { Index = i, DisplayName = names[i] });
         }
 
