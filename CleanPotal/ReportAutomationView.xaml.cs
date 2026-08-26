@@ -106,6 +106,21 @@ namespace CleanPotal
             }
         }
 
+        // 저장 파일명: 품명이 있으면 "품명(S/N)", 없으면(2열 붙여넣기 등) 기존대로 S/N만.
+        private static string BuildDestFileName(string productName, string serialNumber)
+        {
+            string sn = SanitizeFileName(serialNumber);
+            string pn = SanitizeFileName(productName);
+            return string.IsNullOrWhiteSpace(pn) ? sn : $"{pn}({sn})";
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "";
+            var invalid = Path.GetInvalidFileNameChars();
+            return new string(name.Trim().Select(c => invalid.Contains(c) ? '_' : c).ToArray());
+        }
+
         private void BtnClearMes_Click(object sender, RoutedEventArgs e) => MesTaskList.Clear();
 
         private async void BtnRunMes_Click(object sender, RoutedEventArgs e)
@@ -156,8 +171,10 @@ namespace CleanPotal
                             continue;
                         }
 
-                        string destExcelFile = Path.Combine(DEST_DIR, $"{task.SerialNumber}.xlsx");
-                        string destPdfFile = Path.Combine(DEST_DIR, $"{task.SerialNumber}.pdf");
+                        // 품명이 있으면 파일명을 "품명(S/N)" 형식으로, 없으면 기존대로 S/N만
+                        string destBaseName = BuildDestFileName(task.ProductName, task.SerialNumber);
+                        string destExcelFile = Path.Combine(DEST_DIR, $"{destBaseName}.xlsx");
+                        string destPdfFile = Path.Combine(DEST_DIR, $"{destBaseName}.pdf");
 
                         try
                         {
