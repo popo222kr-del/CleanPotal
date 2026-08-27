@@ -45,6 +45,8 @@ namespace CleanPotal
         // 🔥 요청: 신규/기존 경로 분리 적용
         private readonly string NEW_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Ori\";
         private readonly string OLD_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection\";
+        // MES 엑셀 매크로가 LOT ID로 미리 만들어두는 완성 PDF. 있으면 엑셀→PDF 변환 없이 그대로 복사한다.
+        private readonly string PDF_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Pdf\";
 
         private readonly string DEST_DIR = @"\\10.10.40.98\천안공장\25. 생산 Inform 자료\주언\1.성적서 복사 및 생성\";
 
@@ -155,17 +157,15 @@ namespace CleanPotal
                         // 🔥 요청: 1순위(신규경로), 2순위(기존경로) 순차 확인 로직 적용
                         string sourceFileNew = Path.Combine(NEW_SOURCE_DIR, $"{task.LotNumber}.xlsx");
                         string sourceFileOld = Path.Combine(OLD_SOURCE_DIR, $"{task.LotNumber}.xlsx");
-                        string targetSourceFile = "";
+                        string targetSourceFile = File.Exists(sourceFileNew) ? sourceFileNew
+                                                 : File.Exists(sourceFileOld) ? sourceFileOld
+                                                 : "";
 
-                        if (File.Exists(sourceFileNew))
-                        {
-                            targetSourceFile = sourceFileNew;
-                        }
-                        else if (File.Exists(sourceFileOld))
-                        {
-                            targetSourceFile = sourceFileOld;
-                        }
-                        else
+                        // MES 엑셀 매크로가 LOT ID로 미리 만들어둔 완성 PDF가 있으면 그것을 우선 사용(엑셀→PDF 변환 생략)
+                        string sourcePdfReady = Path.Combine(PDF_SOURCE_DIR, $"{task.LotNumber}.pdf");
+                        bool hasReadyPdf = makePdf && File.Exists(sourcePdfReady);
+
+                        if (string.IsNullOrEmpty(targetSourceFile) && !hasReadyPdf)
                         {
                             task.Status = "원본 없음";
                             continue;
@@ -178,14 +178,27 @@ namespace CleanPotal
 
                         try
                         {
-                            File.Copy(targetSourceFile, destExcelFile, true);
+                            if (!string.IsNullOrEmpty(targetSourceFile))
+                                File.Copy(targetSourceFile, destExcelFile, true);
 
-                            if (makePdf && excelApp != null)
+                            if (makePdf)
                             {
-                                Excel.Workbook wb = excelApp.Workbooks.Open(destExcelFile);
-                                wb.ExportAsFixedFormat(Excel.XlFixedFormatType.xlTypePDF, destPdfFile);
-                                wb.Close(false);
-                                task.Status = "성공 (PDF 완료)";
+                                if (hasReadyPdf)
+                                {
+                                    File.Copy(sourcePdfReady, destPdfFile, true);
+                                    task.Status = "성공 (PDF 원본복사)";
+                                }
+                                else if (!string.IsNullOrEmpty(targetSourceFile) && excelApp != null)
+                                {
+                                    Excel.Workbook wb = excelApp.Workbooks.Open(destExcelFile);
+                                    wb.ExportAsFixedFormat(Excel.XlFixedFormatType.xlTypePDF, destPdfFile);
+                                    wb.Close(false);
+                                    task.Status = "성공 (PDF 완료)";
+                                }
+                                else
+                                {
+                                    task.Status = "PDF 원본 없음(엑셀만)";
+                                }
                             }
                             else
                             {
