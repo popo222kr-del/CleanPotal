@@ -43,7 +43,7 @@ namespace CleanPotal
         public ObservableCollection<ReportTaskModel> PrintTaskList { get; set; } = new ObservableCollection<ReportTaskModel>();
 
         // 🔥 요청: 신규/기존 경로 분리 적용
-        private readonly string NEW_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Ori\";
+        private readonly string NEW_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection_cov\Pdf\";
         private readonly string OLD_SOURCE_DIR = @"\\10.10.40.98\nas\00.MESServer\Inspection\";
 
         private readonly string DEST_DIR = @"\\10.10.40.98\천안공장\25. 생산 Inform 자료\주언\1.성적서 복사 및 생성\";

@@ -29,7 +29,7 @@ namespace CleanPotal
         public int TotalCells => ((EndHourExclusive - StartHour) * 60) / 10;
         public int TotalMinutes => (EndHourExclusive - StartHour) * 60;
 
-        private const int MaxConcurrentDIBatches = 5;
+        private const int MaxConcurrentDIBatches = 6;
 
         private static string DbPath => Path.Combine(AppPaths.DataRoot, "CleanPotal.db");
         private static string RecipeFile => Path.Combine(AppPaths.DataRoot, "recipes.json");
