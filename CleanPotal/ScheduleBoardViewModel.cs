@@ -29,7 +29,39 @@ namespace CleanPotal
         public int TotalCells => ((EndHourExclusive - StartHour) * 60) / 10;
         public int TotalMinutes => (EndHourExclusive - StartHour) * 60;
 
-        private const int MaxConcurrentDIBatches = 5;
+        // 동시 DI 배치 제한 — 관리자(AETS)가 화면에서 변경 가능(schedule_board_settings 로 영속화).
+        // 기존 코드 전체가 'MaxConcurrentDIBatches' 이름으로 참조하므로, const→property 전환만으로
+        // 다른 코드 수정 없이 그대로 동작한다.
+        private const string DiLimitSettingsKey = "schedule_board_settings";
+        private int _maxConcurrentDIBatches = 5;
+        public int MaxConcurrentDIBatches
+        {
+            get => _maxConcurrentDIBatches;
+            private set { if (_maxConcurrentDIBatches != value) { _maxConcurrentDIBatches = value; OnPropertyChanged(nameof(MaxConcurrentDIBatches)); } }
+        }
+
+        private void LoadDiLimitSetting()
+        {
+            try
+            {
+                string? json = AppDataRepository.Get(DiLimitSettingsKey);
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var doc = JsonSerializer.Deserialize<ScheduleBoardSettings>(json);
+                    if (doc != null && doc.MaxConcurrentDIBatches > 0) _maxConcurrentDIBatches = doc.MaxConcurrentDIBatches;
+                }
+            }
+            catch { }
+        }
+
+        // 관리자 전용(AETS). 호출부(UI)에서 권한 확인 후 호출할 것.
+        public void SetMaxConcurrentDIBatches(int value)
+        {
+            if (value < 1) value = 1;
+            MaxConcurrentDIBatches = value;
+            try { AppDataRepository.Set(DiLimitSettingsKey, JsonSerializer.Serialize(new ScheduleBoardSettings { MaxConcurrentDIBatches = value })); }
+            catch { }
+        }
 
         private static string DbPath => Path.Combine(AppPaths.DataRoot, "CleanPotal.db");
         private static string RecipeFile => Path.Combine(AppPaths.DataRoot, "recipes.json");
@@ -260,7 +292,7 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
 
         public ScheduleBoardViewModel()
         {
-            SeedEquipments(); LoadRecipes();
+            SeedEquipments(); LoadRecipes(); LoadDiLimitSetting();
             if (Recipes.Count == 0) SeedRecipes();
             StatusText = "선택 레시피: 없음";
             try { InitializeDatabase(); LoadBlocksFromDb(); } catch (Exception ex) { StatusText = $"DB 로드 실패: {ex.Message}"; }
@@ -301,7 +333,7 @@ FROM ScheduleBlocks WHERE BoardDate = @prevDate;";
             // ⚠️ EquipmentIndex는 DB에 배열 순번(정수)으로 저장되어 있어, 기존 설비 사이에 끼워 넣으면
             //    이후 설비들의 인덱스가 밀리면서 이미 저장된 스케줄 블록이 엉뚱한 설비 줄로 옮겨간다.
             //    새 설비는 반드시 배열 맨 끝에만 추가할 것.
-            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC01-1 (POLY/대대배치)", "MSC01-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)", "NDC08 (OTT, A급)" };
+            string[] names = { "MDC01 (POLY)", "MDC02 (Hot Chemical)", "MDC03 (Hot Chemical)", "MDC04 (POLY)", "MDC05 (TEOS)", "MDC06 (ALO/HFO)", "MDC07 (POLY)", "MDC08 (N,G,D-POLY)", "MDC09 (SIGE)", "MDC10 (ALO/HFO)", "MSC01-1 (POLY/대대배치)", "MSC01-2 (Rinse 전용)", "NDC01 (WOOAM)", "NDC02 (OXIDE)", "NDC03 (A급)", "NDC04 (A급)", "NDC05 (N,G,D-POLY)", "NDC06 (Hot Chemical)", "NDC07 (SiN)", "NDC08 (A급) (OTT)", "SPC01", "SPC02", "RPC01 (PFA TUBE)" };
             for (int i = 0; i < names.Length; i++) Equipments.Add(new EquipmentLine { Index = i, DisplayName = names[i] });
         }
 
@@ -580,6 +612,7 @@ VALUES (@eq, @start, @total, @s2, @hf, @di, @temp, @recipe, @time, @date);";
         public List<(string DateStr, int EquipmentIndex, int StartMinute)> NextDayOverflows { get; set; } = new();
     }
     public class EquipmentLine { public int Index { get; set; } public string DisplayName { get; set; } = ""; }
+    public class ScheduleBoardSettings { public int MaxConcurrentDIBatches { get; set; } = 5; }
 
     public class RecipeDefinition
     {
