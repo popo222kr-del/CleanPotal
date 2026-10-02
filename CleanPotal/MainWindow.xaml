@@ -687,6 +687,7 @@
                         <Button x:Name="BtnCommandSecondary" Content="완료 목록" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed"/>
                         <Button x:Name="BtnCommandVendor" Content="업체 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed"/>
                         <Button x:Name="BtnCommandRecipeManage" Content="레시피 관리" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandRecipeManage_Click"/>
+                        <Button x:Name="BtnCommandDiLimit" Content="동시배치 설정" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandDiLimit_Click"/>
                         <Button x:Name="BtnCommandCapture" Content="화면 캡처" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandCapture_Click"/>
                         <Button x:Name="BtnCommandMultiCapture" Content="멀티 캡처" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandMultiCapture_Click"/>
                         <Button x:Name="BtnCommandUndo" Content="되돌리기" Style="{StaticResource HeaderButtonStyle}" Visibility="Collapsed" Click="BtnCommandUndo_Click"/>

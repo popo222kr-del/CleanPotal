@@ -598,6 +598,7 @@ namespace CleanPotal
             HideAllHeaderButtons();
             BtnCommandRecipeManage.Visibility = Visibility.Visible; BtnCommandCapture.Visibility = Visibility.Visible;
             BtnCommandMultiCapture.Visibility = Visibility.Visible; BtnCommandUndo.Visibility = Visibility.Visible; BtnCommandReset.Visibility = Visibility.Visible;
+            BtnCommandDiLimit.Visibility = SessionManager.IsMasterAdmin ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void ShowTeamSchedule()
@@ -748,6 +749,7 @@ namespace CleanPotal
         private void BtnCommandNotice_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenNoticeModal(); else if (MainContent.Content is WeeklyReportView wr) wr.ShowReportTable(); }
         private void BtnCommandSecondary_Click(object sender, RoutedEventArgs e) { if (MainContent.Content is HandoverView hv) hv.OpenDoneModal(); else if (MainContent.Content is WeeklyReportView wr) wr.SaveReportChanges(); else if (MainContent.Content is ProductionMeetingView pm) pm.SaveReportChanges(); }
         private void BtnCommandRecipeManage_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenRecipeManager();
+        private void BtnCommandDiLimit_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.OpenDiLimitSettings();
         private void BtnCommandCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.CaptureBoard();
         private void BtnCommandMultiCapture_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.MultiCaptureBoard();
         private void BtnCommandUndo_Click(object sender, RoutedEventArgs e) => _scheduleBoardView?.UndoAction();

@@ -86,6 +86,72 @@ namespace CleanPotal
             DrawBoard();
         }
 
+        // 동시 DI 배치 제한 설정 — 헤더 버튼은 관리자(AETS)일 때만 보이지만,
+        // 다른 경로로 호출될 가능성을 막기 위해 여기서도 권한을 한 번 더 확인한다.
+        public void OpenDiLimitSettings()
+        {
+            if (!SessionManager.IsMasterAdmin)
+            {
+                MessageBox.Show("이 설정은 관리자만 변경할 수 있습니다.", "권한 제한", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            var win = new Window
+            {
+                Title = "동시 배치(DI) 제한 설정",
+                Width = 380,
+                SizeToContent = SizeToContent.Height,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                ResizeMode = ResizeMode.NoResize,
+                Background = Brushes.White
+            };
+
+            var panel = new StackPanel { Margin = new Thickness(20) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = "같은 시간대에 DI 공정을 동시에 진행할 수 있는 설비 수",
+                FontSize = 13,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 12)
+            });
+
+            var input = new TextBox
+            {
+                Text = _vm.MaxConcurrentDIBatches.ToString(),
+                FontSize = 16,
+                Height = 34,
+                Padding = new Thickness(8, 4, 8, 4),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1)),
+                BorderThickness = new Thickness(1)
+            };
+            panel.Children.Add(input);
+
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+            var btnCancel = new Button { Content = "취소", Width = 70, Height = 32, Margin = new Thickness(0, 0, 8, 0), Background = Brushes.White, BorderBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0xE7, 0xEB)), BorderThickness = new Thickness(1) };
+            var btnSave = new Button { Content = "저장", Width = 70, Height = 32, Background = new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB)), Foreground = Brushes.White, BorderThickness = new Thickness(0) };
+            btnCancel.Click += (_, __) => win.Close();
+            btnSave.Click += (_, __) =>
+            {
+                if (!int.TryParse(input.Text.Trim(), out int val) || val < 1 || val > 50)
+                {
+                    MessageBox.Show("1~50 사이의 숫자를 입력하세요.", "입력 오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                _vm.SetMaxConcurrentDIBatches(val);
+                win.Close();
+                MessageBox.Show($"동시 배치(DI) 제한이 {val}개로 저장되었습니다.", "저장 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+            btnRow.Children.Add(btnCancel);
+            btnRow.Children.Add(btnSave);
+            panel.Children.Add(btnRow);
+
+            win.Content = panel;
+            win.ShowDialog();
+        }
+
         private void Recipes_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             Dispatcher.Invoke(() => { RefreshRecipeList(); });
