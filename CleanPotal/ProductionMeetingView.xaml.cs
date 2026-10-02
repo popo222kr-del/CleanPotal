@@ -1278,7 +1278,7 @@ namespace CleanPotal
                     IsExpanded = isCurr
                 };
                 GroupedHistory.Add(group);
-                var sorted = GroupedHistory.OrderByDescending(g => g.MonthTitle).ToList();
+                var sorted = GroupedHistory.OrderByDescending(g => ParseMonthTitle(g.MonthTitle)).ToList();
                 GroupedHistory.Clear();
                 foreach (var s in sorted) GroupedHistory.Add(s);
             }
@@ -1321,6 +1321,17 @@ namespace CleanPotal
             {
                 return parsed;
             }
+            return DateTime.MinValue;
+        }
+
+        // "yyyy년 M월" 월 그룹 제목을 실제 날짜로 변환해 정렬에 사용.
+        // ⚠️ 문자열로 그대로 정렬하면 "9월" > "10월"이 되어(문자 '9' > '1') 10월이 9월보다
+        //    아래로 밀리는 버그가 있었다 — 반드시 이 함수로 파싱한 값으로 정렬할 것.
+        private static DateTime ParseMonthTitle(string monthTitle)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(monthTitle ?? "", @"(\d+)년\s*(\d+)월");
+            if (m.Success && int.TryParse(m.Groups[1].Value, out int y) && int.TryParse(m.Groups[2].Value, out int mo) && mo is >= 1 and <= 12)
+                return new DateTime(y, mo, 1);
             return DateTime.MinValue;
         }
 
@@ -2832,6 +2843,11 @@ namespace CleanPotal
                     }
                     GroupedHistory.Add(mappedGroup);
                 }
+
+                // 과거 버그(문자열 정렬)로 저장된 순서가 틀어져 있어도 불러올 때마다 월 기준으로 재정렬해 교정한다.
+                var sortedGroups = GroupedHistory.OrderByDescending(g => ParseMonthTitle(g.MonthTitle)).ToList();
+                GroupedHistory.Clear();
+                foreach (var g in sortedGroups) GroupedHistory.Add(g);
             }
             catch { }
         }
