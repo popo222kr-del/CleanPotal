@@ -29,7 +29,39 @@ namespace CleanPotal
         public int TotalCells => ((EndHourExclusive - StartHour) * 60) / 10;
         public int TotalMinutes => (EndHourExclusive - StartHour) * 60;
 
-        private const int MaxConcurrentDIBatches = 5;
+        // 동시 DI 배치 제한 — 관리자(AETS)가 화면에서 변경 가능(schedule_board_settings 로 영속화).
+        // 기존 코드 전체가 'MaxConcurrentDIBatches' 이름으로 참조하므로, const→property 전환만으로
+        // 다른 코드 수정 없이 그대로 동작한다.
+        private const string DiLimitSettingsKey = "schedule_board_settings";
+        private int _maxConcurrentDIBatches = 5;
+        public int MaxConcurrentDIBatches
+        {
+            get => _maxConcurrentDIBatches;
+            private set { if (_maxConcurrentDIBatches != value) { _maxConcurrentDIBatches = value; OnPropertyChanged(nameof(MaxConcurrentDIBatches)); } }
+        }
+
+        private void LoadDiLimitSetting()
+        {
+            try
+            {
+                string? json = AppDataRepository.Get(DiLimitSettingsKey);
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    var doc = JsonSerializer.Deserialize<ScheduleBoardSettings>(json);
+                    if (doc != null && doc.MaxConcurrentDIBatches > 0) _maxConcurrentDIBatches = doc.MaxConcurrentDIBatches;
+                }
+            }
+            catch { }
+        }
+
+        // 관리자 전용(AETS). 호출부(UI)에서 권한 확인 후 호출할 것.
+        public void SetMaxConcurrentDIBatches(int value)
+        {
+            if (value < 1) value = 1;
+            MaxConcurrentDIBatches = value;
+            try { AppDataRepository.Set(DiLimitSettingsKey, JsonSerializer.Serialize(new ScheduleBoardSettings { MaxConcurrentDIBatches = value })); }
+            catch { }
+        }
 
         private static string DbPath => Path.Combine(AppPaths.DataRoot, "CleanPotal.db");
         private static string RecipeFile => Path.Combine(AppPaths.DataRoot, "recipes.json");
