@@ -624,6 +624,7 @@ namespace CleanPotal
             if (!TryNavigateAway()) return;
             _currentViewName = "Quotation";
             if (_quotationView == null) _quotationView = new QuotationView();
+            else _quotationView.TryRefresh();
             MainContent.Content = _quotationView;
             ApplySectionMeta("업체 견적서", "거래처별 견적서를 작성하고 단가를 일괄 관리합니다.");
             UpdateNavSelection("Quotation");

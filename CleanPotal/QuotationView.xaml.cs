@@ -353,7 +353,24 @@ namespace CleanPotal
             }
         }
 
-        public void TryRefresh() { }
+        // 다른 화면(인수인계 '업체 정보 관리' 등)에서 추가·변경된 업체를 재진입 시 반영.
+        // 견적 편집 중에는 목록 재구성이 선택을 바꿔 편집을 끊으므로 건너뛴다.
+        public void TryRefresh()
+        {
+            if (CurrentQuotation != null) return;
+
+            var latest = VendorStore.Load().OrderBy(v => v.VendorName).ToList();
+            static string Key(VendorModel v) => $"{v.VendorName}|{v.Category}|{v.IsFavorite}";
+            if (latest.Select(Key).SequenceEqual(_allVendors.Select(Key), StringComparer.OrdinalIgnoreCase)) return;
+
+            string? selectedName = IsAllVendors ? null : _selectedVendor?.VendorName;
+            _allVendors = latest;
+            FilterVendors();
+            RefreshVendorSuggestions();
+            VendorListBox.SelectedItem = selectedName == null
+                ? AllVendorsItem
+                : FilteredVendors.FirstOrDefault(v => string.Equals(v.VendorName, selectedName, StringComparison.OrdinalIgnoreCase)) ?? AllVendorsItem;
+        }
 
         // ─── CurrentQuotation 필드 변경 감지 ───
 
